@@ -45,9 +45,6 @@ export default function HomeScreen({
   const cur = onStreak ? (duo.streak || 0) : 0;
   const tastePct = duo.tasteTotal > 0 ? Math.round(100 * duo.tasteAgree / duo.tasteTotal) : 0;
   const hasPass = duo.passTier && duo.passTier !== 'free';
-  const since = duo.createdAt
-    ? ' · a duo since ' + new Date(duo.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-    : '';
   const inviteToken = loadSeats()['invite-' + code];
   const inviteUrl = inviteToken
     ? `${window.location.origin}${window.location.pathname}?duo=${code}&t=${inviteToken}` : null;
@@ -133,7 +130,7 @@ export default function HomeScreen({
           </div>
           <div style={{ flex: 1 }}>
             <div className="duo-title h3">{duo.nameA} <span className="amp">&</span> {duo.nameB}</div>
-            <div className="duo-meta">{duo.evenings || 0} evenings together{since}</div>
+            <div className="duo-meta">{duo.evenings || 0} evenings together</div>
           </div>
           {hasPass && (
             <div className="pass-badge">

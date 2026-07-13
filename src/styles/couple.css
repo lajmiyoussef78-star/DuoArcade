@@ -126,6 +126,13 @@
 .ch-count{font-family:'Fraunces',serif;font-weight:900;font-size:27px;margin-top:2px;line-height:1.2;}
 .ch-count b{color:var(--candle);font-weight:900;
   text-shadow:0 0 16px color-mix(in srgb, var(--candle) 60%, transparent);}
+.ch-duo{font-size:12px;color:var(--dim);margin-top:5px;line-height:1.4;}
+.ch-duo b{color:var(--text);font-weight:600;}
+.ch-since{font-size:11.5px;color:var(--dim);margin-top:4px;}
+.ch-since b{color:var(--candle);font-weight:600;}
+.ch-setdate{background:none;border:none;padding:0;font-family:'Fraunces',serif;font-weight:700;
+  font-size:17px;color:var(--dim);cursor:pointer;text-align:left;line-height:1.3;}
+.ch-setdate:hover{color:var(--candle);}
 .ch-timeline{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap;}
 .ch-tl-item{font-size:10.5px;color:var(--dim);display:flex;align-items:center;gap:5px;white-space:nowrap;}
 .ch-tl-item .hh{color:color-mix(in srgb, var(--dim) 60%, transparent);font-size:11px;line-height:1;}

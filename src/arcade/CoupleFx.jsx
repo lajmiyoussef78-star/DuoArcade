@@ -84,28 +84,24 @@ function splitDuration(from) {
   return { y, m, d, days };
 }
 
-// When an anniversary is saved, count from that calendar date. If the stored
-// year is still ahead (common when picking month/day for an upcoming celebration),
-// walk back to the latest past occurrence — but never before the duo joined the app.
-function togetherStart(anniv, createdAt) {
-  const created = parseDay(createdAt);
-  if (!anniv) return createdAt || null;
-
+// Relationship start = the saved anniversary date. If the year is still ahead,
+// walk back until we're counting from a real past date.
+function relationshipStart(anniv) {
+  if (!anniv) return null;
   const stored = parseDay(anniv);
-  if (!stored) return createdAt || null;
-
+  if (!stored) return null;
   const now = new Date();
   now.setHours(12, 0, 0, 0);
-
-  if (stored <= now) return stored;
-
-  // stored date is still in the future — use the most recent past month/day
-  let start = new Date(now.getFullYear(), stored.getMonth(), stored.getDate(), 12, 0, 0, 0);
-  if (start > now) start.setFullYear(start.getFullYear() - 1);
-
-  // if that predates joining DuoArcade, count from when the duo was created instead
-  if (created && created > start) return createdAt;
+  const start = new Date(stored);
+  start.setHours(12, 0, 0, 0);
+  while (start > now) start.setFullYear(start.getFullYear() - 1);
   return start;
+}
+
+function formatLongDate(when) {
+  const d = when instanceof Date ? when : parseDay(when);
+  if (!d || !Number.isFinite(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 const annivKey = code => 'duoarcade-anniv-' + code;
@@ -118,15 +114,16 @@ export function TogetherHero({ duo, code, totals }) {
     id: i, left: Math.random() * 100, top: Math.random() * 100, delay: Math.random() * 4
   })), []);
 
-  const startFrom = togetherStart(anniv, duo.createdAt);
-  const dur = startFrom ? splitDuration(startFrom) : null;
-  if (!dur) return null;
-  const firstDay = dur.days === 0;
-  const dayCount = dur.y || dur.m ? dur.d : dur.days;
+  const relStart = relationshipStart(anniv);
+  const dur = relStart ? splitDuration(relStart) : null;
+  const firstDay = dur?.days === 0;
+  const dayCount = dur ? (dur.y || dur.m ? dur.d : dur.days) : 0;
   const parts = [];
-  if (dur.y) parts.push(<span key="y"><b>{dur.y}</b> year{dur.y > 1 ? 's' : ''}</span>);
-  if (dur.m) parts.push(<span key="m"><b>{dur.m}</b> month{dur.m > 1 ? 's' : ''}</span>);
-  if (!firstDay) parts.push(<span key="d"><b>{dayCount}</b> day{dayCount === 1 ? '' : 's'}</span>);
+  if (dur?.y) parts.push(<span key="y"><b>{dur.y}</b> year{dur.y > 1 ? 's' : ''}</span>);
+  if (dur?.m) parts.push(<span key="m"><b>{dur.m}</b> month{dur.m > 1 ? 's' : ''}</span>);
+  if (dur && !firstDay) parts.push(<span key="d"><b>{dayCount}</b> day{dayCount === 1 ? '' : 's'}</span>);
+
+  const duoSince = formatLongDate(duo.createdAt);
 
   /* anniversary countdown: next occurrence of the saved date */
   let ringDays = null;
@@ -181,13 +178,24 @@ export function TogetherHero({ duo, code, totals }) {
       <div className="ch-mid">
         <div className="ch-label">Together for</div>
         <div className="ch-count">
-          {firstDay
-            ? <span><b>day one</b> {'❤'}</span>
-            : parts.reduce((acc, p, i) => (i ? [...acc, ', ', p] : [p]), [])}
+          {!dur ? (
+            <button type="button" className="ch-setdate" onClick={() => setEditing(true)}>
+              set your anniversary {'→'}
+            </button>
+          ) : firstDay ? (
+            <span><b>day one</b> {'❤'}</span>
+          ) : (
+            parts.reduce((acc, p, i) => (i ? [...acc, ', ', p] : [p]), [])
+          )}
         </div>
-        {!anniv && duo.createdAt && (
-          <div className="ch-setdate">
-            counting since you joined DuoArcade — set your anniversary {'→'} to count from your real date
+        {anniv && relStart && (
+          <div className="ch-since">
+            together since <b>{formatLongDate(relStart)}</b>
+          </div>
+        )}
+        {duoSince && (
+          <div className="ch-duo">
+            DuoArcade duo since <b>{duoSince}</b>
           </div>
         )}
         <div className="ch-timeline">
@@ -215,7 +223,7 @@ export function TogetherHero({ duo, code, totals }) {
         </div>
       ) : (
         <div className="ch-set">
-          <label style={{ margin: '0 0 5px' }}>Your anniversary</label>
+          <label style={{ margin: '0 0 5px' }}>When did you get together?</label>
           <input type="date" defaultValue={anniv}
             onChange={e => e.target.value && saveAnniv(e.target.value)} />
         </div>
