@@ -166,17 +166,18 @@ export default function HomeScreen({
             const rec = (duo.records || {})[eng.meta.id] || { a: 0, b: 0, d: 0 };
             return (
               <div className="gcard" key={eng.meta.id} onClick={() => onStartGame(eng.meta.id)}
-                style={{ position: 'relative', overflow: 'hidden' }}>
+                style={{ position: 'relative', overflow: 'hidden', minHeight: 104 }}>
                 {artFor(eng.meta.id) && (
-                  <div aria-hidden="true"
-                    style={{
-                      position: 'absolute', right: -12, top: '50%',
-                      transform: 'translateY(-50%)', width: 96, height: 96,
-                      opacity: 0.5, pointerEvents: 'none',
-                      maskImage: 'linear-gradient(90deg, transparent, black 40%)',
-                      WebkitMaskImage: 'linear-gradient(90deg, transparent, black 40%)'
-                    }}
-                    dangerouslySetInnerHTML={{ __html: artFor(eng.meta.id) }} />
+                  <>
+                    <div aria-hidden="true"
+                      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+                      dangerouslySetInnerHTML={{ __html: artFor(eng.meta.id) }} />
+                    <div aria-hidden="true"
+                      style={{
+                        position: 'absolute', inset: 0, pointerEvents: 'none',
+                        background: 'linear-gradient(90deg, rgba(20,15,26,.82) 0%, rgba(20,15,26,.45) 55%, rgba(20,15,26,.12) 100%)'
+                      }} />
+                  </>
                 )}
                 <div className="gname" style={{ position: 'relative' }}>{eng.meta.name}</div>
                 <div className="gtag" style={{ position: 'relative' }}>{eng.meta.tag}</div>
