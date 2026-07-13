@@ -231,10 +231,11 @@ export const RULES = {
     how: [
       'Each of you secretly picks a 4-digit code (digits can repeat).',
       'Take turns guessing your partner\u2019s code.',
-      'Green = right digit, right place. Yellow = right digit, wrong place. Red = not in the code.',
-      'First to get all four green wins. You each get up to 10 guesses.'
+      'After each guess you only get totals: how many digits are correct (right place), and how many are right but misplaced.',
+      'You never learn which digit is which \u2014 just the counts.',
+      'Guess the exact code to win. You each get up to 10 tries.'
     ],
-    tip: 'Start by spreading digits across the row — duplicates make yellow/green reads harder.'
+    tip: 'Use the totals like Mastermind \u2014 rule digits in or out, then narrow the order.'
   }
 };
 

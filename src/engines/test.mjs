@@ -366,10 +366,12 @@ import * as TTL from './twotruths.js';
 /* ---------- Code Break ---------- */
 import * as CB from './codebreak.js';
 {
-  t('cb: exact match all green', CB.scoreGuess('1234', '1234') === 'gggg');
-  t('cb: yellow for wrong position', CB.scoreGuess('1243', '1234').includes('y'));
-  t('cb: red for absent digit', CB.scoreGuess('5678', '1234') === '....');
-  t('cb: mixed feedback', CB.scoreGuess('1122', '1210') === 'gyy.');
+  const s = (g, a) => CB.scoreGuess(g, a);
+  t('cb: 5333 vs 4302 one correct', s('5333', '4302').exact === 1 && s('5333', '4302').misplaced === 0);
+  t('cb: 5433 vs 4302 two misplaced', s('5433', '4302').exact === 0 && s('5433', '4302').misplaced === 2);
+  t('cb: full match', s('4302', '4302').exact === 4);
+  t('cb: none correct', s('5678', '4302').exact === 0 && s('5678', '4302').misplaced === 0);
+  t('cb: duplicate counted once', s('1122', '1211').exact === 1 && s('1122', '1211').misplaced === 2);
 
   let gs = CB.initialState();
   t('cb: starts at setA', gs.phase === 'setA');

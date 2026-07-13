@@ -1,33 +1,51 @@
 // engines/codebreak.js — Code Break: each player picks a secret 4-digit code.
-// Take turns guessing your partner's number. Green = right digit, right place.
-// Yellow = right digit, wrong place. Red = not in the code. First crack wins.
+// Take turns guessing your partner's number. You only get totals back —
+// how many digits are correct (right place) and how many are right but
+// misplaced. No per-digit hints. First exact crack wins.
 export const meta = { id: 'codebreak', name: 'Code Break', tag: 'crack the 4-digit code', realtime: false };
 
 const LEN = 4;
 const MAX = 10; // guesses per player before a draw
 
-// Wordle-style two-pass scoring: g green, y yellow, . red
+// Mastermind-style scoring: exact = right digit, right place;
+// misplaced = right digit, wrong place (positions never revealed).
 export function scoreGuess(guess, answer) {
   const g = String(guess).split('');
   const a = String(answer).split('');
   if (g.length !== LEN || a.length !== LEN) return null;
-  const res = Array(LEN).fill('.');
-  const left = {};
+
+  let exact = 0;
+  const gLeft = [], aLeft = [];
   for (let i = 0; i < LEN; i++) {
-    if (g[i] === a[i]) res[i] = 'g';
-    else left[a[i]] = (left[a[i]] || 0) + 1;
+    if (g[i] === a[i]) exact++;
+    else { gLeft.push(g[i]); aLeft.push(a[i]); }
   }
-  for (let i = 0; i < LEN; i++) {
-    if (res[i] === '.' && left[g[i]] > 0) { res[i] = 'y'; left[g[i]]--; }
+  let misplaced = 0;
+  const pool = aLeft.slice();
+  for (const d of gLeft) {
+    const j = pool.indexOf(d);
+    if (j >= 0) { misplaced++; pool.splice(j, 1); }
   }
-  return res.join('');
+  return { exact, misplaced };
+}
+
+export function formatHint(score) {
+  if (!score) return '';
+  const bits = [];
+  if (score.exact) bits.push(`${score.exact} correct`);
+  if (score.misplaced) bits.push(`${score.misplaced} correct but misplaced`);
+  return bits.length ? bits.join(' · ') : 'none correct';
+}
+
+export function isWin(score) {
+  return score && score.exact === LEN;
 }
 
 export function initialState() {
   return {
-    phase: 'setA',                    // setA → setB → play
+    phase: 'setA',
     secrets: { A: null, B: null },
-    guesses: { A: [], B: [] },      // each list: { code, score }[]
+    guesses: { A: [], B: [] },
     last: null
   };
 }
@@ -71,7 +89,6 @@ export function applyMove(gs, m, player) {
       [player]: [...gs.guesses[player], { code: m.code, score }]
     };
     const last = { by: player, code: m.code, score };
-    const won = score === 'g'.repeat(LEN);
     return { gs: { ...gs, guesses, last }, again: false };
   }
 
@@ -82,7 +99,7 @@ export function winner(gs) {
   if (gs.phase !== 'play') return null;
   for (const p of ['A', 'B']) {
     const last = gs.guesses[p].at(-1);
-    if (last && last.score === 'g'.repeat(LEN)) return p;
+    if (last && isWin(last.score)) return p;
   }
   if (gs.guesses.A.length >= MAX && gs.guesses.B.length >= MAX) return 'draw';
   return null;
@@ -90,28 +107,32 @@ export function winner(gs) {
 
 /* ---------- rendering ---------- */
 
-const COLOR = { g: 'green', y: 'yellow', '.': 'gray' };
-
 function boardCompact(history) {
   const el = document.createElement('div');
   el.className = 'cb-board';
-  const rows = Math.max(1, history.length);
-  for (let r = 0; r < rows; r++) {
-    const row = document.createElement('div');
-    row.className = 'cb-row';
-    const entry = history[r];
-    for (let c = 0; c < LEN; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cb-cell' + (entry ? ' ' + (COLOR[entry.score[c]] || 'gray') : ' empty');
-      if (entry) cell.textContent = entry.code[c];
-      row.appendChild(cell);
-    }
-    el.appendChild(row);
-  }
   if (!history.length) {
     const row = document.createElement('div');
     row.className = 'cb-row hint';
     row.textContent = 'no guesses yet';
+    el.appendChild(row);
+    return el;
+  }
+  for (const entry of history) {
+    const row = document.createElement('div');
+    row.className = 'cb-row';
+    const code = document.createElement('div');
+    code.className = 'cb-code';
+    for (let c = 0; c < LEN; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cb-cell';
+      cell.textContent = entry.code[c];
+      code.appendChild(cell);
+    }
+    const hint = document.createElement('div');
+    hint.className = 'cb-hint';
+    hint.textContent = formatHint(entry.score);
+    row.appendChild(code);
+    row.appendChild(hint);
     el.appendChild(row);
   }
   return el;
@@ -126,10 +147,8 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
 
   const legend = document.createElement('div');
   legend.className = 'cb-legend';
-  legend.innerHTML =
-    '<span class="green">green</span> right place · ' +
-    '<span class="yellow">yellow</span> wrong place · ' +
-    '<span class="gray">red</span> not in code';
+  legend.textContent =
+    'you only get totals — never which digit is which. crack all 4 in the right order to win.';
   wrap.appendChild(legend);
 
   if (gs.phase === 'setA' || gs.phase === 'setB') {
@@ -177,7 +196,6 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
     return;
   }
 
-  // play phase
   const mine = gs.guesses[myRole];
   const theirs = gs.guesses[other(myRole)];
   const canGuess = !w && turn === myRole && mine.length < MAX;
@@ -204,11 +222,10 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
   if (gs.last) {
     const note = document.createElement('div');
     note.className = 'dots-score';
-    const who = gs.last.by === myRole ? 'you' : 'partner';
-    note.textContent =
-      gs.last.score === 'g'.repeat(LEN)
-        ? `${who} cracked the code!`
-        : `last guess by ${who}: ${gs.last.code}`;
+    const who = gs.last.by === myRole ? 'You' : 'Partner';
+    note.textContent = isWin(gs.last.score)
+      ? `${who} cracked the code!`
+      : `${who}: ${gs.last.code} → ${formatHint(gs.last.score)}`;
     wrap.appendChild(note);
   }
 
