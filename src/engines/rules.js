@@ -179,6 +179,51 @@ export const RULES = {
       'Reach 50 \u2014 banked, or riding a winning roll \u2014 and you take the game.'
     ],
     tip: 'The math says hold around 20 \u2014 but where\u2019s the romance in math?'
+  },
+
+  /* ================= couple night (v12) ================= */
+
+  nim: {
+    goal: 'Don\u2019t take the last stick.',
+    how: [
+      'Four rows of sticks: 1, 3, 5 and 7.',
+      'On your turn, take any number of sticks \u2014 but only from ONE row. Tap a stick to take it and everything to its right.',
+      'Whoever picks up the very last stick loses.'
+    ],
+    tip: 'Try to hand your partner rows that mirror each other \u2014 whatever they do to one, you do to the other.'
+  },
+
+  race: {
+    goal: 'Get both of your tokens home first.',
+    how: [
+      'You each have two tokens that race along the same 24-square track.',
+      'Roll the die, then choose which token moves that many squares.',
+      'Land exactly on your partner\u2019s token and it gets bumped back to base.',
+      'Roll a 6 and you go again. Passing square 24 brings a token home.'
+    ],
+    tip: 'Don\u2019t run one token ahead alone \u2014 a bumped leader loses the whole race.'
+  },
+
+  couplequiz: {
+    goal: 'Prove you know each other best.',
+    how: [
+      'Six rounds. Each round, one of you answers a question about YOURSELF \u2014 secretly.',
+      'Then the other guesses which answer was picked.',
+      'A correct guess earns the guesser a point. You swap roles every round.',
+      'Most points after six rounds wins the crown of Most Attentive Partner.'
+    ],
+    tip: 'Answer honestly \u2014 the game is only sweet if the answers are true.'
+  },
+
+  twotruths: {
+    goal: 'Catch their lie, protect your own.',
+    how: [
+      'Write three statements about yourself \u2014 two true, one a lie \u2014 and mark the lie.',
+      'Your partner reads them and picks the one they think is the fib.',
+      'Catching the lie earns a point. Then you swap roles.',
+      'One point each \u2014 or none \u2014 is a draw: you know each other equally well.'
+    ],
+    tip: 'The best lie is a truth with one tiny detail changed.'
   }
 };
 

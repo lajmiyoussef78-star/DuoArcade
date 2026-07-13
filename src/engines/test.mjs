@@ -241,5 +241,127 @@ import { generate, canMove, N as MN, mulberry32 } from './maze.js';
   t('maze: rng in range', v >= 0 && v < 1);
 }
 
+/* ---------- Nim (Sticks) ---------- */
+import * as NIM from './nim.js';
+{
+  let gs = NIM.initialState();
+  t('nim: 1-3-5-7 start', gs.rows.join(',') === '1,3,5,7');
+  t('nim: no winner at start', NIM.winner(gs) === null);
+  let r = NIM.applyMove(gs, { row: 3, take: 3 }, 'A');
+  t('nim: take from a row', r && r.gs.rows[3] === 4 && r.again === false);
+  t('nim: original not mutated', gs.rows[3] === 7);
+  t('nim: cannot take zero', NIM.applyMove(gs, { row: 1, take: 0 }, 'A') === null);
+  t('nim: cannot overdraw a row', NIM.applyMove(gs, { row: 0, take: 2 }, 'A') === null);
+  t('nim: bad row illegal', NIM.applyMove(gs, { row: 9, take: 1 }, 'A') === null);
+
+  // play down to the last stick: whoever takes it loses (misère)
+  gs = NIM.initialState();
+  gs = NIM.applyMove(gs, { row: 3, take: 7 }, 'A').gs;
+  gs = NIM.applyMove(gs, { row: 2, take: 5 }, 'B').gs;
+  gs = NIM.applyMove(gs, { row: 1, take: 3 }, 'A').gs;
+  t('nim: not over with sticks left', NIM.winner(gs) === null);
+  gs = NIM.applyMove(gs, { row: 0, take: 1 }, 'B').gs;
+  t('nim: last-stick taker loses', NIM.winner(gs) === 'A');
+}
+
+/* ---------- Duo Dash (race) ---------- */
+import * as RACE from './race.js';
+{
+  let gs = RACE.initialState();
+  t('race: both at base', gs.pos.A.join() === '0,0' && gs.pos.B.join() === '0,0');
+  t('race: move before roll illegal', RACE.applyMove(gs, { t: 'move', token: 0 }, 'A') === null);
+  let r = RACE.applyMove(gs, { t: 'roll' }, 'A');
+  t('race: roll keeps turn', r && r.again === true && r.gs.die >= 1 && r.gs.die <= 6);
+  t('race: double roll illegal', RACE.applyMove(r.gs, { t: 'roll' }, 'A') === null);
+  const die = r.gs.die;
+  r = RACE.applyMove(r.gs, { t: 'move', token: 0 }, 'A');
+  t('race: token advances by die', r.gs.pos.A[0] === die);
+  t('race: six rolls again', r.again === (die === 6));
+
+  // bump: A lands exactly on B's token
+  gs = RACE.initialState();
+  gs = { ...gs, pos: { A: [3, 0], B: [8, 0] }, phase: 'move', die: 5 };
+  r = RACE.applyMove(gs, { t: 'move', token: 0 }, 'A');
+  t('race: bump sends token to base', r.gs.pos.B[0] === 0 && r.gs.event === 'bump');
+
+  // home + winner
+  gs = RACE.initialState();
+  gs = { ...gs, pos: { A: [RACE.HOME, 22], B: [4, 4] }, phase: 'move', die: 6 };
+  r = RACE.applyMove(gs, { t: 'move', token: 1 }, 'A');
+  t('race: overshoot lands home', r.gs.pos.A[1] === RACE.HOME);
+  t('race: both home wins', RACE.winner(r.gs) === 'A');
+  t('race: no extra turn after winning', r.again === false);
+  t('race: cannot move a token already home', RACE.applyMove(gs, { t: 'move', token: 0 }, 'A') === null);
+}
+
+/* ---------- Couple Quiz ---------- */
+import * as CQ from './couplequiz.js';
+{
+  let gs = CQ.initialState();
+  t('cq: six questions dealt', gs.qs.length === CQ.ROUNDS);
+  t('cq: no winner at start', CQ.winner(gs) === null);
+  t('cq: guess before answer illegal', CQ.applyMove(gs, { t: 'guess', i: 0 }, 'B') === null);
+  let r = CQ.applyMove(gs, { t: 'answer', i: 2 }, 'A');
+  t('cq: answer passes to guesser', r && r.gs.phase === 'guess' && r.gs.subject === 'A' && r.again === false);
+  t('cq: subject cannot guess own answer', CQ.applyMove(r.gs, { t: 'guess', i: 2 }, 'A') === null);
+  let g = CQ.applyMove(r.gs, { t: 'guess', i: 2 }, 'B');
+  t('cq: correct guess scores', g.gs.scores.B === 1 && g.gs.last.correct === true);
+  t('cq: guesser becomes next subject', g.again === true && g.gs.phase === 'answer');
+  g = CQ.applyMove(r.gs, { t: 'guess', i: 3 }, 'B');
+  t('cq: wrong guess no point', g.gs.scores.B === 0 && g.gs.last.correct === false);
+  t('cq: bad option illegal', CQ.applyMove(gs, { t: 'answer', i: 9 }, 'A') === null);
+
+  // run all six rounds: B always guesses right, A always wrong
+  gs = CQ.initialState();
+  let player = 'A';
+  for (let round = 0; round < CQ.ROUNDS; round++) {
+    let res = CQ.applyMove(gs, { t: 'answer', i: 1 }, player);
+    gs = res.gs; player = player === 'A' ? 'B' : 'A';
+    const guess = player === 'B' ? 1 : 0;   // B guesses right, A guesses wrong
+    res = CQ.applyMove(gs, { t: 'guess', i: guess }, player);
+    gs = res.gs;
+  }
+  t('cq: winner after six rounds', CQ.winner(gs) === 'B');
+  t('cq: no moves after the end', CQ.applyMove(gs, { t: 'answer', i: 0 }, 'A') === null);
+}
+
+/* ---------- Two Truths & a Lie ---------- */
+import * as TTL from './twotruths.js';
+{
+  const entry = { t: 'write', statements: ['I ran a marathon', 'I hate mangoes', 'I met a celebrity'], lie: 1 };
+  let gs = TTL.initialState();
+  t('ttl: no winner at start', TTL.winner(gs) === null);
+  t('ttl: pick before write illegal', TTL.applyMove(gs, { t: 'pick', i: 0 }, 'B') === null);
+  t('ttl: incomplete statements illegal', TTL.applyMove(gs, { t: 'write', statements: ['a', '', 'c'], lie: 0 }, 'A') === null);
+  t('ttl: bad lie index illegal', TTL.applyMove(gs, { t: 'write', statements: ['a', 'b', 'c'], lie: 5 }, 'A') === null);
+
+  let r = TTL.applyMove(gs, entry, 'A');
+  t('ttl: write passes the turn', r && r.gs.step === 1 && r.again === false);
+  t('ttl: cannot write twice', TTL.applyMove(r.gs, entry, 'A') === null);
+  let p = TTL.applyMove(r.gs, { t: 'pick', i: 1 }, 'B');
+  t('ttl: catching the lie scores', p.gs.scores.B === 1 && p.gs.last.correct === true);
+  t('ttl: picker writes next', p.again === true && p.gs.step === 2);
+  p = TTL.applyMove(r.gs, { t: 'pick', i: 0 }, 'B');
+  t('ttl: fooled scores nothing', p.gs.scores.B === 0 && p.gs.last.correct === false);
+
+  // full game: B catches A's lie, A gets fooled -> B wins
+  gs = TTL.initialState();
+  gs = TTL.applyMove(gs, entry, 'A').gs;
+  gs = TTL.applyMove(gs, { t: 'pick', i: 1 }, 'B').gs;
+  gs = TTL.applyMove(gs, { t: 'write', statements: ['x', 'y', 'z'], lie: 2 }, 'B').gs;
+  t('ttl: not over before last pick', TTL.winner(gs) === null);
+  gs = TTL.applyMove(gs, { t: 'pick', i: 0 }, 'A').gs;
+  t('ttl: B wins the duel', TTL.winner(gs) === 'B');
+  t('ttl: no moves after the end', TTL.applyMove(gs, { t: 'pick', i: 1 }, 'A') === null);
+
+  // draw when both catch it
+  gs = TTL.initialState();
+  gs = TTL.applyMove(gs, entry, 'A').gs;
+  gs = TTL.applyMove(gs, { t: 'pick', i: 1 }, 'B').gs;
+  gs = TTL.applyMove(gs, { t: 'write', statements: ['x', 'y', 'z'], lie: 2 }, 'B').gs;
+  gs = TTL.applyMove(gs, { t: 'pick', i: 2 }, 'A').gs;
+  t('ttl: both right is a draw', TTL.winner(gs) === 'draw');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

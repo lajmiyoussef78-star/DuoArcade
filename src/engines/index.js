@@ -19,8 +19,13 @@ import * as SEA from './seabattle.js';
 import * as CHK from './checkers.js';
 import * as HEX from './hex.js';
 import * as PIG from './pig.js';
+// New couple-night shelf — sticks, a race, and two "know each other" games:
+import * as NIM from './nim.js';
+import * as RACE from './race.js';
+import * as CQ from './couplequiz.js';
+import * as TTL from './twotruths.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL]
     .map(e => [e.meta.id, e])
 );

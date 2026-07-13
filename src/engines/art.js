@@ -429,7 +429,94 @@ export const ART = {
      @keyframes pig-t1 { 0%,100% { transform: rotate(-14deg) translateY(0) } 50% { transform: rotate(-6deg) translateY(-8px) } }
      .pig-d2 { animation: pig-t2 3.2s ease-in-out .4s infinite; }
      @keyframes pig-t2 { 0%,100% { transform: rotate(16deg) translateY(0) } 50% { transform: rotate(24deg) translateY(-5px) } }
-     ${pulse('pig', 'pig-stars', 2)} ${sparkAnim('pig', 2)}`)
+     ${pulse('pig', 'pig-stars', 2)} ${sparkAnim('pig', 2)}`),
+
+  /* ─── Sticks (Nim): the fateful take ─── */
+  nim: scene('nim', '', `
+    <g stroke-linecap="round">
+      ${[0,1,2].map(i => `<path d="M${72+i*16} 22 V52" stroke="var(--p1)" stroke-width="8"/>`).join('')}
+      ${[0,1,2,3,4].map(i => `<path d="M${56+i*16} 66 V96" stroke="var(--p2)" stroke-width="8"/>`).join('')}
+    </g>
+    <g class="nim-take" stroke-linecap="round">
+      <path d="M136 22 V52" stroke="var(--candle)" stroke-width="8" filter="url(#nim-glow)"/>
+      <path d="M152 22 V52" stroke="var(--candle)" stroke-width="8" filter="url(#nim-glow)"/>
+    </g>
+    <path class="nim-last" d="M188 58 V92" stroke="var(--candle)" stroke-width="9" stroke-linecap="round" filter="url(#nim-glow2)"/>
+    <text x="180" y="118" font-family="'Fraunces',serif" font-weight="900" font-size="15" fill="var(--dim)">last one loses</text>
+    ${sparks('nim', [[40, 30, 1.8, 'var(--candle)'], [210, 40, 1.6, 'var(--p1)']])}`,
+    `.nim-take { animation: nim-lift 3s ease-in-out infinite; }
+     @keyframes nim-lift { 0%,35% { transform: translateY(0); opacity:1 } 70%,100% { transform: translateY(-16px); opacity:0 } }
+     ${pulse('nim', 'nim-last', 1.8)} ${sparkAnim('nim', 2)}`),
+
+  /* ─── Duo Dash: the bump ─── */
+  race: scene('race', '', `
+    <path d="M28 96 H150 Q176 96 176 70 Q176 44 150 44 H60" stroke="var(--line)" stroke-width="16"
+      stroke-linecap="round" fill="none" opacity=".8"/>
+    <path d="M28 96 H150 Q176 96 176 70 Q176 44 150 44 H60" stroke="var(--night)" stroke-width="12"
+      stroke-linecap="round" fill="none" stroke-dasharray="2 14"/>
+    <g class="race-runner">
+      <circle cx="98" cy="96" r="12" fill="var(--p1)" filter="url(#race-glow)" opacity=".6"/>
+      <circle cx="98" cy="96" r="11" fill="var(--p1)"/>
+      <text x="98" y="101" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="12" fill="var(--night)">1</text>
+    </g>
+    <g class="race-bumped">
+      <circle cx="146" cy="96" r="11" fill="var(--p2)"/>
+      <text x="146" y="101" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="12" fill="var(--night)">2</text>
+    </g>
+    <g class="race-die" transform="rotate(-10 202 34)">
+      <rect x="184" y="16" width="38" height="38" rx="9" fill="var(--candle)" filter="url(#race-glow)" opacity=".7"/>
+      <rect x="184" y="16" width="38" height="38" rx="9" fill="var(--candle)"/>
+      <g fill="var(--night)">
+        <circle cx="194" cy="26" r="3.4"/><circle cx="212" cy="26" r="3.4"/>
+        <circle cx="194" cy="44" r="3.4"/><circle cx="212" cy="44" r="3.4"/>
+        <circle cx="194" cy="35" r="3.4"/><circle cx="212" cy="35" r="3.4"/>
+      </g>
+    </g>
+    ${sparks('race', [[36, 30, 1.8, 'var(--p1)'], [130, 20, 1.6, 'var(--candle)']])}`,
+    `.race-runner { animation: race-dash 3s ease-in-out infinite; }
+     @keyframes race-dash { 0%,20% { transform: translateX(0) } 60%,100% { transform: translateX(34px) } }
+     .race-bumped { animation: race-bump 3s ease-in-out infinite; }
+     @keyframes race-bump { 0%,55% { transform: translate(0,0); opacity:1 } 80%,100% { transform: translate(18px,-12px); opacity:0 } }
+     ${pulse('race', 'race-die', 2.4)} ${sparkAnim('race', 2)}`),
+
+  /* ─── Couple Quiz: two bubbles, one secret ─── */
+  couplequiz: scene('cq', '', `
+    <g class="cq-b1">
+      <path d="M26 34 h84 a10 10 0 0 1 10 10 v26 a10 10 0 0 1 -10 10 h-56 l-14 14 v-14 h-14 a10 10 0 0 1 -10 -10 v-26 a10 10 0 0 1 10 -10 Z"
+        fill="var(--room)" stroke="var(--p1)" stroke-width="2.5"/>
+      <text x="68" y="63" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="26" fill="var(--p1)">?</text>
+    </g>
+    <g class="cq-b2">
+      <path d="M214 52 h-84 a10 10 0 0 0 -10 10 v26 a10 10 0 0 0 10 10 h56 l14 14 v-14 h14 a10 10 0 0 0 10 -10 v-26 a10 10 0 0 0 -10 -10 Z"
+        fill="var(--room2)" stroke="var(--p2)" stroke-width="2.5"/>
+      <path class="cq-heart" d="M172 92 C160 82 156 72 164 66 C169 63 172 69 172 71 C172 69 175 63 180 66 C188 72 184 82 172 92 Z" fill="var(--p2)" filter="url(#cq-glow)"/>
+    </g>
+    ${sparks('cq', [[30, 108, 1.8, 'var(--p1)'], [210, 24, 1.8, 'var(--p2)'], [120, 14, 1.5, 'var(--candle)']])}`,
+    `.cq-b1 { animation: cq-bob 3.4s ease-in-out infinite; } .cq-b2 { animation: cq-bob 3.4s ease-in-out 1.7s infinite; }
+     @keyframes cq-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     .cq-heart { animation: cq-beat 1.8s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+     @keyframes cq-beat { 0%,100% { transform: scale(1) } 12% { transform: scale(1.18) } 24% { transform: scale(1) } }
+     ${sparkAnim('cq', 3)}`),
+
+  /* ─── Two Truths & a Lie: spot the fib ─── */
+  twotruths: scene('ttl', '', `
+    <g font-family="'Fraunces',serif" font-weight="900" font-size="15">
+      <rect x="34" y="20" width="172" height="26" rx="8" fill="var(--room)" stroke="var(--line)" stroke-width="2"/>
+      <text x="48" y="38" fill="var(--dim)">truth ........</text>
+      <rect class="ttl-lierow" x="34" y="52" width="172" height="26" rx="8" fill="var(--room2)" stroke="var(--p2)" stroke-width="2.5" filter="url(#ttl-glow)"/>
+      <text x="48" y="70" fill="var(--p2)">lie? .........</text>
+      <rect x="34" y="84" width="172" height="26" rx="8" fill="var(--room)" stroke="var(--line)" stroke-width="2"/>
+      <text x="48" y="102" fill="var(--dim)">truth ........</text>
+    </g>
+    <g class="ttl-lens">
+      <circle cx="196" cy="62" r="17" stroke="var(--candle)" stroke-width="4" fill="none" filter="url(#ttl-glow)"/>
+      <path d="M208 74 L222 88" stroke="var(--candle)" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    ${sparks('ttl', [[24, 110, 1.8, 'var(--candle)'], [220, 20, 1.6, 'var(--p2)']])}`,
+    `${pulse('ttl', 'ttl-lierow', 2.4)}
+     .ttl-lens { animation: ttl-scan 4s ease-in-out infinite; }
+     @keyframes ttl-scan { 0%,100% { transform: translateY(-34px) } 50% { transform: translateY(30px) } }
+     ${sparkAnim('ttl', 2)}`)
 };
 
 export const artFor = id => ART[id] || null;
