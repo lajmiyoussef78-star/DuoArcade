@@ -1,0 +1,87 @@
+/* src/styles/arena.css — 2v2 Arena, matching the DuoArcade dark theme.
+   If your app already defines these CSS variables globally (--night,
+   --room, --p1, --p2, --candle, etc.) these rules will inherit them
+   automatically; the :root fallback below only applies if they don't. */
+
+:root {
+  --night: #191420; --room: #221B2D; --room2: #2B2338; --line: #3D3450;
+  --text: #F2EDF7; --dim: #A99FBC;
+  --p1: #7FA8FF; --p1s: #2A3252; --p2: #FF7FA8; --p2s: #4A2A3A;
+  --candle: #FFC66E; --candles: #4A3A1E; --good: #6FDCA8;
+}
+
+.arena-wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 60px; color: var(--text); font-family: 'Inter', sans-serif; }
+.arena-title { font-family: 'Fraunces', serif; font-weight: 900; font-size: 28px; margin-bottom: 4px; }
+.arena-sub { color: var(--dim); font-size: 14px; margin-bottom: 20px; }
+
+.arena-card { background: var(--room); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.arena-card h3 { font-family: 'Fraunces', serif; font-size: 17px; margin-bottom: 12px; }
+
+.arena-form { display: flex; flex-direction: column; gap: 6px; }
+.arena-form label { font-size: 12px; color: var(--dim); margin-top: 8px; }
+.arena-form select, .arena-form input {
+  background: var(--room2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); font-size: 14px; padding: 10px 12px; font-family: 'Inter', sans-serif;
+}
+.arena-status { margin-top: 10px; font-size: 13px; color: var(--candle); }
+.arena-empty { color: var(--dim); font-size: 13px; }
+
+.arena-row { display: flex; justify-content: space-between; align-items: center;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 8px; background: var(--room2); }
+.arena-row-title { font-weight: 600; font-size: 14px; }
+.arena-row-title .vs { color: var(--dim); font-weight: 400; margin: 0 4px; }
+.arena-row-sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
+.arena-actions { display: flex; gap: 8px; }
+.arena-waiting { font-size: 12px; color: var(--dim); }
+
+.btn { font-weight: 600; font-size: 14px; padding: 11px 18px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer; }
+.btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 7px 13px; font-size: 13px; border-radius: 9px; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* ready lobby */
+.ready-lobby { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 26px 0; }
+.ready-seat { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin: 0 8px; }
+.ready-av { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 14px; transition: filter .3s ease, opacity .3s ease; }
+.ready-av.teamA { background: var(--p1s); color: var(--p1); }
+.ready-av.teamB { background: var(--p2s); color: var(--p2); }
+.ready-av.away { filter: grayscale(.85) brightness(.45); }
+.ready-tag { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.ready-tag.yes { color: var(--good); }
+.countdown-big { font-family: 'Fraunces', serif; font-weight: 900; font-size: 88px; color: var(--candle); text-align: center; padding: 40px 0; }
+
+/* shared 2v2 game chrome */
+.game2v2 { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0; }
+.game2v2-score { font-family: 'Fraunces', serif; font-weight: 900; font-size: 20px; }
+.game2v2-score .teamA, .reflex-note .teamA { color: var(--p1); }
+.game2v2-score .teamB, .reflex-note .teamB { color: var(--p2); }
+.game2v2-round { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--dim); }
+.game2v2-feedback { font-size: 13px; color: var(--candle); }
+.game2v2-done { text-align: center; padding: 30px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.winner-line { font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; color: var(--candle); }
+
+/* trivia */
+.trivia-q { font-family: 'Fraunces', serif; font-size: 19px; text-align: center; max-width: 480px; }
+.trivia-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 420px; }
+.trivia-opt { border: 1px solid var(--line); border-radius: 12px; background: var(--room2); color: var(--text);
+  padding: 14px; font-size: 14px; cursor: pointer; }
+.trivia-opt:hover:not(:disabled) { border-color: var(--candle); }
+.trivia-opt.right { background: #1F4A38; border-color: var(--good); }
+.trivia-opt.wrong { background: #4A1F1F; border-color: #F5B9B9; }
+.trivia-opt:disabled { cursor: default; }
+
+/* reflex */
+.reflex-note { font-size: 13px; color: var(--dim); }
+.reflex-zone { width: 100%; max-width: 380px; height: 190px; border-radius: 18px; border: 1px solid var(--line);
+  background: var(--room2); color: var(--dim); font-family: 'Fraunces', serif; font-weight: 900; font-size: 24px; cursor: pointer; }
+.reflex-zone.armed { background: #3A2430; color: var(--p2); border-color: var(--p2); }
+.reflex-zone.go { background: #1F4A38; color: #B9F5D8; border-color: var(--good); font-size: 40px; }
+.reflex-zone.done { background: var(--room); color: var(--candle); }
+.reflex-zone:disabled { cursor: default; opacity: .7; }
+
+@media (max-width: 460px) {
+  .trivia-options { grid-template-columns: 1fr; }
+}
