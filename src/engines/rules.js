@@ -224,6 +224,17 @@ export const RULES = {
       'One point each \u2014 or none \u2014 is a draw: you know each other equally well.'
     ],
     tip: 'The best lie is a truth with one tiny detail changed.'
+  },
+
+  codebreak: {
+    goal: 'Crack your partner\u2019s secret 4-digit code first.',
+    how: [
+      'Each of you secretly picks a 4-digit code (digits can repeat).',
+      'Take turns guessing your partner\u2019s code.',
+      'Green = right digit, right place. Yellow = right digit, wrong place. Red = not in the code.',
+      'First to get all four green wins. You each get up to 10 guesses.'
+    ],
+    tip: 'Start by spreading digits across the row — duplicates make yellow/green reads harder.'
   }
 };
 

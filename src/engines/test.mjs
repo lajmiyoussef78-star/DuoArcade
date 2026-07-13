@@ -363,5 +363,26 @@ import * as TTL from './twotruths.js';
   t('ttl: both right is a draw', TTL.winner(gs) === 'draw');
 }
 
+/* ---------- Code Break ---------- */
+import * as CB from './codebreak.js';
+{
+  t('cb: exact match all green', CB.scoreGuess('1234', '1234') === 'gggg');
+  t('cb: yellow for wrong position', CB.scoreGuess('1243', '1234').includes('y'));
+  t('cb: red for absent digit', CB.scoreGuess('5678', '1234') === '....');
+  t('cb: mixed feedback', CB.scoreGuess('1122', '1210') === 'gyy.');
+
+  let gs = CB.initialState();
+  t('cb: starts at setA', gs.phase === 'setA');
+  t('cb: B cannot set during setA', CB.applyMove(gs, { t: 'set', code: '5678' }, 'B') === null);
+  gs = CB.applyMove(gs, { t: 'set', code: '1234' }, 'A').gs;
+  t('cb: A set moves to setB', gs.phase === 'setB' && gs.secrets.A === '1234');
+  gs = CB.applyMove(gs, { t: 'set', code: '5678' }, 'B').gs;
+  t('cb: both set starts play', gs.phase === 'play' && gs.secrets.B === '5678');
+
+  let r = CB.applyMove(gs, { t: 'guess', code: '5678' }, 'A');
+  t('cb: correct guess wins', CB.winner(r.gs) === 'A');
+  t('cb: bad code illegal', CB.applyMove(gs, { t: 'guess', code: '12' }, 'A') === null);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

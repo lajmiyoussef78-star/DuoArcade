@@ -369,3 +369,31 @@
   color:var(--dim);font-size:11px;padding:6px 10px;cursor:pointer;}
 .arcade-page .ttl-row.lie .ttl-mark{color:var(--p2);border-color:var(--p2);}
 .arcade-page .ttl-err{font-size:12px;color:var(--p2);min-height:16px;text-align:center;}
+
+/* ── Code Break ── */
+.arcade-page .cb-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:520px;}
+.arcade-page .cb-legend{font-size:11.5px;color:var(--dim);text-align:center;}
+.arcade-page .cb-legend .green{color:var(--good);font-weight:700;}
+.arcade-page .cb-legend .yellow{color:var(--candle);font-weight:700;}
+.arcade-page .cb-legend .gray{color:var(--p2);font-weight:700;}
+.arcade-page .cb-cols{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;}
+.arcade-page .cb-side{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.arcade-page .cb-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;}
+.arcade-page .cb-board{display:flex;flex-direction:column;gap:6px;}
+.arcade-page .cb-row{display:flex;gap:6px;}
+.arcade-page .cb-row.hint{font-size:11px;color:var(--dim);justify-content:center;padding:8px 0;}
+.arcade-page .cb-cell{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--room2);
+  display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;}
+.arcade-page .cb-cell.empty{opacity:.35;}
+.arcade-page .cb-cell.green{background:#2E6B4F;border-color:var(--good);color:var(--text);}
+.arcade-page .cb-cell.yellow{background:#6B5B2E;border-color:var(--candle);color:var(--text);}
+.arcade-page .cb-cell.gray{background:#4A1F1F;border-color:var(--p2);color:var(--text);}
+.arcade-page .cb-form{display:flex;gap:10px;align-items:center;margin-top:4px;}
+.arcade-page .cb-input{width:120px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:.2em;
+  background:var(--room2);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:10px 12px;}
+.arcade-page .cb-input:focus{outline:none;border-color:var(--candle);}
+.arcade-page .cb-reveal{font-size:13px;color:var(--candle);text-align:center;margin-top:4px;}
+@media (max-width:460px){
+.arcade-page .cb-cell{width:38px;height:38px;font-size:17px;}
+.arcade-page .cb-cols{gap:12px;}
+}

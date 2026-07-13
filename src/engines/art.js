@@ -516,7 +516,25 @@ export const ART = {
     `${pulse('ttl', 'ttl-lierow', 2.4)}
      .ttl-lens { animation: ttl-scan 4s ease-in-out infinite; }
      @keyframes ttl-scan { 0%,100% { transform: translateY(-34px) } 50% { transform: translateY(30px) } }
-     ${sparkAnim('ttl', 2)}`)
+     ${sparkAnim('ttl', 2)}`),
+
+  /* ─── Code Break: the crack ─── */
+  codebreak: scene('cb', '', `
+    <g class="cb-lock" transform="translate(118 52)">
+      <rect x="-34" y="-22" width="68" height="44" rx="12" fill="var(--room)" stroke="var(--candle)" stroke-width="2.5"/>
+      <text x="0" y="8" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="22" fill="var(--candle)">?</text>
+    </g>
+    <g font-family="'JetBrains Mono',monospace" font-weight="700" font-size="20">
+      ${[[48,58,'var(--p1)','g'],[88,58,'var(--candle)','y'],[148,58,'var(--p2)','g'],[188,58,'var(--dim)','.']].map(([x,y,col,cls],i) => `
+        <g class="cb-t${i}">
+          <rect x="${x-16}" y="${y-16}" width="32" height="32" rx="8" fill="var(--room2)" stroke="${col}" stroke-width="2.5"/>
+          <text x="${x}" y="${y+7}" text-anchor="middle" fill="${col}">${['1','2','3','4'][i]}</text>
+        </g>`).join('')}
+    </g>
+    ${sparks('cb', [[30, 30, 1.8, 'var(--p1)'], [210, 90, 1.8, 'var(--p2)'], [120, 18, 1.5, 'var(--candle)']])}`,
+    `${[0,1,2,3].map(i => `.cb-t${i} { animation: cb-pop 2.8s ease-in-out ${i * .25}s infinite; }`).join('')}
+     @keyframes cb-pop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     ${pulse('cb', 'cb-lock', 2.4)} ${sparkAnim('cb', 3)}`)
 };
 
 export const artFor = id => ART[id] || null;
