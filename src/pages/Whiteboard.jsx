@@ -213,14 +213,15 @@ export default function Whiteboard() {
     );
   }
 
-  const partnerName = role === 'A' ? names.B : names.A;
-
   return (
     <div className="wb-page">
       <div className="wb-top">
         <button className="btn small ghost" onClick={() => navigate('/app')}>&larr; Back</button>
-        <div className="wb-title">Whiteboard</div>
-        <div className="wb-partner">{partnerName ? `drawing with ${partnerName}` : ''}</div>
+        <div className="wb-title">Our wall</div>
+        <div className="wb-avs" title="you two, drawing together">
+          <div className="wb-av A">{(names.A || '?')[0].toUpperCase()}</div>
+          <div className="wb-av B">{(names.B || '?')[0].toUpperCase()}</div>
+        </div>
       </div>
 
       <div className="wb-board" ref={wrapRef}>

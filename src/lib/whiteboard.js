@@ -1,4 +1,4 @@
-// src/lib/whiteboard.js — shared whiteboard data layer (same Supabase project).
+// src/lib/whiteboard.js — shared whiteboard data layer.
 
 import { CONFIG } from './config.js';
 
@@ -37,6 +37,14 @@ export async function loadBoard(code) {
     .from('whiteboards').select('strokes').eq('duo_code', code).maybeSingle();
   if (error) throw new Error(error.message);
   return data?.strokes ?? [];
+}
+
+export async function loadBoardMeta(code) {
+  const supabase = await getClient();
+  const { data, error } = await supabase
+    .from('whiteboards').select('strokes, updated_at').eq('duo_code', code).maybeSingle();
+  if (error) throw new Error(error.message);
+  return { strokes: data?.strokes ?? [], updatedAt: data?.updated_at ?? null };
 }
 
 export async function saveBoard(code, strokes) {

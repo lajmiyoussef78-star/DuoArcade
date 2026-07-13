@@ -4,6 +4,7 @@ import { ENGINES } from '../engines/index.js';
 import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
+import WhiteboardCard from './WhiteboardCard.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
 
@@ -241,13 +242,10 @@ export default function HomeScreen({
               </div>
             );
           })}
-          <Link className="gcard" to={`/whiteboard/${code}`} key="whiteboard"
-            style={{ textDecoration: 'none', color: 'inherit', border: '1px dashed var(--candle)' }}>
-            <div className="gname">{'\u270F\uFE0F'} Whiteboard</div>
-            <div className="gtag">draw together · it stays</div>
-            <div className="grec">always open</div>
-          </Link>
         </div>
+
+        <div className="shelf-title">Our wall</div>
+        <WhiteboardCard code={code} />
 
         <div className="shelf-title">Movie night</div>
         <div className="watch-card">
