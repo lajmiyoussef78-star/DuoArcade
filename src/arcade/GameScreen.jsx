@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ENGINES } from '../engines/index.js';
 import { other } from '../lib/util.js';
+import { getRules } from '../engines/rules.js';
 
 /** Turn-based boards keep the exact same DOM engine interface as before:
  *  eng.render(hostEl, gs, { myRole, turn, winner, onMove }) */
@@ -37,6 +38,8 @@ export default function GameScreen({
   const s = duo.session;
   const eng = ENGINES[s.game];
   const [bannerStatus, setBannerStatus] = useState('');
+  const [showRules, setShowRules] = useState(false);
+  useEffect(() => { setShowRules(false); }, [s.game]);
   const [, forceTick] = useState(0);
 
   // Countdown after both ready: re-render 4x/sec until live.
@@ -48,6 +51,7 @@ export default function GameScreen({
   });
 
   if (!eng) return null;
+  const rules = getRules(s.game);
   const rec = (duo.records || {})[s.game] || { a: 0, b: 0, d: 0 };
   const partner = other(myRole) === 'A' ? duo.nameA : duo.nameB;
 
@@ -135,9 +139,38 @@ export default function GameScreen({
         <div className="gv-title h3">{eng.meta.name}</div>
         <button className="btn small" style={{ visibility: showRematch ? 'visible' : 'hidden' }}
           onClick={onRematch}>Rematch</button>
+        {rules && (
+          <button className={'btn small' + (showRules ? ' warm' : ' ghost')}
+            onClick={() => setShowRules(v => !v)}>Rules</button>
+        )}
         <button className="btn small ghost" title="Clears a stuck game for both of you"
           onClick={() => onFixStuck(code, setBannerStatus)}>Fix stuck</button>
       </div>
+      {showRules && rules && (
+        <div style={{
+          width: '100%', maxWidth: 480, background: 'var(--room)',
+          border: '1px solid var(--line)', borderRadius: 14,
+          padding: '14px 18px', margin: '2px 0 10px', textAlign: 'left'
+        }}>
+          <div style={{ fontFamily: "'Fraunces',serif", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+            How to play — {eng.meta.name}
+          </div>
+          <div style={{ color: 'var(--candle)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            {rules.goal}
+          </div>
+          <ol style={{
+            margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column',
+            gap: 5, fontSize: 13, lineHeight: 1.45
+          }}>
+            {rules.how.map((line, i) => <li key={i}>{line}</li>)}
+          </ol>
+          {rules.tip && (
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--dim)', fontStyle: 'italic' }}>
+              💡 {rules.tip}
+            </div>
+          )}
+        </div>
+      )}
       <div className="gv-players">
         <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
           <div className="dot" /><span>{duo.nameA}</span>

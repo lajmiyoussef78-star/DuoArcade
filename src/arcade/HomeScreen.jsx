@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ENGINES } from '../engines/index.js';
+import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
 
 function favoriteGameId(duo) {
@@ -164,10 +165,22 @@ export default function HomeScreen({
           {Object.values(ENGINES).map(eng => {
             const rec = (duo.records || {})[eng.meta.id] || { a: 0, b: 0, d: 0 };
             return (
-              <div className="gcard" key={eng.meta.id} onClick={() => onStartGame(eng.meta.id)}>
-                <div className="gname">{eng.meta.name}</div>
-                <div className="gtag">{eng.meta.tag}</div>
-                <div className="grec">{rec.a}–{rec.b}{rec.d ? ' · ' + rec.d + ' draws' : ''}</div>
+              <div className="gcard" key={eng.meta.id} onClick={() => onStartGame(eng.meta.id)}
+                style={{ position: 'relative', overflow: 'hidden' }}>
+                {artFor(eng.meta.id) && (
+                  <div aria-hidden="true"
+                    style={{
+                      position: 'absolute', right: -12, top: '50%',
+                      transform: 'translateY(-50%)', width: 96, height: 96,
+                      opacity: 0.5, pointerEvents: 'none',
+                      maskImage: 'linear-gradient(90deg, transparent, black 40%)',
+                      WebkitMaskImage: 'linear-gradient(90deg, transparent, black 40%)'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: artFor(eng.meta.id) }} />
+                )}
+                <div className="gname" style={{ position: 'relative' }}>{eng.meta.name}</div>
+                <div className="gtag" style={{ position: 'relative' }}>{eng.meta.tag}</div>
+                <div className="grec" style={{ position: 'relative' }}>{rec.a}–{rec.b}{rec.d ? ' · ' + rec.d + ' draws' : ''}</div>
               </div>
             );
           })}
