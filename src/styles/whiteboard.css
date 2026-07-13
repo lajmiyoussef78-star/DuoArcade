@@ -1,0 +1,44 @@
+/* src/styles/whiteboard.css — shared whiteboard */
+
+.wb-page { max-width: 760px; margin: 0 auto; padding: 20px 14px 50px; color: var(--text); font-family: 'Inter', sans-serif;
+  min-height: 100vh; background: var(--night); }
+
+.wb-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.wb-title { font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; flex: 1; text-align: center; }
+.wb-partner { font-size: 12px; color: var(--dim); }
+
+.wb-board { position: relative; width: 100%; border: 1px solid var(--line); border-radius: 16px;
+  background: #1E1828; overflow: hidden; }
+.wb-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; touch-action: none; cursor: crosshair; }
+
+.wb-ghost { position: absolute; width: 14px; height: 14px; border-radius: 50%; pointer-events: none;
+  transform: translate(-50%, -50%); opacity: .7; transition: left .12s linear, top .12s linear; }
+.wb-ghost.A { background: var(--p1); box-shadow: 0 0 12px var(--p1); }
+.wb-ghost.B { background: var(--p2); box-shadow: 0 0 12px var(--p2); }
+
+.wb-tools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+.wb-swatches { display: flex; gap: 8px; }
+.wb-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; padding: 0; }
+.wb-swatch.on { border-color: var(--candle); transform: scale(1.12); }
+
+.wb-sizes { display: flex; gap: 6px; }
+.wb-size { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--room2);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.wb-size.on { border-color: var(--candle); }
+.wb-size span { display: block; border-radius: 50%; background: var(--text); }
+
+.wb-actions { display: flex; gap: 8px; }
+
+.wb-page .btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer;
+  font-family: 'Inter', sans-serif; }
+.wb-page .btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
+.wb-page .btn.ghost { background: transparent; }
+.wb-page .btn.small { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+
+.wb-status { margin-top: 12px; font-size: 13px; color: var(--candle); text-align: center; }
+
+@media (max-width: 480px) {
+  .wb-tools { gap: 10px; }
+  .wb-partner { display: none; }
+}

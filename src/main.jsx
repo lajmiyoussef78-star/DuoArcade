@@ -5,6 +5,7 @@ import Landing from './pages/Landing.jsx';
 import Arcade from './pages/Arcade.jsx';
 import Arena from './pages/Arena.jsx';
 import ArenaMatch from './pages/ArenaMatch.jsx';
+import Whiteboard from './pages/Whiteboard.jsx';
 import './styles/base.css';
 import './styles/landing.scoped.css';
 import './styles/arcade.scoped.css';
@@ -19,6 +20,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/app" element={<Arcade />} />
         <Route path="/arena" element={<Arena />} />
         <Route path="/arena/:matchCode" element={<ArenaMatch />} />
+        <Route path="/whiteboard/:code" element={<Whiteboard />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

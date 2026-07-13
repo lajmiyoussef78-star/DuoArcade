@@ -241,6 +241,12 @@ export default function HomeScreen({
               </div>
             );
           })}
+          <Link className="gcard" to={`/whiteboard/${code}`} key="whiteboard"
+            style={{ textDecoration: 'none', color: 'inherit', border: '1px dashed var(--candle)' }}>
+            <div className="gname">{'\u270F\uFE0F'} Whiteboard</div>
+            <div className="gtag">draw together · it stays</div>
+            <div className="grec">always open</div>
+          </Link>
         </div>
 
         <div className="shelf-title">Movie night</div>
