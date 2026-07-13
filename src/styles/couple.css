@@ -1,0 +1,343 @@
+/* couple.css — couple-themed "living" animations for DuoArcade.
+   Every color derives from the theme variables (--p1, --p2, --candle),
+   so duo themes (Night / Ocean / Ember / Orchid) restyle all of it.
+   All motion is wrapped in prefers-reduced-motion guards at the bottom. */
+
+/* ============================================================
+   B — DUO HEADER: avatar glow, heart spark, embers, taste heart
+   ============================================================ */
+
+.arcade-page .avatars{position:relative;}
+.arcade-page .av.A{box-shadow:0 0 10px color-mix(in srgb, var(--p1) 40%, transparent);}
+.arcade-page .av.B{box-shadow:0 0 10px color-mix(in srgb, var(--p2) 40%, transparent);}
+
+.arcade-page .av-spark{position:absolute;left:39px;top:-9px;transform:translateX(-50%);
+  font-size:13px;line-height:1;color:var(--candle);
+  text-shadow:0 0 8px var(--candle);z-index:3;pointer-events:none;}
+.arcade-page .av-spark::before,
+.arcade-page .av-spark::after{content:'';position:absolute;width:3px;height:3px;border-radius:50%;
+  background:var(--candle);box-shadow:0 0 5px var(--candle);opacity:0;}
+.arcade-page .av-spark::before{left:-7px;top:3px;}
+.arcade-page .av-spark::after{right:-7px;top:7px;}
+
+.arcade-page .duo-title .amp{text-shadow:0 0 8px color-mix(in srgb, var(--candle) 60%, transparent);}
+
+/* streak pill: warm glow + rising embers */
+.arcade-page .streak-pill{position:relative;overflow:visible;
+  box-shadow:0 0 12px color-mix(in srgb, var(--candle) 22%, transparent);}
+.arcade-page .streak-pill .ember{position:absolute;width:4px;height:4px;border-radius:50%;
+  background:var(--candle);box-shadow:0 0 6px var(--candle);bottom:78%;opacity:0;pointer-events:none;}
+.arcade-page .streak-pill .ember.e1{left:20%;}
+.arcade-page .streak-pill .ember.e2{left:50%;width:3px;height:3px;}
+.arcade-page .streak-pill .ember.e3{left:76%;}
+
+/* taste meter: gradient shimmer + beating heart at the fill tip */
+.arcade-page .taste-meter{overflow:visible;position:relative;}
+.arcade-page .taste-fill{border-radius:3px;position:relative;overflow:hidden;}
+.arcade-page .taste-fill::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  background-size:200% 100%;}
+.arcade-page .taste-heart{position:absolute;top:50%;transform:translate(-50%,-50%);
+  font-size:11px;line-height:1;color:var(--p2);text-shadow:0 0 8px var(--p2);pointer-events:none;}
+
+/* milestones: lit ones glow and can be clicked to replay the celebration */
+.arcade-page .ms.lit{cursor:pointer;
+  box-shadow:0 0 10px color-mix(in srgb, var(--candle) 25%, transparent);
+  transition:transform .15s ease, box-shadow .2s ease;}
+.arcade-page .ms.lit:hover{transform:translateY(-2px);
+  box-shadow:0 0 16px color-mix(in srgb, var(--candle) 45%, transparent);}
+
+/* game cards feel alive on hover */
+.arcade-page .gcard{transition:border-color .15s ease, transform .18s ease, box-shadow .18s ease;}
+.arcade-page .gcard:hover{transform:translateY(-3px);
+  box-shadow:0 10px 24px color-mix(in srgb, var(--p1) 16%, transparent);}
+
+/* ============================================================
+   D — MILESTONE CELEBRATION overlay
+   ============================================================ */
+
+.cfx-celebrate{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--night) 80%, transparent);backdrop-filter:blur(3px);
+  cursor:pointer;overflow:hidden;padding:20px;}
+.cfx-badge{position:relative;text-align:center;padding:36px 44px;border-radius:24px;cursor:default;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--candle) 18%, var(--room)), var(--room) 72%);
+  border:1px solid var(--candle);overflow:hidden;
+  box-shadow:0 0 60px color-mix(in srgb, var(--candle) 32%, transparent);}
+.cfx-rays{position:absolute;left:50%;top:50%;width:560px;height:560px;margin:-280px 0 0 -280px;
+  background:repeating-conic-gradient(color-mix(in srgb, var(--candle) 10%, transparent) 0 10deg, transparent 10deg 30deg);
+  -webkit-mask-image:radial-gradient(circle, #000 0%, transparent 62%);
+  mask-image:radial-gradient(circle, #000 0%, transparent 62%);pointer-events:none;}
+.cfx-trophy{position:relative;font-size:54px;filter:drop-shadow(0 0 16px var(--candle));}
+.cfx-title{position:relative;font-family:'Fraunces',serif;font-weight:900;font-size:29px;color:var(--candle);margin-top:8px;}
+.cfx-sub{position:relative;color:var(--dim);font-size:14px;margin-top:6px;max-width:300px;}
+
+.cfx-confetti{position:absolute;top:-4vh;border-radius:2px;opacity:0;pointer-events:none;
+  animation-name:cfx-confetti-fall;animation-timing-function:linear;animation-fill-mode:forwards;}
+.cfx-confetti.small{top:-14px;animation-name:cfx-confetti-fall-small;}
+.cfx-heart{position:absolute;bottom:-34px;line-height:1;opacity:0;pointer-events:none;
+  text-shadow:0 0 10px currentColor;
+  animation:cfx-heart-rise 3.6s ease-out infinite;}
+
+/* ============================================================
+   E — TOGETHER HERO: counter, heartbeat, timeline, anniversary ring
+   ============================================================ */
+
+.ch-hero{position:relative;width:100%;margin-top:14px;border-radius:16px;padding:18px 20px;overflow:hidden;
+  border:1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
+  background:linear-gradient(120deg,
+    color-mix(in srgb, var(--p1) 14%, var(--room)),
+    var(--room) 46%,
+    color-mix(in srgb, var(--p2) 16%, var(--room)));
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.ch-stars{position:absolute;inset:0;pointer-events:none;}
+.ch-stars .st{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--text);opacity:.18;}
+
+.ch-avs{display:flex;align-items:center;gap:6px;position:relative;}
+.ch-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:900;font-size:14px;}
+.ch-av.A{background:var(--p1s);color:var(--p1);box-shadow:0 0 10px color-mix(in srgb, var(--p1) 45%, transparent);}
+.ch-av.B{background:var(--p2s);color:var(--p2);box-shadow:0 0 10px color-mix(in srgb, var(--p2) 45%, transparent);}
+.ch-beat{width:64px;height:24px;overflow:visible;}
+.ch-beat path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.ch-beat .base{stroke:color-mix(in srgb, var(--text) 20%, transparent);}
+.ch-beat .run{stroke:url(#chbeat-grad);stroke-dasharray:20 120;stroke-dashoffset:140;}
+
+.ch-mid{flex:1;min-width:210px;position:relative;}
+.ch-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--candle);font-weight:700;}
+.ch-count{font-family:'Fraunces',serif;font-weight:900;font-size:22px;margin-top:2px;line-height:1.2;}
+.ch-count b{color:var(--candle);font-weight:900;}
+.ch-timeline{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap;}
+.ch-tl-item{font-size:10.5px;color:var(--dim);display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.ch-tl-item .hh{color:color-mix(in srgb, var(--dim) 60%, transparent);font-size:11px;line-height:1;}
+.ch-tl-item.done{color:var(--text);}
+.ch-tl-item.done .hh{color:var(--p2);text-shadow:0 0 6px var(--p2);}
+
+.ch-ring{position:relative;width:92px;height:92px;flex:none;}
+.ch-ring svg{transform:rotate(-90deg);display:block;}
+.ch-ring .bgc{stroke:color-mix(in srgb, var(--line) 85%, transparent);}
+.ch-ring .fgc{stroke:var(--candle);stroke-linecap:round;
+  filter:drop-shadow(0 0 5px var(--candle));transition:stroke-dashoffset 1.2s ease;}
+.ch-ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.ch-ring .n{font-family:'Fraunces',serif;font-weight:900;font-size:21px;color:var(--candle);line-height:1;}
+.ch-ring .l{font-size:7.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;max-width:64px;}
+.ch-orbit{position:absolute;inset:-3px;pointer-events:none;}
+.ch-orbit::before{content:'';position:absolute;top:0;left:50%;width:5px;height:5px;margin-left:-2.5px;
+  border-radius:50%;background:var(--candle);box-shadow:0 0 8px var(--candle);}
+.ch-set input[type=date]{background:var(--room2);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;}
+.ch-set input[type=date]:focus{outline:none;border-color:var(--candle);}
+
+/* ============================================================
+   A — LANDING HERO: connection threads, orbs, heart, floats
+   ============================================================ */
+
+.landing-page .hero-connect{position:absolute;left:50%;top:44%;width:230px;height:150px;
+  transform:translate(-50%,-50%);pointer-events:none;z-index:1;}
+.landing-page .hc-svg{position:absolute;left:0;right:0;top:50%;height:60px;width:100%;
+  transform:translateY(-50%);overflow:visible;}
+.landing-page .hc-thread{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:6 10;}
+.landing-page .hc-left{stroke:var(--p1);filter:drop-shadow(0 0 4px var(--p1));}
+.landing-page .hc-right{stroke:var(--p2);filter:drop-shadow(0 0 4px var(--p2));}
+.landing-page .hc-orb{position:absolute;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;opacity:0;}
+.landing-page .hc-orb.one{left:0;background:var(--p1);box-shadow:0 0 12px var(--p1);}
+.landing-page .hc-orb.two{right:0;background:var(--p2);box-shadow:0 0 12px var(--p2);}
+.landing-page .hc-heart{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font-size:22px;line-height:1;color:var(--candle);
+  text-shadow:0 0 14px var(--candle), 0 0 34px color-mix(in srgb, var(--candle) 55%, transparent);}
+.landing-page .hc-float{position:absolute;left:50%;bottom:16%;font-size:12px;line-height:1;opacity:0;
+  text-shadow:0 0 8px currentColor;}
+.landing-page .hc-float.f1{color:var(--p1);}
+.landing-page .hc-float.f2{color:var(--p2);font-size:10px;}
+.landing-page .hc-float.f3{color:var(--candle);}
+.landing-page .hc-float.f4{color:var(--p2);}
+.landing-page .hc-float.f5{color:var(--p1);font-size:9px;}
+
+@media (max-width:760px){
+.landing-page .hero-connect{display:none;}
+}
+
+/* ============================================================
+   C — WATCH PARTY: live glow, heartbeat sync line, reveal
+   ============================================================ */
+
+.arcade-page .player-wrap{transition:box-shadow .5s ease, border-color .5s ease;}
+.arcade-page .player-wrap.live{border-color:var(--candle);}
+
+.arcade-page .cw-sync{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;
+  justify-content:center;flex-wrap:wrap;}
+.arcade-page .cw-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;font-family:'Fraunces',serif;flex:none;}
+.arcade-page .cw-dot.A{background:var(--p1s);color:var(--p1);box-shadow:0 0 10px color-mix(in srgb, var(--p1) 50%, transparent);}
+.arcade-page .cw-dot.B{background:var(--p2s);color:var(--p2);box-shadow:0 0 10px color-mix(in srgb, var(--p2) 50%, transparent);}
+.arcade-page .cw-line{position:relative;width:130px;height:24px;flex:none;}
+.arcade-page .cw-line svg{width:100%;height:100%;overflow:visible;}
+.arcade-page .cw-line path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.arcade-page .cw-line .base{stroke:color-mix(in srgb, var(--text) 18%, transparent);}
+.arcade-page .cw-line .run{stroke:url(#cw-grad);stroke-dasharray:26 160;stroke-dashoffset:186;}
+.arcade-page .cw-heartmid{position:absolute;left:50%;top:-9px;transform:translateX(-50%);
+  font-size:10px;line-height:1;color:var(--candle);text-shadow:0 0 6px var(--candle);}
+.arcade-page .cw-note{font-size:12px;color:var(--dim);}
+.arcade-page .cw-note b{color:var(--good);font-weight:600;}
+
+/* verdict: confetti reveal inside the card */
+.arcade-page .verdict{position:relative;overflow:hidden;}
+.arcade-page .cw-reveal{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.arcade-page .star{transition:transform .15s ease, color .2s ease, text-shadow .2s ease;}
+.arcade-page .star:not(:disabled):hover{transform:scale(1.25);color:var(--candle);
+  text-shadow:0 0 12px color-mix(in srgb, var(--candle) 70%, transparent);}
+
+/* floating reactions: glow + livelier rise */
+.arcade-page .float-emoji{filter:drop-shadow(0 0 6px color-mix(in srgb, var(--p2) 55%, transparent));}
+
+/* ============================================================
+   Motion (skipped entirely under prefers-reduced-motion)
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference){
+
+  /* B */
+  .arcade-page .av.A{animation:cfx-glow-a 3.8s ease-in-out infinite;}
+  .arcade-page .av.B{animation:cfx-glow-b 4.4s ease-in-out infinite;}
+  .arcade-page .av-spark{animation:cfx-heartbeat 1.9s ease-in-out infinite;}
+  .arcade-page .av-spark::before{animation:cfx-twinkle 2.6s ease-in-out .4s infinite;}
+  .arcade-page .av-spark::after{animation:cfx-twinkle 2.6s ease-in-out 1.5s infinite;}
+  .arcade-page .duo-title .amp{animation:cfx-amp 3.4s ease-in-out infinite;}
+  .arcade-page .streak-pill{animation:cfx-pill-glow 2.8s ease-in-out infinite;}
+  .arcade-page .streak-pill .ember.e1{animation:cfx-ember 1.7s ease-in 0s infinite;--sway:5px;}
+  .arcade-page .streak-pill .ember.e2{animation:cfx-ember 2s ease-in .6s infinite;--sway:-6px;}
+  .arcade-page .streak-pill .ember.e3{animation:cfx-ember 2.3s ease-in 1.1s infinite;--sway:4px;}
+  .arcade-page .taste-fill::after{animation:cfx-shimmer 2.8s linear infinite;}
+  .arcade-page .taste-heart{animation:cfx-heartbeat 1.6s ease-in-out infinite;}
+  .arcade-page .ms.lit{animation:cfx-ms-glow 3.2s ease-in-out infinite;}
+
+  /* D */
+  .cfx-badge{animation:cfx-pop-in .5s cubic-bezier(.2,1.4,.4,1);}
+  .cfx-rays{animation:cfx-spin 26s linear infinite;}
+  .cfx-trophy{animation:cfx-trophy-bob 2.4s ease-in-out infinite;}
+
+  /* E */
+  .ch-beat .run{animation:ch-beat-run 2.4s linear infinite;}
+  .ch-stars .st{animation:cfx-twinkle 4s ease-in-out infinite;}
+  .ch-orbit{animation:cfx-spin 7s linear infinite;}
+  .ch-tl-item.done .hh{animation:cfx-heartbeat 2.4s ease-in-out infinite;}
+
+  /* A */
+  .landing-page .hc-thread{animation:hc-flow 1.5s linear infinite;}
+  .landing-page .hc-orb.one{animation:hc-travel-l 3.8s ease-in-out infinite;}
+  .landing-page .hc-orb.two{animation:hc-travel-r 3.8s ease-in-out 1.9s infinite;}
+  .landing-page .hc-heart{animation:hc-beat 1.8s ease-in-out infinite;}
+  .landing-page .hc-float.f1{animation:hc-rise 4.4s ease-in .2s infinite;--hx:-26px;}
+  .landing-page .hc-float.f2{animation:hc-rise 5.2s ease-in 1.3s infinite;--hx:20px;}
+  .landing-page .hc-float.f3{animation:hc-rise 4.8s ease-in 2.4s infinite;--hx:-8px;}
+  .landing-page .hc-float.f4{animation:hc-rise 5.6s ease-in 3.1s infinite;--hx:32px;}
+  .landing-page .hc-float.f5{animation:hc-rise 4.6s ease-in 3.9s infinite;--hx:8px;}
+  .landing-page .hero-cta .btn.warm{animation:hc-cta 2.8s ease-in-out infinite;}
+  .landing-page .game .thumb{animation:hc-bob 3.6s ease-in-out infinite;}
+  .landing-page .game:nth-child(2) .thumb{animation-delay:.5s;}
+  .landing-page .game:nth-child(3) .thumb{animation-delay:1s;}
+  .landing-page .game:nth-child(4) .thumb{animation-delay:1.5s;}
+  .landing-page .game:nth-child(5) .thumb{animation-delay:2s;}
+  .landing-page .game:nth-child(6) .thumb{animation-delay:2.5s;}
+
+  /* C */
+  .arcade-page .player-wrap.live{animation:cw-live 2.6s ease-in-out infinite;}
+  .arcade-page .cw-line .run{animation:cw-beat-run 2.4s linear infinite;}
+  .arcade-page .cw-heartmid{animation:cfx-heartbeat 1.6s ease-in-out infinite;}
+  .arcade-page .cw-dot.A{animation:cfx-glow-a 3.4s ease-in-out infinite;}
+  .arcade-page .cw-dot.B{animation:cfx-glow-b 3.4s ease-in-out 1.7s infinite;}
+  .arcade-page .float-emoji{animation:cw-rise 2.4s ease-out forwards;}
+}
+
+/* ---------- keyframes ---------- */
+
+@keyframes cfx-heartbeat{
+  0%,100%{transform:translateX(-50%) scale(1);}
+  12%{transform:translateX(-50%) scale(1.25);}
+  24%{transform:translateX(-50%) scale(1);}
+  36%{transform:translateX(-50%) scale(1.12);}
+  48%{transform:translateX(-50%) scale(1);}
+}
+@keyframes cfx-twinkle{0%,100%{opacity:0;}50%{opacity:.9;}}
+@keyframes cfx-amp{0%,100%{opacity:.8;}50%{opacity:1;text-shadow:0 0 14px var(--candle);}}
+@keyframes cfx-glow-a{
+  0%,100%{box-shadow:0 0 6px color-mix(in srgb, var(--p1) 30%, transparent);}
+  50%{box-shadow:0 0 16px color-mix(in srgb, var(--p1) 65%, transparent);}
+}
+@keyframes cfx-glow-b{
+  0%,100%{box-shadow:0 0 6px color-mix(in srgb, var(--p2) 30%, transparent);}
+  50%{box-shadow:0 0 16px color-mix(in srgb, var(--p2) 65%, transparent);}
+}
+@keyframes cfx-pill-glow{
+  0%,100%{box-shadow:0 0 8px color-mix(in srgb, var(--candle) 18%, transparent);}
+  50%{box-shadow:0 0 18px color-mix(in srgb, var(--candle) 40%, transparent);}
+}
+@keyframes cfx-ember{
+  0%{transform:translate(0,4px) scale(1);opacity:0;}
+  15%{opacity:.95;}
+  100%{transform:translate(var(--sway,4px),-26px) scale(.35);opacity:0;}
+}
+@keyframes cfx-shimmer{from{background-position:200% 0;}to{background-position:-200% 0;}}
+@keyframes cfx-ms-glow{
+  0%,100%{box-shadow:0 0 8px color-mix(in srgb, var(--candle) 18%, transparent);}
+  50%{box-shadow:0 0 15px color-mix(in srgb, var(--candle) 38%, transparent);}
+}
+@keyframes cfx-pop-in{from{transform:scale(.85);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes cfx-spin{to{transform:rotate(360deg);}}
+@keyframes cfx-trophy-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+@keyframes cfx-confetti-fall{
+  0%{transform:translateY(0) rotate(0);opacity:1;}
+  85%{opacity:1;}
+  100%{transform:translateY(108vh) rotate(var(--spin,600deg));opacity:.5;}
+}
+@keyframes cfx-confetti-fall-small{
+  0%{transform:translateY(0) rotate(0);opacity:1;}
+  80%{opacity:1;}
+  100%{transform:translateY(260px) rotate(var(--spin,480deg));opacity:0;}
+}
+@keyframes cfx-heart-rise{
+  0%{transform:translateY(0) scale(.7);opacity:0;}
+  12%{opacity:.95;}
+  100%{transform:translateY(-64vh) translateX(-14px) scale(1.15);opacity:0;}
+}
+@keyframes ch-beat-run{from{stroke-dashoffset:140;}to{stroke-dashoffset:0;}}
+@keyframes hc-flow{to{stroke-dashoffset:-16;}}
+@keyframes hc-beat{
+  0%,100%{transform:translate(-50%,-50%) scale(1);}
+  12%{transform:translate(-50%,-50%) scale(1.28);}
+  24%{transform:translate(-50%,-50%) scale(1);}
+  36%{transform:translate(-50%,-50%) scale(1.14);}
+  48%{transform:translate(-50%,-50%) scale(1);}
+}
+@keyframes hc-travel-l{
+  0%,8%{transform:translateX(0);opacity:0;}
+  18%{opacity:1;}
+  46%{transform:translateX(104px);opacity:0;}
+  100%{transform:translateX(104px);opacity:0;}
+}
+@keyframes hc-travel-r{
+  0%,8%{transform:translateX(0);opacity:0;}
+  18%{opacity:1;}
+  46%{transform:translateX(-104px);opacity:0;}
+  100%{transform:translateX(-104px);opacity:0;}
+}
+@keyframes hc-rise{
+  0%{transform:translate(0,0) scale(.7);opacity:0;}
+  14%{opacity:.9;}
+  100%{transform:translate(var(--hx,0),-120px) scale(1.1);opacity:0;}
+}
+@keyframes hc-cta{
+  0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--candle) 45%, transparent);}
+  50%{box-shadow:0 0 20px 2px color-mix(in srgb, var(--candle) 55%, transparent);}
+}
+@keyframes hc-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+@keyframes cw-live{
+  0%,100%{box-shadow:0 0 10px color-mix(in srgb, var(--candle) 22%, transparent);}
+  50%{box-shadow:0 0 24px color-mix(in srgb, var(--candle) 52%, transparent);}
+}
+@keyframes cw-beat-run{from{stroke-dashoffset:186;}to{stroke-dashoffset:0;}}
+@keyframes cw-rise{
+  0%{transform:translateY(0) translateX(0) scale(.7);opacity:0;}
+  10%{opacity:1;}
+  50%{transform:translateY(-120px) translateX(7px) scale(1.08);}
+  100%{transform:translateY(-240px) translateX(-9px) scale(.9);opacity:0;}
+}

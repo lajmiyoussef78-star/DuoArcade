@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ENGINES } from '../engines/index.js';
 import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
+import { Celebration, TogetherHero } from './CoupleFx.jsx';
+
+const MS_KEY = code => 'duoarcade-ms-' + code;
 
 function favoriteGameId(duo) {
   let best = 'connect4', n = -1;
@@ -31,6 +34,7 @@ export default function HomeScreen({
   const [codeInput, setCodeInput] = useState('');
   const [passStatus, setPassStatus] = useState('');
   const [copied, setCopied] = useState(false);
+  const [celebrate, setCelebrate] = useState(null);
 
   const t = totalsOf(duo);
   const partnerRole = other(myRole);
@@ -58,6 +62,21 @@ export default function HomeScreen({
   for (const m of [25, 10]) {
     if (w >= m) { milestones.push({ lit: true, text: `🎬 ${m} movie nights` }); break; }
   }
+
+  /* celebrate newly crossed game milestones (once per milestone, per device) */
+  useEffect(() => {
+    const reached = [10, 25, 50, 100, 250].filter(m => t.games >= m).pop() || 0;
+    const seen = Number(localStorage.getItem(MS_KEY(code)) || 0);
+    if (reached > seen) {
+      localStorage.setItem(MS_KEY(code), String(reached));
+      if (seen > 0) { // skip the very first visit so old duos aren't spammed
+        setCelebrate({
+          title: `${reached} games together`,
+          sub: `${duo.nameA} & ${duo.nameB} — here's to many more evenings.`
+        });
+      }
+    }
+  }, [t.games, code, duo.nameA, duo.nameB]);
 
   const focusWatch = () => document.getElementById('ytUrl')?.focus();
   const plan = (() => {
@@ -100,11 +119,16 @@ export default function HomeScreen({
 
   return (
     <section className="on">
+      {celebrate && (
+        <Celebration title={celebrate.title} sub={celebrate.sub}
+          icon={celebrate.icon || '🏆'} onClose={() => setCelebrate(null)} />
+      )}
       <div className="card">
         <div className="duo-head">
           <div className="avatars">
             <div className={'av A' + (isAway('A') ? ' away' : '')}>{(duo.nameA || '?')[0].toUpperCase()}</div>
             <div className={'av B' + (isAway('B') ? ' away' : '')}>{(duo.nameB || '?')[0].toUpperCase()}</div>
+            {!isAway('A') && !isAway('B') && <span className="av-spark" aria-hidden="true">{'❤'}</span>}
           </div>
           <div style={{ flex: 1 }}>
             <div className="duo-title h3">{duo.nameA} <span className="amp">&</span> {duo.nameB}</div>
@@ -116,8 +140,11 @@ export default function HomeScreen({
             </div>
           )}
           {cur > 1 && (
-            <div className="streak-pill" style={{ display: 'inline-block' }}>
+            <div className="streak-pill" style={{ display: 'inline-block', position: 'relative' }}>
               {'🔥 '}{cur}-evening streak{(duo.bestStreak || 0) > cur ? ` · best ${duo.bestStreak}` : ''}
+              <span className="ember e1" aria-hidden="true" />
+              <span className="ember e2" aria-hidden="true" />
+              <span className="ember e3" aria-hidden="true" />
             </div>
           )}
           <button className="btn small ghost" onClick={onBack}>My duos</button>
@@ -129,7 +156,12 @@ export default function HomeScreen({
           <div className="hstat">
             <div className="n">{duo.tasteTotal > 0 ? tastePct + '%' : '—'}</div>
             <div className="l">taste match</div>
-            <div className="taste-meter"><div className="taste-fill" style={{ width: (duo.tasteTotal > 0 ? tastePct : 0) + '%' }} /></div>
+            <div className="taste-meter">
+              <div className="taste-fill" style={{ width: (duo.tasteTotal > 0 ? tastePct : 0) + '%' }} />
+              {duo.tasteTotal > 0 && tastePct > 4 && (
+                <span className="taste-heart" aria-hidden="true" style={{ left: tastePct + '%' }}>{'❤'}</span>
+              )}
+            </div>
           </div>
           <div className="hstat">
             <div className="n">{t.a === t.b ? 'tied' : (t.a > t.b ? duo.nameA : duo.nameB)}</div>
@@ -137,8 +169,20 @@ export default function HomeScreen({
           </div>
         </div>
 
+        <TogetherHero duo={duo} code={code} totals={t} />
+
         <div className="milestones">
-          {milestones.map((m, i) => <div className={'ms' + (m.lit ? ' lit' : '')} key={i}>{m.text}</div>)}
+          {milestones.map((m, i) => (
+            <div className={'ms' + (m.lit ? ' lit' : '')} key={i}
+              title={m.lit ? 'Tap to relive it' : undefined}
+              onClick={m.lit ? () => setCelebrate({
+                title: m.text.replace(/^[^\w]*\s*/, ''),
+                sub: `${duo.nameA} & ${duo.nameB} — you earned this one together.`,
+                icon: m.text.includes('🎬') ? '🎬' : '🏆'
+              }) : undefined}>
+              {m.text}
+            </div>
+          ))}
         </div>
 
         <div className="tonight">

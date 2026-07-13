@@ -6,6 +6,7 @@ import Arcade from './pages/Arcade.jsx';
 import './styles/base.css';
 import './styles/landing.scoped.css';
 import './styles/arcade.scoped.css';
+import './styles/couple.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -36,6 +36,20 @@ export default function Landing() {
             <p>Joins with one link, on a phone, mid-call. No signup, no app store.</p>
           </div>
           <div className="seam"></div>
+          <div className="hero-connect" aria-hidden="true">
+            <svg className="hc-svg" viewBox="0 0 230 60" preserveAspectRatio="none">
+              <path className="hc-thread hc-left" d="M4 30 C 40 30, 62 22, 100 28" />
+              <path className="hc-thread hc-right" d="M226 30 C 190 30, 168 38, 130 32" />
+            </svg>
+            <span className="hc-orb one" />
+            <span className="hc-orb two" />
+            <span className="hc-heart">{'❤'}</span>
+            <span className="hc-float f1">{'❤'}</span>
+            <span className="hc-float f2">{'❤'}</span>
+            <span className="hc-float f3">{'✦'}</span>
+            <span className="hc-float f4">{'❤'}</span>
+            <span className="hc-float f5">{'✦'}</span>
+          </div>
           <div className="hero-cta">
             <Link className="btn warm" to="/app">Create your duo</Link>
             <span className="note">Free · no ads, ever · works in any browser</span>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { other } from '../lib/util.js';
+import { Confetti } from './CoupleFx.jsx';
 
 function loadYT() {
   return new Promise(res => {
@@ -125,10 +126,35 @@ export default function WatchScreen({ duo, myRole, pushWatch, submitRating, onBa
         )}
       </div>
       <div className="player-outer">
-        <div className="player-wrap"><div id="ytPlayer" /></div>
+        <div className={'player-wrap' + (s.phase === 'playing' && s.playing ? ' live' : '')}>
+          <div id="ytPlayer" />
+        </div>
         <div className="react-lane">
           {reactions.map(r => <div className="float-emoji" key={r.id}>{r.e}</div>)}
         </div>
+      </div>
+      <div className="cw-sync" aria-hidden="true">
+        <div className="cw-dot A">{(duo.nameA || '?')[0].toUpperCase()}</div>
+        <div className="cw-line">
+          <svg viewBox="0 0 130 24" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="cw-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="var(--p1)" />
+                <stop offset="50%" stopColor="var(--candle)" />
+                <stop offset="100%" stopColor="var(--p2)" />
+              </linearGradient>
+            </defs>
+            <path className="base" d="M0 12 H40 L47 4 L55 20 L62 12 H68 L75 6 L83 18 L90 12 H130" />
+            <path className="run" d="M0 12 H40 L47 4 L55 20 L62 12 H68 L75 6 L83 18 L90 12 H130" />
+          </svg>
+          <span className="cw-heartmid">{'❤'}</span>
+        </div>
+        <div className="cw-dot B">{(duo.nameB || '?')[0].toUpperCase()}</div>
+        <span className="cw-note">
+          {s.phase === 'playing'
+            ? <><b>in sync</b> {'·'} {s.playing ? 'playing' : 'paused'}</>
+            : 'the verdict'}
+        </span>
       </div>
       <div className="watch-bar">
         <span className="watch-note">play, pause, and seek sync live to your partner</span>
@@ -141,6 +167,9 @@ export default function WatchScreen({ duo, myRole, pushWatch, submitRating, onBa
       </div>
       {s.phase !== 'playing' && (
         <div className="verdict">
+          {mine !== null && theirs !== null && diff <= 1 && (
+            <div className="cw-reveal"><Confetti count={26} small /></div>
+          )}
           <h3>The Verdict</h3>
           <p>{mine !== null && theirs !== null ? 'The reveal:' : 'Rate it blind — the reveal happens when you both have.'}</p>
           <div className="stars">
