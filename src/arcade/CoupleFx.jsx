@@ -3,6 +3,8 @@
 // All colors come from the theme CSS variables so duo themes restyle them.
 
 import { useEffect, useMemo, useState } from 'react';
+import { other } from '../lib/util.js';
+import { formatDistance, haversineKm } from '../lib/location.js';
 
 const FX_COLORS = ['var(--p1)', 'var(--p2)', '--candle', 'var(--text)']
   .map(c => (c === '--candle' ? 'var(--candle)' : c));
@@ -76,12 +78,16 @@ function parseDay(iso) {
   return Number.isFinite(d.getTime()) ? d : null;
 }
 
-function splitDuration(from) {
-  const start = parseDay(from);
+function elapsedParts(from, now = Date.now()) {
+  const start = from instanceof Date ? from : parseDay(from);
   if (!start) return null;
-  const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / 864e5));
-  const y = Math.floor(days / 365), m = Math.floor((days % 365) / 30), d = (days % 365) % 30;
-  return { y, m, d, days };
+  let ms = Math.max(0, now - start.getTime());
+  const days = Math.floor(ms / 864e5);
+  ms %= 864e5;
+  const hours = Math.floor(ms / 36e5);
+  ms %= 36e5;
+  const seconds = Math.floor(ms / 1e3);
+  return { days, hours, seconds };
 }
 
 // Relationship start = the saved anniversary date. If the year is still ahead,
@@ -106,22 +112,22 @@ function formatLongDate(when) {
 
 const annivKey = code => 'duoarcade-anniv-' + code;
 
-export function TogetherHero({ duo, code, totals }) {
+export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus }) {
   const [anniv, setAnniv] = useState(() => localStorage.getItem(annivKey(code)) || '');
   const [editing, setEditing] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const stars = useMemo(() => Array.from({ length: 14 }, (_, i) => ({
     id: i, left: Math.random() * 100, top: Math.random() * 100, delay: Math.random() * 4
   })), []);
 
   const relStart = relationshipStart(anniv);
-  const dur = relStart ? splitDuration(relStart) : null;
-  const firstDay = dur?.days === 0;
-  const dayCount = dur ? (dur.y || dur.m ? dur.d : dur.days) : 0;
-  const parts = [];
-  if (dur?.y) parts.push(<span key="y"><b>{dur.y}</b> year{dur.y > 1 ? 's' : ''}</span>);
-  if (dur?.m) parts.push(<span key="m"><b>{dur.m}</b> month{dur.m > 1 ? 's' : ''}</span>);
-  if (dur && !firstDay) parts.push(<span key="d"><b>{dayCount}</b> day{dayCount === 1 ? '' : 's'}</span>);
+  const dur = relStart ? elapsedParts(relStart, now) : null;
 
   const duoSince = formatLongDate(duo.createdAt);
 
@@ -142,6 +148,14 @@ export function TogetherHero({ duo, code, totals }) {
     if (v) localStorage.setItem(annivKey(code), v);
     setEditing(false);
   };
+
+  const partnerRole = other(myRole);
+  const mine = presence?.[myRole];
+  const theirs = presence?.[partnerRole];
+  const partnerName = partnerRole === 'A' ? duo.nameA : duo.nameB;
+  const apart = mine?.lat != null && mine?.lng != null && theirs?.lat != null && theirs?.lng != null
+    ? haversineKm(mine.lat, mine.lng, theirs.lat, theirs.lng)
+    : null;
 
   const tl = [
     { done: totals.games >= 1, text: 'first game' },
@@ -182,10 +196,34 @@ export function TogetherHero({ duo, code, totals }) {
             <button type="button" className="ch-setdate" onClick={() => setEditing(true)}>
               set your anniversary {'→'}
             </button>
-          ) : firstDay ? (
-            <span><b>day one</b> {'❤'}</span>
           ) : (
-            parts.reduce((acc, p, i) => (i ? [...acc, ', ', p] : [p]), [])
+            <>
+              <span><b>{dur.days}</b> day{dur.days === 1 ? '' : 's'}</span>
+              {', '}
+              <span><b>{dur.hours}</b> hour{dur.hours === 1 ? '' : 's'}</span>
+              {', '}
+              <span className="ch-sec"><b>{dur.seconds}</b> second{dur.seconds === 1 ? '' : 's'}</span>
+            </>
+          )}
+        </div>
+        <div className="ch-locs">
+          <div className="ch-loc-row">
+            <span className="ch-loc-dot you" aria-hidden="true" />
+            <span className="ch-loc-label">You</span>
+            <span className="ch-loc-val">
+              {mine?.place ? <b>{mine.place}</b> : geoStatus || 'Locating…'}
+            </span>
+          </div>
+          <div className="ch-loc-row">
+            <span className="ch-loc-dot partner" aria-hidden="true" />
+            <span className="ch-loc-label">{partnerName}</span>
+            <span className="ch-loc-val">
+              {theirs?.place ? <b>{theirs.place}</b>
+                : theirs?.online ? 'Locating…' : 'Offline'}
+            </span>
+          </div>
+          {apart != null && (
+            <div className="ch-apart">↔ {formatDistance(apart)} apart</div>
           )}
         </div>
         {anniv && relStart && (

@@ -126,6 +126,16 @@
 .ch-count{font-family:'Fraunces',serif;font-weight:900;font-size:27px;margin-top:2px;line-height:1.2;}
 .ch-count b{color:var(--candle);font-weight:900;
   text-shadow:0 0 16px color-mix(in srgb, var(--candle) 60%, transparent);}
+.ch-sec{display:inline-block;min-width:9ch;font-variant-numeric:tabular-nums;}
+.ch-locs{margin-top:6px;display:flex;flex-direction:column;gap:4px;}
+.ch-loc-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);line-height:1.35;}
+.ch-loc-dot{width:7px;height:7px;border-radius:50%;flex:none;}
+.ch-loc-dot.you{background:var(--p1);box-shadow:0 0 6px var(--p1);}
+.ch-loc-dot.partner{background:var(--p2);box-shadow:0 0 6px var(--p2);}
+.ch-loc-label{min-width:52px;font-weight:600;color:color-mix(in srgb, var(--text) 70%, var(--dim));}
+.ch-loc-val b{color:var(--text);font-weight:600;}
+.ch-apart{font-size:11px;color:var(--candle);margin-top:2px;font-weight:600;
+  text-shadow:0 0 8px color-mix(in srgb, var(--candle) 35%, transparent);}
 .ch-duo{font-size:12px;color:var(--dim);margin-top:5px;line-height:1.4;}
 .ch-duo b{color:var(--text);font-weight:600;}
 .ch-since{font-size:11.5px;color:var(--dim);margin-top:4px;}

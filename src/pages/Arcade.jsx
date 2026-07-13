@@ -5,6 +5,7 @@ import { ENGINES } from '../engines/index.js';
 import {
   other, today, loadSeats, saveSeat, applyTheme, finishPatch
 } from '../lib/util.js';
+import { watchGeo } from '../lib/location.js';
 import AuthScreen from '../arcade/AuthScreen.jsx';
 import LobbyScreen from '../arcade/LobbyScreen.jsx';
 import PublicProfileScreen from '../arcade/PublicProfileScreen.jsx';
@@ -14,7 +15,10 @@ import WatchScreen from '../arcade/WatchScreen.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
 
 const VERSION = 'v11.0-react';
-const DEFAULT_PRESENCE = { A: { online: true, focused: true }, B: { online: true, focused: true } };
+const DEFAULT_PRESENCE = {
+  A: { online: true, focused: true, place: null, lat: null, lng: null },
+  B: { online: true, focused: true, place: null, lat: null, lng: null }
+};
 const requestedArenaPath = () => {
   const query = new URLSearchParams(window.location.search).get('next');
   const saved = localStorage.getItem('duoarcade-arena-next');
@@ -42,6 +46,7 @@ export default function Arcade() {
   const [homeStatus, setHomeStatus] = useState('');
   const [ctx, setCtx] = useState({ duo: null, code: null, myRole: null });
   const [presenceState, setPresenceState] = useState(DEFAULT_PRESENCE);
+  const [geoStatus, setGeoStatus] = useState('');
   const [showDiag, setShowDiag] = useState(false);
 
   const ctxRef = useRef(ctx);
@@ -401,6 +406,21 @@ export default function Arcade() {
     };
   }, [ctx.code]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ---------- live geolocation (shared via presence) ---------- */
+
+  useEffect(() => {
+    const { code } = ctx;
+    if (!code) return;
+    return watchGeo(({ lat, lng, place, error }) => {
+      if (error) {
+        setGeoStatus(error);
+        return;
+      }
+      setGeoStatus('');
+      presenceRef.current?.setGeo?.({ lat, lng, place });
+    });
+  }, [ctx.code]);
+
   /* ---------- theme follows the open duo ---------- */
 
   useEffect(() => {
@@ -529,6 +549,7 @@ export default function Arcade() {
       screen = (
         <HomeScreen
           duo={duo} code={code} myRole={myRole} isAway={isAway}
+          presence={presenceState} geoStatus={geoStatus}
           homeStatus={homeStatus} setHomeStatus={setHomeStatus}
           onStartGame={startGame} onStartWatch={startWatch}
           onBack={() => { leaveDuoContext(); enterLobby(); }}

@@ -147,20 +147,31 @@ async function supabaseSync() {
 
     presence(code, role) {
       let pcb = () => {};
+      let state = { focused: true };
       const ch = sb.channel('presence-' + code, { config: { presence: { key: role } } });
+      const track = () => ch.track(state);
       const emit = () => {
         const st = ch.presenceState();
-        const norm = arr => arr && arr.length
-          ? { online: true, focused: arr[arr.length - 1].focused !== false }
-          : { online: false, focused: false };
+        const norm = arr => {
+          if (!arr || !arr.length) return { online: false, focused: false, place: null, lat: null, lng: null };
+          const last = arr[arr.length - 1];
+          return {
+            online: true,
+            focused: last.focused !== false,
+            place: last.place || null,
+            lat: typeof last.lat === 'number' ? last.lat : null,
+            lng: typeof last.lng === 'number' ? last.lng : null
+          };
+        };
         pcb({ A: norm(st.A), B: norm(st.B) });
       };
       ch.on('presence', { event: 'sync' }, emit)
         .subscribe(async status => {
-          if (status === 'SUBSCRIBED') await ch.track({ focused: true });
+          if (status === 'SUBSCRIBED') await track();
         });
       return {
-        setFocused: f => ch.track({ focused: f }),
+        setFocused: f => { state = { ...state, focused: f }; return track(); },
+        setGeo: geo => { state = { ...state, ...geo }; return track(); },
         onChange: f => { pcb = f; },
         close: () => sb.removeChannel(ch)
       };
