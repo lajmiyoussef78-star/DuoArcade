@@ -15,6 +15,12 @@ import InviteOverlay from '../arcade/InviteOverlay.jsx';
 
 const VERSION = 'v11.0-react';
 const DEFAULT_PRESENCE = { A: { online: true, focused: true }, B: { online: true, focused: true } };
+const requestedArenaPath = () => {
+  const query = new URLSearchParams(window.location.search).get('next');
+  const saved = localStorage.getItem('duoarcade-arena-next');
+  const next = query || saved;
+  return next?.startsWith('/arena') ? next : null;
+};
 
 export default function Arcade() {
   const syncRef = useRef(null);
@@ -132,7 +138,11 @@ export default function Arcade() {
         await syncRef.current.auth.signIn(email, pw);
       }
       await loadProfile();
-      if (pendingInvite.current) await joinPending();
+      const arenaPath = requestedArenaPath();
+      if (arenaPath) {
+        localStorage.removeItem('duoarcade-arena-next');
+        window.location.assign(arenaPath);
+      } else if (pendingInvite.current) await joinPending();
       else await enterLobby();
       return '';
     } catch (e) { return e.message; }
@@ -470,7 +480,12 @@ export default function Arcade() {
 
       if (sync.auth.user()) {
         await loadProfile();
-        if (pendingInvite.current) await joinPending();
+        const arenaPath = requestedArenaPath();
+        if (arenaPath) {
+          localStorage.removeItem('duoarcade-arena-next');
+          window.location.assign(arenaPath);
+          return;
+        } else if (pendingInvite.current) await joinPending();
         else await enterLobby();
       } else {
         if (pendingInvite.current) {
@@ -542,6 +557,9 @@ export default function Arcade() {
       <div className="topbar">
         <Link className="brand h1" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
         <div className="nav">
+          <Link to="/arena" style={{ color: 'var(--candle)', textDecoration: 'none', fontSize: 12 }}>
+            2v2 Arena
+          </Link>
         </div>
         <div className="who">
           <span>{userEmail}</span>{' '}

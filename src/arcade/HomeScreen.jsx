@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ENGINES } from '../engines/index.js';
 import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
@@ -184,6 +185,20 @@ export default function HomeScreen({
             </div>
           ))}
         </div>
+
+        <Link className="arena-entry" to="/arena">
+          <div className="arena-entry-pairs" aria-hidden="true">
+            <span className="pair one"><i>{(duo.nameA || '?')[0]}</i><i>{(duo.nameB || '?')[0]}</i></span>
+            <b>VS</b>
+            <span className="pair two"><i>?</i><i>?</i></span>
+          </div>
+          <div className="arena-entry-copy">
+            <span>Couple vs couple</span>
+            <h3>Enter the 2v2 Arena</h3>
+            <p>Challenge another duo or find rivals in public matchmaking.</p>
+          </div>
+          <strong className="arena-entry-arrow">→</strong>
+        </Link>
 
         <div className="tonight">
           <h3>{'🌕'} Tonight Engine</h3>

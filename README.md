@@ -58,5 +58,13 @@ The whole React app ships inside the native shell — no rewrite.
 
 ## Backend
 
-`supabase/` holds your schema history (v2 → v7) for reference.
-Nothing needs to be re-run; the app talks to the same database.
+`supabase/` holds your schema history (v2 → v8).
+
+For an existing v7 database, run `supabase/schema-v8-arena.sql` once in the
+Supabase SQL Editor. It adds the 2v2 Arena match/queue tables, secure RPCs,
+four-seat authorization, and Realtime publication. Existing duo data is not
+changed.
+
+Arena supports private challenge links and public matchmaking for Tic-Tac-Toe,
+Connect Four, and Dots & Boxes. Both partners must have signed-in accounts
+linked to their duo before entering the Arena.
