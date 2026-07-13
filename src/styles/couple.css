@@ -8,12 +8,17 @@
    ============================================================ */
 
 .arcade-page .avatars{position:relative;}
-.arcade-page .av.A{box-shadow:0 0 10px color-mix(in srgb, var(--p1) 40%, transparent);}
-.arcade-page .av.B{box-shadow:0 0 10px color-mix(in srgb, var(--p2) 40%, transparent);}
+.arcade-page .av.A{border-color:color-mix(in srgb, var(--p1) 75%, var(--night));
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--p1) 35%, transparent),
+             0 0 14px color-mix(in srgb, var(--p1) 55%, transparent);}
+.arcade-page .av.B{border-color:color-mix(in srgb, var(--p2) 75%, var(--night));
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--p2) 35%, transparent),
+             0 0 14px color-mix(in srgb, var(--p2) 55%, transparent);}
 
-.arcade-page .av-spark{position:absolute;left:39px;top:-9px;transform:translateX(-50%);
-  font-size:13px;line-height:1;color:var(--candle);
-  text-shadow:0 0 8px var(--candle);z-index:3;pointer-events:none;}
+.arcade-page .av-spark{position:absolute;left:39px;top:-11px;transform:translateX(-50%);
+  font-size:16px;line-height:1;color:var(--candle);
+  text-shadow:0 0 10px var(--candle), 0 0 22px color-mix(in srgb, var(--candle) 60%, transparent);
+  z-index:3;pointer-events:none;}
 .arcade-page .av-spark::before,
 .arcade-page .av-spark::after{content:'';position:absolute;width:3px;height:3px;border-radius:50%;
   background:var(--candle);box-shadow:0 0 5px var(--candle);opacity:0;}
@@ -46,6 +51,19 @@
   transition:transform .15s ease, box-shadow .2s ease;}
 .arcade-page .ms.lit:hover{transform:translateY(-2px);
   box-shadow:0 0 16px color-mix(in srgb, var(--candle) 45%, transparent);}
+
+/* stats row: each number takes a partner/theme color with a soft neon glow,
+   matching the mockup — colors follow the duo theme automatically */
+.arcade-page .home-stats .hstat:nth-child(1) .n{color:var(--p1);
+  text-shadow:0 0 14px color-mix(in srgb, var(--p1) 55%, transparent);}
+.arcade-page .home-stats .hstat:nth-child(2) .n{color:var(--p2);
+  text-shadow:0 0 14px color-mix(in srgb, var(--p2) 55%, transparent);}
+.arcade-page .home-stats .hstat:nth-child(3) .n{
+  background:linear-gradient(90deg, var(--p1), var(--p2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 10px color-mix(in srgb, var(--p2) 45%, transparent));}
+.arcade-page .home-stats .hstat:nth-child(4) .n{color:var(--candle);
+  text-shadow:0 0 14px color-mix(in srgb, var(--candle) 55%, transparent);}
 
 /* game cards feel alive on hover */
 .arcade-page .gcard{transition:border-color .15s ease, transform .18s ease, box-shadow .18s ease;}
@@ -103,9 +121,11 @@
 .ch-beat .run{stroke:url(#chbeat-grad);stroke-dasharray:20 120;stroke-dashoffset:140;}
 
 .ch-mid{flex:1;min-width:210px;position:relative;}
-.ch-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--candle);font-weight:700;}
-.ch-count{font-family:'Fraunces',serif;font-weight:900;font-size:22px;margin-top:2px;line-height:1.2;}
-.ch-count b{color:var(--candle);font-weight:900;}
+.ch-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--candle);font-weight:700;
+  text-shadow:0 0 10px color-mix(in srgb, var(--candle) 40%, transparent);}
+.ch-count{font-family:'Fraunces',serif;font-weight:900;font-size:27px;margin-top:2px;line-height:1.2;}
+.ch-count b{color:var(--candle);font-weight:900;
+  text-shadow:0 0 16px color-mix(in srgb, var(--candle) 60%, transparent);}
 .ch-timeline{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap;}
 .ch-tl-item{font-size:10.5px;color:var(--dim);display:flex;align-items:center;gap:5px;white-space:nowrap;}
 .ch-tl-item .hh{color:color-mix(in srgb, var(--dim) 60%, transparent);font-size:11px;line-height:1;}
@@ -135,15 +155,18 @@
   transform:translate(-50%,-50%);pointer-events:none;z-index:1;}
 .landing-page .hc-svg{position:absolute;left:0;right:0;top:50%;height:60px;width:100%;
   transform:translateY(-50%);overflow:visible;}
-.landing-page .hc-thread{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:6 10;}
-.landing-page .hc-left{stroke:var(--p1);filter:drop-shadow(0 0 4px var(--p1));}
-.landing-page .hc-right{stroke:var(--p2);filter:drop-shadow(0 0 4px var(--p2));}
-.landing-page .hc-orb{position:absolute;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;opacity:0;}
-.landing-page .hc-orb.one{left:0;background:var(--p1);box-shadow:0 0 12px var(--p1);}
-.landing-page .hc-orb.two{right:0;background:var(--p2);box-shadow:0 0 12px var(--p2);}
+.landing-page .hc-thread{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-dasharray:6 10;}
+.landing-page .hc-left{stroke:var(--p1);filter:drop-shadow(0 0 6px var(--p1));}
+.landing-page .hc-right{stroke:var(--p2);filter:drop-shadow(0 0 6px var(--p2));}
+.landing-page .hc-orb{position:absolute;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;opacity:0;}
+.landing-page .hc-orb.one{left:0;background:var(--p1);box-shadow:0 0 16px 3px var(--p1);}
+.landing-page .hc-orb.two{right:0;background:var(--p2);box-shadow:0 0 16px 3px var(--p2);}
+.landing-page .hc-glow{position:absolute;left:50%;top:50%;width:110px;height:110px;
+  transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle, color-mix(in srgb, var(--candle) 32%, transparent) 0%, transparent 68%);}
 .landing-page .hc-heart{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-size:22px;line-height:1;color:var(--candle);
-  text-shadow:0 0 14px var(--candle), 0 0 34px color-mix(in srgb, var(--candle) 55%, transparent);}
+  font-size:34px;line-height:1;color:var(--candle);
+  text-shadow:0 0 18px var(--candle), 0 0 48px color-mix(in srgb, var(--candle) 65%, transparent);}
 .landing-page .hc-float{position:absolute;left:50%;bottom:16%;font-size:12px;line-height:1;opacity:0;
   text-shadow:0 0 8px currentColor;}
 .landing-page .hc-float.f1{color:var(--p1);}
@@ -178,6 +201,8 @@
   font-size:10px;line-height:1;color:var(--candle);text-shadow:0 0 6px var(--candle);}
 .arcade-page .cw-note{font-size:12px;color:var(--dim);}
 .arcade-page .cw-note b{color:var(--good);font-weight:600;}
+.arcade-page .cw-title{color:var(--candle);
+  text-shadow:0 0 14px color-mix(in srgb, var(--candle) 55%, transparent);}
 
 /* verdict: confetti reveal inside the card */
 .arcade-page .verdict{position:relative;overflow:hidden;}
@@ -223,6 +248,7 @@
 
   /* A */
   .landing-page .hc-thread{animation:hc-flow 1.5s linear infinite;}
+  .landing-page .hc-glow{animation:hc-glow-pulse 3.2s ease-in-out infinite;}
   .landing-page .hc-orb.one{animation:hc-travel-l 3.8s ease-in-out infinite;}
   .landing-page .hc-orb.two{animation:hc-travel-r 3.8s ease-in-out 1.9s infinite;}
   .landing-page .hc-heart{animation:hc-beat 1.8s ease-in-out infinite;}
@@ -330,6 +356,10 @@
   50%{box-shadow:0 0 20px 2px color-mix(in srgb, var(--candle) 55%, transparent);}
 }
 @keyframes hc-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+@keyframes hc-glow-pulse{
+  0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(1);}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.22);}
+}
 @keyframes cw-live{
   0%,100%{box-shadow:0 0 10px color-mix(in srgb, var(--candle) 22%, transparent);}
   50%{box-shadow:0 0 24px color-mix(in srgb, var(--candle) 52%, transparent);}

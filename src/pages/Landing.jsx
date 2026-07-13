@@ -43,6 +43,7 @@ export default function Landing() {
             </svg>
             <span className="hc-orb one" />
             <span className="hc-orb two" />
+            <span className="hc-glow" />
             <span className="hc-heart">{'❤'}</span>
             <span className="hc-float f1">{'❤'}</span>
             <span className="hc-float f2">{'❤'}</span>

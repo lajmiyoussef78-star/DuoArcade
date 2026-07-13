@@ -70,8 +70,10 @@ export function Celebration({ title, sub, icon = '🏆', onClose }) {
 
 /* ---------- E: together hero ---------- */
 
-function splitDuration(fromTs) {
-  const days = Math.max(0, Math.floor((Date.now() - fromTs) / 864e5));
+function splitDuration(from) {
+  const ts = new Date(from).getTime(); // createdAt may be a string or a number
+  if (!Number.isFinite(ts)) return null;
+  const days = Math.max(0, Math.floor((Date.now() - ts) / 864e5));
   const y = Math.floor(days / 365), m = Math.floor((days % 365) / 30), d = (days % 365) % 30;
   return { y, m, d, days };
 }
@@ -86,8 +88,8 @@ export function TogetherHero({ duo, code, totals }) {
     id: i, left: Math.random() * 100, top: Math.random() * 100, delay: Math.random() * 4
   })), []);
 
-  if (!duo.createdAt) return null;
-  const dur = splitDuration(duo.createdAt);
+  const dur = duo.createdAt ? splitDuration(duo.createdAt) : null;
+  if (!dur) return null;
   const parts = [];
   if (dur.y) parts.push(<span key="y"><b>{dur.y}</b> year{dur.y > 1 ? 's' : ''}</span>);
   if (dur.m) parts.push(<span key="m"><b>{dur.m}</b> month{dur.m > 1 ? 's' : ''}</span>);

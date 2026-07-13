@@ -120,7 +120,7 @@ export default function WatchScreen({ duo, myRole, pushWatch, submitRating, onBa
     <section className="on">
       <div className="gv-top">
         <button className="btn small ghost" onClick={onBack}>{'←'} Back</button>
-        <div className="gv-title h3">Movie night</div>
+        <div className="gv-title h3 cw-title">Movie night</div>
         {s.phase === 'playing' && (
           <button className="btn small warm" onClick={finishWatch}>Finish & rate</button>
         )}
