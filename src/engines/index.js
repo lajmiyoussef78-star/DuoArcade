@@ -13,7 +13,14 @@ import * as SK from './sketch.js';
 import * as WR from './wordrace.js';
 import * as MZ from './maze.js';
 import * as RX from './reflex.js';
+// New in v11.1 — five fresh head-to-head games:
+import * as MAN from './mancala.js';
+import * as SEA from './seabattle.js';
+import * as CHK from './checkers.js';
+import * as HEX from './hex.js';
+import * as PIG from './pig.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX].map(e => [e.meta.id, e])
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG]
+    .map(e => [e.meta.id, e])
 );
