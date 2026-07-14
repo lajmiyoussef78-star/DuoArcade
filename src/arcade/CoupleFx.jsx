@@ -86,8 +86,10 @@ function elapsedParts(from, now = Date.now()) {
   ms %= 864e5;
   const hours = Math.floor(ms / 36e5);
   ms %= 36e5;
+  const minutes = Math.floor(ms / 6e4);
+  ms %= 6e4;
   const seconds = Math.floor(ms / 1e3);
-  return { days, hours, seconds };
+  return { days, hours, minutes, seconds };
 }
 
 // Relationship start = the saved anniversary date. If the year is still ahead,
@@ -201,6 +203,8 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
               <span><b>{dur.days}</b> day{dur.days === 1 ? '' : 's'}</span>
               {', '}
               <span><b>{dur.hours}</b> hour{dur.hours === 1 ? '' : 's'}</span>
+              {', '}
+              <span><b>{dur.minutes}</b> minute{dur.minutes === 1 ? '' : 's'}</span>
               {', '}
               <span className="ch-sec"><b>{dur.seconds}</b> second{dur.seconds === 1 ? '' : 's'}</span>
             </>
