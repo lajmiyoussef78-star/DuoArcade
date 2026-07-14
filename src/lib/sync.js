@@ -148,8 +148,14 @@ async function supabaseSync() {
     presence(code, role) {
       let pcb = () => {};
       let state = { focused: true };
+      let inflight = Promise.resolve();
       const ch = sb.channel('presence-' + code, { config: { presence: { key: role } } });
-      const track = () => ch.track(state);
+      const scheduleTrack = () => {
+        inflight = inflight.then(async () => {
+          await ch.track({ ...state });
+          emit();
+        }).catch(() => {});
+      };
       const emit = () => {
         const st = ch.presenceState();
         const norm = arr => {
@@ -166,12 +172,14 @@ async function supabaseSync() {
         pcb({ A: norm(st.A), B: norm(st.B) });
       };
       ch.on('presence', { event: 'sync' }, emit)
+        .on('presence', { event: 'join' }, emit)
+        .on('presence', { event: 'leave' }, emit)
         .subscribe(async status => {
-          if (status === 'SUBSCRIBED') await track();
+          if (status === 'SUBSCRIBED') scheduleTrack();
         });
       return {
-        setFocused: f => { state = { ...state, focused: f }; return track(); },
-        setGeo: geo => { state = { ...state, ...geo }; return track(); },
+        setFocused: f => { state = { ...state, focused: f }; scheduleTrack(); },
+        setGeo: geo => { state = { ...state, ...geo }; scheduleTrack(); },
         onChange: f => { pcb = f; },
         close: () => sb.removeChannel(ch)
       };

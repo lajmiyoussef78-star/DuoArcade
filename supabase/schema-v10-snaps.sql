@@ -8,8 +8,8 @@
 --   * When BOTH photos exist for the day, the duo's streak advances —
 --     the SAME streak columns your games use (last_day/streak/best_streak/
 --     evenings), so snaps and game nights feed one shared ritual. The
---     server guards it: one streak bump per day, no matter how many
---     retakes happen.
+--     server guards it: one streak bump per day. Each member gets one photo
+--     per day — no retakes.
 --   * Photos are stored as compressed JPEG data-URLs (~40-80KB each),
 --     capped server-side. Simple and fine at this scale; if the app grows
 --     big, migrate to Supabase Storage buckets later.
@@ -60,6 +60,13 @@ begin
   if v_uid = d.member_a then v_role := 'A';
   elsif v_uid is not null and v_uid = d.member_b then v_role := 'B';
   else raise exception 'Only members of this duo can add its photos'; end if;
+
+  select * into m from photo_moments where duo_code = p_duo_code and day = p_day;
+  if found then
+    if (v_role = 'A' and m.photo_a is not null) or (v_role = 'B' and m.photo_b is not null) then
+      raise exception 'You already snapped today — one photo per day.';
+    end if;
+  end if;
 
   insert into photo_moments (duo_code, day, photo_a, photo_b, at_a, at_b)
   values (

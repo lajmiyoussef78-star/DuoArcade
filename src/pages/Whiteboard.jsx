@@ -14,6 +14,9 @@ const newId = role => Date.now().toString(36) + '-' + role + '-' + (strokeSeq++)
 export default function Whiteboard() {
   const { code } = useParams();
   const navigate = useNavigate();
+  const backToDuo = useCallback(() => {
+    navigate(`/app?duo=${encodeURIComponent(code)}`, { replace: true });
+  }, [code, navigate]);
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const [role, setRole] = useState(undefined);
@@ -208,7 +211,7 @@ export default function Whiteboard() {
     return (
       <div className="wb-page">
         <p className="wb-status">Sign in as a member of this duo to use its whiteboard.</p>
-        <button className="btn" onClick={() => navigate('/app')}>Back to the arcade</button>
+        <button className="btn" onClick={backToDuo}>Back to the arcade</button>
       </div>
     );
   }
@@ -216,7 +219,7 @@ export default function Whiteboard() {
   return (
     <div className="wb-page">
       <div className="wb-top">
-        <button className="btn small ghost" onClick={() => navigate('/app')}>&larr; Back</button>
+        <button type="button" className="btn small ghost" onClick={backToDuo}>&larr; Back</button>
         <div className="wb-title">Our wall</div>
         <div className="wb-avs" title="you two, drawing together">
           <div className="wb-av A">{(names.A || '?')[0].toUpperCase()}</div>
@@ -249,6 +252,19 @@ export default function Whiteboard() {
               style={{ background: c }}
               onClick={() => { setColor(c); setErasing(false); }} />
           ))}
+          <button
+            type="button"
+            className={'wb-eraser' + (erasing ? ' on' : '')}
+            onClick={() => setErasing(v => !v)}
+            title="Eraser"
+            aria-label="Eraser"
+          >
+            <svg className="wb-eraser-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 19h8.5l8.8-8.8a2.2 2.2 0 0 0 0-3.1l-2.4-2.4a2.2 2.2 0 0 0-3.1 0L5 14.9V19z" fill="#FF9FA8" />
+              <path d="M11.2 6.3l6.5 6.5-1.8 1.8-6.5-6.5 1.8-1.8z" fill="#FFD0D6" />
+              <path d="M4 20.5h10.5" stroke="var(--text)" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
         <div className="wb-sizes">
           {SIZES.map(s => (
@@ -260,11 +276,13 @@ export default function Whiteboard() {
           ))}
         </div>
         <div className="wb-actions">
-          <button className={'btn small' + (erasing ? ' warm' : ' ghost')}
-            onClick={() => setErasing(v => !v)}>Eraser</button>
-          <button className="btn small ghost" onClick={undoMine}>Undo mine</button>
-          <button className="btn small ghost" onClick={clearBoard}>Clear</button>
+          <button type="button" className="btn small ghost" onClick={undoMine}>Undo mine</button>
+          <button type="button" className="btn small ghost" onClick={clearBoard}>Clear</button>
         </div>
+      </div>
+
+      <div className="wb-done">
+        <button type="button" className="btn warm" onClick={backToDuo}>Done</button>
       </div>
 
       {status && <div className="wb-status">{status}</div>}

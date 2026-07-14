@@ -34,18 +34,19 @@ export function watchGeo(onUpdate, { enableHighAccuracy = false, maximumAge = 12
     return () => {};
   }
 
-  let busy = false;
+  let lastKey = '';
+
   const handle = async pos => {
-    if (busy) return;
-    busy = true;
+    const { latitude: lat, longitude: lng } = pos.coords;
+    const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (key === lastKey) return;
+    lastKey = key;
+    onUpdate({ lat, lng, place: null, accuracy: pos.coords.accuracy });
     try {
-      const { latitude: lat, longitude: lng } = pos.coords;
       const place = await reverseGeocode(lat, lng);
       onUpdate({ lat, lng, place, accuracy: pos.coords.accuracy });
     } catch (e) {
-      onUpdate({ error: e.message || 'Location lookup failed' });
-    } finally {
-      busy = false;
+      onUpdate({ lat, lng, place: null, accuracy: pos.coords.accuracy, geocodeError: e.message });
     }
   };
 

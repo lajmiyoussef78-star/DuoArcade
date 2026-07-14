@@ -65,7 +65,7 @@ export default function Arcade() {
 
   const isAway = useCallback(role => {
     const p = presenceState[role];
-    return !p || !p.online || !p.focused;
+    return !p?.online;
   }, [presenceState]);
 
   const whoami = useCallback(() => {
@@ -385,19 +385,55 @@ export default function Arcade() {
     } catch (e) { setLobbyStatus('Clear failed: ' + e.message); }
   }, [upd]);
 
-  /* ---------- presence (keyed on the open duo) ---------- */
+  /* ---------- presence + geolocation (keyed on the open duo) ---------- */
 
   useEffect(() => {
     const { code, myRole } = ctx;
-    if (!code || !syncRef.current?.presence) return;
+    if (!code || !myRole || !syncRef.current?.presence) return;
+
     const presence = syncRef.current.presence(code, myRole);
     presenceRef.current = presence;
+    const lastGeoRef = { current: null };
+
+    const pushGeo = geo => {
+      lastGeoRef.current = geo;
+      presence.setGeo(geo);
+      setPresenceState(prev => ({
+        ...prev,
+        [myRole]: {
+          ...prev[myRole],
+          online: true,
+          focused: prev[myRole]?.focused !== false,
+          ...geo
+        }
+      }));
+    };
+
     presence.onChange(states => setPresenceState(states));
-    const report = () => presence.setFocused(!document.hidden && document.hasFocus());
+
+    const report = () => presence.setFocused(!document.hidden);
+    report();
     document.addEventListener('visibilitychange', report);
     window.addEventListener('focus', report);
     window.addEventListener('blur', report);
+
+    const heartbeat = setInterval(() => {
+      report();
+      if (lastGeoRef.current) presence.setGeo(lastGeoRef.current);
+    }, 15000);
+
+    const stopGeo = watchGeo(({ lat, lng, place, error }) => {
+      if (error) {
+        setGeoStatus(error);
+        return;
+      }
+      setGeoStatus('');
+      pushGeo({ lat, lng, place });
+    });
+
     return () => {
+      clearInterval(heartbeat);
+      stopGeo();
       document.removeEventListener('visibilitychange', report);
       window.removeEventListener('focus', report);
       window.removeEventListener('blur', report);
@@ -405,22 +441,7 @@ export default function Arcade() {
       presenceRef.current = null;
       setPresenceState(DEFAULT_PRESENCE);
     };
-  }, [ctx.code]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /* ---------- live geolocation (shared via presence) ---------- */
-
-  useEffect(() => {
-    const { code } = ctx;
-    if (!code) return;
-    return watchGeo(({ lat, lng, place, error }) => {
-      if (error) {
-        setGeoStatus(error);
-        return;
-      }
-      setGeoStatus('');
-      presenceRef.current?.setGeo?.({ lat, lng, place });
-    });
-  }, [ctx.code]);
+  }, [ctx.code, ctx.myRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- theme follows the open duo ---------- */
 
@@ -496,8 +517,11 @@ export default function Arcade() {
       }, 4000);
 
       const params = new URLSearchParams(window.location.search);
-      pendingInvite.current = (params.get('duo') && params.get('t'))
-        ? { code: params.get('duo'), token: params.get('t') } : null;
+      const duoCode = params.get('duo');
+      const tokenParam = params.get('t');
+      pendingInvite.current = (duoCode && tokenParam)
+        ? { code: duoCode, token: tokenParam } : null;
+      const reopenDuo = duoCode && !tokenParam ? duoCode : null;
 
       if (sync.auth.user()) {
         await loadProfile();
@@ -507,7 +531,10 @@ export default function Arcade() {
           window.location.assign(arenaPath);
           return;
         } else if (pendingInvite.current) await joinPending();
-        else await enterLobby();
+        else if (reopenDuo) {
+          await openByAccount(reopenDuo);
+          window.history.replaceState({}, '', '/app');
+        } else await enterLobby();
       } else {
         if (pendingInvite.current) {
           setAuthNotice('You’ve been invited to a duo — sign in or create your account to join.');
@@ -578,11 +605,6 @@ export default function Arcade() {
     <div className="arcade-page">
       <div className="topbar">
         <Link className="brand h1" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
-        <div className="nav">
-          <Link to="/arena" style={{ color: 'var(--candle)', textDecoration: 'none', fontSize: 12 }}>
-            2v2 Arena
-          </Link>
-        </div>
         <div className="who">
           <span>{userEmail}</span>{' '}
           <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"

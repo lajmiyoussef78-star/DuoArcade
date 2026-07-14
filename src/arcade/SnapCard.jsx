@@ -45,17 +45,10 @@ export default function SnapCard({ code }) {
   const myName = role === 'A' ? names.A : names.B;
   const otherName = role === 'A' ? names.B : names.A;
 
-  const statusLine = both
-    ? 'complete \u2014 today counted toward your streak'
-    : myPhoto
-      ? `waiting for ${otherName}`
-      : theirPhoto
-        ? `${otherName} snapped \u2014 your turn`
-        : 'no photos yet today';
-
   return (
     <div className="snc">
-      <div className={'snc-status' + (both ? ' done' : '')}>{statusLine}</div>
+      <h3>{'✓'} Today&apos;s snap</h3>
+      <p className="snc-desc">One photo a day for each of you, no retakes. Together they form today&apos;s diptych.</p>
 
       <div className="snc-frame">
         {/* my half — when empty, the half itself is the camera button */}
@@ -89,11 +82,11 @@ export default function SnapCard({ code }) {
         <div className={'snc-badge' + (both ? ' full' : '')}>{both ? '\u2665' : '\u2661'}</div>
       </div>
 
-      <div className="snc-foot">
-        <a className="btn warm" href={`/snap/${code}`}>
-          {both ? 'View & download' : myPhoto ? 'Open' : 'Take today\u2019s photo'}
-        </a>
-      </div>
+      {!myPhoto && (
+        <div className="snc-foot">
+          <a className="btn warm" href={`/snap/${code}`}>Take today&apos;s photo</a>
+        </div>
+      )}
     </div>
   );
 }

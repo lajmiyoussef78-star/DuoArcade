@@ -77,13 +77,15 @@ export default function WhiteboardCard({ code }) {
 
   return (
     <div className="wbc">
+      <h3>{'✓'} Our wall</h3>
+      <p className="wbc-desc">Your shared whiteboard. Draw little doodles for each other, anytime you&apos;re apart.</p>
       <Link className="wbc-preview" to={`/whiteboard/${code}`} aria-label="Open the wall">
         <canvas ref={canvasRef} className="wbc-canvas" />
         {meta.count === 0 && (
           <div className="wbc-empty">a blank wall, waiting for the first doodle</div>
         )}
       </Link>
-      <div className="wbc-side">
+      <div className="wbc-foot">
         <Link className="btn warm" to={`/whiteboard/${code}`}>Open the wall</Link>
       </div>
     </div>

@@ -156,6 +156,17 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
   const apart = mine?.lat != null && mine?.lng != null && theirs?.lat != null && theirs?.lng != null
     ? haversineKm(mine.lat, mine.lng, theirs.lat, theirs.lng)
     : null;
+  const distanceLine = (() => {
+    if (apart != null) return `\u2194 ${formatDistance(apart)} apart`;
+    if (mine?.lat == null || mine?.lng == null) {
+      return geoStatus ? `\u2194 ${geoStatus}` : '\u2194 waiting for your location\u2026';
+    }
+    if (!theirs?.online) return null;
+    if (theirs?.lat == null || theirs?.lng == null) {
+      return `\u2194 waiting for ${partnerName}\u2019s location\u2026`;
+    }
+    return '\u2194 calculating distance\u2026';
+  })();
 
   const tl = [
     { done: totals.games >= 1, text: 'first game' },
@@ -224,8 +235,8 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
                 : theirs?.online ? 'Locating…' : 'Offline'}
             </span>
           </div>
-          {apart != null && (
-            <div className="ch-apart">↔ {formatDistance(apart)} apart</div>
+          {distanceLine && (
+            <div className="ch-apart">{distanceLine}</div>
           )}
         </div>
         {anniv && relStart && (

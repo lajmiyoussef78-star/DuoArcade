@@ -47,6 +47,18 @@
 .sn-status { margin-top: 14px; font-size: 13px; color: var(--candle); text-align: center; }
 .sn-note { margin-top: 14px; font-size: 11.5px; color: var(--dim); text-align: center; }
 
+/* ---------- camera capture flow (/snap/:code) ---------- */
+.sn-page.sn-capture { max-width: 520px; min-height: 100vh; display: flex; flex-direction: column;
+  justify-content: center; padding: 20px 14px; }
+.sn-capture-status { text-align: center; color: var(--dim); font-size: 14px; }
+.sn-capture-stage { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.sn-capture-video { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
+  border-radius: 16px; border: 1px solid var(--line); background: var(--room2); transform: scaleX(-1); }
+.sn-capture-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sn-capture-spacer { width: 64px; flex: none; }
+.sn-capture-error { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.sn-capture-err { margin-top: 10px; font-size: 13px; color: var(--candle); text-align: center; }
+
 /* ---------- history ---------- */
 .sn-history-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; margin: 26px 0 10px; }
 .sn-history { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
@@ -58,47 +70,47 @@
 
 /* ================= home-screen card: the diptych ================= */
 
-.snc { border: 1px solid var(--candle); border-radius: 16px; padding: 16px 16px 20px;
-  background: linear-gradient(180deg, rgba(255,198,110,.07), var(--room) 70%); width: 100%; }
-.snc-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim);
-  text-align: center; margin-bottom: 12px; }
-.snc-status.done { color: var(--good); }
+.arcade-page .snc { width: 100%; border: 1px solid color-mix(in srgb, var(--p2) 35%, var(--line));
+  border-radius: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--p2) 8%, var(--room)), var(--room) 72%);
+  padding: 16px 18px; margin-top: 0; }
+.arcade-page .snc h3 { font-size: 16px; margin: 0 0 4px; }
+.arcade-page .snc .snc-desc { font-size: 12.5px; color: var(--dim); margin: 0 0 12px; line-height: 1.45; }
 
-.snc-frame { position: relative; display: grid; grid-template-columns: 1fr 1fr;
+.arcade-page .snc-frame { position: relative; display: grid; grid-template-columns: 1fr 1fr;
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
-  margin: 0 0 16px; background: var(--room2); }
-.snc-half { position: relative; border-right: 1px solid var(--line); min-height: 0;
+  margin: 0; background: var(--room2); }
+.arcade-page .snc-half { position: relative; border-right: 1px solid var(--line); min-height: 0;
   display: block; text-decoration: none; color: inherit; }
-.snc-half:last-child { border-right: none; }
-.snc-half img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
+.arcade-page .snc-half:last-child { border-right: none; }
+.arcade-page .snc-half img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
 
-.snc-invite { aspect-ratio: 1 / 1; display: flex; flex-direction: column;
+.arcade-page .snc-invite { aspect-ratio: 1 / 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 8px; cursor: pointer;
   transition: background .15s ease; }
-.snc-invite:hover { background: rgba(255, 198, 110, .06); }
-.snc-cam { font-size: 26px; opacity: .8; }
-.snc-invite-line { font-size: 12.5px; color: var(--dim); }
-.snc-invite:hover .snc-invite-line { color: var(--candle); }
+.arcade-page .snc-invite:hover { background: rgba(255, 198, 110, .06); }
+.arcade-page .snc-cam { font-size: 26px; opacity: .8; }
+.arcade-page .snc-invite-line { font-size: 12.5px; color: var(--dim); }
+.arcade-page .snc-invite:hover .snc-invite-line { color: var(--candle); }
 
-.snc-waiting { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
-.snc-wait-line { font-size: 12.5px; color: var(--dim); animation: sn-pulse 1.8s ease-in-out infinite;
+.arcade-page .snc-waiting { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; }
+.arcade-page .snc-wait-line { font-size: 12.5px; color: var(--dim); animation: sn-pulse 1.8s ease-in-out infinite;
   padding: 12px; text-align: center; }
 
-.snc-label { position: absolute; left: 0; right: 0; bottom: 0;
+.arcade-page .snc-label { position: absolute; left: 0; right: 0; bottom: 0;
   display: flex; justify-content: space-between; align-items: center;
   padding: 22px 12px 9px; font-size: 12px; color: var(--text);
   background: linear-gradient(transparent, rgba(15, 11, 20, .88)); pointer-events: none; }
-.snc-ok { color: var(--good); font-weight: 700; }
-.snc-dash { color: var(--dim); }
+.arcade-page .snc-ok { color: var(--good); font-weight: 700; }
 
-.snc-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+.arcade-page .snc-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 42px; height: 42px; border-radius: 50%; background: var(--room);
   border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
   font-size: 17px; color: var(--dim); box-shadow: 0 4px 16px rgba(0, 0, 0, .4); }
-.snc-badge.full { color: var(--candle); border-color: var(--candle); }
+.arcade-page .snc-badge.full { color: var(--candle); border-color: var(--candle); }
 
-.snc-foot { display: flex; justify-content: center; padding: 4px 0 6px; }
-.snc-foot .btn { text-decoration: none; }
+.arcade-page .snc-foot { display: flex; justify-content: center; width: 100%; margin: 14px 0 0; padding: 0; }
+.arcade-page .snc-foot .btn { display: block; text-decoration: none; padding: 15px 24px; width: 100%;
+  text-align: center; box-sizing: border-box; }
 
 /* ---------- shared buttons (safe duplicates) ---------- */
 .btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
@@ -110,8 +122,7 @@
 .btn:disabled { opacity: .45; cursor: default; }
 
 @media (max-width: 480px) {
-  .snc { padding: 16px 16px 22px; }
-  .snc-foot { padding: 6px 0 8px; }
+  .arcade-page .snc { padding: 16px 18px; }
   .sn-heart { padding-top: 0; }
   .sn-duet { gap: 12px; }
 }
