@@ -4,7 +4,7 @@
 // halves invite. Your own empty half is itself the button to the camera.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { loadSnap, snapChannel, todayStr, myRoleInDuo, duoNames } from '../lib/snaps.js';
+import { loadSnap, snapChannel, todayStr, myRoleInDuo, duoNames, downloadTodayDiptych } from '../lib/snaps.js';
 import '../styles/snaps.css';
 
 export default function SnapCard({ code }) {
@@ -45,6 +45,19 @@ export default function SnapCard({ code }) {
   const myName = role === 'A' ? names.A : names.B;
   const otherName = role === 'A' ? names.B : names.A;
 
+  const onDownload = async () => {
+    if (!both || !snap) return;
+    try {
+      await downloadTodayDiptych({
+        photoA: snap.photo_a,
+        photoB: snap.photo_b,
+        nameA: names.A,
+        nameB: names.B,
+        day
+      });
+    } catch { /* image load failed */ }
+  };
+
   return (
     <div className="snc">
       <h3>{'✓'} Today&apos;s snap</h3>
@@ -82,11 +95,19 @@ export default function SnapCard({ code }) {
         <div className={'snc-badge' + (both ? ' full' : '')}>{both ? '\u2665' : '\u2661'}</div>
       </div>
 
-      {!myPhoto && (
-        <div className="snc-foot">
+      <div className="snc-foot">
+        {!myPhoto ? (
           <a className="btn warm" href={`/snap/${code}`}>Take today&apos;s photo</a>
-        </div>
-      )}
+        ) : both ? (
+          <button type="button" className="btn warm" onClick={onDownload}>
+            Download today&apos;s diptych
+          </button>
+        ) : (
+          <button type="button" className="btn snc-waiting-btn" disabled>
+            waiting for {otherName} to upload
+          </button>
+        )}
+      </div>
     </div>
   );
 }

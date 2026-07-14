@@ -110,7 +110,9 @@
 
 .arcade-page .snc-foot { display: flex; justify-content: center; width: 100%; margin: 14px 0 0; padding: 0; }
 .arcade-page .snc-foot .btn { display: block; text-decoration: none; padding: 15px 24px; width: 100%;
-  text-align: center; box-sizing: border-box; }
+  text-align: center; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+.arcade-page .snc-foot .btn.snc-waiting-btn { background: var(--room2); border-color: var(--line);
+  color: var(--dim); cursor: default; opacity: 1; }
 
 /* ---------- shared buttons (safe duplicates) ---------- */
 .btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
