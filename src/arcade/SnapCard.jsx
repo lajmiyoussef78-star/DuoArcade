@@ -11,11 +11,14 @@ export default function SnapCard({ code }) {
   const [snap, setSnap] = useState(null);
   const [role, setRole] = useState(null);
   const [names, setNames] = useState({ A: 'A', B: 'B' });
+  const [dlStatus, setDlStatus] = useState('');
   const chRef = useRef(null);
   const day = todayStr();
 
   const reload = useCallback(async () => {
-    try { setSnap(await loadSnap(code, day)); } catch { /* no row yet */ }
+    try {
+      setSnap(await loadSnap(code, day));
+    } catch { /* transient — keep showing last good row */ }
   }, [code, day]);
 
   useEffect(() => {
@@ -39,6 +42,21 @@ export default function SnapCard({ code }) {
     };
   }, [code, reload]);
 
+  /* Poll while waiting for partner — broadcast/realtime can be missed */
+  useEffect(() => {
+    const myPhotoNow = snap && role ? (role === 'A' ? snap.photo_a : snap.photo_b) : null;
+    const theirPhotoNow = snap && role ? (role === 'A' ? snap.photo_b : snap.photo_a) : null;
+    if (!myPhotoNow || theirPhotoNow) return;
+    const t = setInterval(reload, 4000);
+    return () => clearInterval(t);
+  }, [snap, role, reload]);
+
+  useEffect(() => {
+    const onVis = () => { if (!document.hidden) reload(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [reload]);
+
   const myPhoto = snap && role ? (role === 'A' ? snap.photo_a : snap.photo_b) : null;
   const theirPhoto = snap && role ? (role === 'A' ? snap.photo_b : snap.photo_a) : null;
   const both = !!(myPhoto && theirPhoto);
@@ -47,6 +65,7 @@ export default function SnapCard({ code }) {
 
   const onDownload = async () => {
     if (!both || !snap) return;
+    setDlStatus('Preparing your diptych…');
     try {
       await downloadTodayDiptych({
         photoA: snap.photo_a,
@@ -55,7 +74,10 @@ export default function SnapCard({ code }) {
         nameB: names.B,
         day
       });
-    } catch { /* image load failed */ }
+      setDlStatus('Download started — check your files.');
+    } catch {
+      setDlStatus('Could not download — try again in a moment.');
+    }
   };
 
   return (
@@ -107,6 +129,7 @@ export default function SnapCard({ code }) {
             waiting for {otherName} to upload
           </button>
         )}
+        {dlStatus && <p className="snc-dl-status">{dlStatus}</p>}
       </div>
     </div>
   );

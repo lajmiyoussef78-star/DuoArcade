@@ -639,7 +639,7 @@ export default function Arcade() {
       <div className="topbar">
         <Link className="brand h1" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
         <div className="who">
-          <span>{userEmail}</span>{' '}
+          <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
           <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
             onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
         </div>

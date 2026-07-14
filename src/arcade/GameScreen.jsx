@@ -175,6 +175,9 @@ export default function GameScreen({
       ? 'Pause requested…'
       : 'Request pause';
 
+  const showRulesNote = rules && !s.winner && !showRules
+    && (s.phase === 'invite' || s.phase === 'lobby' || counting);
+
   return (
     <section className="on gv-screen">
       <header className="gv-top">
@@ -206,6 +209,12 @@ export default function GameScreen({
           )}
         </div>
       </header>
+
+      {showRulesNote && (
+        <p className="gv-rules-note">
+          Game rules are in the top right, have a quick look before the game start.
+        </p>
+      )}
 
       {showRules && rules && (
         <div className="gv-rules-panel">

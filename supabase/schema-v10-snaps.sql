@@ -104,3 +104,9 @@ end;
 $$;
 
 grant execute on function public.save_snap(text, text, text) to authenticated;
+
+-- Realtime: both partners see uploads without relying on broadcast alone.
+do $$ begin
+  alter publication supabase_realtime add table public.photo_moments;
+exception when duplicate_object then null;
+end $$;

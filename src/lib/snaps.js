@@ -67,8 +67,11 @@ export async function snapChannel(code) {
   const supabase = await getClient();
   let cb = () => {};
   const ch = supabase
-    .channel('snap-' + code, { config: { broadcast: { self: false } } })
+    .channel('snap-' + code, { config: { broadcast: { self: true } } })
     .on('broadcast', { event: 'm' }, p => cb(p.payload))
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'photo_moments', filter: `duo_code=eq.${code}` },
+      () => cb({ k: 'snap' }))
     .subscribe();
   return {
     send: payload => ch.send({ type: 'broadcast', event: 'm', payload }),
@@ -81,13 +84,13 @@ function loadImage(src) {
   return new Promise((res, rej) => {
     const img = new Image();
     img.onload = () => res(img);
-    img.onerror = rej;
+    img.onerror = () => rej(new Error('Could not load a photo for the diptych.'));
     img.src = src;
   });
 }
 
 export async function downloadTodayDiptych({ photoA, photoB, nameA, nameB, day }) {
-  if (!photoA || !photoB) return;
+  if (!photoA || !photoB) throw new Error('Both photos are needed.');
   const [imgA, imgB] = await Promise.all([loadImage(photoA), loadImage(photoB)]);
   const W = 1080;
   const H = 1350;
@@ -151,8 +154,16 @@ export async function downloadTodayDiptych({ photoA, photoB, nameA, nameB, day }
   g.font = '700 24px Arial';
   g.fillText('D U O A R C A D E', W / 2, H - 58);
 
+  const blob = await new Promise((res, rej) => {
+    cv.toBlob(b => (b ? res(b) : rej(new Error('Could not build the image.'))), 'image/png');
+  });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.download = `duoarcade-snap-${day}.png`;
-  a.href = cv.toDataURL('image/png');
+  a.href = url;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
   a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
