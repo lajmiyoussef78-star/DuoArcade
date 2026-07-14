@@ -58,16 +58,15 @@
 
 /* ================= home-screen card: the diptych ================= */
 
-.snc { border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 16px;
-  background: var(--room); width: 100%; }
-.snc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.snc-head h3 { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; }
-.snc-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); }
+.snc { border: 1px solid var(--candle); border-radius: 16px; padding: 16px 16px 20px;
+  background: linear-gradient(180deg, rgba(255,198,110,.07), var(--room) 70%); width: 100%; }
+.snc-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim);
+  text-align: center; margin-bottom: 12px; }
 .snc-status.done { color: var(--good); }
 
 .snc-frame { position: relative; display: grid; grid-template-columns: 1fr 1fr;
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
-  margin: 14px 0; background: var(--room2); }
+  margin: 0 0 16px; background: var(--room2); }
 .snc-half { position: relative; border-right: 1px solid var(--line); min-height: 0;
   display: block; text-decoration: none; color: inherit; }
 .snc-half:last-child { border-right: none; }
@@ -98,9 +97,8 @@
   font-size: 17px; color: var(--dim); box-shadow: 0 4px 16px rgba(0, 0, 0, .4); }
 .snc-badge.full { color: var(--candle); border-color: var(--candle); }
 
-.snc-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-.snc-desc { font-size: 12.5px; color: var(--dim); line-height: 1.5; flex: 1; min-width: 220px; margin: 0; }
-.snc-foot .btn { text-decoration: none; flex: 0 0 auto; }
+.snc-foot { display: flex; justify-content: center; padding: 4px 0 6px; }
+.snc-foot .btn { text-decoration: none; }
 
 /* ---------- shared buttons (safe duplicates) ---------- */
 .btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
@@ -112,7 +110,8 @@
 .btn:disabled { opacity: .45; cursor: default; }
 
 @media (max-width: 480px) {
-  .snc-foot .btn { width: 100%; text-align: center; }
+  .snc { padding: 16px 16px 22px; }
+  .snc-foot { padding: 6px 0 8px; }
   .sn-heart { padding-top: 0; }
   .sn-duet { gap: 12px; }
 }

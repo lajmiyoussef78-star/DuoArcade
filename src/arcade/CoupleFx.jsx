@@ -131,8 +131,6 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
   const relStart = relationshipStart(anniv);
   const dur = relStart ? elapsedParts(relStart, now) : null;
 
-  const duoSince = formatLongDate(duo.createdAt);
-
   /* anniversary countdown: next occurrence of the saved date */
   let ringDays = null;
   if (anniv) {
@@ -233,11 +231,6 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
         {anniv && relStart && (
           <div className="ch-since">
             together since <b>{formatLongDate(relStart)}</b>
-          </div>
-        )}
-        {duoSince && (
-          <div className="ch-duo">
-            DuoArcade duo since <b>{duoSince}</b>
           </div>
         )}
         <div className="ch-timeline">

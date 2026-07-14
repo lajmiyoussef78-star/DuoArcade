@@ -5,15 +5,6 @@ import { Link } from 'react-router-dom';
 import { loadBoardMeta, boardChannel } from '../lib/whiteboard.js';
 import '../styles/whiteboard.css';
 
-function timeAgo(iso) {
-  if (!iso) return null;
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return Math.floor(s / 60) + ' min ago';
-  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-  return Math.floor(s / 86400) + 'd ago';
-}
-
 export default function WhiteboardCard({ code }) {
   const canvasRef = useRef(null);
   const strokesRef = useRef([]);
@@ -84,8 +75,6 @@ export default function WhiteboardCard({ code }) {
     return () => { alive = false; ch?.close(); };
   }, [code, drawAll]);
 
-  const ago = timeAgo(meta.updatedAt);
-
   return (
     <div className="wbc">
       <Link className="wbc-preview" to={`/whiteboard/${code}`} aria-label="Open the wall">
@@ -95,16 +84,6 @@ export default function WhiteboardCard({ code }) {
         )}
       </Link>
       <div className="wbc-side">
-        <h3>{'\u270F\uFE0F'} Our wall</h3>
-        <p>
-          A canvas that never resets. Draw something before bed — it'll still
-          be here in the morning. What one of you draws, the other sees live.
-        </p>
-        <div className="wbc-meta">
-          {meta.count > 0
-            ? `${meta.count} stroke${meta.count === 1 ? '' : 's'}${ago ? ' \u00b7 last drawn ' + ago : ''}`
-            : 'nothing here yet'}
-        </div>
         <Link className="btn warm" to={`/whiteboard/${code}`}>Open the wall</Link>
       </div>
     </div>

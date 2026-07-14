@@ -103,7 +103,7 @@ export default function TodoShelf({ code, myRole, duo }) {
     <div className="todo-card">
       <h3>{'✓'} Our list</h3>
       <p className="todo-sub">
-        Shared to-dos for both of you — sorted by urgency. Either person can edit anything.
+        Shared to-dos for both of you, sorted by urgency. Either person can edit anything.
       </p>
 
       <div className="todo-form">
@@ -126,7 +126,7 @@ export default function TodoShelf({ code, myRole, duo }) {
 
       <div className="todo-list">
         {sorted.length === 0 && (
-          <div className="todo-empty">Nothing on the list yet — add your first to-do above.</div>
+          <div className="todo-empty">Nothing on the list yet. Add your first to-do above.</div>
         )}
         {sorted.map(item => (
           <div key={item.id} className={'todo-item u-' + (item.urgency || 'medium') + (item.done ? ' done' : '')}>

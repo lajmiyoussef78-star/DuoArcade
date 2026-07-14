@@ -258,7 +258,7 @@ export default function HomeScreen({
         <div className="shelf-title">Movie night</div>
         <div className="watch-card">
           <h3>{'🎬'} Watch together</h3>
-          <p>Paste a YouTube link — playback syncs live between your two screens. Rate it blind afterwards; agreement feeds your taste match.</p>
+          <p>Paste a YouTube link. Playback syncs live between your two screens. Rate it blind afterwards; agreement feeds your taste match.</p>
           <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=…"
             value={ytUrl} onChange={e => setYtUrl(e.target.value)} />
           <div className="row"><button className="btn warm small" onClick={startWatch}>Start watch party</button></div>

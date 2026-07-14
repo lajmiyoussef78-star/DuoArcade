@@ -55,10 +55,7 @@ export default function SnapCard({ code }) {
 
   return (
     <div className="snc">
-      <div className="snc-head">
-        <h3>Today's snap</h3>
-        <span className={'snc-status' + (both ? ' done' : '')}>{statusLine}</span>
-      </div>
+      <div className={'snc-status' + (both ? ' done' : '')}>{statusLine}</div>
 
       <div className="snc-frame">
         {/* my half — when empty, the half itself is the camera button */}
@@ -71,32 +68,29 @@ export default function SnapCard({ code }) {
           <a className="snc-half snc-invite" href={`/snap/${code}`}>
             <div className="snc-cam">{'\u{1F4F7}'}</div>
             <div className="snc-invite-line">take today's photo</div>
-            <div className="snc-label"><span>{myName}</span><span className="snc-dash">{'\u2014'}</span></div>
           </a>
         )}
 
         {/* partner half */}
         <div className={'snc-half' + (theirPhoto ? '' : ' snc-waiting')}>
           {theirPhoto ? (
-            <img src={theirPhoto} alt="your partner, today" />
+            <>
+              <img src={theirPhoto} alt="your partner, today" />
+              <div className="snc-label">
+                <span>{otherName}</span>
+                <span className="snc-ok">{'\u2713'}</span>
+              </div>
+            </>
           ) : (
             <div className="snc-wait-line">waiting for {otherName}…</div>
           )}
-          <div className="snc-label">
-            <span>{otherName}</span>
-            <span className={theirPhoto ? 'snc-ok' : 'snc-dash'}>{theirPhoto ? '\u2713' : '\u2014'}</span>
-          </div>
         </div>
 
         <div className={'snc-badge' + (both ? ' full' : '')}>{both ? '\u2665' : '\u2661'}</div>
       </div>
 
       <div className="snc-foot">
-        <p className="snc-desc">
-          One camera photo each, every day — no uploads. Both in and the
-          day counts; the pair becomes a keepsake.
-        </p>
-        <a className="btn warm small" href={`/snap/${code}`}>
+        <a className="btn warm" href={`/snap/${code}`}>
           {both ? 'View & download' : myPhoto ? 'Open' : 'Take today\u2019s photo'}
         </a>
       </div>
