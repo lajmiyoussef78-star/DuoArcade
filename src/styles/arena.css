@@ -29,17 +29,23 @@
 .arena-pair.ghost i{background:var(--room2);color:var(--dim);border-color:var(--line)}
 .arena-vs{font-family:'Fraunces',serif;font-weight:900;color:var(--candle);font-size:14px;text-shadow:0 0 12px var(--candle);z-index:2}
 .arena-spark{position:absolute;left:50%;top:-22px;color:var(--candle);text-shadow:0 0 12px var(--candle)}
-.arena-controls{max-width:var(--arena-max);margin:14px auto;display:grid;grid-template-columns:.72fr 1.28fr;gap:14px}
+.arena-controls{max-width:var(--arena-max);margin:14px auto;display:grid;grid-template-columns:1fr;gap:14px}
 .arena-panel,.arena-join,.arena-history{background:color-mix(in srgb,var(--room) 92%,transparent);border:1px solid var(--line);border-radius:20px;padding:22px}
 .arena-panel-head>div{display:flex;gap:9px;align-items:center;margin-bottom:16px}.arena-panel-head h2{font-size:17px}
 .arena-panel .step{font-family:'JetBrains Mono',monospace;color:var(--candle);font-size:10px}
 .arena-page select,.arena-page input{width:100%;background:var(--room2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .arena-page select:focus,.arena-page input:focus{outline:none;border-color:var(--candle);box-shadow:0 0 0 3px color-mix(in srgb,var(--candle) 12%,transparent)}
-.arena-game-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-height:320px;overflow:auto;padding-right:4px}
-.arena-game-choice{background:var(--room2);border:1px solid var(--line);border-radius:14px;color:var(--text);padding:13px 10px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:5px;transition:.18s ease}
+.arena-game-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.arena-game-choice{background:var(--room2);border:1px solid var(--line);border-radius:14px;color:var(--text);padding:0;cursor:pointer;text-align:left;display:flex;flex-direction:column;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
 .arena-game-choice:hover{transform:translateY(-2px);border-color:var(--dim)}
-.arena-game-choice.on{border-color:var(--candle);background:linear-gradient(160deg,color-mix(in srgb,var(--candle) 12%,var(--room2)),var(--room2));box-shadow:0 0 16px color-mix(in srgb,var(--candle) 12%,transparent)}
-.arena-game-choice .art{height:25px;color:var(--candle);letter-spacing:.08em}.arena-game-choice b{font-size:12px}.arena-game-choice small{font-size:9px;line-height:1.35;color:var(--dim)}
+.arena-game-choice.on{border-color:var(--candle);background:var(--room2);box-shadow:0 0 16px color-mix(in srgb,var(--candle) 12%,transparent)}
+.arena-game-art{position:relative;height:78px;overflow:hidden;flex:none}
+.arena-game-svg{position:absolute;inset:0;pointer-events:none}
+.arena-game-svg svg{width:100%;height:100%;display:block}
+.arena-game-shade{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(20,15,26,.15) 0%,rgba(20,15,26,.72) 100%)}
+.arena-game-copy{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;position:relative}
+.arena-game-choice b{font-size:12px;line-height:1.25}.arena-game-choice small{font-size:9px;line-height:1.35;color:var(--dim)}
 .arena-warning,.arena-status{font-size:12px;color:var(--candle);padding:11px 13px;border:1px solid color-mix(in srgb,var(--candle) 35%,transparent);background:color-mix(in srgb,var(--candle) 8%,var(--room));border-radius:11px;margin-top:11px}
 .arena-actions-grid{max-width:var(--arena-max);margin:14px auto;display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .arena-action-card{border:1px solid var(--line);border-radius:22px;background:var(--room);padding:25px;display:grid;grid-template-columns:auto 1fr;gap:17px;align-items:start;position:relative;overflow:hidden}
@@ -112,11 +118,11 @@
 @keyframes readyGlow{50%{box-shadow:0 0 18px color-mix(in srgb,var(--good) 25%,transparent)}}
 @media(max-width:760px){
   .arena-page{padding:0 13px 50px}.arena-topbar{height:64px}.arena-hero{padding:30px 24px;min-height:0}.arena-hero h1{font-size:38px}.arena-hero .arena-versus{display:none}
-  .arena-controls,.arena-actions-grid{grid-template-columns:1fr}.arena-join{grid-template-columns:1fr}.arena-game-grid{grid-template-columns:1fr 1fr 1fr}
+  .arena-controls,.arena-actions-grid{grid-template-columns:1fr}.arena-join{grid-template-columns:1fr}.arena-game-grid{grid-template-columns:repeat(3,1fr)}
   .match-scoreboard{grid-template-columns:1fr 58px 1fr}.match-team{padding:12px}.match-team h2{font-size:12px}.match-center strong{font-size:16px}
   .arena-ready-stage,.arena-countdown,.arena-result,.arena-game-stage{padding:24px 12px}.four-seats{grid-template-columns:1fr 1fr}.arena-board{max-width:100%;overflow:auto}
 }
 @media(max-width:420px){
-  .arena-game-grid{grid-template-columns:1fr}.arena-board .c4-grid{grid-template-columns:repeat(7,36px)}.arena-board .c4-slot{width:36px;height:36px}
+  .arena-game-grid{grid-template-columns:repeat(2,1fr)}.arena-board .c4-grid{grid-template-columns:repeat(7,36px)}.arena-board .c4-slot{width:36px;height:36px}
   .arena-board .dots-grid{grid-template-columns:repeat(4,8px 35px) 8px;grid-template-rows:repeat(4,8px 35px) 8px}.arena-board .dots-edge.h{width:35px;height:8px}.arena-board .dots-edge.v{width:8px;height:35px}.arena-board .dots-box{width:35px;height:35px}.arena-board .dots-dot{width:8px;height:8px}
 }

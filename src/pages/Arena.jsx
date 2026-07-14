@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createArenaClient } from '../lib/arena.js';
 import { initialArenaState } from '../lib/arenaLogic.js';
 import { ENGINES } from '../engines/index.js';
+import { artFor } from '../engines/art.js';
 import { applyTheme } from '../lib/util.js';
 import { ARENA_GAMES, ARENA_GAME_INFO } from '../lib/arenaGames.js';
 
@@ -163,9 +164,18 @@ export default function Arena() {
               return (
               <button key={id} className={'arena-game-choice' + (game === id ? ' on' : '')}
                 onClick={() => setGame(id)}>
-                <span className="art">{info?.art || '✦'}</span>
-                <b>{name}</b>
-                <small>{info?.tagline || ''}</small>
+                <div className="arena-game-art" aria-hidden="true">
+                  {artFor(id) && (
+                    <>
+                      <div className="arena-game-svg" dangerouslySetInnerHTML={{ __html: artFor(id) }} />
+                      <div className="arena-game-shade" />
+                    </>
+                  )}
+                </div>
+                <div className="arena-game-copy">
+                  <b>{name}</b>
+                  <small>{info?.tagline || ''}</small>
+                </div>
               </button>
               );
             })}
