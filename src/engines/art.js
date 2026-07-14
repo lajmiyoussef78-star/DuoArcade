@@ -210,14 +210,26 @@ export const ART = {
     <linearGradient id="ss-water" x1="0" y1="1" x2="0" y2="0">
       <stop offset="0%" stop-color="#3fa9ff"/><stop offset="100%" stop-color="#a8e6ff"/>
     </linearGradient>`, `
-    <rect x="38" y="72" width="28" height="34" rx="8" fill="url(#ss-fire)" opacity=".85"/>
-    <rect x="164" y="68" width="28" height="34" rx="8" fill="url(#ss-water)" opacity=".85"/>
-    <path d="M52 62 Q54 48 64 52" fill="#ffd23f" opacity=".9"/>
-    <path d="M178 58 Q180 44 170 48" fill="#a8e6ff" opacity=".9"/>
+    <g class="ss-spark">
+      <rect x="38" y="72" width="28" height="34" rx="8" fill="url(#ss-fire)" opacity=".85"/>
+      <path d="M52 62 Q54 48 64 52" fill="#ffd23f" opacity=".9"/>
+    </g>
+    <g class="ss-splash">
+      <rect x="164" y="68" width="28" height="34" rx="8" fill="url(#ss-water)" opacity=".85"/>
+      <path d="M178 58 Q180 44 170 48" fill="#a8e6ff" opacity=".9"/>
+    </g>
     <rect x="24" y="108" width="184" height="8" rx="4" fill="var(--line)" opacity=".7"/>
-    <rect x="88" y="100" width="56" height="16" rx="4" fill="var(--candle)" opacity=".35"/>
-    <text x="116" y="90" text-anchor="middle" font-size="18" fill="var(--candle)">♥</text>
-    ${sparks('ss', [[64, 40, 1.6, '#ff7a2f'], [178, 36, 1.6, '#3fa9ff']])}`, ''),
+    <rect class="ss-plat" x="88" y="100" width="56" height="16" rx="4" fill="var(--candle)" opacity=".35"/>
+    <text class="ss-heart" x="116" y="90" text-anchor="middle" font-size="18" fill="var(--candle)">♥</text>
+    ${sparks('ss', [[64, 40, 1.6, '#ff7a2f'], [178, 36, 1.6, '#3fa9ff']])}`,
+    `.ss-spark { animation: ss-hop 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 52px 90px; }
+     .ss-splash { animation: ss-hop 2.6s ease-in-out 1.3s infinite; transform-box: fill-box; transform-origin: 178px 86px; }
+     @keyframes ss-hop { 0%,100% { transform: translateY(0) } 42% { transform: translateY(-11px) } 58% { transform: translateY(-11px) } }
+     .ss-heart { animation: ss-beat 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: 116px 86px; }
+     @keyframes ss-beat { 0%,100% { opacity: .65; transform: scale(1) } 50% { opacity: 1; transform: scale(1.18) } }
+     .ss-plat { animation: ss-glow 2.4s ease-in-out infinite; }
+     @keyframes ss-glow { 0%,100% { opacity: .22 } 50% { opacity: .5 } }
+     ${sparkAnim('ss', 2)}`),
 
   /* ─── Sketch & Guess: fresh ink ─── */
   sketch: scene('sk', `
