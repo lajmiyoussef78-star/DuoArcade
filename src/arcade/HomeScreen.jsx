@@ -5,6 +5,7 @@ import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
+import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
@@ -250,6 +251,9 @@ export default function HomeScreen({
 
         <div className="shelf-title">Our list</div>
         <TodoShelf code={code} myRole={myRole} duo={duo} />
+
+        <div className="shelf-title">Today's snap</div>
+        <SnapCard code={code} />
 
         <div className="shelf-title">Movie night</div>
         <div className="watch-card">
