@@ -12,7 +12,6 @@ import './styles/arcade.scoped.css';
 import './styles/couple.css';
 import './styles/arena.css';
 import './styles/todos.css';
-import './styles/duophoto.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
