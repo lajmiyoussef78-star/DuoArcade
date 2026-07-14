@@ -164,18 +164,15 @@ export default function Arena() {
               return (
               <button key={id} className={'arena-game-choice' + (game === id ? ' on' : '')}
                 onClick={() => setGame(id)}>
-                <div className="arena-game-art" aria-hidden="true">
-                  {artFor(id) && (
-                    <>
-                      <div className="arena-game-svg" dangerouslySetInnerHTML={{ __html: artFor(id) }} />
-                      <div className="arena-game-shade" />
-                    </>
-                  )}
-                </div>
-                <div className="arena-game-copy">
-                  <b>{name}</b>
-                  <small>{info?.tagline || ''}</small>
-                </div>
+                {artFor(id) && (
+                  <>
+                    <div className="arena-game-art" aria-hidden="true"
+                      dangerouslySetInnerHTML={{ __html: artFor(id) }} />
+                    <div className="arena-game-shade" aria-hidden="true" />
+                  </>
+                )}
+                <div className="arena-gname">{name}</div>
+                <div className="arena-gtag">{info?.tagline || ENGINES[id]?.meta?.tag || ''}</div>
               </button>
               );
             })}
