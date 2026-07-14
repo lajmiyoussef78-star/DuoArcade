@@ -207,6 +207,7 @@ export default function Arcade() {
     const { duo, code, myRole } = ctxRef.current;
     const s = duo.session;
     if (!s || s.winner || s.turn !== myRole) return;
+    if (s.paused) return;
     if (s.phase && s.phase !== 'live') return;
     if (s.liveAt && Date.now() < s.liveAt) return;
     const eng = ENGINES[s.game];
@@ -231,7 +232,7 @@ export default function Arcade() {
   const pressReady = useCallback(async () => {
     const { duo, code, myRole } = ctxRef.current;
     const s = duo.session;
-    if (!s || s.phase !== 'lobby' || s.ready?.[myRole]) return;
+    if (!s || s.phase !== 'lobby' || s.ready?.[myRole] || s.paused) return;
     const ready = { ...s.ready, [myRole]: true };
     const both = ready.A && ready.B;
     const session = both
@@ -255,6 +256,37 @@ export default function Arcade() {
     finishPatch(duo, patch);
     patchLocal(patch);
     await upd(code, patch, { force: true });
+  }, [patchLocal, upd]);
+
+  const requestPause = useCallback(async onStatus => {
+    const { duo, code, myRole } = ctxRef.current;
+    const s = duo.session;
+    if (!s || s.winner || (s.phase !== 'live' && s.phase !== 'lobby')) return;
+    if (s.paused) {
+      const session = { ...s, paused: false, pauseRequest: null };
+      patchLocal({ session });
+      await upd(code, { session }, { force: true });
+      onStatus?.('');
+      return;
+    }
+    if (s.pauseRequest === myRole) return;
+    const session = { ...s, pauseRequest: myRole };
+    patchLocal({ session });
+    const ok = await upd(code, { session }, { force: true });
+    onStatus?.(ok ? `Pause request sent to ${other(myRole) === 'A' ? duo.nameA : duo.nameB}.` : 'Could not send pause request.');
+  }, [patchLocal, upd]);
+
+  const respondPause = useCallback(async (accept, onStatus) => {
+    const { duo, code, myRole } = ctxRef.current;
+    const s = duo.session;
+    const partner = other(myRole);
+    if (!s || s.pauseRequest !== partner) return;
+    const session = accept
+      ? { ...s, paused: true, pauseRequest: null }
+      : { ...s, pauseRequest: null };
+    patchLocal({ session });
+    const ok = await upd(code, { session }, { force: true });
+    onStatus?.(ok ? (accept ? 'Game paused.' : 'Pause declined.') : 'Could not update pause.');
   }, [patchLocal, upd]);
 
   const forceClearSession = useCallback(async (targetCode, onStatus) => {
@@ -570,7 +602,8 @@ export default function Arcade() {
           duo={duo} code={code} myRole={myRole} isAway={isAway}
           sync={syncRef.current} onMove={move} onReady={pressReady}
           onRematch={rematch} onBack={backToHome}
-          onFixStuck={forceClearSession} onRealtimeFinish={realtimeFinish}
+          onRequestPause={requestPause} onRespondPause={respondPause}
+          onRealtimeFinish={realtimeFinish}
         />
       );
     } else {

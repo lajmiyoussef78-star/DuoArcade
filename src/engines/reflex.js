@@ -9,8 +9,11 @@ export const meta = { id: 'reflex', name: 'Reaction Duel', tag: 'creative \u00b7
 export const WIN_ROUNDS = 3;
 
 let cleanup = [], timers = [];
+let frozen = false;
 function on(el, ev, fn) { el.addEventListener(ev, fn); cleanup.push(() => el.removeEventListener(ev, fn)); }
 function later(fn, ms) { const t = setTimeout(fn, ms); timers.push(t); return t; }
+
+export function setPaused(v) { frozen = !!v; }
 
 export function mount(el, ctx) {
   unmount();
@@ -45,7 +48,7 @@ export function mount(el, ctx) {
   }
 
   on(zone, 'pointerdown', () => {
-    if (S.done) return;
+    if (frozen || S.done) return;
     if (S.phase === 'armed') {
       // jumped the gun: instant round loss
       S.phase = 'result'; S.myMs = 9999;
@@ -103,6 +106,7 @@ export function mount(el, ctx) {
 }
 
 export function unmount() {
+  frozen = false;
   timers.forEach(t => clearTimeout(t));
   timers = [];
   cleanup.forEach(f => f());

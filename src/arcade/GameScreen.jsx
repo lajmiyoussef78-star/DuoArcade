@@ -3,21 +3,32 @@ import { ENGINES } from '../engines/index.js';
 import { other } from '../lib/util.js';
 import { getRules } from '../engines/rules.js';
 
+function RulesIcon() {
+  return (
+    <svg className="gv-rules-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 4h9a3 3 0 0 1 3 3v13H9a3 3 0 0 1-3-3V4Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M6 4v13a3 3 0 0 0 3 3h9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Turn-based boards keep the exact same DOM engine interface as before:
  *  eng.render(hostEl, gs, { myRole, turn, winner, onMove }) */
-function TurnBoard({ eng, session, myRole, onMove }) {
+function TurnBoard({ eng, session, myRole, onMove, paused }) {
   const hostRef = useRef(null);
   useEffect(() => {
     eng.render(hostRef.current, session.gs, {
-      myRole, turn: session.turn, winner: session.winner, onMove
+      myRole, turn: session.turn, winner: session.winner,
+      onMove: paused ? () => {} : onMove
     });
-  }, [eng, session, myRole, onMove]);
-  return <div ref={hostRef} />;
+  }, [eng, session, myRole, onMove, paused]);
+  return <div ref={hostRef} className={paused ? 'gv-board-paused' : undefined} />;
 }
 
 /** Realtime engines mount once per match (game + startedAt) with a broadcast
  *  channel, exactly like the original shell. */
-function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish }) {
+function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paused }) {
   const hostRef = useRef(null);
   const key = session.game + ':' + (session.startedAt || 0);
   useEffect(() => {
@@ -28,12 +39,21 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish }) {
       try { rt.close(); } catch { /* channel already closed */ }
     };
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <div ref={hostRef} />;
+  useEffect(() => {
+    try { eng.setPaused?.(paused); } catch { /* optional */ }
+  }, [eng, paused, key]);
+  return (
+    <div className={'gv-board-wrap' + (paused ? ' paused' : '')}>
+      <div ref={hostRef} />
+      {paused && <div className="gv-pause-overlay">Paused</div>}
+    </div>
+  );
 }
 
 export default function GameScreen({
   duo, code, myRole, isAway, sync,
-  onMove, onReady, onRematch, onBack, onFixStuck, onRealtimeFinish
+  onMove, onReady, onRematch, onBack,
+  onRequestPause, onRespondPause, onRealtimeFinish
 }) {
   const s = duo.session;
   const eng = ENGINES[s.game];
@@ -42,7 +62,6 @@ export default function GameScreen({
   useEffect(() => { setShowRules(false); }, [s.game]);
   const [, forceTick] = useState(0);
 
-  // Countdown after both ready: re-render 4x/sec until live.
   const counting = s.liveAt && Date.now() < s.liveAt && !s.winner;
   useEffect(() => {
     if (!counting) return;
@@ -53,37 +72,42 @@ export default function GameScreen({
   if (!eng) return null;
   const rules = getRules(s.game);
   const rec = (duo.records || {})[s.game] || { a: 0, b: 0, d: 0 };
-  const partner = other(myRole) === 'A' ? duo.nameA : duo.nameB;
+  const partnerRole = other(myRole);
+  const partner = partnerRole === 'A' ? duo.nameA : duo.nameB;
+  const paused = !!s.paused;
+  const pausePending = s.pauseRequest;
+  const canPause = !s.winner && (s.phase === 'live' || s.phase === 'lobby') && !counting;
 
   let board, banner = '', bannerClass = 'banner', showRematch = false;
 
   if (s.phase === 'invite' && s.by === myRole && !s.winner) {
-    const pRole = other(myRole);
-    const pLinked = pRole === 'A' ? !!duo.memberA : !!duo.memberB;
-    const pHere = !isAway(pRole);
+    const pLinked = partnerRole === 'A' ? !!duo.memberA : !!duo.memberB;
+    const pHere = !isAway(partnerRole);
     const sub = pHere
-      ? `${partner} is in the duo right now — the popup is on their screen.`
+      ? 'They should see the invite popup on their screen now.'
       : pLinked
-        ? `${partner} isn’t looking at DuoArcade right now — the invitation will pop up within seconds of them opening it.`
-        : `⚠ No account has ever joined ${partner}’s side of this duo — nobody can receive this invitation yet. Send them the invite link (from the duo home) and have them open it once. Testing alone? Open the invite link in a private window with a second account.`;
+        ? `We'll pop it up as soon as ${partner} opens DuoArcade.`
+        : `${partner} hasn't joined this duo yet — send the invite link from home first.`;
     board = (
-      <div className="wait-box">
-        <div className="pulse" />
-        <div>Invitation sent — waiting for <b>{partner}</b> to accept…</div>
-        <div className="dots-score" style={{ maxWidth: 380 }}>{sub}</div>
+      <div className="gv-panel gv-wait">
+        <div className="gv-wait-ring" aria-hidden="true" />
+        <h3 className="gv-wait-title">Waiting for {partner}</h3>
+        <p className="gv-wait-sub">Invitation sent — hang tight while they accept.</p>
+        <p className="gv-wait-hint">{sub}</p>
         <button className="btn ghost small" onClick={onBack}>Cancel invitation</button>
       </div>
     );
   } else if (s.phase === 'declined' && s.declinedBy !== myRole && !s.winner) {
     board = (
-      <div className="wait-box">
-        <div>😕 <b>{partner}</b> declined — maybe later tonight?</div>
+      <div className="gv-panel gv-wait">
+        <h3 className="gv-wait-title">{partner} passed for now</h3>
+        <p className="gv-wait-sub">Maybe try again later tonight.</p>
         <button className="btn small" onClick={onBack}>Back to the shelf</button>
       </div>
     );
   } else if (s.phase === 'lobby' && !s.winner) {
     board = (
-      <div className="ready-box">
+      <div className="gv-panel gv-ready">
         <div className="ready-row">
           {['A', 'B'].map(role => (
             <div className="ready-pl" key={role}>
@@ -109,10 +133,10 @@ export default function GameScreen({
     if (!s.winner) {
       board = (
         <RealtimeBoard eng={eng} session={s} myRole={myRole} sync={sync} code={code}
-          names={{ A: duo.nameA, B: duo.nameB }}
+          names={{ A: duo.nameA, B: duo.nameB }} paused={paused}
           onFinish={w => onRealtimeFinish(s.game, w)} />
       );
-      banner = 'first to 7 — go!';
+      banner = paused ? 'Game paused' : 'first to 7 — go!';
     } else {
       board = null;
       bannerClass = 'banner ' + s.winner;
@@ -120,57 +144,69 @@ export default function GameScreen({
       showRematch = true;
     }
   } else {
-    board = <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} />;
+    board = <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} paused={paused} />;
     bannerClass = 'banner' + (s.winner ? ' ' + s.winner : '');
-    banner = !s.winner
-      ? (s.turn === myRole ? 'Your move' : `${s.turn === 'A' ? duo.nameA : duo.nameB}’s move…`)
-      : s.winner === 'draw' ? 'A draw — the classic couple result'
-      : `${s.winner === 'A' ? duo.nameA : duo.nameB} takes the round`;
+    banner = paused
+      ? 'Game paused'
+      : !s.winner
+        ? (s.turn === myRole ? 'Your move' : `${s.turn === 'A' ? duo.nameA : duo.nameB}’s move…`)
+        : s.winner === 'draw' ? 'A draw — the classic couple result'
+          : `${s.winner === 'A' ? duo.nameA : duo.nameB} takes the round`;
     showRematch = !!s.winner;
   }
 
-  const turnA = !eng.meta.realtime && s.turn === 'A' && !s.winner && s.phase === 'live' && !counting;
-  const turnB = !eng.meta.realtime && s.turn === 'B' && !s.winner && s.phase === 'live' && !counting;
+  const turnA = !eng.meta.realtime && s.turn === 'A' && !s.winner && s.phase === 'live' && !counting && !paused;
+  const turnB = !eng.meta.realtime && s.turn === 'B' && !s.winner && s.phase === 'live' && !counting && !paused;
+
+  const pauseLabel = paused
+    ? 'Resume game'
+    : pausePending === myRole
+      ? 'Pause requested…'
+      : 'Request pause';
 
   return (
-    <section className="on">
-      <div className="gv-top">
-        <button className="btn small ghost" onClick={onBack}>{'←'} Back</button>
-        <div className="gv-title h3">{eng.meta.name}</div>
-        <button className="btn small" style={{ visibility: showRematch ? 'visible' : 'hidden' }}
-          onClick={onRematch}>Rematch</button>
-        {rules && (
-          <button className={'btn small' + (showRules ? ' warm' : ' ghost')}
-            onClick={() => setShowRules(v => !v)}>Rules</button>
-        )}
-        <button className="btn small ghost" title="Clears a stuck game for both of you"
-          onClick={() => onFixStuck(code, setBannerStatus)}>Fix stuck</button>
-      </div>
-      {showRules && rules && (
-        <div style={{
-          width: '100%', maxWidth: 480, background: 'var(--room)',
-          border: '1px solid var(--line)', borderRadius: 14,
-          padding: '14px 18px', margin: '2px 0 10px', textAlign: 'left'
-        }}>
-          <div style={{ fontFamily: "'Fraunces',serif", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
-            How to play — {eng.meta.name}
-          </div>
-          <div style={{ color: 'var(--candle)', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-            {rules.goal}
-          </div>
-          <ol style={{
-            margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column',
-            gap: 5, fontSize: 13, lineHeight: 1.45
-          }}>
-            {rules.how.map((line, i) => <li key={i}>{line}</li>)}
-          </ol>
-          {rules.tip && (
-            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--dim)', fontStyle: 'italic' }}>
-              💡 {rules.tip}
-            </div>
+    <section className="on gv-screen">
+      <header className="gv-top">
+        <button className="btn small ghost gv-back" onClick={onBack}>{'←'} Back</button>
+        <h2 className="gv-title h3">{eng.meta.name}</h2>
+        <div className="gv-actions">
+          {canPause && (
+            <button
+              className="btn small ghost"
+              disabled={pausePending === myRole && !paused}
+              onClick={() => onRequestPause(setBannerStatus)}
+            >
+              {pauseLabel}
+            </button>
+          )}
+          {rules && (
+            <button
+              type="button"
+              className={'btn small gv-rules' + (showRules ? ' warm' : ' ghost')}
+              aria-label="Rules"
+              title="Rules"
+              onClick={() => setShowRules(v => !v)}
+            >
+              <RulesIcon />
+            </button>
+          )}
+          {showRematch && (
+            <button className="btn small warm" onClick={onRematch}>Rematch</button>
           )}
         </div>
+      </header>
+
+      {showRules && rules && (
+        <div className="gv-rules-panel">
+          <div className="gv-rules-head">How to play — {eng.meta.name}</div>
+          <div className="gv-rules-goal">{rules.goal}</div>
+          <ol className="gv-rules-list">
+            {rules.how.map((line, i) => <li key={i}>{line}</li>)}
+          </ol>
+          {rules.tip && <div className="gv-rules-tip">💡 {rules.tip}</div>}
+        </div>
       )}
+
       <div className="gv-players">
         <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
           <div className="dot" /><span>{duo.nameA}</span>
@@ -180,7 +216,18 @@ export default function GameScreen({
           <div className="dot" /><span>{duo.nameB}</span>
         </div>
       </div>
-      <div>{board}</div>
+
+      {pausePending === partnerRole && !paused && (
+        <div className="gv-pause-request">
+          <span><b>{partner}</b> requested a pause.</span>
+          <div className="gv-pause-request-actions">
+            <button className="btn small warm" onClick={() => onRespondPause(true, setBannerStatus)}>Accept</button>
+            <button className="btn small ghost" onClick={() => onRespondPause(false, setBannerStatus)}>Decline</button>
+          </div>
+        </div>
+      )}
+
+      <div className="gv-board">{board}</div>
       <div className={bannerClass}>{bannerStatus || banner}</div>
     </section>
   );
