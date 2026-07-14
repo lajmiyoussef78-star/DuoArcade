@@ -54,7 +54,8 @@
                border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;white-space:nowrap;}
 .arcade-page .taste-meter{height:5px;border-radius:3px;background:var(--room2);margin:5px 8px 0;overflow:hidden;}
 .arcade-page .taste-fill{height:100%;background:linear-gradient(90deg,var(--p1),var(--p2));transition:width .5s ease;}
-.arcade-page .tonight{border-radius:14px;padding:16px;width:100%;margin-top:10px;}
+.arcade-page .tonight{border:1px solid var(--candle);border-radius:14px;background:linear-gradient(180deg,var(--candles),var(--room) 60%);
+           padding:16px;width:100%;margin-top:10px;}
 .arcade-page .tonight h3{font-size:16px;}
 .arcade-page .tonight p{font-size:12.5px;color:var(--dim);margin:4px 0 10px;}
 .arcade-page .time-row{display:flex;gap:8px;flex-wrap:wrap;}
@@ -77,7 +78,7 @@
 .arcade-page .react-lane{position:absolute;right:12px;bottom:12px;top:12px;width:56px;pointer-events:none;overflow:hidden;z-index:5;}
 .arcade-page .float-emoji{position:absolute;bottom:-30px;left:8px;font-size:26px;animation:rise 2.4s ease-out forwards;}
 @keyframes rise{to{transform:translateY(-240px) translateX(-10px);opacity:0;}}
-.arcade-page .home-stats{display:grid;grid-template-columns:repeat(4,1fr);width:100%;border-radius:14px;overflow:hidden;margin-top:16px;}
+.arcade-page .home-stats{display:grid;grid-template-columns:repeat(4,1fr);width:100%;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:16px;background:var(--room);}
 .arcade-page .hstat{padding:13px 8px;border-right:1px solid var(--line);text-align:center;}
 .arcade-page .hstat:last-child{border-right:none;}
 .arcade-page .hstat .n{font-family:'Fraunces',serif;font-weight:900;font-size:20px;}
@@ -93,7 +94,8 @@
 .arcade-page .gname{font-size:14px;font-weight:600;}
 .arcade-page .gtag{font-size:11px;color:var(--dim);}
 .arcade-page .grec{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--candle);margin-top:4px;}
-.arcade-page .watch-card{border-radius:14px;padding:16px;width:100%;margin-top:10px;}
+.arcade-page .watch-card{border:1px solid var(--candle);border-radius:14px;background:linear-gradient(180deg,var(--candles),var(--room) 70%);
+              padding:16px;width:100%;margin-top:10px;}
 .arcade-page .watch-card h3{font-size:16px;}
 .arcade-page .watch-card p{font-size:12.5px;color:var(--dim);margin:4px 0 8px;}
 .arcade-page .watch-card .row{justify-content:center;}
@@ -115,7 +117,8 @@
 .arcade-page .pub-duo{border:1px solid var(--line);border-radius:14px;background:var(--room2);padding:14px;margin-top:10px;width:100%;}
 .arcade-page .pub-duo .dn{font-weight:700;font-size:15px;font-family:'Fraunces',serif;}
 .arcade-page .pub-duo .dm{font-size:12px;color:var(--dim);margin-top:4px;}
-.arcade-page .pass-card{border-radius:14px;padding:16px;width:100%;margin-top:14px;}
+.arcade-page .pass-card{border:1px solid var(--candle);border-radius:14px;background:linear-gradient(180deg,var(--candles),var(--room) 65%);
+             padding:16px;width:100%;margin-top:14px;}
 .arcade-page .pass-card h3{font-size:16px;}
 .arcade-page .pass-card p{font-size:12.5px;color:var(--dim);margin:4px 0 10px;}
 .arcade-page .price-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}

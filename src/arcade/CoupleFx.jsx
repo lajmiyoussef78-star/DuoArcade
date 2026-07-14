@@ -124,6 +124,10 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
     return () => clearInterval(t);
   }, []);
 
+  const stars = useMemo(() => Array.from({ length: 14 }, (_, i) => ({
+    id: i, left: Math.random() * 100, top: Math.random() * 100, delay: Math.random() * 4
+  })), []);
+
   const relStart = relationshipStart(anniv);
   const dur = relStart ? elapsedParts(relStart, now) : null;
 
@@ -173,6 +177,13 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
 
   return (
     <div className="ch-hero">
+      <div className="ch-stars">
+        {stars.map(s => (
+          <span key={s.id} className="st"
+            style={{ left: s.left + '%', top: s.top + '%', animationDelay: s.delay + 's' }} />
+        ))}
+      </div>
+
       <div className="ch-avs">
         <div className="ch-av A">{(duo.nameA || '?')[0].toUpperCase()}</div>
         <svg className="ch-beat" viewBox="0 0 64 24">
