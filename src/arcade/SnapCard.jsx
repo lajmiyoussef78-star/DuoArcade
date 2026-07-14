@@ -26,11 +26,17 @@ export default function SnapCard({ code }) {
       setRole(r);
       setNames(await duoNames(code));
       reload();
+
+      const ch = await snapChannel(code);
+      if (!alive) { ch.close(); return; }
+      chRef.current = ch;
+      ch.on(m => { if (m.k === 'snap') reload(); });
     })();
-    const ch = snapChannel(code);
-    chRef.current = ch;
-    ch.on(m => { if (m.k === 'snap') reload(); });
-    return () => { alive = false; ch.close(); };
+    return () => {
+      alive = false;
+      chRef.current?.close();
+      chRef.current = null;
+    };
   }, [code, reload]);
 
   const myPhoto = snap && role ? (role === 'A' ? snap.photo_a : snap.photo_b) : null;
