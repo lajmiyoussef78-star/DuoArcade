@@ -6,9 +6,20 @@ import { getRules } from '../engines/rules.js';
 function RulesIcon() {
   return (
     <svg className="gv-rules-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 4h9a3 3 0 0 1 3 3v13H9a3 3 0 0 1-3-3V4Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M6 4v13a3 3 0 0 0 3 3h9" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path
+        d="M3 3h8.2c1.1 0 2 .9 2 2v14.6L8 17.8 3 19.6V3Z"
+        fill="currentColor" fillOpacity=".22" stroke="currentColor" strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M21 3h-8.2c-1.1 0-2 .9-2 2v14.6l5.2-2.1L21 19.6V3Z"
+        fill="currentColor" fillOpacity=".22" stroke="currentColor" strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7.5 7.5h9M7.5 11h9M7.5 14.5h6.5"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      />
     </svg>
   );
 }

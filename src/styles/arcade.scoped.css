@@ -134,42 +134,44 @@
 @media (max-width:460px){
 .arcade-page .price-row{grid-template-columns:1fr;}
 }
-.arcade-page /* game view */
-  .gv-screen{width:100%;max-width:520px;}
-  .gv-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;width:100%;margin-bottom:14px;gap:10px;}
-  .gv-back{justify-self:start;}
-  .gv-title{font-size:18px;text-align:center;margin:0;justify-self:center;}
-  .gv-actions{display:flex;align-items:center;gap:6px;justify-self:end;}
-  .gv-rules{width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
-  .gv-rules-icon{width:18px;height:18px;display:block;}
-  .gv-players{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin-bottom:14px;font-size:13px;}
-  .gv-board{width:100%;}
-  .gv-panel{width:100%;border:1px solid var(--line);border-radius:18px;background:var(--room);
-    padding:28px 22px;text-align:center;}
-  .gv-wait{display:flex;flex-direction:column;align-items:center;gap:10px;}
-  .gv-wait-ring{width:48px;height:48px;border-radius:50%;border:2px solid color-mix(in srgb,var(--candle) 55%,transparent);
-    border-top-color:var(--candle);animation:gv-spin 1.1s linear infinite;}
-  @keyframes gv-spin{to{transform:rotate(360deg);}}
-  .gv-wait-title{font-family:'Fraunces',serif;font-weight:900;font-size:20px;margin:4px 0 0;}
-  .gv-wait-sub{font-size:14px;color:var(--text);margin:0;}
-  .gv-wait-hint{font-size:12.5px;color:var(--dim);line-height:1.5;max-width:340px;margin:0;}
-  .gv-ready{display:flex;flex-direction:column;align-items:center;gap:16px;}
-  .gv-rules-panel{width:100%;background:var(--room);border:1px solid var(--line);border-radius:14px;
-    padding:14px 18px;margin:0 0 12px;text-align:left;}
-  .gv-rules-head{font-family:'Fraunces',serif;font-weight:700;font-size:15px;margin-bottom:4px;}
-  .gv-rules-goal{color:var(--candle);font-size:13px;font-weight:600;margin-bottom:8px;}
-  .gv-rules-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;}
-  .gv-rules-tip{margin-top:10px;font-size:12px;color:var(--dim);font-style:italic;}
-  .gv-pause-request{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    border:1px solid color-mix(in srgb,var(--candle) 45%,var(--line));border-radius:12px;
-    background:color-mix(in srgb,var(--candle) 10%,var(--room));padding:10px 14px;margin-bottom:12px;font-size:13px;}
-  .gv-pause-request-actions{display:flex;gap:8px;}
-  .gv-board-wrap{position:relative;width:100%;}
-  .gv-board-wrap.paused{opacity:.55;pointer-events:none;}
-  .gv-pause-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-family:'Fraunces',serif;font-weight:900;font-size:28px;color:var(--candle);
-    background:color-mix(in srgb,var(--night) 55%,transparent);border-radius:16px;pointer-events:none;}
-  .gv-board-paused{opacity:.55;pointer-events:none;}
+/* game view */
+.arcade-page .gv-screen{width:100%;max-width:520px;}
+.arcade-page .gv-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;width:100%;margin-bottom:14px;gap:10px;}
+.arcade-page .gv-back{justify-self:start;}
+.arcade-page .gv-title{font-size:18px;text-align:center;margin:0;justify-self:center;}
+.arcade-page .gv-actions{display:flex;align-items:center;gap:6px;justify-self:end;}
+.arcade-page .btn.gv-rules{width:42px;height:42px;min-width:42px;padding:4px;box-sizing:border-box;
+  display:inline-flex;align-items:center;justify-content:center;line-height:0;flex-shrink:0;}
+.arcade-page .btn.gv-rules svg,
+.arcade-page .gv-rules-icon{width:34px;height:34px;display:block;flex:none;}
+.arcade-page .gv-players{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin-bottom:14px;font-size:13px;}
+.arcade-page .gv-board{width:100%;}
+.arcade-page .gv-panel{width:100%;border:1px solid var(--line);border-radius:18px;background:var(--room);
+  padding:28px 22px;text-align:center;}
+.arcade-page .gv-wait{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.arcade-page .gv-wait-ring{width:48px;height:48px;border-radius:50%;border:2px solid color-mix(in srgb,var(--candle) 55%,transparent);
+  border-top-color:var(--candle);animation:gv-spin 1.1s linear infinite;}
+@keyframes gv-spin{to{transform:rotate(360deg);}}
+.arcade-page .gv-wait-title{font-family:'Fraunces',serif;font-weight:900;font-size:20px;margin:4px 0 0;}
+.arcade-page .gv-wait-sub{font-size:14px;color:var(--text);margin:0;}
+.arcade-page .gv-wait-hint{font-size:12.5px;color:var(--dim);line-height:1.5;max-width:340px;margin:0;}
+.arcade-page .gv-ready{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.arcade-page .gv-rules-panel{width:100%;background:var(--room);border:1px solid var(--line);border-radius:14px;
+  padding:14px 18px;margin:0 0 12px;text-align:left;}
+.arcade-page .gv-rules-head{font-family:'Fraunces',serif;font-weight:700;font-size:15px;margin-bottom:4px;}
+.arcade-page .gv-rules-goal{color:var(--candle);font-size:13px;font-weight:600;margin-bottom:8px;}
+.arcade-page .gv-rules-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;}
+.arcade-page .gv-rules-tip{margin-top:10px;font-size:12px;color:var(--dim);font-style:italic;}
+.arcade-page .gv-pause-request{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border:1px solid color-mix(in srgb,var(--candle) 45%,var(--line));border-radius:12px;
+  background:color-mix(in srgb,var(--candle) 10%,var(--room));padding:10px 14px;margin-bottom:12px;font-size:13px;}
+.arcade-page .gv-pause-request-actions{display:flex;gap:8px;}
+.arcade-page .gv-board-wrap{position:relative;width:100%;}
+.arcade-page .gv-board-wrap.paused{opacity:.55;pointer-events:none;}
+.arcade-page .gv-pause-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:900;font-size:28px;color:var(--candle);
+  background:color-mix(in srgb,var(--night) 55%,transparent);border-radius:16px;pointer-events:none;}
+.arcade-page .gv-board-paused{opacity:.55;pointer-events:none;}
 .arcade-page .players{display:flex;gap:14px;font-size:13px;margin-bottom:12px;align-items:center;}
 .arcade-page .pl{display:flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid transparent;}
 .arcade-page .pl .dot{width:11px;height:11px;border-radius:50%;}
