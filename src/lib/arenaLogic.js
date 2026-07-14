@@ -1,4 +1,6 @@
-export const ARENA_GAMES = ['ttt', 'connect4', 'dots'];
+import { ARENA_GAMES } from './arenaGames.js';
+
+export { ARENA_GAMES };
 export const ARENA_SEATS = ['A1', 'A2', 'B1', 'B2'];
 
 export const teamOf = seat => seat?.[0] || null;

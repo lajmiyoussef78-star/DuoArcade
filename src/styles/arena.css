@@ -35,7 +35,7 @@
 .arena-panel .step{font-family:'JetBrains Mono',monospace;color:var(--candle);font-size:10px}
 .arena-page select,.arena-page input{width:100%;background:var(--room2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .arena-page select:focus,.arena-page input:focus{outline:none;border-color:var(--candle);box-shadow:0 0 0 3px color-mix(in srgb,var(--candle) 12%,transparent)}
-.arena-game-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.arena-game-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-height:320px;overflow:auto;padding-right:4px}
 .arena-game-choice{background:var(--room2);border:1px solid var(--line);border-radius:14px;color:var(--text);padding:13px 10px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:5px;transition:.18s ease}
 .arena-game-choice:hover{transform:translateY(-2px);border-color:var(--dim)}
 .arena-game-choice.on{border-color:var(--candle);background:linear-gradient(160deg,color-mix(in srgb,var(--candle) 12%,var(--room2)),var(--room2));box-shadow:0 0 16px color-mix(in srgb,var(--candle) 12%,transparent)}

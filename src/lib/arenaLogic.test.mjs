@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { ARENA_GAMES, assertArenaReady } from './arenaGames.js';
 import { ARENA_SEATS, initialArenaState, readySeat, startIfDue, applyArenaMove, rematchState } from './arenaLogic.js';
+import { ENGINES } from '../engines/index.js';
 import * as TTT from '../engines/ttt.js';
 import * as DOTS from '../engines/dots.js';
 
@@ -7,6 +9,19 @@ let passed = 0;
 function test(name, fn) {
   try { fn(); passed++; console.log('✓', name); }
   catch (error) { console.error('✗', name); throw error; }
+}
+
+test('arena registry only includes compatible engines', () => {
+  assertArenaReady();
+  assert.equal(ARENA_GAMES.length, 12);
+});
+
+for (const id of ARENA_GAMES) {
+  test(`initial arena state for ${id}`, () => {
+    const s = initialArenaState(id, ENGINES[id]);
+    assert.equal(s.game, id);
+    assert.equal(s.phase, 'ready');
+  });
 }
 
 test('all four players must ready before countdown', () => {

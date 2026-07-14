@@ -4,13 +4,9 @@ import { createArenaClient } from '../lib/arena.js';
 import { initialArenaState } from '../lib/arenaLogic.js';
 import { ENGINES } from '../engines/index.js';
 import { applyTheme } from '../lib/util.js';
+import { ARENA_GAMES, ARENA_GAME_INFO } from '../lib/arenaGames.js';
 
-const GAME_CHOICES = ['connect4', 'ttt', 'dots'];
-const GAME_LABEL = {
-  connect4: ['Connect Four', 'Drop together. Win together.', '● ● ● ●'],
-  ttt: ['Tic-Tac-Toe', 'Fast relay rounds for four.', '× ○ ×'],
-  dots: ['Dots & Boxes', 'Every captured box passes the move.', '□ · □']
-};
+const GAME_CHOICES = ARENA_GAMES;
 
 export default function Arena() {
   const navigate = useNavigate();
@@ -161,14 +157,18 @@ export default function Arena() {
             <div><span className="step">02</span><h2>Pick a game</h2></div>
           </div>
           <div className="arena-game-grid">
-            {GAME_CHOICES.map(id => (
+            {GAME_CHOICES.map(id => {
+              const info = ARENA_GAME_INFO[id];
+              const name = ENGINES[id]?.meta?.name || id;
+              return (
               <button key={id} className={'arena-game-choice' + (game === id ? ' on' : '')}
                 onClick={() => setGame(id)}>
-                <span className="art">{GAME_LABEL[id][2]}</span>
-                <b>{GAME_LABEL[id][0]}</b>
-                <small>{GAME_LABEL[id][1]}</small>
+                <span className="art">{info?.art || '✦'}</span>
+                <b>{name}</b>
+                <small>{info?.tagline || ''}</small>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
