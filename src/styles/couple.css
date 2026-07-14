@@ -97,18 +97,79 @@
   animation:cfx-heart-rise 3.6s ease-out infinite;}
 
 /* ============================================================
-   E — TOGETHER HERO: counter, heartbeat, timeline, anniversary ring
+   Shared duo surface — starry gradient backdrop for home cards
    ============================================================ */
 
-.ch-hero{position:relative;width:100%;margin-top:14px;border-radius:16px;padding:18px 20px;overflow:hidden;
+.arcade-page .ch-hero,
+.arcade-page .arena-entry,
+.arcade-page .tonight,
+.arcade-page .watch-card,
+.arcade-page .pass-card,
+.arcade-page .todo-card,
+.arcade-page .snc,
+.arcade-page .wbc,
+.arcade-page .home-stats{
+  position:relative;overflow:hidden;
   border:1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
   background:linear-gradient(120deg,
     color-mix(in srgb, var(--p1) 14%, var(--room)),
     var(--room) 46%,
-    color-mix(in srgb, var(--p2) 16%, var(--room)));
+    color-mix(in srgb, var(--p2) 16%, var(--room)));}
+.arcade-page .ch-hero::before,
+.arcade-page .arena-entry::before,
+.arcade-page .tonight::before,
+.arcade-page .watch-card::before,
+.arcade-page .pass-card::before,
+.arcade-page .todo-card::before,
+.arcade-page .snc::before,
+.arcade-page .wbc::before,
+.arcade-page .home-stats::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 6% 14%, color-mix(in srgb, var(--text) 55%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 18% 78%, color-mix(in srgb, var(--text) 40%, transparent) 40%, transparent 100%),
+    radial-gradient(1.4px 1.4px at 31% 28%, color-mix(in srgb, var(--text) 50%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 44% 62%, color-mix(in srgb, var(--text) 35%, transparent) 40%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 57% 11%, color-mix(in srgb, var(--text) 45%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 68% 84%, color-mix(in srgb, var(--text) 40%, transparent) 40%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 79% 37%, color-mix(in srgb, var(--text) 50%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 88% 56%, color-mix(in srgb, var(--text) 35%, transparent) 40%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 92% 18%, color-mix(in srgb, var(--text) 45%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 12% 44%, color-mix(in srgb, var(--text) 38%, transparent) 40%, transparent 100%),
+    radial-gradient(1.1px 1.1px at 52% 48%, color-mix(in srgb, var(--text) 32%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 73% 68%, color-mix(in srgb, var(--text) 42%, transparent) 40%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 35% 88%, color-mix(in srgb, var(--text) 48%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 96% 72%, color-mix(in srgb, var(--text) 36%, transparent) 40%, transparent 100%);}
+.arcade-page .ch-hero::after,
+.arcade-page .arena-entry::after,
+.arcade-page .tonight::after,
+.arcade-page .watch-card::after,
+.arcade-page .pass-card::after,
+.arcade-page .todo-card::after,
+.arcade-page .snc::after,
+.arcade-page .wbc::after,
+.arcade-page .home-stats::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 38% 55% at 0% 100%, color-mix(in srgb, var(--p1) 18%, transparent), transparent 70%),
+    radial-gradient(ellipse 34% 48% at 100% 0%, color-mix(in srgb, var(--p2) 16%, transparent), transparent 72%),
+    radial-gradient(ellipse 24% 35% at 100% 100%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 75%);}
+.arcade-page .ch-hero > *,
+.arcade-page .arena-entry > *,
+.arcade-page .tonight > *,
+.arcade-page .watch-card > *,
+.arcade-page .pass-card > *,
+.arcade-page .todo-card > *,
+.arcade-page .snc > *,
+.arcade-page .wbc > *,
+.arcade-page .home-stats > *{position:relative;z-index:1;}
+
+/* ============================================================
+   E — TOGETHER HERO: counter, heartbeat, timeline, anniversary ring
+   ============================================================ */
+
+.ch-hero{width:100%;margin-top:14px;border-radius:16px;padding:18px 20px;
   display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
-.ch-stars{position:absolute;inset:0;pointer-events:none;}
-.ch-stars .st{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--text);opacity:.18;}
 
 .ch-avs{display:flex;align-items:center;gap:6px;position:relative;}
 .ch-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -259,7 +320,15 @@
 
   /* E */
   .ch-beat .run{animation:ch-beat-run 2.4s linear infinite;}
-  .ch-stars .st{animation:cfx-twinkle 4s ease-in-out infinite;}
+  .arcade-page .ch-hero::before,
+  .arcade-page .arena-entry::before,
+  .arcade-page .tonight::before,
+  .arcade-page .watch-card::before,
+  .arcade-page .pass-card::before,
+  .arcade-page .todo-card::before,
+  .arcade-page .snc::before,
+  .arcade-page .wbc::before,
+  .arcade-page .home-stats::before{animation:duo-surface-twinkle 4s ease-in-out infinite;}
   .ch-orbit{animation:cfx-spin 7s linear infinite;}
   .ch-tl-item.done .hh{animation:cfx-heartbeat 2.4s ease-in-out infinite;}
 
@@ -343,6 +412,7 @@
   100%{transform:translateY(-64vh) translateX(-14px) scale(1.15);opacity:0;}
 }
 @keyframes ch-beat-run{from{stroke-dashoffset:140;}to{stroke-dashoffset:0;}}
+@keyframes duo-surface-twinkle{0%,100%{opacity:.72;}50%{opacity:1;}}
 @keyframes hc-flow{to{stroke-dashoffset:-16;}}
 @keyframes hc-beat{
   0%,100%{transform:translate(-50%,-50%) scale(1);}
