@@ -1,0 +1,54 @@
+.arcade-page .todo-card{
+  width:100%;border:1px solid color-mix(in srgb, var(--p2) 35%, var(--line));
+  border-radius:14px;background:linear-gradient(180deg,color-mix(in srgb, var(--p2) 8%, var(--room)),var(--room) 72%);
+  padding:16px 18px;margin-top:0;}
+.arcade-page .todo-card h3{font-size:16px;margin:0 0 4px;}
+.arcade-page .todo-card .todo-sub{font-size:12.5px;color:var(--dim);margin:0 0 12px;line-height:1.45;}
+
+.arcade-page .todo-form{display:grid;gap:8px;margin-bottom:14px;}
+.arcade-page .todo-form input[type=text],
+.arcade-page .todo-form textarea{
+  width:100%;background:var(--room2);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;}
+.arcade-page .todo-form textarea{min-height:52px;resize:vertical;}
+.arcade-page .todo-form input:focus,.arcade-page .todo-form textarea:focus{
+  outline:none;border-color:var(--candle);}
+.arcade-page .todo-urgency{display:flex;gap:6px;flex-wrap:wrap;}
+.arcade-page .todo-urgency button{
+  border:1px solid var(--line);background:var(--room2);color:var(--dim);
+  border-radius:999px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;}
+.arcade-page .todo-urgency button.on{border-color:var(--candle);color:var(--candle);
+  background:color-mix(in srgb, var(--candle) 12%, var(--room2));}
+.arcade-page .todo-urgency button.u-high.on{border-color:#ff6b6b;color:#ff8a8a;
+  background:color-mix(in srgb, #ff6b6b 14%, var(--room2));}
+.arcade-page .todo-urgency button.u-low.on{border-color:var(--dim);color:var(--text);}
+
+.arcade-page .todo-list{display:flex;flex-direction:column;gap:8px;}
+.arcade-page .todo-item{
+  border:1px solid var(--line);border-radius:12px;background:var(--room2);
+  padding:10px 12px;display:grid;gap:6px;}
+.arcade-page .todo-item.done{opacity:.62;}
+.arcade-page .todo-item.u-high{border-color:color-mix(in srgb, #ff6b6b 45%, var(--line));}
+.arcade-page .todo-item.u-medium{border-color:color-mix(in srgb, var(--candle) 35%, var(--line));}
+.arcade-page .todo-top{display:flex;align-items:flex-start;gap:8px;}
+.arcade-page .todo-check{
+  width:18px;height:18px;margin-top:2px;accent-color:var(--candle);flex:none;cursor:pointer;}
+.arcade-page .todo-text{flex:1;font-size:14px;font-weight:600;line-height:1.35;}
+.arcade-page .todo-text.done-text{text-decoration:line-through;color:var(--dim);}
+.arcade-page .todo-badge{
+  font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  border-radius:999px;padding:3px 8px;flex:none;}
+.arcade-page .todo-badge.high{background:color-mix(in srgb, #ff6b6b 18%, transparent);color:#ff8a8a;}
+.arcade-page .todo-badge.medium{background:color-mix(in srgb, var(--candle) 18%, transparent);color:var(--candle);}
+.arcade-page .todo-badge.low{background:color-mix(in srgb, var(--dim) 20%, transparent);color:var(--dim);}
+.arcade-page .todo-note{font-size:12px;color:var(--dim);line-height:1.4;padding-left:26px;}
+.arcade-page .todo-meta{font-size:10.5px;color:color-mix(in srgb, var(--dim) 80%, transparent);
+  padding-left:26px;display:flex;gap:10px;flex-wrap:wrap;}
+.arcade-page .todo-meta b{color:var(--text);font-weight:600;}
+.arcade-page .todo-actions{display:flex;gap:6px;padding-left:26px;}
+.arcade-page .todo-actions button{
+  border:none;background:none;color:var(--dim);font-size:11px;cursor:pointer;padding:0;}
+.arcade-page .todo-actions button:hover{color:var(--candle);}
+.arcade-page .todo-empty{font-size:12.5px;color:var(--dim);padding:8px 0 4px;}
+.arcade-page .todo-edit{display:grid;gap:6px;padding-left:26px;}
+.arcade-page .todo-status{font-size:11.5px;color:var(--dim);margin-top:8px;min-height:16px;}
