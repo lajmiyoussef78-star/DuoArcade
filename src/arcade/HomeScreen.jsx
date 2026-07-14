@@ -244,6 +244,21 @@ export default function HomeScreen({
               </div>
             );
           })}
+          <Link to="/spark-splash" className="gcard" style={{
+            position: 'relative', overflow: 'hidden', minHeight: 104, textDecoration: 'none', color: 'inherit'
+          }}>
+            <div aria-hidden="true" style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: 'linear-gradient(135deg, rgba(255,122,47,.35) 0%, rgba(63,169,255,.28) 100%)'
+            }} />
+            <div aria-hidden="true" style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: 'linear-gradient(90deg, rgba(20,15,26,.78) 0%, rgba(20,15,26,.35) 55%, rgba(20,15,26,.08) 100%)'
+            }} />
+            <div className="gname" style={{ position: 'relative' }}>Spark &amp; Splash</div>
+            <div className="gtag" style={{ position: 'relative' }}>co-op · platformer · couch</div>
+            <div className="grec" style={{ position: 'relative' }}>same keyboard</div>
+          </Link>
         </div>
 
         <div className="shelf-title">Our wall</div>

@@ -7,6 +7,7 @@ import Arena from './pages/Arena.jsx';
 import ArenaMatch from './pages/ArenaMatch.jsx';
 import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
+import SparkSplash from './pages/SparkSplash.jsx';
 import './styles/base.css';
 import './styles/landing.scoped.css';
 import './styles/arcade.scoped.css';
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/arena/:matchCode" element={<ArenaMatch />} />
         <Route path="/whiteboard/:code" element={<Whiteboard />} />
         <Route path="/snap/:code" element={<Snap />} />
+        <Route path="/spark-splash" element={<SparkSplash />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

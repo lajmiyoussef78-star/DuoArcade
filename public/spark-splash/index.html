@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spark &amp; Splash — Crystal Caverns Adventure</title>
+<style>
+  :root{
+    --bg-deep:#12081f; --bg-mid:#1d1130;
+    --fire:#ff7a2f; --fire-hot:#ffd23f; --water:#3fa9ff; --water-cool:#a8e6ff;
+    --ui:#e8ddff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background: radial-gradient(1200px 700px at 50% 20%, var(--bg-mid), var(--bg-deep) 70%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:"Trebuchet MS", Verdana, sans-serif; color:var(--ui); min-height:100vh; gap:10px;
+  }
+  h1{
+    font-size:28px; letter-spacing:2px; text-transform:uppercase;
+    background:linear-gradient(90deg, var(--fire-hot), var(--fire) 40%, var(--water) 60%, var(--water-cool));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #wrap{position:relative; border-radius:14px; overflow:hidden;
+    box-shadow:0 0 0 3px #2b1c47, 0 0 40px rgba(90,50,180,.45), 0 20px 60px rgba(0,0,0,.6);}
+  canvas{display:block; background:#150a26;}
+
+  /* ---- settings gear + panel ---- */
+  #gearBtn{
+    position:absolute; top:34px; right:8px; width:34px; height:34px;
+    border:none; border-radius:50%; cursor:pointer; font-size:18px; line-height:1;
+    background:rgba(30,17,54,.85); color:#e8ddff;
+    box-shadow:0 0 0 2px rgba(155,123,255,.35);
+    transition:transform .25s;
+  }
+  #gearBtn:hover{ transform:rotate(60deg); background:rgba(60,40,100,.9); }
+  #panel{
+    position:absolute; top:74px; right:8px; width:230px; padding:14px 16px;
+    background:rgba(18,9,34,.96); border:1px solid rgba(155,123,255,.4);
+    border-radius:12px; display:none; z-index:5; font-size:14px;
+    box-shadow:0 12px 30px rgba(0,0,0,.6);
+  }
+  #panel.open{ display:block; }
+  #panel h3{ font-size:15px; margin-bottom:10px; color:#fff; letter-spacing:1px; }
+  #panel .row{ display:flex; align-items:center; justify-content:space-between; margin:10px 0; gap:8px;}
+  #panel label{ opacity:.9; }
+  #panel input[type=range]{ width:110px; accent-color:#9b7bff; }
+  #panel input[type=checkbox]{ accent-color:#9b7bff; width:16px; height:16px; }
+  #panel select{
+    background:#241542; color:#e8ddff; border:1px solid rgba(155,123,255,.4);
+    border-radius:6px; padding:3px 6px; max-width:130px;
+  }
+  #panel button{
+    width:100%; margin-top:6px; padding:7px 0; border:none; border-radius:8px; cursor:pointer;
+    background:linear-gradient(90deg,#ff7a2f,#3fa9ff); color:#fff; font-weight:bold;
+    font-family:inherit; letter-spacing:1px;
+  }
+  #panel button.secondary{ background:#3a2b62; }
+  #hint{font-size:13px; opacity:.78; text-align:center; max-width:860px; line-height:1.55;}
+  #hint b{color:#fff;}
+  .fireKeys{color:var(--fire);} .waterKeys{color:var(--water);}
+</style>
+</head>
+<body>
+  <h1>Spark &amp; Splash</h1>
+  <div id="wrap">
+    <canvas id="game" width="800" height="520"></canvas>
+    <button id="gearBtn" title="Settings (Esc)">⚙</button>
+    <div id="panel">
+      <h3>⚙ SETTINGS</h3>
+      <div class="row"><label>Sound volume</label><input type="range" id="volSlider" min="0" max="100" value="70"></div>
+      <div class="row"><label>Sound effects</label><input type="checkbox" id="sfxChk" checked></div>
+      <div class="row"><label>Music</label><input type="checkbox" id="musChk" checked></div>
+      <div class="row"><label>Go to level</label><select id="lvlSel"></select></div>
+      <button id="resumeBtn">▶ RESUME (P)</button>
+      <button id="restartBtn" class="secondary">↺ Restart level (R)</button>
+    </div>
+  </div>
+  <div id="hint">
+    <span class="fireKeys"><b>SPARK</b> (fire): A / D move, W jump</span> &nbsp;•&nbsp;
+    <span class="waterKeys"><b>SPLASH</b> (water): ← / → move, ↑ jump</span> &nbsp;•&nbsp;
+    <b>P</b> pause &nbsp;•&nbsp; <b>R</b> restart<br>
+    Gold buttons open gates forever. Teal pads must be <b>held down</b> — stand on them or push a crate onto them.
+    Ride elevators, climb with crates, and help each other reach the glowing doors!
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
