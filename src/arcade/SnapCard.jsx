@@ -1,4 +1,4 @@
-// src/arcade/SnapCard.jsx — the "Today's snap" section for the duo home.
+// src/arcade/SnapCard.jsx — "Today's snap" home section, clean edition.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -38,34 +38,33 @@ export default function SnapCard({ code }) {
   const otherName = role === 'A' ? names.B : names.A;
 
   const statusLine = both
-    ? 'complete — today counted toward your streak \u{1F525}'
+    ? 'complete \u2014 today counted'
     : myPhoto
-      ? `you're in — waiting for ${otherName}\u2026`
+      ? `waiting for ${otherName}`
       : theirPhoto
-        ? `${otherName} already snapped — your turn!`
+        ? `${otherName} snapped \u2014 your turn`
         : 'no photos yet today';
 
   return (
     <div className="snc">
-      <div className="snc-pair">
+      <div className="snc-head">
+        <h3>Today's snap</h3>
+        <span className={'snc-status' + (both ? ' done' : '')}>{statusLine}</span>
+      </div>
+      <p className="snc-desc">
+        One camera photo each, every day. Both in and the day counts toward
+        your streak; the pair becomes a downloadable keepsake.
+      </p>
+      <div className="snc-row">
         <div className={'snc-mini' + (myPhoto ? '' : ' empty')}>
           {myPhoto ? <img src={myPhoto} alt="" /> : <span>you</span>}
         </div>
-        <div className="snc-heart">{both ? '\u2665' : '\u2661'}</div>
+        <div className={'snc-heart' + (both ? ' full' : '')}>{both ? '\u2665' : '\u2661'}</div>
         <div className={'snc-mini' + (theirPhoto ? '' : ' empty')}>
           {theirPhoto ? <img src={theirPhoto} alt="" /> : <span>{otherName}</span>}
         </div>
-      </div>
-      <div className="snc-side">
-        <h3>{'\u{1F4F8}'} Today&apos;s snap</h3>
-        <p>
-          One instant photo each, every day — no uploads, camera only.
-          Both in and the day counts toward your streak; the pair becomes a
-          downloadable keepsake.
-        </p>
-        <div className="snc-meta">{statusLine}</div>
-        <Link className="btn warm" to={`/snap/${code}`}>
-          {myPhoto ? 'Open today\u2019s snap' : 'Take today\u2019s photo'}
+        <Link className="btn warm small" to={`/snap/${code}`}>
+          {myPhoto ? 'Open' : 'Take today\u2019s photo'}
         </Link>
       </div>
     </div>

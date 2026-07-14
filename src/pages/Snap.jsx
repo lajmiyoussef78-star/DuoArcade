@@ -227,7 +227,7 @@ export default function Snap() {
       <div className="sn-duet">
         {/* MY slot */}
         <div className="sn-slot">
-          <div className="sn-polaroid mine">
+          <div className="sn-polaroid">
             {shot ? (
               <img src={shot} alt="your capture" />
             ) : camOn ? (
@@ -237,8 +237,8 @@ export default function Snap() {
             ) : (
               <div className="sn-empty">no photo yet</div>
             )}
-            <div className="sn-caption">{role === 'A' ? names.A : names.B}</div>
           </div>
+          <div className="sn-caption">{role === 'A' ? names.A : names.B}</div>
           <div className="sn-slot-actions">
             {shot ? (
               <>
@@ -260,16 +260,16 @@ export default function Snap() {
           </div>
         </div>
 
-        <div className="sn-heart">{both ? '\u2665' : '\u2661'}</div>
+        <div className={'sn-heart' + (both ? ' full' : '')}>{both ? '\u2665' : '\u2661'}</div>
 
         {/* PARTNER slot */}
         <div className="sn-slot">
-          <div className={'sn-polaroid theirs' + (theirPhoto ? '' : ' waiting')}>
+          <div className={'sn-polaroid' + (theirPhoto ? '' : ' waiting')}>
             {theirPhoto
               ? <img src={theirPhoto} alt="your partner, today" />
               : <div className="sn-empty pulse">waiting for {names[other]}…</div>}
-            <div className="sn-caption">{names[other]}</div>
           </div>
+          <div className="sn-caption">{names[other]}</div>
         </div>
       </div>
 
