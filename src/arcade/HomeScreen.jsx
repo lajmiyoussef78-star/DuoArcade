@@ -6,6 +6,7 @@ import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake,
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
+import DuoPhotoCard from './DuoPhotoCard.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
 
@@ -29,7 +30,7 @@ function closestGameId(duo) {
 
 export default function HomeScreen({
   duo, code, myRole, isAway, presence, geoStatus, homeStatus, setHomeStatus,
-  onStartGame, onStartWatch, onBack, onSetTheme, onRedeem
+  onStartGame, onStartWatch, onBack, onSetTheme, onRedeem, onPhotoStreak
 }) {
   const [mins, setMins] = useState(null);
   const [ytUrl, setYtUrl] = useState('');
@@ -170,6 +171,9 @@ export default function HomeScreen({
         </div>
 
         <TogetherHero duo={duo} code={code} totals={t} myRole={myRole} presence={presence} geoStatus={geoStatus} />
+
+        <div className="shelf-title">Today&apos;s moment</div>
+        <DuoPhotoCard code={code} myRole={myRole} duo={duo} onBothPhotos={onPhotoStreak} />
 
         <div className="milestones">
           {milestones.map((m, i) => (

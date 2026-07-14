@@ -343,6 +343,14 @@ export default function Arcade() {
     await upd(code, patch, { force: true });
   }, [patchLocal, upd]);
 
+  const photoStreak = useCallback(async () => {
+    const { duo, code } = ctxRef.current;
+    const patch = {};
+    finishPatch(duo, patch);
+    patchLocal(patch);
+    await upd(code, patch, { force: true });
+  }, [patchLocal, upd]);
+
   /* ---------- duo pass ---------- */
 
   const setTheme = useCallback(async name => {
@@ -554,6 +562,7 @@ export default function Arcade() {
           onStartGame={startGame} onStartWatch={startWatch}
           onBack={() => { leaveDuoContext(); enterLobby(); }}
           onSetTheme={setTheme} onRedeem={redeemCode}
+          onPhotoStreak={photoStreak}
         />
       );
     }
