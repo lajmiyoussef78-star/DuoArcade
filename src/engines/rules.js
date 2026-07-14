@@ -79,6 +79,17 @@ export const RULES = {
     tip: 'Hit with the paddle\u2019s edge to change the angle.'
   },
 
+  sparksplash: {
+    goal: 'Clear all 18 caverns together \u2014 each on your own screen.',
+    how: [
+      'Player A is Spark (fire): A/D to move, W to jump.',
+      'Player B is Splash (water): arrow keys to move and jump.',
+      'Both of you must stand on your own glowing doors at the same time to finish each level.',
+      'Lava hurts Splash; water hurts Spark; acid hurts both. Buttons, crates, and lifts are shared puzzle state.'
+    ],
+    tip: 'Talk to each other \u2014 hold pads, gates, and elevators need coordination.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {

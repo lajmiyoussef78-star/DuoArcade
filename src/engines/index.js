@@ -25,8 +25,9 @@ import * as RACE from './race.js';
 import * as CQ from './couplequiz.js';
 import * as TTL from './twotruths.js';
 import * as CB from './codebreak.js';
+import * as SS from './sparksplash.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS]
     .map(e => [e.meta.id, e])
 );

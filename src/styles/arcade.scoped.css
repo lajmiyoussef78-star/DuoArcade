@@ -185,6 +185,9 @@
 .arcade-page .pong-score{font-family:'Fraunces',serif;font-weight:900;font-size:22px;}
 .arcade-page .pong-score .pA{color:var(--p1);}
 .arcade-page .pong-score .pB{color:var(--p2);}
+.arcade-page .ss-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
+.arcade-page .ss-canvas{width:100%;max-width:800px;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;}
+.arcade-page .ss-hint{text-align:center;max-width:640px;line-height:1.45;}
 .arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,32px);grid-template-rows:repeat(11,32px);gap:2px;
             background:var(--room2);padding:8px;border-radius:12px;}
 .arcade-page .gmk-cell{background:var(--room);border:1px solid var(--line);border-radius:5px;cursor:pointer;padding:0;

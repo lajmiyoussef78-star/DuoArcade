@@ -249,7 +249,8 @@ export default function Arcade() {
     const patch = { session, turn: '-' };
     const records = structuredClone(duo.records || {});
     const rec = records[gameId] ?? (records[gameId] = { a: 0, b: 0, d: 0 });
-    if (w === 'A') rec.a++; else rec.b++;
+    if (w === 'draw') rec.d++;
+    else if (w === 'A') rec.a++; else rec.b++;
     patch.records = records;
     finishPatch(duo, patch);
     patchLocal(patch);

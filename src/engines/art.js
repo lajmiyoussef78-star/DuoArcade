@@ -203,6 +203,22 @@ export const ART = {
      @keyframes pong-hit { from { transform: translate(0,0) } to { transform: translate(28px,10px) } }
      ${sparkAnim('pong', 2)}`),
 
+  sparksplash: scene('ss', `
+    <linearGradient id="ss-fire" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ff7a2f"/><stop offset="100%" stop-color="#ffd23f"/>
+    </linearGradient>
+    <linearGradient id="ss-water" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#3fa9ff"/><stop offset="100%" stop-color="#a8e6ff"/>
+    </linearGradient>`, `
+    <rect x="38" y="72" width="28" height="34" rx="8" fill="url(#ss-fire)" opacity=".85"/>
+    <rect x="164" y="68" width="28" height="34" rx="8" fill="url(#ss-water)" opacity=".85"/>
+    <path d="M52 62 Q54 48 64 52" fill="#ffd23f" opacity=".9"/>
+    <path d="M178 58 Q180 44 170 48" fill="#a8e6ff" opacity=".9"/>
+    <rect x="24" y="108" width="184" height="8" rx="4" fill="var(--line)" opacity=".7"/>
+    <rect x="88" y="100" width="56" height="16" rx="4" fill="var(--candle)" opacity=".35"/>
+    <text x="116" y="90" text-anchor="middle" font-size="18" fill="var(--candle)">♥</text>
+    ${sparks('ss', [[64, 40, 1.6, '#ff7a2f'], [178, 36, 1.6, '#3fa9ff']])}`, ''),
+
   /* ─── Sketch & Guess: fresh ink ─── */
   sketch: scene('sk', `
     <linearGradient id="sk-ink" x1="0" y1="0" x2="1" y2="0">
