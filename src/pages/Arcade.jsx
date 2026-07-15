@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createSync } from '../lib/sync.js';
 import { ENGINES } from '../engines/index.js';
 import {
-  other, today, loadSeats, saveSeat, applyTheme, finishPatch
+  other, today, loadSeats, saveSeat, removeSeat, applyTheme, finishPatch
 } from '../lib/util.js';
 import { watchGeo } from '../lib/location.js';
 import AuthScreen from '../arcade/AuthScreen.jsx';
@@ -130,6 +130,16 @@ export default function Arcade() {
       setCtx({ duo: made.duo, code: made.code, myRole: 'A' });
     } catch (e) { setLobbyStatus(e.message); }
   }, []);
+
+  const deleteDuo = useCallback(async d => {
+    try {
+      await syncRef.current.deleteDuo(d.code);
+      removeSeat(d.code);
+      if (ctxRef.current.code === d.code) leaveDuoContext();
+      setMyDuos(await syncRef.current.listMyDuos());
+      setLobbyStatus(`${d.nameA} & ${d.nameB} is gone — streaks and history erased.`);
+    } catch (e) { setLobbyStatus('Delete failed: ' + e.message); }
+  }, [leaveDuoContext]);
 
   /* ---------- auth ---------- */
 
@@ -623,7 +633,7 @@ export default function Arcade() {
       <LobbyScreen
         profile={profile} myDuos={myDuos} lobbyStatus={lobbyStatus}
         onSaveUsername={saveUsername} onOpenDuo={openByAccount}
-        onCreateDuo={createDuo} onSignOut={signOut}
+        onCreateDuo={createDuo} onDeleteDuo={deleteDuo} onSignOut={signOut}
         onToggleVisibility={toggleVisibility} onClearStuck={clearStuck}
         onSearch={searchUsers} onOpenProfile={openPublicProfile}
       />

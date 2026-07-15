@@ -139,6 +139,8 @@ async function supabaseSync() {
 
     onDuo(fn) { cb = fn; },
 
+    async deleteDuo(code) { await rpc('delete_duo', { p_code: code }); },
+
     async fetchDuo(code) {
       const { data, error } = await sb.from('duos').select('*').eq('code', code).single();
       if (error || !data) return null;
@@ -369,6 +371,7 @@ function localSync() {
       return { duo, role: token === 'demo-guest' ? 'B' : 'A' };
     },
     onDuo(fn) { cb = fn; },
+    async deleteDuo(code) { localStorage.removeItem(key(code)); },
     async updateDuo(code, patch, { guardTurn = null, force = false } = {}) {
       const duo = read(code);
       if (!duo) return false;

@@ -9,6 +9,12 @@ export const saveSeat = (code, token) => {
   s[code] = token;
   localStorage.setItem(SEAT_KEY, JSON.stringify(s));
 };
+export const removeSeat = code => {
+  const s = loadSeats();
+  delete s[code];
+  delete s['invite-' + code];
+  localStorage.setItem(SEAT_KEY, JSON.stringify(s));
+};
 
 export const THEMES = {
   night:  { label: 'Night',  p1: '#7FA8FF', p2: '#FF7FA8', candle: '#FFC66E' },
