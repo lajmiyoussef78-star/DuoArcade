@@ -30,7 +30,6 @@ export default function Snap() {
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
   const [pauses, setPauses] = useState([]);
-  const [month, setMonth] = useState('');
   const [err, setErr] = useState('');
   const [status, setStatus] = useState('');
   const [showSettings, setShowSettings] = useState(false);
@@ -85,10 +84,10 @@ export default function Snap() {
 
   const reloadHistory = useCallback(async () => {
     try {
-      setHistory(await listDuoSnapHistory(code, month || null, 40));
+      setHistory(await listDuoSnapHistory(code, null, 40));
       setPauses(await listDuoSnapPauses(code, 12));
     } catch { /* ignore */ }
-  }, [code, month]);
+  }, [code]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -163,8 +162,6 @@ export default function Snap() {
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [reload]);
-
-  useEffect(() => { reloadHistory(); }, [month, reloadHistory]);
 
   const countdownTarget = useMemo(() => {
     if (paused && config.paused_until) return new Date(config.paused_until).getTime();
@@ -380,10 +377,6 @@ export default function Snap() {
           <div className="sn-stat-n">{config.streak || 0}</div>
           <div className="sn-stat-l">streak</div>
         </div>
-        <div className="sn-stat">
-          <div className="sn-stat-n">{config.best_streak || 0}</div>
-          <div className="sn-stat-l">best</div>
-        </div>
         <div className="sn-stat wide">
           <div className="sn-stat-n sn-stat-count">{remainLabel}</div>
           <div className="sn-stat-l">
@@ -500,137 +493,125 @@ export default function Snap() {
       </div>
 
       {showPause && (
-        <div className="sn-panel">
-          <h4>Pause Duo Snap</h4>
-          <p className="sn-panel-note">No reminders, no missed snaps, streak stays safe.</p>
-          <div className="sn-chip-row">
-            {PAUSE_PRESETS.map(p => (
-              <button key={p.label} type="button" className="wk-chip" onClick={() => doPause(p)}>{p.label}</button>
-            ))}
-          </div>
-          <label>
-            Custom minutes
-            <input type="number" min={15} max={10080} value={customPauseMins}
-              onChange={e => setCustomPauseMins(e.target.value)} placeholder="90" />
-          </label>
-          <button type="button" className="btn small ghost" onClick={() => doPause('custom')}>Pause custom</button>
-          <div className="sn-chip-row">
-            {BUSY_REASONS.map(r => (
+        <div className="sn-overlay" onClick={e => { if (e.target === e.currentTarget) setShowPause(false); }}>
+          <div className="sn-panel sn-modal" role="dialog" aria-modal="true" aria-label="Pause Duo Snap">
+            <h4>Pause Duo Snap</h4>
+            <p className="sn-panel-note">No reminders, no missed snaps, streak stays safe.</p>
+            <div className="sn-chip-row">
+              {PAUSE_PRESETS.map(p => (
+                <button key={p.label} type="button" className="wk-chip" onClick={() => doPause(p)}>{p.label}</button>
+              ))}
+            </div>
+            <label>
+              Custom minutes
+              <input type="number" min={15} max={10080} value={customPauseMins}
+                onChange={e => setCustomPauseMins(e.target.value)} placeholder="90" />
+            </label>
+            <button type="button" className="btn small ghost" onClick={() => doPause('custom')}>Pause custom</button>
+            <div className="sn-chip-row">
+              {BUSY_REASONS.map(r => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={'wk-chip sm' + (pauseReason === r.id ? ' on' : '')}
+                  onClick={() => setPauseReason(r.id)}
+                >
+                  {r.emoji} {r.label}
+                </button>
+              ))}
               <button
-                key={r.id}
                 type="button"
-                className={'wk-chip sm' + (pauseReason === r.id ? ' on' : '')}
-                onClick={() => setPauseReason(r.id)}
+                className={'wk-chip sm' + (pauseReason === 'custom' ? ' on' : '')}
+                onClick={() => setPauseReason('custom')}
               >
-                {r.emoji} {r.label}
+                Custom
               </button>
-            ))}
-            <button
-              type="button"
-              className={'wk-chip sm' + (pauseReason === 'custom' ? ' on' : '')}
-              onClick={() => setPauseReason('custom')}
-            >
-              Custom
-            </button>
+            </div>
+            {pauseReason === 'custom' && (
+              <input
+                value={customReason}
+                maxLength={40}
+                placeholder="Status…"
+                onChange={e => setCustomReason(e.target.value)}
+              />
+            )}
+            <div className="sn-panel-actions">
+              <button type="button" className="btn small ghost" onClick={() => setShowPause(false)}>Close</button>
+            </div>
           </div>
-          {pauseReason === 'custom' && (
-            <input
-              value={customReason}
-              maxLength={40}
-              placeholder="Status…"
-              onChange={e => setCustomReason(e.target.value)}
-            />
-          )}
-          <button type="button" className="btn small ghost" onClick={() => setShowPause(false)}>Close</button>
         </div>
       )}
 
       {showSettings && (
-        <div className="sn-panel">
-          <h4>Duo Snap settings</h4>
-          <label className="sn-toggle">
-            <input
-              type="checkbox"
-              checked={settingsDraft.enabled}
-              onChange={e => setSettingsDraft(s => ({ ...s, enabled: e.target.checked }))}
-            />
-            Enable Duo Snap
-          </label>
-          <label className="sn-toggle">
-            <input
-              type="checkbox"
-              checked={settingsDraft.notify}
-              onChange={e => setSettingsDraft(s => ({ ...s, notify: e.target.checked }))}
-            />
-            Browser notifications
-          </label>
-          <label className="sn-toggle">
-            <input
-              type="checkbox"
-              checked={settingsDraft.auto_save_device}
-              onChange={e => setSettingsDraft(s => ({ ...s, auto_save_device: e.target.checked }))}
-            />
-            Offer download after reveal
-          </label>
-          <div className="sn-label">Reminder interval</div>
-          <div className="sn-chip-row">
-            {INTERVAL_PRESETS.map(p => (
-              <button
-                key={p.mins}
-                type="button"
-                className={'wk-chip' + (settingsDraft.interval_mins === p.mins && !customInterval ? ' on' : '')}
-                onClick={() => { setCustomInterval(''); setSettingsDraft(s => ({ ...s, interval_mins: p.mins })); }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <label>
-            Custom interval (minutes)
-            <input type="number" min={15} max={10080} value={customInterval}
-              onChange={e => setCustomInterval(e.target.value)} placeholder="e.g. 90" />
-          </label>
-          <div className="sn-label">Submission window</div>
-          <div className="sn-chip-row">
-            {WINDOW_PRESETS.map(p => (
-              <button
-                key={p.mins}
-                type="button"
-                className={'wk-chip' + (settingsDraft.window_mins === p.mins ? ' on' : '')}
-                onClick={() => setSettingsDraft(s => ({ ...s, window_mins: p.mins }))}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <label>
-            Camera preference
-            <select
-              value={settingsDraft.camera_pref}
-              onChange={e => setSettingsDraft(s => ({ ...s, camera_pref: e.target.value }))}
-            >
-              <option value="user">Front</option>
-              <option value="environment">Rear</option>
-            </select>
-          </label>
-          <div className="sn-panel-actions">
-            <button type="button" className="btn small ghost" onClick={() => setShowSettings(false)}>Cancel</button>
-            <button type="button" className="btn small warm" onClick={saveSettings}>Save</button>
+        <div className="sn-overlay" onClick={e => { if (e.target === e.currentTarget) setShowSettings(false); }}>
+          <div className="sn-panel sn-modal" role="dialog" aria-modal="true" aria-label="Duo Snap settings">
+            <h4>Duo Snap settings</h4>
+            <label className="sn-toggle">
+              <input
+                type="checkbox"
+                checked={settingsDraft.enabled}
+                onChange={e => setSettingsDraft(s => ({ ...s, enabled: e.target.checked }))}
+              />
+              Enable Duo Snap
+            </label>
+            <label className="sn-toggle">
+              <input
+                type="checkbox"
+                checked={settingsDraft.notify}
+                onChange={e => setSettingsDraft(s => ({ ...s, notify: e.target.checked }))}
+              />
+              Browser notifications
+            </label>
+            <label className="sn-toggle">
+              <input
+                type="checkbox"
+                checked={settingsDraft.auto_save_device}
+                onChange={e => setSettingsDraft(s => ({ ...s, auto_save_device: e.target.checked }))}
+              />
+              Offer download after reveal
+            </label>
+            <div className="sn-label">Reminder interval</div>
+            <div className="sn-chip-row">
+              {INTERVAL_PRESETS.map(p => (
+                <button
+                  key={p.mins}
+                  type="button"
+                  className={'wk-chip' + (settingsDraft.interval_mins === p.mins && !customInterval ? ' on' : '')}
+                  onClick={() => { setCustomInterval(''); setSettingsDraft(s => ({ ...s, interval_mins: p.mins })); }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <label>
+              Custom interval (minutes)
+              <input type="number" min={15} max={10080} value={customInterval}
+                onChange={e => setCustomInterval(e.target.value)} placeholder="e.g. 90" />
+            </label>
+            <div className="sn-label">Submission window</div>
+            <div className="sn-chip-row">
+              {WINDOW_PRESETS.map(p => (
+                <button
+                  key={p.mins}
+                  type="button"
+                  className={'wk-chip' + (settingsDraft.window_mins === p.mins ? ' on' : '')}
+                  onClick={() => setSettingsDraft(s => ({ ...s, window_mins: p.mins }))}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="sn-panel-actions">
+              <button type="button" className="btn small ghost" onClick={() => setShowSettings(false)}>Cancel</button>
+              <button type="button" className="btn small warm" onClick={saveSettings}>Save</button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="sn-history-head">
-        <h3 className="sn-history-title">History</h3>
-        <input
-          type="month"
-          className="sn-month"
-          value={month}
-          onChange={e => setMonth(e.target.value)}
-        />
-      </div>
+      <h3 className="sn-history-title">History</h3>
       <div className="sn-history-list">
-        {history.length === 0 && <p className="sn-note">No snaps yet for this filter.</p>}
+        {history.length === 0 && <p className="sn-note">No snaps uploaded yet.</p>}
         {history.map(item => (
           <div key={item.id} className={'sn-hist-row' + (item.status === 'missed' ? ' missed' : '')}>
             <div className="sn-hist-meta">
