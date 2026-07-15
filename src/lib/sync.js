@@ -36,6 +36,7 @@ function normalize(row) {
     showPublic: row.show_public ?? false,
     passTier: row.pass_tier ?? 'free',
     theme: row.theme ?? null,
+    anniversary: row.anniversary ?? null,
     turn: row.turn ?? '-'
   };
 }
@@ -52,6 +53,7 @@ function denormalize(patch) {
   if ('session' in patch) out.session = patch.session;
   if ('showPublic' in patch) out.show_public = patch.showPublic;
   if ('theme' in patch) out.theme = patch.theme;
+  if ('anniversary' in patch) out.anniversary = patch.anniversary;
   if ('turn' in patch) out.turn = patch.turn;
   return out;
 }

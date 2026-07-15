@@ -114,8 +114,9 @@ function formatLongDate(when) {
 
 const annivKey = code => 'duoarcade-anniv-' + code;
 
-export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus }) {
-  const [anniv, setAnniv] = useState(() => localStorage.getItem(annivKey(code)) || '');
+export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus, onSetAnniversary }) {
+  // the shared date lives on the duo row now — same for both partners
+  const anniv = duo.anniversary || '';
   const [editing, setEditing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
@@ -123,6 +124,14 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // one-time migration: a date saved on this device before the sync existed
+  // gets pushed up to the duo (first device to open wins)
+  useEffect(() => {
+    const legacy = localStorage.getItem(annivKey(code));
+    if (!duo.anniversary && legacy) onSetAnniversary(legacy);
+    if (duo.anniversary && legacy) localStorage.removeItem(annivKey(code));
+  }, [duo.anniversary, code, onSetAnniversary]);
 
   const stars = useMemo(() => Array.from({ length: 14 }, (_, i) => ({
     id: i, left: Math.random() * 100, top: Math.random() * 100, delay: Math.random() * 4
@@ -144,8 +153,7 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus })
   const ringFrac = ringDays === null ? 0 : 1 - ringDays / 365;
 
   const saveAnniv = v => {
-    setAnniv(v);
-    if (v) localStorage.setItem(annivKey(code), v);
+    if (v) onSetAnniversary(v);
     setEditing(false);
   };
 

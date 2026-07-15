@@ -394,6 +394,12 @@ export default function Arcade() {
     await upd(code, { theme: name }, { force: true });
   }, [patchLocal, upd]);
 
+  const setAnniversary = useCallback(async iso => {
+    const { code } = ctxRef.current;
+    patchLocal({ anniversary: iso });
+    await upd(code, { anniversary: iso }, { force: true });
+  }, [patchLocal, upd]);
+
   const redeemCode = useCallback(async codeStr => {
     const { code } = ctxRef.current;
     const r = await syncRef.current.redeemPassCode(codeStr, code);
@@ -624,7 +630,7 @@ export default function Arcade() {
           homeStatus={homeStatus} setHomeStatus={setHomeStatus}
           onStartGame={startGame} onStartWatch={startWatch}
           onBack={() => { leaveDuoContext(); enterLobby(); }}
-          onSetTheme={setTheme} onRedeem={redeemCode}
+          onSetTheme={setTheme} onSetAnniversary={setAnniversary} onRedeem={redeemCode}
         />
       );
     }

@@ -30,7 +30,7 @@ function closestGameId(duo) {
 
 export default function HomeScreen({
   duo, code, myRole, isAway, presence, geoStatus, homeStatus, setHomeStatus,
-  onStartGame, onStartWatch, onBack, onSetTheme, onRedeem
+  onStartGame, onStartWatch, onBack, onSetTheme, onSetAnniversary, onRedeem
 }) {
   const [mins, setMins] = useState(null);
   const [ytUrl, setYtUrl] = useState('');
@@ -181,7 +181,8 @@ export default function HomeScreen({
           </div>
         </div>
 
-        <TogetherHero duo={duo} code={code} totals={t} myRole={myRole} presence={presence} geoStatus={geoStatus} />
+        <TogetherHero duo={duo} code={code} totals={t} myRole={myRole} presence={presence}
+          geoStatus={geoStatus} onSetAnniversary={onSetAnniversary} />
 
         <div className="milestones">
           {milestones.map((m, i) => (
