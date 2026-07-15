@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ENGINES } from '../engines/index.js';
 import { artFor } from '../engines/art.js';
-import { other, today, yesterday, totalsOf, loadSeats, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
+import { other, today, yesterday, totalsOf, loadSeats, SEAT_KEY, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
@@ -48,9 +48,20 @@ export default function HomeScreen({
   const cur = onStreak ? (duo.streak || 0) : 0;
   const tastePct = duo.tasteTotal > 0 ? Math.round(100 * duo.tasteAgree / duo.tasteTotal) : 0;
   const hasPass = duo.passTier && duo.passTier !== 'free';
+  const bothLinked = !!duo.memberA && !!duo.memberB;
   const inviteToken = loadSeats()['invite-' + code];
-  const inviteUrl = inviteToken
+  const inviteUrl = !bothLinked && inviteToken
     ? `${window.location.origin}${window.location.pathname}?duo=${code}&t=${inviteToken}` : null;
+
+  // both accounts linked: the server has burned the tokens, so the invite
+  // link is dead — drop our stored copy and never show it again
+  useEffect(() => {
+    if (bothLinked && loadSeats()['invite-' + code]) {
+      const s = loadSeats();
+      delete s['invite-' + code];
+      localStorage.setItem(SEAT_KEY, JSON.stringify(s));
+    }
+  }, [bothLinked, code]);
 
   const milestones = [];
   let nextShown = false;
