@@ -44,7 +44,7 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paus
   const key = session.game + ':' + (session.startedAt || 0);
   useEffect(() => {
     const rt = sync.rt(code);
-    eng.mount(hostRef.current, { myRole, rt, names, onFinish });
+    eng.mount(hostRef.current, { myRole, rt, names, onFinish, code });
     return () => {
       try { eng.unmount(); } catch { /* engine already gone */ }
       try { rt.close(); } catch { /* channel already closed */ }

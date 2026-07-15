@@ -562,7 +562,35 @@ export const ART = {
     ${sparks('cb', [[30, 30, 1.8, 'var(--p1)'], [210, 90, 1.8, 'var(--p2)'], [120, 18, 1.5, 'var(--candle)']])}`,
     `${[0,1,2,3].map(i => `.cb-t${i} { animation: cb-pop 2.8s ease-in-out ${i * .25}s infinite; }`).join('')}
      @keyframes cb-pop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
-     ${pulse('cb', 'cb-lock', 2.4)} ${sparkAnim('cb', 3)}`)
+     ${pulse('cb', 'cb-lock', 2.4)} ${sparkAnim('cb', 3)}`),
+
+  /* ─── Ready, Set, Cook: co-op kitchen ─── */
+  readysetcook: scene('rsc', '', `
+    <rect x="36" y="88" width="168" height="28" rx="6" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>
+    <path d="M36 102 H204" stroke="var(--line)" stroke-width="1" stroke-dasharray="6 8" opacity=".5"/>
+    <g class="rsc-pot">
+      <ellipse cx="88" cy="78" rx="26" ry="10" fill="var(--candle)" opacity=".35"/>
+      <path d="M68 78 Q68 52 88 48 Q108 52 108 78 Z" fill="var(--room)" stroke="var(--candle)" stroke-width="2.5"/>
+      <path d="M74 56 Q88 42 102 56" stroke="var(--p2)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="rsc-pan">
+      <ellipse cx="156" cy="80" rx="22" ry="8" fill="var(--p1)" opacity=".3"/>
+      <ellipse cx="156" cy="76" rx="20" ry="6" fill="var(--room2)" stroke="var(--p1)" stroke-width="2"/>
+      <path d="M176 72 L192 64" stroke="var(--dim)" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g class="rsc-chef">
+      <circle cx="120" cy="38" r="14" fill="var(--candle)" filter="url(#rsc-glow)" opacity=".5"/>
+      <circle cx="120" cy="38" r="12" fill="var(--candle)"/>
+      <path d="M108 30 Q120 18 132 30 L128 34 Q120 26 112 34 Z" fill="#FFFBF4" stroke="var(--line)" stroke-width="1"/>
+    </g>
+    ${sparks('rsc', [[44, 24, 1.8, 'var(--candle)'], [196, 100, 1.6, 'var(--p2)'], [120, 108, 1.5, 'var(--p1)']])}`,
+    `.rsc-pot { animation: rsc-bubble 2.6s ease-in-out infinite; }
+     .rsc-pan { animation: rsc-sizzle 2.2s ease-in-out .4s infinite; }
+     @keyframes rsc-bubble { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     @keyframes rsc-sizzle { 0%,100% { transform: rotate(0deg) } 50% { transform: rotate(-3deg) } }
+     .rsc-chef { animation: rsc-bob 3s ease-in-out infinite; }
+     @keyframes rsc-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+     ${sparkAnim('rsc', 3)}`)
 };
 
 export const artFor = id => ART[id] || null;

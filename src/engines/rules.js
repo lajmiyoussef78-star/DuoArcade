@@ -90,6 +90,17 @@ export const RULES = {
     tip: 'Talk to each other \u2014 hold pads, gates, and elevators need coordination.'
   },
 
+  readysetcook: {
+    goal: 'Serve as many customers as you can before the kitchen closes.',
+    how: [
+      'Pick the same kitchen map as your partner, then cook together.',
+      'WASD to move \u00b7 E to interact \u00b7 Q to drop \u00b7 Space to throw \u00b7 H for help.',
+      'Grab ingredients, prep at stations, plate orders, and serve customers before they walk out.',
+      'When the shift ends, your score counts as a co-op evening together.'
+    ],
+    tip: 'Split jobs \u2014 one chops, one plates. Closing time stops new orders, so finish what\u2019s on the pass.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {
