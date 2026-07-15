@@ -147,22 +147,31 @@ async function supabaseSync() {
 
     /* Presence runs on two layers so partners light up even when one layer
        fails: (1) Supabase Realtime presence (instant, websocket), and
-       (2) a DB heartbeat — presence_beat() every 10s + a poll of
-       duo_presence, where "online" means last_seen is under 35s old. */
+       (2) a DB heartbeat — presence_beat() every 8s + a poll of
+       duo_presence, where "online" means last_seen is under 25s old.
+       The websocket layer is only trusted while it's demonstrably alive
+       (an event or successful track in the last 45s) — a dead socket
+       must not freeze the partner as "online" forever. On page close a
+       keepalive presence_leave() marks us offline instantly. */
     presence(code, role) {
-      const FRESH_MS = 35000;
+      const FRESH_MS = 25000;
+      const BEAT_MS = 8000;
+      const RT_TRUST_MS = 45000;
       let pcb = () => {};
       let state = { focused: true };
       let inflight = Promise.resolve();
       let rtStates = null;
+      let rtSeenAt = 0;
       let dbRows = { A: null, B: null };
       let closed = false;
       let lastBeat = 0;
       let clockSkew = 0; // server time minus local time
+      let authToken = null;
 
       const merged = () => {
+        const rtAlive = Date.now() - rtSeenAt < RT_TRUST_MS;
         const norm = r => {
-          const rt = rtStates?.[r];
+          const rt = rtAlive ? rtStates?.[r] : null;
           const db = dbRows[r];
           const fresh = !!db && (Date.now() + clockSkew - new Date(db.last_seen).getTime() < FRESH_MS);
           const online = !!rt?.online || fresh;
@@ -194,6 +203,7 @@ async function supabaseSync() {
           };
         };
         rtStates = { A: norm(st.A), B: norm(st.B) };
+        rtSeenAt = Date.now();
         emit();
       };
       const scheduleTrack = () => {
@@ -214,6 +224,8 @@ async function supabaseSync() {
         if (closed) return;
         lastBeat = Date.now();
         try {
+          const { data: { session } } = await sb.auth.getSession();
+          authToken = session?.access_token || null;
           await sb.rpc('presence_beat', {
             p_duo_code: code,
             p_place: state.place ?? null,
@@ -233,9 +245,32 @@ async function supabaseSync() {
         } catch { /* offline / transient — next tick retries */ }
       };
       beat();
-      const pollTimer = setInterval(beat, 10000);
+      const pollTimer = setInterval(beat, BEAT_MS);
       // partner's row can expire between polls — re-emit so they dim on time
       const staleTimer = setInterval(emit, 5000);
+
+      /* instant goodbye: when the page is being closed/left, mark our row
+         offline server-side. keepalive lets the request finish during
+         unload; supabase-js can't be awaited here, so use raw fetch. */
+      const leave = () => {
+        if (!authToken) return;
+        try {
+          fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/presence_leave', {
+            method: 'POST',
+            keepalive: true,
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: CONFIG.SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + authToken
+            },
+            body: JSON.stringify({ p_duo_code: code })
+          }).catch(() => {});
+        } catch { /* unload in progress — freshness timeout covers us */ }
+      };
+      window.addEventListener('pagehide', leave);
+      // coming back from the app switcher / bfcache: announce ourselves again
+      const comeback = () => { if (!closed) { beat(); scheduleTrack(); } };
+      window.addEventListener('pageshow', comeback);
 
       return {
         setFocused: f => { state = { ...state, focused: f }; scheduleTrack(); },
@@ -249,6 +284,9 @@ async function supabaseSync() {
           closed = true;
           clearInterval(pollTimer);
           clearInterval(staleTimer);
+          window.removeEventListener('pagehide', leave);
+          window.removeEventListener('pageshow', comeback);
+          leave();
           sb.removeChannel(ch);
         }
       };

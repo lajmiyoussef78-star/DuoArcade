@@ -19,6 +19,7 @@ create table if not exists public.duo_presence (
 
 alter table public.duo_presence enable row level security;
 
+drop policy if exists "presence: duo members read" on public.duo_presence;
 create policy "presence: duo members read"
   on public.duo_presence for select
   to anon, authenticated
@@ -60,3 +61,27 @@ end;
 $$;
 
 grant execute on function public.presence_beat(text, text, double precision, double precision) to authenticated;
+
+-- Graceful goodbye: called with fetch keepalive on page close so the
+-- partner dims instantly instead of waiting for the freshness timeout.
+create or replace function public.presence_leave(p_duo_code text)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  d record;
+  v_role text;
+begin
+  select * into d from duos where code = p_duo_code;
+  if not found then return; end if;
+  if v_uid = d.member_a then v_role := 'A';
+  elsif v_uid is not null and v_uid = d.member_b then v_role := 'B';
+  else return; end if;
+
+  update duo_presence set last_seen = now() - interval '1 hour'
+  where duo_code = p_duo_code and role = v_role;
+end;
+$$;
+
+grant execute on function public.presence_leave(text) to authenticated;
