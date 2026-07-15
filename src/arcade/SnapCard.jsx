@@ -1,25 +1,34 @@
-// src/arcade/SnapCard.jsx — "Today's snap" v3: the diptych.
-// One large frame divided in two — your half and your partner's half —
-// with a heart medallion at the seam. Photos fill their halves; empty
-// halves invite. Your own empty half is itself the button to the camera.
+// src/arcade/SnapCard.jsx — Duo Snap home card: countdown, waiting, reveal, quick pause.
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { loadSnap, snapChannel, todayStr, myRoleInDuo, duoNames, downloadTodayDiptych } from '../lib/snaps.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  PAUSE_PRESETS, downloadTodayDiptych, duoNames, formatRemaining,
+  getDuoSnapState, maybeNotifyDuoSnap, myRoleInDuo, partnerPhoto,
+  pauseDuoSnap, pauseUntilIso, photoFor, resumeDuoSnap, snapChannel
+} from '../lib/snaps.js';
 import '../styles/snaps.css';
 
 export default function SnapCard({ code }) {
-  const [snap, setSnap] = useState(null);
+  const [state, setState] = useState(null);
   const [role, setRole] = useState(null);
   const [names, setNames] = useState({ A: 'A', B: 'B' });
   const [dlStatus, setDlStatus] = useState('');
+  const [tick, setTick] = useState(Date.now());
+  const [err, setErr] = useState('');
   const chRef = useRef(null);
-  const day = todayStr();
+  const notifiedRef = useRef(null);
 
   const reload = useCallback(async () => {
     try {
-      setSnap(await loadSnap(code, day));
-    } catch { /* transient — keep showing last good row */ }
-  }, [code, day]);
+      const s = await getDuoSnapState(code);
+      setState(s);
+      setErr('');
+      maybeNotifyDuoSnap(s?.config, s?.active, notifiedRef);
+    } catch (e) {
+      setErr(e.message || 'Duo Snap unavailable — run schema-v18 in Supabase.');
+    }
+  }, [code]);
 
   useEffect(() => {
     let alive = true;
@@ -28,12 +37,11 @@ export default function SnapCard({ code }) {
       if (!alive) return;
       setRole(r);
       setNames(await duoNames(code));
-      reload();
-
+      await reload();
       const ch = await snapChannel(code);
       if (!alive) { ch.close(); return; }
       chRef.current = ch;
-      ch.on(m => { if (m.k === 'snap') reload(); });
+      ch.on(m => { if (m.k === 'snap' || m.k === 'pause') reload(); });
     })();
     return () => {
       alive = false;
@@ -42,14 +50,18 @@ export default function SnapCard({ code }) {
     };
   }, [code, reload]);
 
-  /* Poll while waiting for partner — broadcast/realtime can be missed */
   useEffect(() => {
-    const myPhotoNow = snap && role ? (role === 'A' ? snap.photo_a : snap.photo_b) : null;
-    const theirPhotoNow = snap && role ? (role === 'A' ? snap.photo_b : snap.photo_a) : null;
-    if (!myPhotoNow || theirPhotoNow) return;
-    const t = setInterval(reload, 4000);
+    const t = setInterval(() => setTick(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [snap, role, reload]);
+  }, []);
+
+  useEffect(() => {
+    const my = state && role ? photoFor(role, state.active) : null;
+    const theirs = state && role ? partnerPhoto(role, state.active) : null;
+    if (!my || theirs) return;
+    const id = setInterval(reload, 4000);
+    return () => clearInterval(id);
+  }, [state, role, reload]);
 
   useEffect(() => {
     const onVis = () => { if (!document.hidden) reload(); };
@@ -57,22 +69,57 @@ export default function SnapCard({ code }) {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [reload]);
 
-  const myPhoto = snap && role ? (role === 'A' ? snap.photo_a : snap.photo_b) : null;
-  const theirPhoto = snap && role ? (role === 'A' ? snap.photo_b : snap.photo_a) : null;
+  const config = state?.config || {};
+  const round = state?.active || null;
+  const last = state?.last_completed || null;
+  const paused = !!state?.paused;
+  const myPhoto = photoFor(role, round);
+  const theirPhoto = partnerPhoto(role, round);
   const both = !!(myPhoto && theirPhoto);
+  const showReveal = both ? round : (last?.photo_a && last?.photo_b ? last : null);
   const myName = role === 'A' ? names.A : names.B;
   const otherName = role === 'A' ? names.B : names.A;
 
+  const countdownTarget = useMemo(() => {
+    if (paused && config.paused_until) return new Date(config.paused_until).getTime();
+    if (round?.expires_at && !myPhoto) return new Date(round.expires_at).getTime();
+    if (config.next_fire_at) return new Date(config.next_fire_at).getTime();
+    return null;
+  }, [paused, config.paused_until, config.next_fire_at, round, myPhoto]);
+
+  const remain = countdownTarget != null ? formatRemaining(countdownTarget - tick) : '—';
+
+  async function quickPause(preset) {
+    try {
+      await pauseDuoSnap(code, pauseUntilIso(preset), null);
+      chRef.current?.send({ k: 'pause' });
+      await reload();
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
+  async function doResume() {
+    try {
+      await resumeDuoSnap(code);
+      chRef.current?.send({ k: 'pause' });
+      await reload();
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
   const onDownload = async () => {
-    if (!both || !snap) return;
+    if (!showReveal) return;
     setDlStatus('Preparing your diptych…');
     try {
       await downloadTodayDiptych({
-        photoA: snap.photo_a,
-        photoB: snap.photo_b,
+        photoA: showReveal.photo_a,
+        photoB: showReveal.photo_b,
         nameA: names.A,
         nameB: names.B,
-        day
+        day: new Date(showReveal.scheduled_at).toLocaleString(),
+        label: 'Duo Snap'
       });
       setDlStatus('Download started — check your files.');
     } catch {
@@ -82,52 +129,85 @@ export default function SnapCard({ code }) {
 
   return (
     <div className="snc">
-      <h3>{'✓'} Today&apos;s snap</h3>
-      <p className="snc-desc">One photo a day for each of you, no retakes. Together they form today&apos;s diptych.</p>
+      <div className="snc-head">
+        <h3>Duo Snap</h3>
+        <span className="snc-streak">{config.streak || 0} day streak</span>
+      </div>
+      <p className="snc-desc">
+        Spontaneous paired photos on a timer. Both of you snap — then you reveal together.
+      </p>
 
-      <div className="snc-frame">
-        {/* my half — when empty, the half itself is the camera button */}
-        {myPhoto ? (
+      {err && <p className="snc-err">{err}</p>}
+
+      {paused ? (
+        <div className="snc-busy">
+          <div>
+            <strong>Busy</strong>
+            {config.pause_reason ? ` — ${config.pause_reason}` : ''}
+            <div className="snc-busy-sub">Resumes in {remain}</div>
+          </div>
+          <button type="button" className="btn small warm" onClick={doResume}>Resume now</button>
+        </div>
+      ) : config.enabled === false ? (
+        <p className="snc-desc">Duo Snap is disabled. Open the page to turn it back on.</p>
+      ) : round && !myPhoto ? (
+        <div className="snc-frame">
+          <Link className="snc-half snc-invite" to={`/snap/${code}?take=1`}>
+            <div className="snc-cam">{'\u{1F4F7}'}</div>
+            <div className="snc-invite-line">take your Duo Snap</div>
+            <div className="snc-window">{remain} left</div>
+          </Link>
+          <div className="snc-half snc-waiting">
+            <div className="snc-wait-line">waiting for {otherName}…</div>
+          </div>
+          <div className="snc-badge">{'\u2661'}</div>
+        </div>
+      ) : round && myPhoto && !theirPhoto ? (
+        <div className="snc-frame">
           <div className="snc-half">
-            <img src={myPhoto} alt="you, today" />
+            <img src={myPhoto} alt="you" />
             <div className="snc-label"><span>{myName}</span><span className="snc-ok">{'\u2713'}</span></div>
           </div>
-        ) : (
-          <a className="snc-half snc-invite" href={`/snap/${code}`}>
-            <div className="snc-cam">{'\u{1F4F7}'}</div>
-            <div className="snc-invite-line">take today's photo</div>
-          </a>
-        )}
-
-        {/* partner half */}
-        <div className={'snc-half' + (theirPhoto ? '' : ' snc-waiting')}>
-          {theirPhoto ? (
-            <>
-              <img src={theirPhoto} alt="your partner, today" />
-              <div className="snc-label">
-                <span>{otherName}</span>
-                <span className="snc-ok">{'\u2713'}</span>
-              </div>
-            </>
-          ) : (
-            <div className="snc-wait-line">waiting for {otherName}…</div>
-          )}
+          <div className="snc-half snc-waiting">
+            <div className="snc-wait-line">Waiting for {otherName}…</div>
+          </div>
+          <div className="snc-badge">{'\u2661'}</div>
         </div>
-
-        <div className={'snc-badge' + (both ? ' full' : '')}>{both ? '\u2665' : '\u2661'}</div>
-      </div>
+      ) : showReveal ? (
+        <div className="snc-frame">
+          <div className="snc-half">
+            <img src={showReveal.photo_a} alt={names.A} />
+            <div className="snc-label"><span>{names.A}</span><span className="snc-ok">{'\u2713'}</span></div>
+          </div>
+          <div className="snc-half">
+            <img src={showReveal.photo_b} alt={names.B} />
+            <div className="snc-label"><span>{names.B}</span><span className="snc-ok">{'\u2713'}</span></div>
+          </div>
+          <div className="snc-badge full">{'\u2665'}</div>
+        </div>
+      ) : (
+        <div className="snc-countdown">
+          <div className="snc-count-n">{remain}</div>
+          <div className="snc-count-l">until next Duo Snap</div>
+        </div>
+      )}
 
       <div className="snc-foot">
-        {!myPhoto ? (
-          <a className="btn warm" href={`/snap/${code}`}>Take today&apos;s photo</a>
-        ) : both ? (
-          <button type="button" className="btn warm" onClick={onDownload}>
-            Download today&apos;s diptych
-          </button>
+        {round && !myPhoto && !paused ? (
+          <>
+            <Link className="btn warm" to={`/snap/${code}?take=1`}>Open camera</Link>
+            <div className="snc-quick">
+              <button type="button" className="btn small ghost" onClick={() => quickPause(PAUSE_PRESETS[1])}>Pause 1h</button>
+              <button type="button" className="btn small ghost" onClick={() => quickPause(PAUSE_PRESETS[2])}>Pause 2h</button>
+              <button type="button" className="btn small ghost" onClick={() => quickPause(PAUSE_PRESETS[5])}>Until tomorrow</button>
+            </div>
+          </>
+        ) : showReveal && both ? (
+          <button type="button" className="btn warm" onClick={onDownload}>Download diptych</button>
+        ) : showReveal && !round ? (
+          <Link className="btn warm" to={`/snap/${code}`}>Open Duo Snap</Link>
         ) : (
-          <button type="button" className="btn snc-waiting-btn" disabled>
-            waiting for {otherName} to upload
-          </button>
+          <Link className="btn warm" to={`/snap/${code}`}>Open Duo Snap</Link>
         )}
         {dlStatus && <p className="snc-dl-status">{dlStatus}</p>}
       </div>

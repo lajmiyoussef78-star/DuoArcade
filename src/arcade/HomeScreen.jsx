@@ -272,7 +272,7 @@ export default function HomeScreen({
         <div className="shelf-title" id="sect-week">Our week</div>
         <WeekCard code={code} />
 
-        <div className="shelf-title" id="sect-snap">Today's snap</div>
+        <div className="shelf-title" id="sect-snap">Duo Snap</div>
         <SnapCard code={code} />
 
         <div className="shelf-title" id="sect-watch">Movie night</div>

@@ -53,7 +53,8 @@
 .sn-capture-status { text-align: center; color: var(--dim); font-size: 14px; }
 .sn-capture-stage { display: flex; flex-direction: column; gap: 16px; width: 100%; }
 .sn-capture-video { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
-  border-radius: 16px; border: 1px solid var(--line); background: var(--room2); transform: scaleX(-1); }
+  border-radius: 16px; border: 1px solid var(--line); background: var(--room2); }
+.sn-capture-video.mirrored { transform: scaleX(-1); }
 .sn-capture-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sn-capture-spacer { width: 64px; flex: none; }
 .sn-capture-error { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
@@ -106,24 +107,92 @@
   font-size: 17px; color: var(--dim); box-shadow: 0 4px 16px rgba(0, 0, 0, .4); }
 .arcade-page .snc-badge.full { color: var(--candle); border-color: var(--candle); }
 
-.arcade-page .snc-foot { display: flex; justify-content: center; width: 100%; margin: 14px 0 0; padding: 0; }
+.arcade-page .snc-foot { display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  justify-content: center; width: 100%; margin: 14px 0 0; padding: 0; }
 .arcade-page .snc-foot .btn { display: block; text-decoration: none; padding: 15px 24px; width: 100%;
   text-align: center; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 .arcade-page .snc-foot .btn.snc-waiting-btn { background: var(--room2); border-color: var(--line);
   color: var(--dim); cursor: default; opacity: 1; }
 .arcade-page .snc-dl-status { margin: 10px 0 0; font-size: 12px; color: var(--dim); text-align: center; }
 
-/* ---------- shared buttons (safe duplicates) ---------- */
-.btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer;
-  font-family: 'Inter', sans-serif; display: inline-block; }
-.btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
-.btn.ghost { background: transparent; }
-.btn.small { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
-.btn:disabled { opacity: .45; cursor: default; }
+.arcade-page .snc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.arcade-page .snc-streak { font-size: 11px; color: var(--candle); font-weight: 700; letter-spacing: .04em; }
+.arcade-page .snc-err { font-size: 12px; color: var(--candle); margin: 0 0 10px; }
+.arcade-page .snc-busy { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
+  background: color-mix(in srgb, var(--candle) 10%, var(--room2)); margin-bottom: 12px; }
+.arcade-page .snc-busy-sub { font-size: 12px; color: var(--dim); margin-top: 2px; }
+.arcade-page .snc-countdown { text-align: center; padding: 28px 12px; border: 1px dashed var(--line);
+  border-radius: 14px; background: var(--room2); }
+.arcade-page .snc-count-n { font-family: 'Fraunces', serif; font-weight: 700; font-size: 28px; color: var(--candle); }
+.arcade-page .snc-count-l { font-size: 12.5px; color: var(--dim); margin-top: 4px; }
+.arcade-page .snc-window { font-size: 11px; color: var(--candle); margin-top: 4px; }
+.arcade-page .snc-quick { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.arcade-page .snc-quick .btn { width: auto; padding: 7px 10px; }
+
+/* ---------- Duo Snap hub page ---------- */
+.sn-hub .sn-hero-stats { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; margin: 0 0 16px; }
+.sn-stat { background: var(--room2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px; text-align: center; }
+.sn-stat-n { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: var(--text); }
+.sn-stat-count { font-size: 18px; color: var(--candle); }
+.sn-stat-l { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.sn-banner { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--room2); font-size: 13px; color: var(--dim); }
+.sn-banner.busy { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border-color: color-mix(in srgb, var(--candle) 40%, var(--line));
+  background: color-mix(in srgb, var(--candle) 10%, var(--room2)); color: var(--text); }
+.sn-banner-sub { font-size: 12px; color: var(--dim); margin-top: 4px; }
+.sn-cta-block { text-align: center; margin: 0 0 18px; padding: 18px 14px; border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--candle) 45%, var(--line));
+  background: color-mix(in srgb, var(--candle) 8%, var(--room)); }
+.sn-cta-copy { margin: 0 0 12px; font-size: 14px; }
+.sn-quick-pause { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.sn-first { text-align: center; color: var(--candle); font-size: 13px; margin: 10px 0; }
+.sn-reacts { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+.sn-react { border: 1px solid var(--line); background: var(--room2); border-radius: 999px; padding: 6px 10px;
+  cursor: pointer; font-size: 16px; }
+.sn-comments { font-size: 12.5px; color: var(--dim); text-align: center; margin: 6px 0; }
+.sn-comment-row { display: flex; gap: 8px; margin: 8px 0 12px; }
+.sn-comment-row input { flex: 1; min-width: 0; background: var(--room2); border: 1px solid var(--line);
+  border-radius: 10px; color: var(--text); padding: 8px 10px; font: inherit; }
+.sn-actions-row { display: flex; justify-content: center; margin: 8px 0 14px; }
+.sn-panel { border: 1px solid var(--line); background: var(--room2); border-radius: 14px; padding: 14px;
+  margin: 0 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.sn-panel h4 { margin: 0; font-family: 'Fraunces', serif; }
+.sn-panel-note { margin: 0; font-size: 12px; color: var(--dim); }
+.sn-panel-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.sn-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.sn-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.sn-label { font-size: 12px; color: var(--dim); font-weight: 600; }
+.sn-panel label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); }
+.sn-panel input, .sn-panel select { background: var(--room); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 8px 10px; font: inherit; }
+.sn-caption-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--dim); }
+.sn-caption-field input { background: var(--room2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); padding: 10px 12px; font: inherit; }
+.sn-history-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; }
+.sn-month { background: var(--room2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
+  padding: 4px 8px; font: inherit; }
+.sn-history-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.sn-hist-row { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--room2); }
+.sn-hist-row.missed { opacity: .75; }
+.sn-hist-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin-bottom: 8px; }
+.sn-hist-pair { display: flex; gap: 4px; border-radius: 10px; overflow: hidden; }
+.sn-hist-pair img { width: 50%; aspect-ratio: 1; object-fit: cover; }
+.sn-hist-missed { font-size: 12.5px; color: var(--dim); font-style: italic; padding: 8px 0; }
+.sn-hist-actions { display: flex; gap: 8px; margin-top: 8px; }
+.sn-pause-log { list-style: none; padding: 0; margin: 0 0 16px; font-size: 12.5px; color: var(--dim); }
+.sn-pause-log li { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.wk-chip { border: 1px solid var(--line); background: var(--room); color: var(--dim); border-radius: 999px;
+  padding: 7px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.wk-chip.on { border-color: var(--candle); color: var(--text); background: rgba(255, 198, 110, .12); }
+.wk-chip.sm { padding: 5px 9px; font-size: 11px; }
+.wk-danger { color: #ff8fa3 !important; }
 
 @media (max-width: 480px) {
   .arcade-page .snc { padding: 16px 18px; }
   .sn-heart { padding-top: 0; }
   .sn-duet { gap: 12px; }
+  .sn-hub .sn-hero-stats { grid-template-columns: 1fr 1fr; }
+  .sn-stat.wide { grid-column: 1 / -1; }
 }
