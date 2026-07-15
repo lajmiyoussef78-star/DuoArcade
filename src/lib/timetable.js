@@ -1,6 +1,7 @@
 // src/lib/timetable.js — "Our Week" data layer.
 
 import { CONFIG } from './config.js';
+import { defaultTimezone } from './timetableTimezone.js';
 
 let clientPromise = null;
 
@@ -36,7 +37,8 @@ export const DEFAULT_SETTINGS = {
   endHour: 24,
   weekend: true,
   weekStart: 1,
-  timeFormat: '24' // '24' | '12'
+  timeFormat: '24', // '24' | '12'
+  timezone: 'UTC' // replaced with browser default in mySettingsFrom
 };
 
 export async function loadTimetable(code) {
@@ -53,7 +55,12 @@ export async function loadTimetable(code) {
 
 export function mySettingsFrom(settingsAll, role) {
   const legacy = settingsAll && typeof settingsAll.startHour === 'number' ? settingsAll : {};
-  return { ...DEFAULT_SETTINGS, ...legacy, ...((settingsAll || {})[role] || {}) };
+  return {
+    ...DEFAULT_SETTINGS,
+    timezone: defaultTimezone(),
+    ...legacy,
+    ...((settingsAll || {})[role] || {})
+  };
 }
 
 export async function saveTimetable(code, { events = null, settings = null } = {}) {

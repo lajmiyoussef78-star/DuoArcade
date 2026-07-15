@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { loadTimetable, weekChannel, fmtTime, myRoleInDuo, mySettingsFrom } from '../lib/timetable.js';
+import { loadTimetable, weekChannel, fmtTime, myRoleInDuo, mySettingsFrom, duoNames } from '../lib/timetable.js';
+import { defaultTimezone, eventsToLocal, nowInTimezone } from '../lib/timetableTimezone.js';
 import '../styles/timetable.css';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -11,6 +12,9 @@ const DAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export default function WeekCard({ code }) {
   const [events, setEvents] = useState([]);
   const [timeFormat, setTimeFormat] = useState('24');
+  const [timezone, setTimezone] = useState(defaultTimezone);
+  const [names, setNames] = useState({ A: 'A', B: 'B' });
+  const [selectedDay, setSelectedDay] = useState(null);
   const chRef = useRef(null);
 
   const reload = useCallback(async () => {
@@ -18,7 +22,12 @@ export default function WeekCard({ code }) {
       const t = await loadTimetable(code);
       setEvents(t.events);
       const role = await myRoleInDuo(code);
-      if (role) setTimeFormat(mySettingsFrom(t.settingsAll, role).timeFormat === '12' ? '12' : '24');
+      setNames(await duoNames(code));
+      if (role) {
+        const s = mySettingsFrom(t.settingsAll, role);
+        setTimeFormat(s.timeFormat === '12' ? '12' : '24');
+        setTimezone(s.timezone || defaultTimezone());
+      }
     } catch { /* none yet */ }
   }, [code]);
 
@@ -37,20 +46,33 @@ export default function WeekCard({ code }) {
     };
   }, [code, reload]);
 
-  const now = new Date();
-  const today = now.getDay();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const now = Date.now();
+  const nowLocal = nowInTimezone(timezone, now);
+  const today = nowLocal.day;
+  const activeDay = selectedDay ?? today;
+
+  const displayEvents = useMemo(
+    () => eventsToLocal(events, timezone, now),
+    [events, timezone, now]
+  );
 
   const daysWithEvents = useMemo(() => {
     const set = new Set();
-    for (const ev of events) set.add(ev.day);
+    for (const ev of displayEvents) set.add(ev.day);
     return set;
-  }, [events]);
+  }, [displayEvents]);
 
-  const todays = events
-    .filter(ev => ev.day === today && ev.start + ev.dur > nowMins)
-    .sort((a, b) => a.start - b.start)
-    .slice(0, 4);
+  const dayEvents = useMemo(() =>
+    displayEvents
+      .filter(ev => ev.day === activeDay)
+      .sort((a, b) => a.start - b.start),
+    [displayEvents, activeDay]
+  );
+
+  function whoLabel(who) {
+    if (who === 'both') return 'both';
+    return names[who] || who;
+  }
 
   return (
     <div className="wkc">
@@ -60,39 +82,51 @@ export default function WeekCard({ code }) {
         Either of you can edit anything; changes appear live.
       </p>
 
-      <Link className="wkc-preview" to={`/week/${code}`} aria-label="Open our week">
+      <div className="wkc-preview">
         <div className="wkc-frame">
           <div className="wkc-strip">
             {DAY_SHORT.map((label, i) => (
-              <span
+              <button
+                type="button"
                 key={i}
-                className={'wkc-day' + (i === today ? ' today' : '') + (daysWithEvents.has(i) ? ' has' : '')}
+                className={'wkc-day'
+                  + (i === activeDay ? ' on' : '')
+                  + (i === today ? ' today' : '')
+                  + (daysWithEvents.has(i) ? ' has' : '')}
+                aria-label={DAY_NAMES[i]}
+                aria-pressed={i === activeDay}
+                onClick={() => setSelectedDay(i)}
               >
                 {label}
-              </span>
+              </button>
             ))}
           </div>
 
           <div className="wkc-frame-body">
-            {todays.length > 0 ? (
+            {dayEvents.length > 0 ? (
               <ul className="wkc-list">
-                {todays.map(ev => (
+                {dayEvents.map(ev => (
                   <li className="wkc-item" key={ev.id}>
                     <span className="wkc-bar" style={{ background: ev.color }} />
                     <span className="wkc-time">{fmtTime(ev.start, timeFormat)}</span>
                     <span className="wkc-name">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
+                    <span className={'wkc-owner ' + (ev.who === 'both' ? 'both' : ev.who)}>{whoLabel(ev.who)}</span>
                   </li>
                 ))}
               </ul>
             ) : (
               <div className="wkc-empty">
-                <span className="wkc-empty-title">{DAY_NAMES[today]}</span>
-                <span>nothing planned for the rest of today</span>
+                <span className="wkc-empty-title">{DAY_NAMES[activeDay]}</span>
+                <span>
+                  {activeDay === today
+                    ? 'nothing planned for today'
+                    : `nothing planned for ${DAY_NAMES[activeDay].toLowerCase()}`}
+                </span>
               </div>
             )}
           </div>
         </div>
-      </Link>
+      </div>
 
       <div className="wkc-foot">
         <Link className="btn warm" to={`/week/${code}`}>Open our week</Link>
