@@ -7,6 +7,7 @@ import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
+import FeatureRail from './FeatureRail.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
 
@@ -131,6 +132,7 @@ export default function HomeScreen({
 
   return (
     <section className="on">
+      <FeatureRail />
       {celebrate && (
         <Celebration title={celebrate.title} sub={celebrate.sub}
           icon={celebrate.icon || '🏆'} onClose={() => setCelebrate(null)} />
@@ -181,8 +183,10 @@ export default function HomeScreen({
           </div>
         </div>
 
-        <TogetherHero duo={duo} code={code} totals={t} myRole={myRole} presence={presence}
-          geoStatus={geoStatus} onSetAnniversary={onSetAnniversary} />
+        <div id="sect-together" style={{ width: '100%' }}>
+          <TogetherHero duo={duo} code={code} totals={t} myRole={myRole} presence={presence}
+            geoStatus={geoStatus} onSetAnniversary={onSetAnniversary} />
+        </div>
 
         <div className="milestones">
           {milestones.map((m, i) => (
@@ -198,7 +202,7 @@ export default function HomeScreen({
           ))}
         </div>
 
-        <Link className="arena-entry" to="/arena">
+        <Link className="arena-entry" id="arena" to="/arena">
           <div className="arena-entry-pairs" aria-hidden="true">
             <span className="pair one"><i>{(duo.nameA || '?')[0]}</i><i>{(duo.nameB || '?')[0]}</i></span>
             <b>VS</b>
@@ -212,7 +216,7 @@ export default function HomeScreen({
           <strong className="arena-entry-arrow">→</strong>
         </Link>
 
-        <div className="tonight">
+        <div className="tonight" id="sect-tonight">
           <h3>{'🌕'} Tonight Engine</h3>
           <p>How long do you two have? One tap composes tonight from your own favorites.</p>
           <div className="time-row">
@@ -231,7 +235,7 @@ export default function HomeScreen({
           </div>
         </div>
 
-        <div className="shelf-title">Play</div>
+        <div className="shelf-title" id="sect-play">Play</div>
         <div className="shelf">
           {Object.values(ENGINES).map(eng => {
             const rec = (duo.records || {})[eng.meta.id] || { a: 0, b: 0, d: 0 };
@@ -258,16 +262,16 @@ export default function HomeScreen({
           })}
         </div>
 
-        <div className="shelf-title">Our wall</div>
+        <div className="shelf-title" id="sect-wall">Our wall</div>
         <WhiteboardCard code={code} />
 
-        <div className="shelf-title">Our list</div>
+        <div className="shelf-title" id="sect-list">Our list</div>
         <TodoShelf code={code} myRole={myRole} duo={duo} />
 
-        <div className="shelf-title">Today's snap</div>
+        <div className="shelf-title" id="sect-snap">Today's snap</div>
         <SnapCard code={code} />
 
-        <div className="shelf-title">Movie night</div>
+        <div className="shelf-title" id="sect-watch">Movie night</div>
         <div className="watch-card">
           <h3>{'🎬'} Watch together</h3>
           <p>Paste a YouTube link. Playback syncs live between your two screens. Rate it blind afterwards; agreement feeds your taste match.</p>
@@ -277,7 +281,7 @@ export default function HomeScreen({
         </div>
 
         {!hasPass && (
-          <div className="pass-card">
+          <div className="pass-card" id="sect-pass">
             <h3>{'✦'} Duo Pass</h3>
             <p>One Pass covers both of you: duo themes, keepsake cards, and everything we ship next. Founding duos keep it for life.</p>
             <div className="price-row">
@@ -305,7 +309,7 @@ export default function HomeScreen({
         )}
 
         {hasPass && (
-          <div className="pass-card">
+          <div className="pass-card" id="sect-pass">
             <h3>{'✦'} Your Duo Pass</h3>
             <p>Duo theme — changes the colors of your whole place, for both of you:</p>
             <div className="theme-row">
