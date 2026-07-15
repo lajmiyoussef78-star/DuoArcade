@@ -101,7 +101,7 @@ export default function TodoShelf({ code, myRole, duo }) {
 
   return (
     <div className="todo-card">
-      <h3>{'✓'} Our list</h3>
+      <h3>Our list</h3>
       <p className="todo-sub">
         Shared to-dos for both of you, sorted by urgency. Either person can edit anything.
       </p>

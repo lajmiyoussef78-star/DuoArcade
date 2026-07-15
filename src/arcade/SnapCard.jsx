@@ -130,11 +130,11 @@ export default function SnapCard({ code }) {
   return (
     <div className="snc">
       <div className="snc-head">
-        <h3>Duo Snap</h3>
+        <h3>Our timetable</h3>
         <span className="snc-streak">{config.streak || 0} day streak</span>
       </div>
       <p className="snc-desc">
-        Spontaneous paired photos on a timer. Both of you snap — then you reveal together.
+        Spontaneous paired photos on a timer. Both of you snap, then you reveal together.
       </p>
 
       {err && <p className="snc-err">{err}</p>}

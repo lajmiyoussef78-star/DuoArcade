@@ -110,7 +110,7 @@ export default function WeekCard({ code }) {
   return (
     <>
     <div className="wkc">
-      <h3>{'✓'} Our week</h3>
+      <h3>Our week</h3>
       <p className="wkc-desc">
         One timetable for the two of you — plans, calls, free evenings.
         Either of you can edit anything; changes appear live.

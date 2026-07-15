@@ -263,17 +263,21 @@ export default function HomeScreen({
           })}
         </div>
 
-        <div className="shelf-title" id="sect-wall">Our wall</div>
-        <WhiteboardCard code={code} />
+        <div id="sect-wall" className="shelf-anchor">
+          <WhiteboardCard code={code} />
+        </div>
 
-        <div className="shelf-title" id="sect-list">Our list</div>
-        <TodoShelf code={code} myRole={myRole} duo={duo} />
+        <div id="sect-list" className="shelf-anchor">
+          <TodoShelf code={code} myRole={myRole} duo={duo} />
+        </div>
 
-        <div className="shelf-title" id="sect-week">Our week</div>
-        <WeekCard code={code} />
+        <div id="sect-week" className="shelf-anchor">
+          <WeekCard code={code} />
+        </div>
 
-        <div className="shelf-title" id="sect-snap">Duo Snap</div>
-        <SnapCard code={code} />
+        <div id="sect-snap" className="shelf-anchor">
+          <SnapCard code={code} />
+        </div>
 
         <div className="shelf-title" id="sect-watch">Movie night</div>
         <div className="watch-card">
