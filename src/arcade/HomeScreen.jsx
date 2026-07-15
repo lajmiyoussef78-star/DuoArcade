@@ -7,6 +7,7 @@ import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
+import WeekCard from './WeekCard.jsx';
 import FeatureRail from './FeatureRail.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
@@ -267,6 +268,9 @@ export default function HomeScreen({
 
         <div className="shelf-title" id="sect-list">Our list</div>
         <TodoShelf code={code} myRole={myRole} duo={duo} />
+
+        <div className="shelf-title">Our week</div>
+        <WeekCard code={code} />
 
         <div className="shelf-title" id="sect-snap">Today's snap</div>
         <SnapCard code={code} />

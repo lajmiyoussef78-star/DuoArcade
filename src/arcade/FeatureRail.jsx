@@ -48,6 +48,13 @@ const I = {
       <path d="M8.5 12.2l2.4 2.4 4.8-5" />
     </svg>
   ),
+  week: (
+    <svg viewBox="0 0 24 24" {...S}>
+      <rect x="3" y="5" width="18" height="16" rx="3" />
+      <path d="M3 9h18M8 3v4M16 3v4" />
+      <path d="M7 13h3M7 16h5M14 13h3" />
+    </svg>
+  ),
   snap: (
     <svg viewBox="0 0 24 24" {...S}>
       <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.2-1.7h5.4L15.9 6h1.6A2.5 2.5 0 0 1 20 8.5v7A2.5 2.5 0 0 1 17.5 18h-11A2.5 2.5 0 0 1 4 15.5v-7Z" />
@@ -81,6 +88,8 @@ const ITEMS = [
     desc: 'A shared whiteboard you both draw on in real time.' },
   { id: 'sect-list', icon: 'list', label: 'Our list', accent: 'good',
     desc: 'A todo list you build together — movies to watch, places to go, anything.' },
+  { id: 'sect-week', icon: 'week', label: 'Our week', accent: 'p1',
+    desc: 'A shared weekly timetable — plans, calls, and free evenings, live for both of you.' },
   { id: 'sect-snap', icon: 'snap', label: "Today's snap", accent: 'candle',
     desc: 'One photo from each of you today, combined into a keepsake you can download.' },
   { id: 'sect-watch', icon: 'watch', label: 'Movie night', accent: 'candle',
