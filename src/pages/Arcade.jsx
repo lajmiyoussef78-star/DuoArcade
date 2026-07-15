@@ -672,6 +672,7 @@ export default function Arcade() {
             sessionBy: s?.by || null,
             sessionAgeSec: s?.startedAt ? Math.round((Date.now() - s.startedAt) / 1000) : null,
             seatCodes: Object.keys(loadSeats()),
+            presence: presenceState,
             mode
           }, null, 2)}
         </pre>

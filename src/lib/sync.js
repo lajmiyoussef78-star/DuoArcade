@@ -145,18 +145,42 @@ async function supabaseSync() {
       return normalize(data);
     },
 
+    /* Presence runs on two layers so partners light up even when one layer
+       fails: (1) Supabase Realtime presence (instant, websocket), and
+       (2) a DB heartbeat — presence_beat() every 10s + a poll of
+       duo_presence, where "online" means last_seen is under 35s old. */
     presence(code, role) {
+      const FRESH_MS = 35000;
       let pcb = () => {};
       let state = { focused: true };
       let inflight = Promise.resolve();
-      const ch = sb.channel('presence-' + code, { config: { presence: { key: role } } });
-      const scheduleTrack = () => {
-        inflight = inflight.then(async () => {
-          await ch.track({ ...state });
-          emit();
-        }).catch(() => {});
+      let rtStates = null;
+      let dbRows = { A: null, B: null };
+      let closed = false;
+      let lastBeat = 0;
+      let clockSkew = 0; // server time minus local time
+
+      const merged = () => {
+        const norm = r => {
+          const rt = rtStates?.[r];
+          const db = dbRows[r];
+          const fresh = !!db && (Date.now() + clockSkew - new Date(db.last_seen).getTime() < FRESH_MS);
+          const online = !!rt?.online || fresh;
+          return {
+            online,
+            focused: rt ? rt.focused : online,
+            place: rt?.place ?? db?.place ?? null,
+            lat: rt?.lat ?? (fresh && typeof db.lat === 'number' ? db.lat : null),
+            lng: rt?.lng ?? (fresh && typeof db.lng === 'number' ? db.lng : null)
+          };
+        };
+        return { A: norm('A'), B: norm('B') };
       };
-      const emit = () => {
+      const emit = () => pcb(merged());
+
+      /* layer 1: realtime presence */
+      const ch = sb.channel('presence-' + code, { config: { presence: { key: role } } });
+      const readRt = () => {
         const st = ch.presenceState();
         const norm = arr => {
           if (!arr || !arr.length) return { online: false, focused: false, place: null, lat: null, lng: null };
@@ -169,19 +193,64 @@ async function supabaseSync() {
             lng: typeof last.lng === 'number' ? last.lng : null
           };
         };
-        pcb({ A: norm(st.A), B: norm(st.B) });
+        rtStates = { A: norm(st.A), B: norm(st.B) };
+        emit();
       };
-      ch.on('presence', { event: 'sync' }, emit)
-        .on('presence', { event: 'join' }, emit)
-        .on('presence', { event: 'leave' }, emit)
+      const scheduleTrack = () => {
+        inflight = inflight.then(async () => {
+          await ch.track({ ...state });
+          readRt();
+        }).catch(() => {});
+      };
+      ch.on('presence', { event: 'sync' }, readRt)
+        .on('presence', { event: 'join' }, readRt)
+        .on('presence', { event: 'leave' }, readRt)
         .subscribe(async status => {
           if (status === 'SUBSCRIBED') scheduleTrack();
         });
+
+      /* layer 2: DB heartbeat + poll */
+      const beat = async () => {
+        if (closed) return;
+        lastBeat = Date.now();
+        try {
+          await sb.rpc('presence_beat', {
+            p_duo_code: code,
+            p_place: state.place ?? null,
+            p_lat: typeof state.lat === 'number' ? state.lat : null,
+            p_lng: typeof state.lng === 'number' ? state.lng : null
+          }); // error (e.g. schema not applied yet) is non-fatal
+          const { data } = await sb.from('duo_presence')
+            .select('role, place, lat, lng, last_seen').eq('duo_code', code);
+          if (closed || !data) return;
+          dbRows = { A: null, B: null };
+          for (const row of data) dbRows[row.role] = row;
+          // my own row was written server-side just now — use it to correct
+          // for device clocks that are off (otherwise a wrong clock makes a
+          // live partner look stale, or a stale one look live)
+          if (dbRows[role]) clockSkew = new Date(dbRows[role].last_seen).getTime() - Date.now();
+          emit();
+        } catch { /* offline / transient — next tick retries */ }
+      };
+      beat();
+      const pollTimer = setInterval(beat, 10000);
+      // partner's row can expire between polls — re-emit so they dim on time
+      const staleTimer = setInterval(emit, 5000);
+
       return {
         setFocused: f => { state = { ...state, focused: f }; scheduleTrack(); },
-        setGeo: geo => { state = { ...state, ...geo }; scheduleTrack(); },
+        setGeo: geo => {
+          state = { ...state, ...geo };
+          scheduleTrack();
+          if (Date.now() - lastBeat > 3000) beat();
+        },
         onChange: f => { pcb = f; },
-        close: () => sb.removeChannel(ch)
+        close: () => {
+          closed = true;
+          clearInterval(pollTimer);
+          clearInterval(staleTimer);
+          sb.removeChannel(ch);
+        }
       };
     },
 
