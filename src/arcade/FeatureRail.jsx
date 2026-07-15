@@ -69,23 +69,23 @@ const I = {
 };
 
 const ITEMS = [
-  { id: 'sect-together', icon: 'together', label: 'Together',
+  { id: 'sect-together', icon: 'together', label: 'Together', accent: 'p2',
     desc: 'How long you’ve been together, where you both are, and your anniversary countdown.' },
-  { id: 'sect-play', icon: 'play', label: 'Games',
+  { id: 'sect-play', icon: 'play', label: 'Games', accent: 'p1',
     desc: 'Pick a game and invite your partner — Connect 4, Tic-Tac-Toe, quizzes, and more.' },
-  { id: 'arena', icon: 'arena', label: '2v2 Arena', route: '/arena',
+  { id: 'arena', icon: 'arena', label: '2v2 Arena', route: '/arena', accent: 'candle',
     desc: 'Take on another duo in public matchmaking or a direct challenge.' },
-  { id: 'sect-tonight', icon: 'tonight', label: 'Tonight Engine',
+  { id: 'sect-tonight', icon: 'tonight', label: 'Tonight Engine', accent: 'p1',
     desc: 'Tell us how much time you have — we’ll suggest a game and a movie for the evening.' },
-  { id: 'sect-wall', icon: 'wall', label: 'Our wall',
+  { id: 'sect-wall', icon: 'wall', label: 'Our wall', accent: 'p2',
     desc: 'A shared whiteboard you both draw on in real time.' },
-  { id: 'sect-list', icon: 'list', label: 'Our list',
+  { id: 'sect-list', icon: 'list', label: 'Our list', accent: 'good',
     desc: 'A todo list you build together — movies to watch, places to go, anything.' },
-  { id: 'sect-snap', icon: 'snap', label: "Today's snap",
+  { id: 'sect-snap', icon: 'snap', label: "Today's snap", accent: 'candle',
     desc: 'One photo from each of you today, combined into a keepsake you can download.' },
-  { id: 'sect-watch', icon: 'watch', label: 'Movie night',
+  { id: 'sect-watch', icon: 'watch', label: 'Movie night', accent: 'candle',
     desc: 'Paste a YouTube link — playback syncs live on both screens.' },
-  { id: 'sect-pass', icon: 'pass', label: 'Duo Pass',
+  { id: 'sect-pass', icon: 'pass', label: 'Duo Pass', accent: 'candle',
     desc: 'Unlock duo themes, keepsake cards, and everything we ship next.' }
 ];
 
@@ -126,7 +126,7 @@ export default function FeatureRail() {
           onClick={() => go(it)}>
           {I[it.icon]}
           {hovered === it.id && (
-            <div className="frail-pop" role="tooltip">
+            <div className={'frail-pop accent-' + it.accent} role="tooltip">
               <div className="frail-pop-title">{it.label}</div>
               <div className="frail-pop-desc">{it.desc}</div>
             </div>
