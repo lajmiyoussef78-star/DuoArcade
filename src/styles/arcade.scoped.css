@@ -136,6 +136,7 @@
 }
 /* game view */
 .arcade-page .gv-screen{width:100%;max-width:520px;}
+.arcade-page .gv-screen.gv-kitchen{max-width:min(980px,calc(100vw - 28px));}
 .arcade-page .gv-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;width:100%;margin-bottom:14px;gap:10px;}
 .arcade-page .gv-back{justify-self:start;}
 .arcade-page .gv-title{font-size:18px;text-align:center;margin:0;justify-self:center;}

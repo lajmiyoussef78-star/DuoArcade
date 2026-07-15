@@ -178,8 +178,10 @@ export default function GameScreen({
   const showRulesNote = rules && !s.winner && !showRules
     && (s.phase === 'invite' || s.phase === 'lobby' || counting);
 
+  const kitchenGame = s.game === 'readysetcook';
+
   return (
-    <section className="on gv-screen">
+    <section className={'on gv-screen' + (kitchenGame ? ' gv-kitchen' : '')}>
       <header className="gv-top">
         <button className="btn small ghost gv-back" onClick={onBack}>{'←'} Back</button>
         <h2 className="gv-title h3">{eng.meta.name}</h2>

@@ -1,21 +1,19 @@
-import { ENVIRONMENTS, MAPS } from './game/maps/catalog';
+import { ENVIRONMENTS, MAP_LABELS } from './mapMeta.js';
 
-export function MapLobby({ onPlay, compact = false }) {
+export function MapLobby({ onPlay }) {
   return (
-    <div className={'map-lobby' + (compact ? ' compact' : '')}>
-      {!compact && (
-        <header className="map-lobby-head">
-          <p className="rsc-kitchen-kicker">Pick a kitchen</p>
-          <h2>Environments</h2>
-          <p className="map-lobby-lead">
-            Four worlds · five maps each · start with Map 1, more unlock later.
-          </p>
-        </header>
-      )}
+    <div className="map-lobby">
+      <header className="map-lobby-head">
+        <p className="rsc-kitchen-kicker">Pick a kitchen</p>
+        <h2>Environments</h2>
+        <p className="map-lobby-lead">
+          Four worlds · five maps each · start with Map 1, more unlock later.
+        </p>
+      </header>
 
       <div className="map-lobby-grid">
         {ENVIRONMENTS.map(env => (
-          <section
+          <div
             key={env.id}
             className={'map-env map-env-' + env.id}
             style={{ '--env-accent': env.accent }}
@@ -40,7 +38,7 @@ export function MapLobby({ onPlay, compact = false }) {
                     </div>
                   );
                 }
-                const map = MAPS[slotId];
+                const map = MAP_LABELS[slotId];
                 return (
                   <button
                     key={slotId}
@@ -55,7 +53,7 @@ export function MapLobby({ onPlay, compact = false }) {
                 );
               })}
             </div>
-          </section>
+          </div>
         ))}
       </div>
     </div>

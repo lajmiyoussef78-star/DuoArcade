@@ -78,7 +78,7 @@ export default function KitchenPlay({ names, myRole, rt, onComplete }) {
       </div>
 
       {!mapId ? (
-        <MapLobby compact onPlay={setMapId} />
+        <MapLobby onPlay={setMapId} />
       ) : (
         <div ref={hostRef} className="rsc-phaser-host" />
       )}
