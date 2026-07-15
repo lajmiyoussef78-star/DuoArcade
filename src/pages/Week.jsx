@@ -5,7 +5,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   myRoleInDuo, duoNames, loadTimetable, saveTimetable, weekChannel,
   DEFAULT_SETTINGS, mySettingsFrom, fmtTime, fmtHour, fmtHourOption, parseTime, layoutDay,
-  weekColHeight, eventBlockHeight, eventSizeClass
+  weekColHeight, eventBlockHeight, eventSizeClass, filterEventsForTableView
 } from '../lib/timetable.js';
 import {
   defaultTimezone, timezoneOptions, timezoneLabel, shortTimezoneLabel,
@@ -104,7 +104,7 @@ export default function Week() {
     }
     setSettings(next);
     const all = { ...settingsAllRef.current, [role]: next };
-    for (const k of ['startHour', 'endHour', 'weekend', 'weekStart', 'timeFormat', 'timezone']) delete all[k];
+    for (const k of ['startHour', 'endHour', 'weekend', 'weekStart', 'timeFormat', 'timezone', 'tableView']) delete all[k];
     setSettingsAll(all);
     setDirty(true);
     chRef.current?.send({ k: 'settings', role, settings: next });
@@ -116,7 +116,7 @@ export default function Week() {
     setStatus('');
     try {
       const all = { ...settingsAllRef.current, [role]: settingsRef.current };
-      for (const k of ['startHour', 'endHour', 'weekend', 'weekStart', 'timeFormat', 'timezone']) delete all[k];
+      for (const k of ['startHour', 'endHour', 'weekend', 'weekStart', 'timeFormat', 'timezone', 'tableView']) delete all[k];
       await saveTimetable(code, { events: eventsRef.current, settings: all });
       setDirty(false);
       setStatus('Saved');
@@ -127,13 +127,34 @@ export default function Week() {
     }
   }, [code, dirty, role, saving]);
 
+  const partnerRole = role === 'A' ? 'B' : 'A';
+  const tableView = settings.tableView === 'mine' || settings.tableView === 'theirs'
+    ? settings.tableView
+    : 'combined';
+  const gridSettings = useMemo(() => {
+    if (tableView === 'theirs') return mySettingsFrom(settingsAll, partnerRole);
+    return settings;
+  }, [tableView, settings, settingsAll, partnerRole]);
+
+  const displayTf = gridSettings.timeFormat === '12' ? '12' : '24';
   const tf = settings.timeFormat === '12' ? '12' : '24';
-  const viewerTz = settings.timezone || defaultTimezone();
+  const viewerTz = gridSettings.timezone || defaultTimezone();
+
+  const filteredEvents = useMemo(
+    () => filterEventsForTableView(events, tableView, role),
+    [events, tableView, role]
+  );
 
   const displayEvents = useMemo(
-    () => eventsToLocal(events, viewerTz, nowTick),
-    [events, viewerTz, nowTick]
+    () => eventsToLocal(filteredEvents, viewerTz, nowTick),
+    [filteredEvents, viewerTz, nowTick]
   );
+
+  const tableViewLabel = tableView === 'mine'
+    ? `${names[role]}'s table`
+    : tableView === 'theirs'
+      ? `${names[partnerRole]}'s table`
+      : 'Combined table';
 
   useEffect(() => {
     const id = location.state?.editEventId;
@@ -146,31 +167,38 @@ export default function Week() {
   }, [location.state, displayEvents, role, navigate, location.pathname]);
 
   const dayOrder = useMemo(() => {
-    const start = settings.weekStart === 0 ? 0 : 1;
+    const start = gridSettings.weekStart === 0 ? 0 : 1;
     const all = [...Array(7)].map((_, i) => (start + i) % 7);
-    return settings.weekend ? all : all.filter(d => d !== 0 && d !== 6);
-  }, [settings.weekStart, settings.weekend]);
+    return gridSettings.weekend ? all : all.filter(d => d !== 0 && d !== 6);
+  }, [gridSettings.weekStart, gridSettings.weekend]);
 
-  const minM = settings.startHour * 60;
-  const maxM = settings.endHour * 60;
+  const minM = gridSettings.startHour * 60;
+  const maxM = gridSettings.endHour * 60;
   const span = maxM - minM;
   const colHeight = weekColHeight(span);
-  const hourPx = colHeight / Math.max(1, settings.endHour - settings.startHour);
+  const hourPx = colHeight / Math.max(1, gridSettings.endHour - gridSettings.startHour);
   const hours = [];
-  for (let h = settings.startHour; h < settings.endHour; h++) hours.push(h);
+  for (let h = gridSettings.startHour; h < gridSettings.endHour; h++) hours.push(h);
 
   const nowLocal = nowInTimezone(viewerTz, nowTick);
   const today = nowLocal.day;
   const nowMins = nowLocal.start;
   const nowVisible = nowMins >= minM && nowMins <= maxM;
 
+  function whoForTableView(view, r) {
+    if (view === 'combined') return 'both';
+    if (view === 'theirs') return r === 'A' ? 'B' : 'A';
+    return r;
+  }
+
   function newBlockDraft(day, startMins) {
     let start = startMins;
     start = Math.max(minM, Math.min(maxM - 30, start));
+    const owner = whoForTableView(tableView, role);
     return {
       id: null, day, start, dur: 60, title: '',
-      emoji: '', color: COLORS[role === 'B' ? 1 : 0],
-      who: role, note: ''
+      emoji: '', color: COLORS[owner === 'B' ? 1 : 0],
+      who: owner, note: ''
     };
   }
 
@@ -215,7 +243,8 @@ export default function Week() {
   function saveDraft(draft) {
     if (!draft.title.trim()) { setStatus('Give it a name'); return; }
     setStatus('');
-    const stored = localEventToStored(draft, viewerTz);
+    const withWho = draft.id ? draft : { ...draft, who: whoForTableView(tableView, role) };
+    const stored = localEventToStored(withWho, viewerTz);
     let next;
     if (stored.id) {
       next = eventsRef.current.map(ev => ev.id === stored.id ? stored : ev);
@@ -251,31 +280,71 @@ export default function Week() {
       <div className="wk-head">
         <div className="wk-top">
           <button className="btn small ghost" onClick={backToDuo}>&larr; Back</button>
-          <button className="btn small ghost" onClick={() => setShowSettings(v => !v)} title="Settings">
-            {'\u2699\uFE0F'}
-          </button>
         </div>
         <div className="wk-title">Our week</div>
-        <p className="wk-tz-caption">Times shown in {shortTimezoneLabel(viewerTz)}</p>
-        <div className="wk-legend">
-          <span className="wk-leg"><i className="wk-dot A" /> {names.A}</span>
-          <span className="wk-leg"><i className="wk-dot B" /> {names.B}</span>
-          <span className="wk-leg"><i className="wk-dot both" /> both of you</span>
+        <p className="wk-tz-caption">
+          {tableViewLabel} · times in {shortTimezoneLabel(viewerTz)}
+          {tableView === 'theirs' ? ` (${names[partnerRole]}'s timezone)` : ''}
+        </p>
+        <div className="wk-view-tabs" role="tablist" aria-label="Table view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tableView === 'mine'}
+            className={'wk-view-tab p' + role + (tableView === 'mine' ? ' on' : '')}
+            onClick={() => pushSettings({ tableView: 'mine' })}
+          >
+            Your table
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tableView === 'theirs'}
+            className={'wk-view-tab p' + partnerRole + (tableView === 'theirs' ? ' on' : '')}
+            onClick={() => pushSettings({ tableView: 'theirs' })}
+          >
+            {names[partnerRole]}'s table
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tableView === 'combined'}
+            className={'wk-view-tab combined' + (tableView === 'combined' ? ' on' : '')}
+            onClick={() => pushSettings({ tableView: 'combined' })}
+          >
+            Combined
+          </button>
         </div>
-        <button type="button" className="btn warm small wk-add-btn" onClick={openQuickAdd}>
-          + Add something new
-        </button>
+        <div className="wk-actions">
+          <button
+            type="button"
+            className={'btn small ghost wk-settings-btn' + (showSettings ? ' on' : '')}
+            onClick={() => setShowSettings(v => !v)}
+            title="Settings"
+            aria-label="Settings"
+            aria-expanded={showSettings}
+          >
+            {'\u2699\uFE0F'}
+          </button>
+          <button type="button" className="btn warm small wk-add-btn" onClick={openQuickAdd}>
+            + Add something new
+          </button>
+        </div>
       </div>
 
-      {events.length === 0 && (
-        <p className="wk-empty-banner">Your week is empty — click <strong>+ Add something new</strong> or tap a time slot on the grid.</p>
+      {filteredEvents.length === 0 && (
+        <p className="wk-empty-banner">
+          {tableView === 'combined'
+            ? <>Your week is empty — click <strong>+ Add something new</strong> or tap a time slot on the grid.</>
+            : <>Nothing on {tableViewLabel.toLowerCase()} yet — switch to <strong>Combined</strong> or add a block.</>}
+        </p>
       )}
 
       {showSettings && (
         <div className="wk-settings">
           <div className="wk-settings-note">Your view, either of you can change these anytime. Your partner sees the same events in their timezone.</div>
           <label>Your timezone
-            <select value={viewerTz} onChange={e => pushSettings({ timezone: e.target.value })}>
+            <select value={settings.timezone || defaultTimezone()} onChange={e => pushSettings({ timezone: e.target.value })}>
               {timezoneOptions().map(tz => (
                 <option key={tz} value={tz}>
                   {tz === defaultTimezone() ? `${timezoneLabel(tz)} (your location)` : timezoneLabel(tz)}
@@ -330,7 +399,7 @@ export default function Week() {
         </div>
       )}
 
-      <div className="wk-grid" style={{ gridTemplateColumns: `${tf === '12' ? 52 : 44}px repeat(${visibleDays.length}, 1fr)` }}>
+      <div className="wk-grid" style={{ gridTemplateColumns: `${displayTf === '12' ? 52 : 44}px repeat(${visibleDays.length}, 1fr)` }}>
         <div className="wk-corner" />
         {visibleDays.map(d => (
           <div key={'h' + d} className={'wk-dayhead' + (d === today ? ' today' : '')}>
@@ -341,7 +410,7 @@ export default function Week() {
         <div className="wk-hours" style={{ height: colHeight + 'px' }}>
           {hours.map(h => (
             <div key={h} className="wk-hour" style={{ top: (((h * 60 - minM) / span) * colHeight) + 'px' }}>
-              {fmtHour(h, tf)}
+              {fmtHour(h, displayTf)}
             </div>
           ))}
         </div>
@@ -360,7 +429,7 @@ export default function Week() {
                 return (
                 <div key={ev.id}
                   className={'wk-ev' + eventSizeClass(ev.dur)}
-                  title={`${ev.title} · ${fmtTime(ev.start, tf)}`}
+                  title={`${ev.title} · ${fmtTime(ev.start, displayTf)}`}
                   style={{
                     top: topPx + 'px',
                     height: heightPx + 'px',
@@ -383,14 +452,14 @@ export default function Week() {
                       <span className="wk-ev-title">
                         {ev.emoji ? ev.emoji + ' ' : ''}{ev.title}
                       </span>
-                      <span className="wk-ev-time wk-ev-time-inline">{fmtTime(ev.start, tf)}</span>
+                      <span className="wk-ev-time wk-ev-time-inline">{fmtTime(ev.start, displayTf)}</span>
                     </>
                   ) : (
                     <>
                       <span className="wk-ev-title">
                         {ev.emoji ? ev.emoji + ' ' : ''}{ev.title}
                       </span>
-                      <span className="wk-ev-time">{fmtTime(ev.start, tf)}</span>
+                      <span className="wk-ev-time">{fmtTime(ev.start, displayTf)}</span>
                     </>
                   )}
                 </div>
@@ -423,7 +492,7 @@ export default function Week() {
       <WeekBlockDetail
         viewing={viewing}
         dayName={viewing ? DAY_FULL[viewing.day] : ''}
-        timeFormat={tf}
+        timeFormat={displayTf}
         fmtDur={fmtDur}
         whoLabel={whoLabel}
         onClose={() => setViewing(null)}
@@ -456,16 +525,6 @@ export default function Week() {
                 </select>
               </label>
             </div>
-            <label>Whose block?
-              <div className="wk-who">
-                <button type="button" className={'wk-chip' + (editing.who === 'A' ? ' on' : '')}
-                  onClick={() => setEditing({ ...editing, who: 'A' })}>{names.A}</button>
-                <button type="button" className={'wk-chip' + (editing.who === 'B' ? ' on' : '')}
-                  onClick={() => setEditing({ ...editing, who: 'B' })}>{names.B}</button>
-                <button type="button" className={'wk-chip' + (editing.who === 'both' ? ' on' : '')}
-                  onClick={() => setEditing({ ...editing, who: 'both' })}>both {'\u2665'}</button>
-              </div>
-            </label>
             <div className="wk-row2">
               <label>Color
                 <div className="wk-colors">

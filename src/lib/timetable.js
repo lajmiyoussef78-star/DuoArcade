@@ -38,7 +38,8 @@ export const DEFAULT_SETTINGS = {
   weekend: true,
   weekStart: 1,
   timeFormat: '24', // '24' | '12'
-  timezone: 'UTC' // replaced with browser default in mySettingsFrom
+  timezone: 'UTC', // replaced with browser default in mySettingsFrom
+  tableView: 'combined' // 'mine' | 'theirs' | 'combined'
 };
 
 export async function loadTimetable(code) {
@@ -157,6 +158,15 @@ export function eventBlockHeight(durMins, spanMins, colHeight) {
   if (durMins <= 60) return Math.max(42, proportional);
   if (durMins <= 90) return Math.max(54, proportional);
   return proportional;
+}
+
+export function filterEventsForTableView(events, tableView, role) {
+  if (!role || tableView === 'combined') return events || [];
+  const partner = role === 'A' ? 'B' : 'A';
+  if (tableView === 'mine') {
+    return (events || []).filter(ev => ev.who === role || ev.who === 'both');
+  }
+  return (events || []).filter(ev => ev.who === partner || ev.who === 'both');
 }
 
 export function eventSizeClass(durMins) {
