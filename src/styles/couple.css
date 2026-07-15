@@ -102,7 +102,8 @@
 
 .arcade-page .todo-card,
 .arcade-page .snc,
-.arcade-page .wbc{
+.arcade-page .wbc,
+.arcade-page .wkc{
   position:relative;overflow:hidden;
   border:1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
   background:linear-gradient(120deg,
@@ -111,7 +112,8 @@
     color-mix(in srgb, var(--p2) 16%, var(--room)));}
 .arcade-page .todo-card::before,
 .arcade-page .snc::before,
-.arcade-page .wbc::before{
+.arcade-page .wbc::before,
+.arcade-page .wkc::before{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
   background-image:
     radial-gradient(1.2px 1.2px at 6% 14%, color-mix(in srgb, var(--text) 55%, transparent) 40%, transparent 100%),
@@ -130,7 +132,8 @@
     radial-gradient(1px 1px at 96% 72%, color-mix(in srgb, var(--text) 36%, transparent) 40%, transparent 100%);}
 .arcade-page .todo-card::after,
 .arcade-page .snc::after,
-.arcade-page .wbc::after{
+.arcade-page .wbc::after,
+.arcade-page .wkc::after{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
   background:
     radial-gradient(ellipse 38% 55% at 0% 100%, color-mix(in srgb, var(--p1) 18%, transparent), transparent 70%),
@@ -138,7 +141,8 @@
     radial-gradient(ellipse 24% 35% at 100% 100%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 75%);}
 .arcade-page .todo-card > *,
 .arcade-page .snc > *,
-.arcade-page .wbc > *{position:relative;z-index:1;}
+.arcade-page .wbc > *,
+.arcade-page .wkc > *{position:relative;z-index:1;}
 
 /* ============================================================
    E — TOGETHER HERO: counter, heartbeat, timeline, anniversary ring
@@ -306,7 +310,8 @@
   .ch-stars .st{animation:cfx-twinkle 4s ease-in-out infinite;}
   .arcade-page .todo-card::before,
   .arcade-page .snc::before,
-  .arcade-page .wbc::before{animation:duo-surface-twinkle 4s ease-in-out infinite;}
+  .arcade-page .wbc::before,
+  .arcade-page .wkc::before{animation:duo-surface-twinkle 4s ease-in-out infinite;}
   .ch-orbit{animation:cfx-spin 7s linear infinite;}
   .ch-tl-item.done .hh{animation:cfx-heartbeat 2.4s ease-in-out infinite;}
 
