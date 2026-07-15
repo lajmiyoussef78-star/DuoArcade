@@ -1,7 +1,7 @@
 // src/pages/Week.jsx — route: /week/:code
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   myRoleInDuo, duoNames, loadTimetable, saveTimetable, weekChannel,
   DEFAULT_SETTINGS, mySettingsFrom, fmtTime, fmtHour, fmtHourOption, parseTime, layoutDay,
@@ -11,6 +11,7 @@ import {
   defaultTimezone, timezoneOptions, timezoneLabel, shortTimezoneLabel,
   eventsToLocal, localEventToStored, nowInTimezone
 } from '../lib/timetableTimezone.js';
+import WeekBlockDetail from '../arcade/WeekBlockDetail.jsx';
 import '../styles/timetable.css';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -27,6 +28,7 @@ const newId = () => Date.now().toString(36) + '-' + (seq++);
 export default function Week() {
   const { code } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const backToDuo = useCallback(() => {
     navigate(`/app?duo=${encodeURIComponent(code)}`, { replace: true });
   }, [code, navigate]);
@@ -132,6 +134,16 @@ export default function Week() {
     () => eventsToLocal(events, viewerTz, nowTick),
     [events, viewerTz, nowTick]
   );
+
+  useEffect(() => {
+    const id = location.state?.editEventId;
+    if (!id || role === undefined || role === null) return;
+    const ev = displayEvents.find(e => e.id === id);
+    if (!ev) return;
+    setViewing(null);
+    setEditing({ ...ev });
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, displayEvents, role, navigate, location.pathname]);
 
   const dayOrder = useMemo(() => {
     const start = settings.weekStart === 0 ? 0 : 1;
@@ -408,51 +420,16 @@ export default function Week() {
 
       {status && <div className="wk-status">{status}</div>}
 
-      {viewing && (
-        <div className="wk-overlay" onClick={e => { if (e.target === e.currentTarget) setViewing(null); }}>
-          <div className="wk-modal wk-detail">
-            <div className="wk-detail-head" style={{ borderLeftColor: viewing.color, background: viewing.color + '18' }}>
-              <span className={'wk-dot ' + (viewing.who === 'both' ? 'both' : viewing.who)} />
-              <div className="wk-detail-title">
-                {viewing.emoji && <span className="wk-detail-emoji">{viewing.emoji}</span>}
-                <h3>{viewing.title}</h3>
-              </div>
-            </div>
-            <dl className="wk-detail-meta">
-              <div className="wk-detail-row">
-                <dt>Day</dt>
-                <dd>{DAY_FULL[viewing.day]}</dd>
-              </div>
-              <div className="wk-detail-row">
-                <dt>Time</dt>
-                <dd>{fmtTime(viewing.start, tf)} – {fmtTime(viewing.start + viewing.dur, tf)}</dd>
-              </div>
-              <div className="wk-detail-row">
-                <dt>Lasts</dt>
-                <dd>{fmtDur(viewing.dur)}</dd>
-              </div>
-              <div className="wk-detail-row">
-                <dt>Whose block</dt>
-                <dd>{whoLabel(viewing.who)}</dd>
-              </div>
-            </dl>
-            {viewing.note && (
-              <div className="wk-detail-note">
-                <span className="wk-detail-note-label">Note</span>
-                <p>{viewing.note}</p>
-              </div>
-            )}
-            <div className="wk-modal-actions">
-              <button type="button" className="btn small ghost wk-danger"
-                onClick={() => deleteDraft(viewing)}>Delete</button>
-              <span style={{ flex: 1 }} />
-              <button type="button" className="btn small ghost" onClick={() => setViewing(null)}>Close</button>
-              <button type="button" className="btn small warm"
-                onClick={() => openDraft({ ...viewing })}>Edit</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WeekBlockDetail
+        viewing={viewing}
+        dayName={viewing ? DAY_FULL[viewing.day] : ''}
+        timeFormat={tf}
+        fmtDur={fmtDur}
+        whoLabel={whoLabel}
+        onClose={() => setViewing(null)}
+        onDelete={deleteDraft}
+        onEdit={ev => openDraft({ ...ev })}
+      />
 
       {editing && (
         <div className="wk-overlay" onClick={e => { if (e.target === e.currentTarget) setEditing(null); }}>

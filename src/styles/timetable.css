@@ -109,11 +109,30 @@
 .wk-save-bar .btn:disabled { opacity: .55; cursor: default; }
 .wk-save-hint { font-size: 12px; color: var(--dim); }
 
-.wk-overlay { position: fixed; inset: 0; background: rgba(15, 11, 20, .78); z-index: 60;
-  display: flex; align-items: center; justify-content: center; padding: 18px; }
+.wk-overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh;
+  background: rgba(15, 11, 20, .78); z-index: 9999;
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+  box-sizing: border-box; }
+.wkc-overlay { z-index: 9999; }
+body.wk-modal-open { overflow: hidden; }
+#modal-root { position: fixed; inset: 0; z-index: 9998; pointer-events: none; }
+#modal-root > * { pointer-events: auto; }
+.wk-overlay .btn { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; padding: 12px 20px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer; }
+.wk-overlay .btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
+.wk-overlay .btn.ghost { background: transparent; }
+.wk-overlay .btn.wk-danger { color: #FF8A8A; border-color: rgba(255, 138, 138, .4); background: transparent; }
+.wk-overlay .btn.small { padding: 8px 14px; font-size: 13px; border-radius: 10px; }
+.wk-overlay .btn:active { transform: scale(.97); }
+.wk-overlay .btn:disabled { opacity: .4; cursor: default; }
 .wk-modal { background: var(--room); border: 1px solid var(--line); border-radius: 16px;
-  padding: 20px 22px; width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 12px; }
+  padding: 20px 22px; width: 100%; max-width: 440px; max-height: min(88vh, 88dvh); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+  animation: wk-modal-in .18s ease; }
+@keyframes wk-modal-in {
+  from { opacity: 0; transform: scale(.96) translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
 .wk-modal h3 { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; }
 .wk-modal label { display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; color: var(--dim); }
 .wk-modal input, .wk-modal select { background: var(--room2); border: 1px solid var(--line);
@@ -138,7 +157,7 @@
 
 .wk-detail { gap: 14px; }
 .wk-detail-head { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px;
-  border-radius: 12px; border-left: 4px solid; margin: -4px 0 2px; position: relative; }
+  border-radius: 12px; border-left: 4px solid; margin: 0; position: relative; }
 .wk-detail-head .wk-dot { position: static; width: 9px; height: 9px; margin-top: 5px; flex-shrink: 0; }
 .wk-detail-title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .wk-detail-title h3 { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700;
@@ -191,8 +210,11 @@
 
 .arcade-page .wkc-list { list-style: none; margin: 0; padding: 8px; height: 100%; overflow: auto;
   display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; }
-.arcade-page .wkc-item { display: flex; align-items: center; gap: 8px; font-size: 12px;
-  border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--room2); }
+.arcade-page .wkc-item { list-style: none; border: none; padding: 0; background: transparent; }
+.arcade-page .wkc-item-btn { display: flex; align-items: center; gap: 8px; width: 100%;
+  font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px;
+  background: var(--room2); cursor: pointer; font-family: inherit; color: inherit; text-align: left; }
+.arcade-page .wkc-item-btn:hover { border-color: var(--candle); filter: brightness(1.08); }
 .arcade-page .wkc-bar { width: 3px; align-self: stretch; border-radius: 2px; flex: 0 0 auto; min-height: 16px; }
 .arcade-page .wkc-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); flex: 0 0 auto; }
 .arcade-page .wkc-name { flex: 1; min-width: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }

@@ -1,21 +1,26 @@
 // src/arcade/WeekCard.jsx — "Our week" home section (matches wall / snap cards).
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { loadTimetable, weekChannel, fmtTime, myRoleInDuo, mySettingsFrom, duoNames } from '../lib/timetable.js';
+import { Link, useNavigate } from 'react-router-dom';
+import { loadTimetable, weekChannel, fmtTime, myRoleInDuo, mySettingsFrom, duoNames, saveTimetable } from '../lib/timetable.js';
 import { defaultTimezone, eventsToLocal, nowInTimezone } from '../lib/timetableTimezone.js';
+import WeekBlockDetail from './WeekBlockDetail.jsx';
 import '../styles/timetable.css';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function WeekCard({ code }) {
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [timeFormat, setTimeFormat] = useState('24');
   const [timezone, setTimezone] = useState(defaultTimezone);
   const [names, setNames] = useState({ A: 'A', B: 'B' });
   const [selectedDay, setSelectedDay] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const chRef = useRef(null);
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
 
   const reload = useCallback(async () => {
     try {
@@ -69,12 +74,41 @@ export default function WeekCard({ code }) {
     [displayEvents, activeDay]
   );
 
-  function whoLabel(who) {
+  function whoShort(who) {
     if (who === 'both') return 'both';
     return names[who] || who;
   }
 
+  function whoLabel(who) {
+    if (who === 'both') return `both of you ${'\u2665'}`;
+    return names[who] || who;
+  }
+
+  function fmtDur(mins) {
+    if (mins < 60) return mins + ' min';
+    if (mins % 60 === 0) return (mins / 60) + 'h';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h + 'h ' + m + 'm';
+  }
+
+  async function deleteViewing(ev) {
+    const next = eventsRef.current.filter(e => e.id !== ev.id);
+    setEvents(next);
+    chRef.current?.send({ k: 'events', events: next });
+    try {
+      await saveTimetable(code, { events: next });
+    } catch { /* ignore */ }
+    setViewing(null);
+  }
+
+  function openEdit(ev) {
+    setViewing(null);
+    navigate(`/week/${code}`, { state: { editEventId: ev.id } });
+  }
+
   return (
+    <>
     <div className="wkc">
       <h3>{'✓'} Our week</h3>
       <p className="wkc-desc">
@@ -107,10 +141,12 @@ export default function WeekCard({ code }) {
               <ul className="wkc-list">
                 {dayEvents.map(ev => (
                   <li className="wkc-item" key={ev.id}>
-                    <span className="wkc-bar" style={{ background: ev.color }} />
-                    <span className="wkc-time">{fmtTime(ev.start, timeFormat)}</span>
-                    <span className="wkc-name">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
-                    <span className={'wkc-owner ' + (ev.who === 'both' ? 'both' : ev.who)}>{whoLabel(ev.who)}</span>
+                    <button type="button" className="wkc-item-btn" onClick={() => setViewing(ev)}>
+                      <span className="wkc-bar" style={{ background: ev.color }} />
+                      <span className="wkc-time">{fmtTime(ev.start, timeFormat)}</span>
+                      <span className="wkc-name">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
+                      <span className={'wkc-owner ' + (ev.who === 'both' ? 'both' : ev.who)}>{whoShort(ev.who)}</span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -132,5 +168,18 @@ export default function WeekCard({ code }) {
         <Link className="btn warm" to={`/week/${code}`}>Open our week</Link>
       </div>
     </div>
+
+    <WeekBlockDetail
+      viewing={viewing}
+      dayName={viewing ? DAY_NAMES[viewing.day] : ''}
+      timeFormat={timeFormat}
+      fmtDur={fmtDur}
+      whoLabel={whoLabel}
+      onClose={() => setViewing(null)}
+      onDelete={deleteViewing}
+      onEdit={openEdit}
+      overlayClass="wkc-overlay"
+    />
+    </>
   );
 }
