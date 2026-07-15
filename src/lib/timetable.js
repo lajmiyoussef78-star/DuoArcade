@@ -35,7 +35,8 @@ export const DEFAULT_SETTINGS = {
   startHour: 8,
   endHour: 24,
   weekend: true,
-  weekStart: 1
+  weekStart: 1,
+  timeFormat: '24' // '24' | '12'
 };
 
 export async function loadTimetable(code) {
@@ -78,9 +79,40 @@ export async function weekChannel(code) {
   };
 }
 
-export const fmtTime = mins => {
-  const h = Math.floor(mins / 60), m = mins % 60;
+export const fmtTime = (mins, format = '24') => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (format === '12') {
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  }
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+/** Hour label on the grid axis (0–23, or 24 = midnight end). */
+export const fmtHour = (hour, format = '24') => {
+  if (format === '12') {
+    if (hour === 0 || hour === 24) return '12 AM';
+    if (hour === 12) return '12 PM';
+    return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+  }
+  if (hour === 24) return '00';
+  return String(hour).padStart(2, '0');
+};
+
+/** Option label in start/end dropdowns. */
+export const fmtHourOption = (hour, format = '24', kind = 'start') => {
+  if (format === '12') {
+    if (hour === 0) return '12:00 AM';
+    if (hour === 24) return '12:00 AM (midnight)';
+    if (hour === 12) return '12:00 PM';
+    const period = hour < 12 ? 'AM' : 'PM';
+    const h12 = hour % 12 || 12;
+    return `${h12}:00 ${period}`;
+  }
+  if (hour === 24) return '24:00';
+  return `${String(hour).padStart(2, '0')}:00`;
 };
 
 export const parseTime = str => {

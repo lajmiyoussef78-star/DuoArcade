@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   myRoleInDuo, duoNames, loadTimetable, saveTimetable, weekChannel,
-  DEFAULT_SETTINGS, mySettingsFrom, fmtTime, parseTime, layoutDay
+  DEFAULT_SETTINGS, mySettingsFrom, fmtTime, fmtHour, fmtHourOption, parseTime, layoutDay
 } from '../lib/timetable.js';
 import '../styles/timetable.css';
 
@@ -12,6 +12,8 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const COLORS = ['#7FA8FF', '#FF7FA8', '#FFC66E', '#6FDCA8', '#C89BFF'];
 const EMOJIS = ['', '\u{1F4DE}', '\u{1F3AE}', '\u{1F37D}\uFE0F', '\u{1F4DA}', '\u{1F3CB}\uFE0F', '\u{1F3AC}', '\u2764\uFE0F', '\u2708\uFE0F', '\u{1F634}'];
 const DUR_OPTIONS = [30, 60, 90, 120, 180, 240];
+const START_HOURS = [...Array(24)].map((_, i) => i);
+const END_HOURS = [...Array(25)].map((_, i) => i + 1).slice(1); // 1..24
 
 let seq = 0;
 const newId = () => Date.now().toString(36) + '-' + (seq++);
@@ -87,14 +89,19 @@ export default function Week() {
   }, [code]);
 
   const pushSettings = useCallback((patch) => {
-    const next = { ...settings, ...patch };
+    let next = { ...settings, ...patch };
+    if (next.endHour <= next.startHour) {
+      next.endHour = Math.min(24, next.startHour + 1);
+    }
     setSettings(next);
     const all = { ...settingsAll, [role]: next };
-    delete all.startHour; delete all.endHour; delete all.weekend; delete all.weekStart;
+    for (const k of ['startHour', 'endHour', 'weekend', 'weekStart', 'timeFormat']) delete all[k];
     setSettingsAll(all);
     chRef.current?.send({ k: 'settings', role, settings: next });
     saveTimetable(code, { settings: all }).catch(e => setStatus('Save failed: ' + e.message));
   }, [code, settings, settingsAll, role]);
+
+  const tf = settings.timeFormat === '12' ? '12' : '24';
 
   const dayOrder = useMemo(() => {
     const start = settings.weekStart === 0 ? 0 : 1;
@@ -174,15 +181,25 @@ export default function Week() {
 
       {showSettings && (
         <div className="wk-settings">
-          <div className="wk-settings-note">Your view only — {names[role === 'A' ? 'B' : 'A']} keeps their own.</div>
+          <div className="wk-settings-note">Your view — either of you can change these anytime.</div>
+          <label>Time format
+            <select value={tf} onChange={e => pushSettings({ timeFormat: e.target.value })}>
+              <option value="24">24-hour (00:00 – 24:00)</option>
+              <option value="12">12-hour (AM / PM)</option>
+            </select>
+          </label>
           <label>Day starts
             <select value={settings.startHour} onChange={e => pushSettings({ startHour: +e.target.value })}>
-              {[0, 5, 6, 7, 8, 9, 10].map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+              {START_HOURS.map(h => (
+                <option key={h} value={h}>{fmtHourOption(h, tf, 'start')}</option>
+              ))}
             </select>
           </label>
           <label>Day ends
             <select value={settings.endHour} onChange={e => pushSettings({ endHour: +e.target.value })}>
-              {[18, 20, 22, 23, 24].map(h => <option key={h} value={h}>{h === 24 ? '00:00' : String(h).padStart(2, '0') + ':00'}</option>)}
+              {END_HOURS.filter(h => h > settings.startHour).map(h => (
+                <option key={h} value={h}>{fmtHourOption(h, tf, 'end')}</option>
+              ))}
             </select>
           </label>
           <label>Weekend
@@ -212,7 +229,7 @@ export default function Week() {
         </div>
       )}
 
-      <div className="wk-grid" style={{ gridTemplateColumns: `44px repeat(${visibleDays.length}, 1fr)` }}>
+      <div className="wk-grid" style={{ gridTemplateColumns: `${tf === '12' ? 52 : 44}px repeat(${visibleDays.length}, 1fr)` }}>
         <div className="wk-corner" />
         {visibleDays.map(d => (
           <div key={'h' + d} className={'wk-dayhead' + (d === today ? ' today' : '')}>
@@ -223,7 +240,7 @@ export default function Week() {
         <div className="wk-hours" style={{ height: span / 2 + 'px' }}>
           {hours.map(h => (
             <div key={h} className="wk-hour" style={{ top: ((h * 60 - minM) / span * 100) + '%' }}>
-              {String(h).padStart(2, '0')}
+              {fmtHour(h, tf)}
             </div>
           ))}
         </div>
@@ -249,7 +266,7 @@ export default function Week() {
                   onClick={() => setEditing({ ...ev })}>
                   <span className={'wk-dot ' + (ev.who === 'both' ? 'both' : ev.who)} />
                   <span className="wk-ev-title">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
-                  <span className="wk-ev-time">{fmtTime(ev.start)}</span>
+                  <span className="wk-ev-time">{fmtTime(ev.start, tf)}</span>
                 </div>
               ))}
               {d === today && nowVisible && (

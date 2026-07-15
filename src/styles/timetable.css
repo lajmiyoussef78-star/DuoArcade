@@ -35,8 +35,9 @@
 .wk-dayhead.today { color: var(--candle); }
 
 .wk-hours { position: relative; }
-.wk-hour { position: absolute; right: 7px; transform: translateY(-6px);
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); }
+.wk-hour { position: absolute; right: 4px; transform: translateY(-6px);
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--dim);
+  white-space: nowrap; max-width: 40px; overflow: hidden; text-overflow: ellipsis; }
 
 .wk-col { position: relative; border-left: 1px solid var(--line); cursor: cell;
   background:
