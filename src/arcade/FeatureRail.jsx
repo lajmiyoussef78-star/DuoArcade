@@ -69,19 +69,29 @@ const I = {
 };
 
 const ITEMS = [
-  { id: 'sect-together', icon: 'together', label: 'Together' },
-  { id: 'sect-play', icon: 'play', label: 'Games' },
-  { id: 'arena', icon: 'arena', label: '2v2 Arena', route: '/arena' },
-  { id: 'sect-tonight', icon: 'tonight', label: 'Tonight Engine' },
-  { id: 'sect-wall', icon: 'wall', label: 'Our wall' },
-  { id: 'sect-list', icon: 'list', label: 'Our list' },
-  { id: 'sect-snap', icon: 'snap', label: "Today's snap" },
-  { id: 'sect-watch', icon: 'watch', label: 'Movie night' },
-  { id: 'sect-pass', icon: 'pass', label: 'Duo Pass' }
+  { id: 'sect-together', icon: 'together', label: 'Together',
+    desc: 'How long you’ve been together, where you both are, and your anniversary countdown.' },
+  { id: 'sect-play', icon: 'play', label: 'Games',
+    desc: 'Pick a game and invite your partner — Connect 4, Tic-Tac-Toe, quizzes, and more.' },
+  { id: 'arena', icon: 'arena', label: '2v2 Arena', route: '/arena',
+    desc: 'Take on another duo in public matchmaking or a direct challenge.' },
+  { id: 'sect-tonight', icon: 'tonight', label: 'Tonight Engine',
+    desc: 'Tell us how much time you have — we’ll suggest a game and a movie for the evening.' },
+  { id: 'sect-wall', icon: 'wall', label: 'Our wall',
+    desc: 'A shared whiteboard you both draw on in real time.' },
+  { id: 'sect-list', icon: 'list', label: 'Our list',
+    desc: 'A todo list you build together — movies to watch, places to go, anything.' },
+  { id: 'sect-snap', icon: 'snap', label: "Today's snap",
+    desc: 'One photo from each of you today, combined into a keepsake you can download.' },
+  { id: 'sect-watch', icon: 'watch', label: 'Movie night',
+    desc: 'Paste a YouTube link — playback syncs live on both screens.' },
+  { id: 'sect-pass', icon: 'pass', label: 'Duo Pass',
+    desc: 'Unlock duo themes, keepsake cards, and everything we ship next.' }
 ];
 
 export default function FeatureRail() {
   const [active, setActive] = useState(null);
+  const [hovered, setHovered] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -107,10 +117,20 @@ export default function FeatureRail() {
     <nav className="frail" aria-label="Your place">
       {ITEMS.map(it => (
         <button key={it.id} type="button"
-          className={'frail-btn' + (active === it.id ? ' on' : '')}
+          className={'frail-btn' + (active === it.id ? ' on' : '') + (hovered === it.id ? ' hover' : '')}
+          aria-label={it.label}
+          onMouseEnter={() => setHovered(it.id)}
+          onMouseLeave={() => setHovered(null)}
+          onFocus={() => setHovered(it.id)}
+          onBlur={() => setHovered(null)}
           onClick={() => go(it)}>
           {I[it.icon]}
-          <span className="frail-tip">{it.label}</span>
+          {hovered === it.id && (
+            <div className="frail-pop" role="tooltip">
+              <div className="frail-pop-title">{it.label}</div>
+              <div className="frail-pop-desc">{it.desc}</div>
+            </div>
+          )}
         </button>
       ))}
     </nav>

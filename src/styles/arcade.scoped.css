@@ -148,24 +148,27 @@
 
 /* ---------- feature rail (Supabase-style side dock) ---------- */
 .arcade-page .frail{position:fixed;left:14px;top:50%;transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:5px;padding:9px 7px;
+  display:flex;flex-direction:column;gap:5px;padding:9px 7px;overflow:visible;
   background:rgba(24,18,33,.78);border:1px solid var(--line);border-radius:16px;
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:60;
   box-shadow:0 14px 38px rgba(0,0,0,.4);}
 .arcade-page .frail-btn{position:relative;display:flex;align-items:center;justify-content:center;
   width:40px;height:40px;border-radius:11px;border:1px solid transparent;background:transparent;
-  color:var(--dim);cursor:pointer;padding:0;transition:color .16s ease,background .16s ease,border-color .16s ease;}
+  color:var(--dim);cursor:pointer;padding:0;overflow:visible;transition:color .16s ease,background .16s ease,border-color .16s ease;}
 .arcade-page .frail-btn svg{width:21px;height:21px;display:block;}
 .arcade-page .frail-btn:hover{color:var(--text);background:rgba(255,255,255,.07);}
 .arcade-page .frail-btn.on{color:var(--candle);background:rgba(255,198,110,.10);
   border-color:rgba(255,198,110,.28);}
-.arcade-page .frail-tip{position:absolute;left:calc(100% + 12px);top:50%;
-  transform:translateY(-50%) translateX(-5px);white-space:nowrap;
-  background:#241C31;border:1px solid var(--line);color:var(--text);
-  font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;
-  opacity:0;pointer-events:none;transition:opacity .14s ease,transform .14s ease;
-  box-shadow:0 8px 22px rgba(0,0,0,.45);}
-.arcade-page .frail-btn:hover .frail-tip{opacity:1;transform:translateY(-50%) translateX(0);}
+.arcade-page .frail-pop{position:absolute;left:calc(100% + 14px);top:50%;
+  transform:translateY(-50%);width:max-content;max-width:240px;
+  background:#241C31;border:1px solid var(--line);border-radius:12px;
+  padding:10px 13px;z-index:80;pointer-events:none;
+  box-shadow:0 10px 28px rgba(0,0,0,.5);
+  animation:frail-in .14s ease;}
+.arcade-page .frail-pop-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.arcade-page .frail-pop-desc{font-size:11.5px;line-height:1.45;color:var(--dim);}
+@keyframes frail-in{from{opacity:0;transform:translateY(-50%) translateX(-6px);}
+  to{opacity:1;transform:translateY(-50%) translateX(0);}}
 .arcade-page #sect-together,.arcade-page #sect-tonight,.arcade-page #sect-play,
 .arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-snap,
 .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena{scroll-margin-top:16px;}
@@ -173,7 +176,10 @@
   .arcade-page .frail{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);
     flex-direction:row;gap:2px;max-width:calc(100vw - 16px);overflow-x:auto;padding:7px;}
   .arcade-page .frail-btn{width:38px;height:38px;flex:none;}
-  .arcade-page .frail-tip{display:none;}
+  .arcade-page .frail-pop{left:50%;bottom:calc(100% + 10px);top:auto;
+    transform:translateX(-50%);max-width:min(260px,calc(100vw - 32px));}
+  @keyframes frail-in{from{opacity:0;transform:translateX(-50%) translateY(6px);}
+    to{opacity:1;transform:translateX(-50%) translateY(0);}}
   .arcade-page #sect-together,.arcade-page #sect-tonight,.arcade-page #sect-play,
   .arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-snap,
   .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena{scroll-margin-top:10px;}
