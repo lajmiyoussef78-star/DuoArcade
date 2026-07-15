@@ -136,3 +136,24 @@ export function layoutDay(events) {
     return { ...ev, lanes: width };
   });
 }
+
+/** Pixels per minute in the week grid (taller = more readable 1h blocks). */
+export const WK_PX_PER_MIN = 0.75;
+
+export function weekColHeight(spanMins) {
+  return spanMins * WK_PX_PER_MIN;
+}
+
+export function eventBlockHeight(durMins, spanMins, colHeight) {
+  const proportional = (durMins / spanMins) * colHeight;
+  if (durMins <= 30) return Math.max(28, proportional);
+  if (durMins <= 60) return Math.max(42, proportional);
+  if (durMins <= 90) return Math.max(54, proportional);
+  return proportional;
+}
+
+export function eventSizeClass(durMins) {
+  if (durMins <= 30) return ' wk-ev-tiny';
+  if (durMins <= 60) return ' wk-ev-short';
+  return '';
+}

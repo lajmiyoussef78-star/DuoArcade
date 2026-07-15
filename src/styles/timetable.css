@@ -40,21 +40,34 @@
   white-space: nowrap; max-width: 40px; overflow: hidden; text-overflow: ellipsis; }
 
 .wk-col { position: relative; border-left: 1px solid var(--line); cursor: cell;
+  --wk-hour-px: 45px;
   background:
     repeating-linear-gradient(to bottom,
-      transparent 0, transparent 29px,
-      rgba(61, 52, 80, .45) 29px, rgba(61, 52, 80, .45) 30px); }
+      transparent 0, transparent calc(var(--wk-hour-px) - 1px),
+      rgba(61, 52, 80, .45) calc(var(--wk-hour-px) - 1px), rgba(61, 52, 80, .45) var(--wk-hour-px)); }
 .wk-col.today { background-color: rgba(255, 198, 110, .035); }
 
-.wk-ev { position: absolute; box-sizing: border-box; border-radius: 8px;
-  border: 1px solid transparent; border-left: 3px solid; padding: 4px 6px;
-  overflow: hidden; cursor: pointer; display: flex; flex-direction: column; gap: 1px;
-  transition: filter .12s ease; min-height: 20px; }
-.wk-ev:hover { filter: brightness(1.25); z-index: 3; }
-.wk-ev .wk-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; }
-.wk-ev-title { font-size: 11.5px; font-weight: 600; line-height: 1.25; padding-right: 12px;
-  white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-.wk-ev-time { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--dim); }
+.wk-ev { position: absolute; box-sizing: border-box; border-radius: 6px;
+  border: 1px solid transparent; border-left: 3px solid; padding: 4px 6px 3px;
+  overflow: hidden; cursor: pointer; display: flex; flex-direction: column; justify-content: flex-start;
+  gap: 0; transition: filter .12s ease; min-width: 0; }
+.wk-ev:hover { filter: brightness(1.25); z-index: 3; overflow: visible; }
+.wk-ev .wk-dot { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; }
+.wk-ev-title { font-size: 11px; font-weight: 600; line-height: 1.3; padding-right: 10px;
+  overflow: hidden; text-overflow: ellipsis; }
+.wk-ev-time { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--dim);
+  margin-top: 1px; flex-shrink: 0; }
+.wk-ev-time-inline { font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  font-weight: 400; color: var(--dim); white-space: nowrap; }
+
+.wk-ev-short { padding: 3px 5px; }
+.wk-ev-short .wk-ev-title { font-size: 10.5px; line-height: 1.35; white-space: nowrap; }
+.wk-ev-short .wk-ev-time { display: none; }
+
+.wk-ev-tiny { padding: 2px 5px; }
+.wk-ev-tiny .wk-ev-title { font-size: 10px; }
+.wk-ev-tiny .wk-ev-time-inline { display: none; }
+.wk-ev-tiny .wk-dot { width: 5px; height: 5px; top: 3px; right: 3px; }
 
 .wk-now { position: absolute; left: 0; right: 0; height: 2px; z-index: 4; pointer-events: none;
   background: linear-gradient(90deg, var(--candle), transparent);

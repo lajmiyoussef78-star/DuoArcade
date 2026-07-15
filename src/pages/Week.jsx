@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   myRoleInDuo, duoNames, loadTimetable, saveTimetable, weekChannel,
-  DEFAULT_SETTINGS, mySettingsFrom, fmtTime, fmtHour, fmtHourOption, parseTime, layoutDay
+  DEFAULT_SETTINGS, mySettingsFrom, fmtTime, fmtHour, fmtHourOption, parseTime, layoutDay,
+  weekColHeight, eventBlockHeight, eventSizeClass
 } from '../lib/timetable.js';
 import '../styles/timetable.css';
 
@@ -112,6 +113,8 @@ export default function Week() {
   const minM = settings.startHour * 60;
   const maxM = settings.endHour * 60;
   const span = maxM - minM;
+  const colHeight = weekColHeight(span);
+  const hourPx = colHeight / Math.max(1, settings.endHour - settings.startHour);
   const hours = [];
   for (let h = settings.startHour; h < settings.endHour; h++) hours.push(h);
 
@@ -237,9 +240,9 @@ export default function Week() {
           </div>
         ))}
 
-        <div className="wk-hours" style={{ height: span / 2 + 'px' }}>
+        <div className="wk-hours" style={{ height: colHeight + 'px' }}>
           {hours.map(h => (
-            <div key={h} className="wk-hour" style={{ top: ((h * 60 - minM) / span * 100) + '%' }}>
+            <div key={h} className="wk-hour" style={{ top: (((h * 60 - minM) / span) * colHeight) + 'px' }}>
               {fmtHour(h, tf)}
             </div>
           ))}
@@ -250,14 +253,19 @@ export default function Week() {
           return (
             <div key={'c' + d}
               className={'wk-col' + (d === today ? ' today' : '')}
-              style={{ height: span / 2 + 'px' }}
+              style={{ height: colHeight + 'px', '--wk-hour-px': hourPx + 'px' }}
               onClick={e => { if (e.target === e.currentTarget) slotClick(d, e); }}>
-              {dayEvents.map(ev => (
+              {dayEvents.map(ev => {
+                const topPx = ((ev.start - minM) / span) * colHeight;
+                const heightPx = eventBlockHeight(ev.dur, span, colHeight);
+                const short = ev.dur <= 60;
+                return (
                 <div key={ev.id}
-                  className="wk-ev"
+                  className={'wk-ev' + eventSizeClass(ev.dur)}
+                  title={`${ev.title} · ${fmtTime(ev.start, tf)}`}
                   style={{
-                    top: ((ev.start - minM) / span * 100) + '%',
-                    height: (ev.dur / span * 100) + '%',
+                    top: topPx + 'px',
+                    height: heightPx + 'px',
                     left: (ev.lane / ev.lanes * 100) + '%',
                     width: (100 / ev.lanes) + '%',
                     background: ev.color + '26',
@@ -265,12 +273,16 @@ export default function Week() {
                   }}
                   onClick={() => setEditing({ ...ev })}>
                   <span className={'wk-dot ' + (ev.who === 'both' ? 'both' : ev.who)} />
-                  <span className="wk-ev-title">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
-                  <span className="wk-ev-time">{fmtTime(ev.start, tf)}</span>
+                  <span className="wk-ev-title">
+                    {ev.emoji ? ev.emoji + ' ' : ''}{ev.title}
+                    {short && <span className="wk-ev-time-inline"> · {fmtTime(ev.start, tf)}</span>}
+                  </span>
+                  {!short && <span className="wk-ev-time">{fmtTime(ev.start, tf)}</span>}
                 </div>
-              ))}
+                );
+              })}
               {d === today && nowVisible && (
-                <div className="wk-now" style={{ top: ((nowMins - minM) / span * 100) + '%' }} />
+                <div className="wk-now" style={{ top: (((nowMins - minM) / span) * colHeight) + 'px' }} />
               )}
             </div>
           );
