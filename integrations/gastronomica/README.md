@@ -1,56 +1,36 @@
-# Gastronomica ↔ DuoArcade embed hook
+# Ready, Set, Cook — native kitchen in DuoArcade
 
-DuoArcade loads **Ready, Set, Cook** in an iframe (`/embed`). When a kitchen shift ends,
-the game should notify the parent so both partners count the evening together.
+The full **project-gastronomica** Phaser kitchen lives inside DuoArcade at `src/kitchen/` — no iframe or separate deploy.
 
-## One change in `project-gastronomica`
+## Layout
 
-In `apps/web/src/components/GameCanvas.tsx`, inside `onMatchComplete`, add:
+| Path | Role |
+|------|------|
+| `src/kitchen/game/` | Phaser scenes, maps, entities (from gastronomica) |
+| `src/kitchen/KitchenPlay.jsx` | React mount + DuoArcade realtime bridge |
+| `src/kitchen/MapLobby.jsx` | Kitchen / map picker UI |
+| `src/kitchen/shared.ts` | Stand-in for `@gastronomica/shared` types |
+| `src/engines/readysetcook.js` | DuoArcade engine entry (`mount` / `unmount`) |
+| `src/styles/kitchen.scoped.css` | Map lobby + kitchen chrome styles |
 
-```ts
-if (window.parent !== window) {
-  window.parent.postMessage(
-    {
-      type: "rsc:complete",
-      score: result.score,
-      stars: result.stars,
-      served: result.served,
-    },
-    "*",
-  );
-}
-```
+## Co-op
 
-Place it **before** the existing `api.completeMatch` block (embed mode has no login).
+- **Avatar sync:** chef positions broadcast over DuoArcade realtime (`{ k: 'chef', role, state }`).
+- **Shift complete:** when a match ends, host calls `onFinish('draw')`; guest receives `{ k: 'rsc-done' }`.
+- **Shared simulation** (orders, items, score) is not synced yet — each player runs their own kitchen; pick the same map and play side by side.
 
 ## Run locally
 
-Terminal 1 — kitchen:
-
 ```bash
-git clone https://github.com/MohamedAliZegnani/project-gastronomica
-cd project-gastronomica
+cd duoarcade-react
 npm install
 npm run dev
 ```
 
-Kitchen embed: http://localhost:5174/embed
+Open your duo → **Play** → **Ready, Set, Cook**.
 
-Terminal 2 — DuoArcade:
+## Upstream
 
-```bash
-cd duoarcade-react
-npm run dev
-```
+Source game: [project-gastronomica](https://github.com/MohamedAliZegnani/project-gastronomica)
 
-Open your duo → **Play** → **Ready, Set, Cook**. Dev mode uses `http://localhost:5174/embed` automatically.
-
-## Production
-
-Deploy `project-gastronomica` (Vercel/Netlify) and set the embed URL on DuoArcade:
-
-```js
-window.__RSC_EMBED_URL__ = "https://your-kitchen-host/embed";
-```
-
-Or build DuoArcade with `VITE_RSC_EMBED_URL=https://your-kitchen-host/embed`.
+To pull updates from upstream, copy `apps/web/src/game/` into `src/kitchen/game/` and re-test `npm run build`.
