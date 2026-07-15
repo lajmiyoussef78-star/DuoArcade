@@ -1,4 +1,4 @@
-// src/arcade/WeekCard.jsx — "Our week" home section.
+// src/arcade/WeekCard.jsx — "Our week" home section (matches wall / snap cards).
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -53,7 +53,7 @@ export default function WeekCard({ code }) {
     .slice(0, 4);
 
   return (
-    <div className="wkc" id="sect-week">
+    <div className="wkc">
       <h3>{'✓'} Our week</h3>
       <p className="wkc-desc">
         One timetable for the two of you — plans, calls, free evenings.
@@ -61,35 +61,37 @@ export default function WeekCard({ code }) {
       </p>
 
       <Link className="wkc-preview" to={`/week/${code}`} aria-label="Open our week">
-        <div className="wkc-strip">
-          {DAY_SHORT.map((label, i) => (
-            <span
-              key={i}
-              className={'wkc-day' + (i === today ? ' today' : '') + (daysWithEvents.has(i) ? ' has' : '')}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-
-        <div className="wkc-preview-head">
-          <span className="wkc-preview-title">{DAY_NAMES[today]}</span>
-          <span className="wkc-preview-sub">rest of today</span>
-        </div>
-
-        {todays.length > 0 ? (
-          <ul className="wkc-list">
-            {todays.map(ev => (
-              <li className="wkc-item" key={ev.id}>
-                <span className="wkc-bar" style={{ background: ev.color }} />
-                <span className="wkc-time">{fmtTime(ev.start, timeFormat)}</span>
-                <span className="wkc-name">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
-              </li>
+        <div className="wkc-frame">
+          <div className="wkc-strip">
+            {DAY_SHORT.map((label, i) => (
+              <span
+                key={i}
+                className={'wkc-day' + (i === today ? ' today' : '') + (daysWithEvents.has(i) ? ' has' : '')}
+              >
+                {label}
+              </span>
             ))}
-          </ul>
-        ) : (
-          <div className="wkc-empty">nothing planned for the rest of today — tap to add something</div>
-        )}
+          </div>
+
+          <div className="wkc-frame-body">
+            {todays.length > 0 ? (
+              <ul className="wkc-list">
+                {todays.map(ev => (
+                  <li className="wkc-item" key={ev.id}>
+                    <span className="wkc-bar" style={{ background: ev.color }} />
+                    <span className="wkc-time">{fmtTime(ev.start, timeFormat)}</span>
+                    <span className="wkc-name">{ev.emoji ? ev.emoji + ' ' : ''}{ev.title}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="wkc-empty">
+                <span className="wkc-empty-title">{DAY_NAMES[today]}</span>
+                <span>nothing planned for the rest of today</span>
+              </div>
+            )}
+          </div>
+        </div>
       </Link>
 
       <div className="wkc-foot">

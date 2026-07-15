@@ -269,7 +269,7 @@ export default function HomeScreen({
         <div className="shelf-title" id="sect-list">Our list</div>
         <TodoShelf code={code} myRole={myRole} duo={duo} />
 
-        <div className="shelf-title">Our week</div>
+        <div className="shelf-title" id="sect-week">Our week</div>
         <WeekCard code={code} />
 
         <div className="shelf-title" id="sect-snap">Today's snap</div>
