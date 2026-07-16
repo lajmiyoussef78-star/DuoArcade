@@ -37,6 +37,7 @@ function normalize(row) {
     passTier: row.pass_tier ?? 'free',
     theme: row.theme ?? null,
     anniversary: row.anniversary ?? null,
+    favoriteGames: Array.isArray(row.favorite_games) ? row.favorite_games : [],
     turn: row.turn ?? '-'
   };
 }
@@ -54,6 +55,7 @@ function denormalize(patch) {
   if ('showPublic' in patch) out.show_public = patch.showPublic;
   if ('theme' in patch) out.theme = patch.theme;
   if ('anniversary' in patch) out.anniversary = patch.anniversary;
+  if ('favoriteGames' in patch) out.favorite_games = patch.favoriteGames;
   if ('turn' in patch) out.turn = patch.turn;
   return out;
 }
@@ -340,7 +342,7 @@ function localSync() {
   const blank = (code, nameA, nameB) => ({
     code, nameA, nameB, records: {},
     evenings: 0, streak: 0, bestStreak: 0, tasteAgree: 0, tasteTotal: 0,
-    lastDay: null, session: null, turn: '-'
+    lastDay: null, session: null, turn: '-', favoriteGames: []
   });
 
   return {

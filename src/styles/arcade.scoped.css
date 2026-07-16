@@ -90,8 +90,30 @@
 .arcade-page .shelf-anchor{width:100%;margin-top:36px;padding-top:28px;} /* 2× title margin + former title line as empty space */
 .arcade-page .shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-top:10px;}
 .arcade-page .gcard{border:1px solid var(--line);border-radius:14px;background:var(--room);padding:14px;cursor:pointer;
-         display:flex;flex-direction:column;gap:6px;transition:border-color .12s ease;}
+         display:flex;flex-direction:column;gap:6px;transition:border-color .12s ease;position:relative;}
 .arcade-page .gcard:hover{border-color:var(--p1);}
+.arcade-page .gcard-fav-active{border-color:color-mix(in srgb, var(--candle) 55%, var(--line));}
+.arcade-page .gcard-fav{
+  position:absolute;right:8px;bottom:8px;z-index:2;
+  width:28px;height:28px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(20,15,26,.72);
+  color:var(--dim);font-size:14px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  transition:color .15s,border-color .15s,background .15s,transform .12s;
+}
+.arcade-page .gcard-fav:hover{color:var(--candle);border-color:var(--candle);transform:scale(1.06);}
+.arcade-page .gcard-fav.on{
+  color:var(--candle);border-color:var(--candle);
+  background:color-mix(in srgb, var(--candle) 18%, rgba(20,15,26,.8));
+  text-shadow:0 0 10px color-mix(in srgb, var(--candle) 55%, transparent);
+}
+.arcade-page .shelf-favs-empty{
+  width:100%;margin:8px 0 0;padding:14px 12px;border-radius:12px;
+  border:1px dashed color-mix(in srgb, var(--candle) 30%, var(--line));
+  background:color-mix(in srgb, var(--candle) 6%, var(--room2));
+  color:var(--dim);font-size:12.5px;text-align:center;line-height:1.45;
+}
 .arcade-page .gname{font-size:14px;font-weight:600;}
 .arcade-page .gtag{font-size:11px;color:var(--dim);}
 .arcade-page .grec{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--candle);margin-top:4px;}
@@ -184,7 +206,7 @@
 @keyframes frail-in{from{opacity:0;transform:translateY(-50%) translateX(-8px);}
   to{opacity:1;transform:translateY(-50%) translateX(0);}}
 .arcade-page #sect-together,.arcade-page #sect-tonight,.arcade-page #sect-play,
-.arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
+.arcade-page #sect-favorites,.arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
 .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena{scroll-margin-top:16px;}
 @media (max-width: 768px){
   .arcade-page .frail{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);
@@ -198,7 +220,7 @@
   @keyframes frail-in{from{opacity:0;transform:translateX(-50%) translateY(8px);}
     to{opacity:1;transform:translateX(-50%) translateY(0);}}
   .arcade-page #sect-together,.arcade-page #sect-tonight,.arcade-page #sect-play,
-  .arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
+  .arcade-page #sect-favorites,.arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
   .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena{scroll-margin-top:10px;}
   .arcade-page{padding-bottom:76px;}
 }
