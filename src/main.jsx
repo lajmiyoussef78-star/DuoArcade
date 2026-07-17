@@ -9,7 +9,6 @@ import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
 import Week from './pages/Week.jsx';
-import Soccer from './pages/Soccer.jsx';
 import './styles/base.css';
 import './styles/landing.scoped.css';
 import './styles/arcade.scoped.css';
@@ -32,7 +31,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="/snap/:code" element={<Snap />} />
         <Route path="/spark-splash" element={<SparkSplash />} />
         <Route path="/week/:code" element={<Week />} />
-        <Route path="/soccer/:code" element={<Soccer />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

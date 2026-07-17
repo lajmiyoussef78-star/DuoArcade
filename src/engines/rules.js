@@ -112,6 +112,17 @@ export const RULES = {
     tip: 'Don\u2019t spam heavies \u2014 a parry beats everything, including a charged swing.'
   },
 
+  microsoccer: {
+    goal: 'Score more goals than your partner in 90 seconds.',
+    how: [
+      'Both press ready, then drive your car and nudge the ball into their net.',
+      'Arrows or WASD on desktop; on-screen pad on phones.',
+      'Blue (A) defends the left goal; pink (B) defends the right.',
+      'Highest score when the clock hits zero wins (draws count).'
+    ],
+    tip: 'Ram the ball at an angle \u2014 straight-on bumps are easier to steal back.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {

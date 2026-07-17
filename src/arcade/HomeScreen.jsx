@@ -8,7 +8,6 @@ import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
-import SoccerCard from './SoccerCard.jsx';
 import FeatureRail from './FeatureRail.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
@@ -336,10 +335,6 @@ export default function HomeScreen({
 
         <div id="sect-snap" className="shelf-anchor">
           <SnapCard code={code} />
-        </div>
-
-        <div id="sect-soccer" className="shelf-anchor">
-          <SoccerCard code={code} />
         </div>
 
         <div className="shelf-title" id="sect-watch">Movie night</div>

@@ -585,6 +585,28 @@ export const ART = {
      @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
      ${sparkAnim('ssd', 3)}`),
 
+  /* ─── Micro Soccer: cars + ball ─── */
+  microsoccer: scene('msc', '', `
+    <rect x="28" y="28" width="184" height="86" rx="8" fill="#15291B" stroke="var(--line)" stroke-width="2"/>
+    <path d="M120 28 V114" stroke="rgba(255,255,255,.2)" stroke-width="2"/>
+    <circle cx="120" cy="71" r="16" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"/>
+    <rect x="28" y="52" width="6" height="38" fill="var(--p1)" opacity=".45"/>
+    <rect x="206" y="52" width="6" height="38" fill="var(--p2)" opacity=".45"/>
+    <g class="msc-carA">
+      <rect x="52" y="64" width="28" height="14" rx="3" fill="var(--p1)"/>
+    </g>
+    <g class="msc-carB">
+      <rect x="160" y="64" width="28" height="14" rx="3" fill="var(--p2)"/>
+    </g>
+    <circle class="msc-ball" cx="120" cy="71" r="7" fill="var(--candle)" filter="url(#msc-glow)"/>
+    ${sparks('msc', [[44, 40, 1.5, 'var(--p1)'], [196, 100, 1.5, 'var(--p2)']])}`,
+    `.msc-carA { animation: msc-drive 2.4s ease-in-out infinite; }
+     .msc-carB { animation: msc-drive 2.4s ease-in-out .4s infinite reverse; }
+     @keyframes msc-drive { 0%,100% { transform: translateX(0) } 50% { transform: translateX(8px) } }
+     .msc-ball { animation: msc-bounce 1.6s ease-in-out infinite; }
+     @keyframes msc-bounce { 0%,100% { transform: translate(0,0) } 50% { transform: translate(10px,-6px) } }
+     ${sparkAnim('msc', 2)}`),
+
   /* ─── Ready, Set, Cook: co-op kitchen ─── */
   readysetcook: scene('rsc', '', `
     <rect x="36" y="88" width="168" height="28" rx="6" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>
