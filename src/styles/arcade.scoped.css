@@ -308,6 +308,7 @@
 .arcade-page .sc-wrap{width:100%;max-width:860px;margin:0 auto;}
 .arcade-page .sc-embedded{padding:8px 0 20px;}
 .arcade-page .mo-wrap{width:100%;max-width:620px;margin:0 auto;}
+.arcade-page .fb-wrap{width:100%;max-width:640px;margin:0 auto;}
 .arcade-page .ss-hint{text-align:center;max-width:640px;line-height:1.45;}
 .arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,32px);grid-template-rows:repeat(11,32px);gap:2px;
             background:var(--room2);padding:8px;border-radius:12px;}

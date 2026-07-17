@@ -19,6 +19,7 @@ import './styles/kitchen.scoped.css';
 import './styles/timetable.css';
 import './styles/soccer.css';
 import './styles/moles.css';
+import './styles/forbidden.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

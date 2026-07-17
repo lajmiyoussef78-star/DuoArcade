@@ -134,6 +134,17 @@ export const RULES = {
     tip: 'Don\u2019t spam the grid \u2014 watch the holes and react clean.'
   },
 
+  forbiddenwords: {
+    goal: 'Slip fewer forbidden words than your partner in a Q&A.',
+    how: [
+      'Pick a topic together, then each secretly assign the other 3 trap words.',
+      'Take turns: ask a question, then answer in at least 10 words (3 questions each).',
+      'Answers stay hidden until someone hits Check results.',
+      'Fewer forbidden words said wins; ties break to whoever stayed clean longer.'
+    ],
+    tip: 'Trap common filler words \u2014 yes, like, really \u2014 they\u2019re hard to dodge.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {

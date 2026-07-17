@@ -628,6 +628,25 @@ export const ART = {
      @keyframes md-pop { 0%,100% { transform: translateY(10px); opacity: .35 } 40%,60% { transform: translateY(0); opacity: 1 } }
      ${sparkAnim('md', 2)}`),
 
+  /* ─── Forbidden Words: sealed lips ─── */
+  forbiddenwords: scene('fw', '', `
+    <rect x="40" y="36" width="160" height="72" rx="12" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>
+    <text x="120" y="62" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="18" fill="var(--candle)">shh</text>
+    <g class="fw-lips">
+      <path d="M78 88 Q120 108 162 88" stroke="var(--p2)" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M86 84 Q120 70 154 84" stroke="var(--p1)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+    </g>
+    <g class="fw-x">
+      <path d="M52 48 L64 60 M64 48 L52 60" stroke="var(--candle)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M176 48 L188 60 M188 48 L176 60" stroke="var(--candle)" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    ${sparks('fw', [[70, 28, 1.5, 'var(--p2)'], [170, 100, 1.5, 'var(--candle)']])}`,
+    `.fw-lips { animation: fw-seal 2.8s ease-in-out infinite; }
+     @keyframes fw-seal { 0%,100% { transform: translateY(0) } 50% { transform: translateY(3px) } }
+     .fw-x { animation: fw-pulse 2.2s ease-in-out infinite; }
+     @keyframes fw-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
+     ${sparkAnim('fw', 2)}`),
+
   /* ─── Ready, Set, Cook: co-op kitchen ─── */
   readysetcook: scene('rsc', '', `
     <rect x="36" y="88" width="168" height="28" rx="6" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>

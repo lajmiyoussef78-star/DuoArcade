@@ -1,0 +1,75 @@
+/* src/styles/forbidden.css — Forbidden Words. Inherits DuoArcade theme vars. */
+
+.fb-page { max-width: 640px; margin: 0 auto; padding: 20px 14px 50px; color: var(--text); font-family: 'Inter', sans-serif; }
+.fb-embedded { padding: 8px 0 20px; }
+.pA { color: var(--p1); } .pB { color: var(--p2); }
+
+.fb-sub { font-size: 13px; color: var(--dim); line-height: 1.55; text-align: center; max-width: 460px; margin: 0 auto; }
+
+.fb-setup { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.fb-setup h3 { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; }
+.fb-chosen { display: flex; gap: 10px; }
+.fb-slot { min-width: 92px; text-align: center; padding: 12px 14px; border-radius: 12px; font-size: 14px;
+  border: 1px dashed var(--line); color: var(--dim); background: var(--room2); }
+.fb-slot.filled { border-style: solid; border-color: var(--candle); color: var(--text); font-weight: 600; }
+.fb-suggest { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; max-width: 500px; }
+.fb-chip { border: 1px solid var(--line); background: var(--room2); color: var(--text);
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; }
+.fb-chip.on { border-color: var(--candle); background: rgba(255,198,110,.14); color: var(--candle); }
+.fb-chip:disabled { opacity: .4; cursor: default; }
+.fb-custom { display: flex; gap: 8px; }
+.fb-custom input { background: var(--room2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); font-size: 14px; padding: 9px 12px; font-family: 'Inter', sans-serif; }
+
+.fb-wait { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px 0; }
+.fb-check { font-size: 15px; }
+
+.fb-inputrow { display: flex; gap: 8px; width: 100%; }
+.fb-inputrow input { flex: 1; background: var(--room2); border: 1px solid var(--line); border-radius: 12px;
+  color: var(--text); font-size: 14px; padding: 11px 13px; font-family: 'Inter', sans-serif; }
+.fb-inputrow input:focus { outline: none; border-color: var(--candle); }
+
+.fb-done { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
+.fb-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 21px; color: var(--candle); }
+.fb-final { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--dim); text-align: center; }
+.fb-slip-tag { font-size: 11px; color: var(--bad, #FF8A8A); font-weight: 600; }
+
+.fb-topicbanner { text-align: center; font-size: 14px; color: var(--dim); margin-bottom: 8px; }
+.fb-topicbanner b { color: var(--text); }
+
+.fb-play { display: flex; flex-direction: column; gap: 12px; }
+.fb-progress { display: flex; gap: 6px; justify-content: center; }
+.fb-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.fb-dot.done { background: var(--good); }
+.fb-dot.now { background: var(--candle); box-shadow: 0 0 8px var(--candle); }
+
+.fb-qalist { display: flex; flex-direction: column; gap: 8px; }
+.fb-qa { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--room); }
+.fb-qa.active { border-color: var(--candle); }
+.fb-qa-head { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 4px; }
+.fb-qa-no { font-family: 'JetBrains Mono', monospace; color: var(--dim); }
+.fb-qa-q { font-size: 14px; }
+.fb-qa-q.dim { color: var(--dim); font-style: italic; }
+.fb-qa-a { font-size: 12px; margin-top: 5px; color: var(--dim); }
+.fb-qa-a.mine { color: var(--good); }
+.fb-qa-a.locked { color: var(--dim); }
+
+.fb-action { margin-top: 4px; }
+.fb-answerbox { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--candle);
+  border-radius: 12px; padding: 12px; background: var(--room); }
+.fb-answer-q { font-size: 13px; color: var(--dim); }
+.fb-answerbox textarea { background: var(--room2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); font-size: 14px; padding: 10px 12px; font-family: 'Inter', sans-serif; resize: vertical; }
+.fb-answerbox textarea:focus { outline: none; border-color: var(--candle); }
+.fb-answer-foot { display: flex; align-items: center; justify-content: space-between; }
+.fb-wc { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--bad, #FF8A8A); }
+.fb-wc.ok { color: var(--good); }
+.fb-waitturn { text-align: center; font-size: 13px; color: var(--dim); padding: 10px; }
+.fb-check-btn { align-self: center; margin-top: 6px; }
+
+.fb-transcript { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 520px; margin-top: 6px; }
+.fb-tr { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--room); }
+.fb-tr-head { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 5px; flex-wrap: wrap; }
+.fb-tr-q { font-size: 13px; color: var(--dim); margin-bottom: 4px; }
+.fb-tr-a { font-size: 14px; }
+.fb-tr-a.slipped { color: var(--bad, #FF8A8A); }

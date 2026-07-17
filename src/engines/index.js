@@ -30,8 +30,9 @@ import * as RSC from './readysetcook.js';
 import * as SSD from './stickmanswordduel.js';
 import * as MSC from './microsoccer.js';
 import * as MD from './moleduel.js';
+import * as FW from './forbiddenwords.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD, FW]
     .map(e => [e.meta.id, e])
 );
