@@ -98,6 +98,175 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
     };
     raf = requestAnimationFrame(loop);
 
+    function drawGoal(g, side, tint) {
+      // side: 'L' | 'R' — posts + crossbar + depth net (not a flat strip)
+      const gTop = (SOC.H - SOC.GOAL_H) / 2;
+      const gBot = gTop + SOC.GOAL_H;
+      const depth = 28;
+      const post = 5;
+      const mouth = side === 'L' ? 0 : SOC.W;
+      const back = side === 'L' ? depth : SOC.W - depth;
+      const dir = side === 'L' ? 1 : -1;
+
+      // Goal mouth shadow / turf cutout
+      g.fillStyle = 'rgba(0,0,0,.22)';
+      g.beginPath();
+      if (side === 'L') {
+        g.moveTo(0, gTop); g.lineTo(depth, gTop + 10); g.lineTo(depth, gBot - 10); g.lineTo(0, gBot);
+      } else {
+        g.moveTo(SOC.W, gTop); g.lineTo(SOC.W - depth, gTop + 10); g.lineTo(SOC.W - depth, gBot - 10); g.lineTo(SOC.W, gBot);
+      }
+      g.closePath(); g.fill();
+
+      // Team tint wash inside the net
+      g.fillStyle = tint;
+      g.beginPath();
+      if (side === 'L') {
+        g.moveTo(post, gTop + post); g.lineTo(depth - 2, gTop + 12);
+        g.lineTo(depth - 2, gBot - 12); g.lineTo(post, gBot - post);
+      } else {
+        g.moveTo(SOC.W - post, gTop + post); g.lineTo(SOC.W - depth + 2, gTop + 12);
+        g.lineTo(SOC.W - depth + 2, gBot - 12); g.lineTo(SOC.W - post, gBot - post);
+      }
+      g.closePath(); g.fill();
+
+      // Net mesh (perspective into the goal)
+      g.strokeStyle = 'rgba(230,235,240,.32)';
+      g.lineWidth = 1;
+      const netRows = 8;
+      const netDepth = 5;
+      for (let j = 0; j <= netRows; j++) {
+        const t = j / netRows;
+        const yF = gTop + t * SOC.GOAL_H;
+        const yB = gTop + 10 + t * (SOC.GOAL_H - 20);
+        g.beginPath();
+        g.moveTo(mouth, yF);
+        g.lineTo(back, yB);
+        g.stroke();
+      }
+      for (let i = 0; i <= netDepth; i++) {
+        const t = i / netDepth;
+        const x = mouth + dir * depth * t;
+        const inset = 10 * t;
+        g.beginPath();
+        g.moveTo(x, gTop + inset);
+        g.lineTo(x, gBot - inset);
+        g.stroke();
+      }
+
+      // White posts + crossbar + ground bar
+      g.fillStyle = '#F2F4F7';
+      if (side === 'L') {
+        g.fillRect(0, gTop - post, post, SOC.GOAL_H + post * 2);
+        g.fillRect(depth - post, gTop + 8, post, SOC.GOAL_H - 16);
+        g.beginPath();
+        g.moveTo(0, gTop); g.lineTo(depth, gTop + 10);
+        g.lineTo(depth, gTop + 10 + post); g.lineTo(0, gTop + post);
+        g.closePath(); g.fill();
+        g.fillStyle = 'rgba(242,244,247,.75)';
+        g.beginPath();
+        g.moveTo(0, gBot); g.lineTo(depth, gBot - 10);
+        g.lineTo(depth, gBot - 10 + 3); g.lineTo(0, gBot + 3);
+        g.closePath(); g.fill();
+      } else {
+        g.fillRect(SOC.W - post, gTop - post, post, SOC.GOAL_H + post * 2);
+        g.fillRect(SOC.W - depth, gTop + 8, post, SOC.GOAL_H - 16);
+        g.beginPath();
+        g.moveTo(SOC.W, gTop); g.lineTo(SOC.W - depth, gTop + 10);
+        g.lineTo(SOC.W - depth, gTop + 10 + post); g.lineTo(SOC.W, gTop + post);
+        g.closePath(); g.fill();
+        g.fillStyle = 'rgba(242,244,247,.75)';
+        g.beginPath();
+        g.moveTo(SOC.W, gBot); g.lineTo(SOC.W - depth, gBot - 10);
+        g.lineTo(SOC.W - depth, gBot - 10 + 3); g.lineTo(SOC.W, gBot + 3);
+        g.closePath(); g.fill();
+      }
+    }
+
+    function drawF1(g, color) {
+      // Local space: nose points +X (matches physics heading). Hitbox still CAR_W x CAR_H.
+      const hw = SOC.CAR_W / 2, hh = SOC.CAR_H / 2;
+
+      // Tires (front toward +X)
+      g.fillStyle = '#1a1a1e';
+      g.fillRect(hw - 14, -hh - 3, 10, 5);   // front-left
+      g.fillRect(hw - 14, hh - 2, 10, 5);    // front-right
+      g.fillRect(-hw + 5, -hh - 3, 11, 5);   // rear-left
+      g.fillRect(-hw + 5, hh - 2, 11, 5);    // rear-right
+      g.fillStyle = 'rgba(255,255,255,.12)';
+      g.fillRect(hw - 12, -hh - 2, 3, 3);
+      g.fillRect(hw - 12, hh - 1, 3, 3);
+
+      // Front wing
+      g.fillStyle = shade(color, -25);
+      g.fillRect(hw - 5, -hh - 1, 7, SOC.CAR_H + 2);
+      g.fillStyle = shade(color, 10);
+      g.fillRect(hw - 4, -hh + 2, 5, 4);
+      g.fillRect(hw - 4, hh - 6, 5, 4);
+
+      // Nose cone
+      g.fillStyle = color;
+      g.beginPath();
+      g.moveTo(hw - 2, -3);
+      g.lineTo(hw - 12, -hh + 5);
+      g.lineTo(hw - 16, -hh + 7);
+      g.lineTo(hw - 16, hh - 7);
+      g.lineTo(hw - 12, hh - 5);
+      g.lineTo(hw - 2, 3);
+      g.closePath(); g.fill();
+
+      // Sidepods + main body
+      g.fillStyle = color;
+      g.beginPath();
+      g.moveTo(hw - 14, -hh + 4);
+      g.lineTo(-hw + 10, -hh + 3);
+      g.lineTo(-hw + 6, -hh + 6);
+      g.lineTo(-hw + 6, hh - 6);
+      g.lineTo(-hw + 10, hh - 3);
+      g.lineTo(hw - 14, hh - 4);
+      g.closePath(); g.fill();
+
+      // Cockpit / halo
+      g.fillStyle = 'rgba(20,22,28,.85)';
+      g.beginPath();
+      g.ellipse(2, 0, 7, 5, 0, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = shade(color, 35);
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(8, -4); g.lineTo(-2, -5); g.lineTo(-2, 5); g.lineTo(8, 4);
+      g.stroke();
+
+      // Engine cover stripe
+      g.fillStyle = shade(color, 20);
+      g.fillRect(-16, -2.5, 12, 5);
+
+      // Rear wing
+      g.fillStyle = shade(color, -30);
+      g.fillRect(-hw + 4, -hh - 2, 4, SOC.CAR_H + 4);
+      g.fillStyle = shade(color, 5);
+      g.fillRect(-hw + 2, -hh + 1, 8, 3);
+      g.fillRect(-hw + 2, hh - 4, 8, 3);
+      g.fillStyle = '#222';
+      g.fillRect(-hw + 7, -hh - 3, 2, 6);
+      g.fillRect(-hw + 7, hh - 3, 2, 6);
+
+      // Accent
+      g.fillStyle = 'rgba(255,255,255,.35)';
+      g.fillRect(hw - 26, -2, 6, 4);
+    }
+
+    function shade(hex, amt) {
+      // Simple hex brighten/darken; falls back to original on parse fail
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      if (!m) return hex;
+      const clamp = (n) => Math.max(0, Math.min(255, n));
+      const r = clamp(parseInt(m[1], 16) + amt);
+      const g = clamp(parseInt(m[2], 16) + amt);
+      const b = clamp(parseInt(m[3], 16) + amt);
+      return `rgb(${r},${g},${b})`;
+    }
+
     function draw() {
       const cv = canvasRef.current;
       if (!cv) return;
@@ -108,25 +277,42 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
       const P2 = css.getPropertyValue('--p2').trim() || '#FF7FA8';
       const CANC = css.getPropertyValue('--candle').trim() || '#FFC66E';
 
+      // Pitch
       g.fillStyle = '#15291B'; g.fillRect(0, 0, SOC.W, SOC.H);
+      // Subtle grass stripes
+      for (let i = 0; i < SOC.W; i += 40) {
+        g.fillStyle = i % 80 === 0 ? 'rgba(255,255,255,.02)' : 'rgba(0,0,0,.04)';
+        g.fillRect(i, 0, 40, SOC.H);
+      }
       g.strokeStyle = 'rgba(255,255,255,.13)'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(SOC.W / 2, 0); g.lineTo(SOC.W / 2, SOC.H); g.stroke();
-      g.beginPath(); g.arc(SOC.W / 2, SOC.H / 2, 60, 0, 7); g.stroke();
-      const gTop = (SOC.H - SOC.GOAL_H) / 2;
-      g.fillStyle = 'rgba(127,168,255,.20)'; g.fillRect(0, gTop, 9, SOC.GOAL_H);
-      g.fillStyle = 'rgba(255,127,168,.20)'; g.fillRect(SOC.W - 9, gTop, 9, SOC.GOAL_H);
+      g.beginPath(); g.arc(SOC.W / 2, SOC.H / 2, 60, 0, Math.PI * 2); g.stroke();
+      // Penalty arcs hint near goals
+      g.beginPath(); g.arc(18, SOC.H / 2, 36, -Math.PI / 2.4, Math.PI / 2.4); g.stroke();
+      g.beginPath(); g.arc(SOC.W - 18, SOC.H / 2, 36, Math.PI - Math.PI / 2.4, Math.PI + Math.PI / 2.4); g.stroke();
+
+      drawGoal(g, 'L', 'rgba(127,168,255,.14)');
+      drawGoal(g, 'R', 'rgba(255,127,168,.14)');
 
       for (const r of ['A', 'B']) {
         const c = st.cars[r];
-        g.save(); g.translate(c.x, c.y); g.rotate(c.a);
-        g.fillStyle = r === 'A' ? P1 : P2;
-        g.fillRect(-SOC.CAR_W / 2, -SOC.CAR_H / 2, SOC.CAR_W, SOC.CAR_H);
-        g.fillStyle = 'rgba(0,0,0,.35)';
-        g.fillRect(SOC.CAR_W / 2 - 9, -SOC.CAR_H / 2 + 3, 6, SOC.CAR_H - 6);
+        g.save();
+        g.translate(c.x, c.y);
+        g.rotate(c.a);
+        drawF1(g, r === 'A' ? P1 : P2);
         g.restore();
       }
-      g.fillStyle = CANC;
-      g.beginPath(); g.arc(st.ball.x, st.ball.y, SOC.BALL_R, 0, 7); g.fill();
+      // Ball with slight highlight
+      const grd = g.createRadialGradient(
+        st.ball.x - 3, st.ball.y - 3, 2,
+        st.ball.x, st.ball.y, SOC.BALL_R
+      );
+      grd.addColorStop(0, '#FFE6A8');
+      grd.addColorStop(1, CANC);
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(st.ball.x, st.ball.y, SOC.BALL_R, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1.5;
+      g.stroke();
     }
 
     return () => { cancelAnimationFrame(raf); clearInterval(net); };

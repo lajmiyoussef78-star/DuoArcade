@@ -145,6 +145,28 @@ export const RULES = {
     tip: 'Trap common filler words \u2014 yes, like, really \u2014 they\u2019re hard to dodge even when you can see them.'
   },
 
+  auctionduel: {
+    goal: 'Win the most title-points by bidding for silly trophies.',
+    how: [
+      'You each start with 100 coins. Eight titles go up one at a time.',
+      'Set a secret bid and Lock \u2014 neither sees the other\u2019s number until both are in.',
+      'Higher bid claims the title; BOTH bids are spent. A tie means you both paid for nothing.',
+      'Most title-points wins the cabinet (then most trophies, then coins left).'
+    ],
+    tip: 'Overbidding wastes coins even when you win \u2014 save ammo for the 3-point titles.'
+  },
+
+  numberfortress: {
+    goal: 'Grow the bigger fortress by bidding points on your answers.',
+    how: [
+      'You each start with 100 points across 10 rounds.',
+      'See only the topic and difficulty, then secretly bid 5\u201330 points on yourself.',
+      'When both lock, the question appears with a 25s timer. Correct = win your bid; wrong/timeout = lose it.',
+      'Highest fortress at the end wins.'
+    ],
+    tip: 'Bid small on hard topics you hate \u2014 overconfidence is expensive.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {

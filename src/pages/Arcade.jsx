@@ -13,6 +13,8 @@ import HomeScreen from '../arcade/HomeScreen.jsx';
 import GameScreen from '../arcade/GameScreen.jsx';
 import WatchScreen from '../arcade/WatchScreen.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
+import PartnerChat from '../arcade/PartnerChat.jsx';
+import SettingsMenu from '../arcade/SettingsMenu.jsx';
 
 const VERSION = 'v11.0-react';
 const DEFAULT_PRESENCE = {
@@ -670,15 +672,26 @@ export default function Arcade() {
     <div className="arcade-page">
       <div className="topbar">
         <Link className="brand h1" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
-        <div className="who">
-          <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
-          <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
-            onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
+        <div className="topbar-right">
+          <div className="who">
+            <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
+            <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
+              onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
+          </div>
+          <SettingsMenu />
         </div>
       </div>
       <div className="sub">play · watch · remember</div>
 
       {screen}
+
+      {duo && code && myRole && syncRef.current?.auth.user()?.id && (
+        <PartnerChat
+          code={code}
+          userId={syncRef.current.auth.user().id}
+          partnerName={myRole === 'A' ? (duo.nameB || 'Partner') : (duo.nameA || 'Partner')}
+        />
+      )}
 
       <InviteOverlay
         duo={duo} myRole={myRole}

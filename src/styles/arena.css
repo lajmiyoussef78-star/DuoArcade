@@ -41,10 +41,14 @@
   transition:border-color .12s ease,transform .18s ease,box-shadow .18s ease}
 .arena-game-choice:hover{transform:translateY(-2px);border-color:var(--p1)}
 .arena-game-choice.on{border-color:var(--candle);box-shadow:0 0 16px color-mix(in srgb,var(--candle) 12%,transparent)}
-.arena-game-art{position:absolute;inset:0;pointer-events:none}
+.arena-game-art{position:absolute;inset:0;pointer-events:none;
+  --night:#191420;--room:#221B2D;--room2:#2B2338;--line:#3D3450;
+  --text:#F2EDF7;--dim:#A99FBC}
 .arena-game-art svg{width:100%;height:100%;display:block}
 .arena-game-shade{position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(90deg,rgba(20,15,26,.82) 0%,rgba(20,15,26,.45) 55%,rgba(20,15,26,.12) 100%)}
+html[data-appearance="light"] .arena-game-shade{
+  background:linear-gradient(90deg,rgba(232,235,243,.96) 0%,rgba(232,235,243,.76) 48%,rgba(232,235,243,.18) 100%)}
 .arena-gname{position:relative;font-size:14px;font-weight:600;line-height:1.25}
 .arena-gtag{position:relative;font-size:11px;color:var(--dim);line-height:1.35}
 .arena-warning,.arena-status{font-size:12px;color:var(--candle);padding:11px 13px;border:1px solid color-mix(in srgb,var(--candle) 35%,transparent);background:color-mix(in srgb,var(--candle) 8%,var(--room));border-radius:11px;margin-top:11px}

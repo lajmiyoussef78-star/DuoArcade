@@ -1,0 +1,61 @@
+/* src/styles/auction.css — Auction Duel: Trophy Cabinet. Inherits DuoArcade theme vars. */
+
+.au-page { max-width: 620px; margin: 0 auto; padding: 20px 14px 50px; color: var(--text); font-family: 'Inter', sans-serif; }
+.au-embedded { padding: 8px 0 20px; }
+
+.au-arena { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.au-hud { display: flex; align-items: center; justify-content: space-between; width: 100%;
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; background: var(--room); }
+.au-coins { display: flex; flex-direction: column; }
+.au-coin-lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.au-coin-val { font-family: 'Fraunces', serif; font-weight: 900; font-size: 20px; color: var(--candle); }
+.au-lotno { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--dim); }
+.au-points { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.au-pts-lbl { color: var(--dim); font-size: 10px; }
+.au-points .pA { color: var(--p1); } .au-points .pB { color: var(--p2); }
+
+.au-lot { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 24px;
+  border: 1px solid var(--candle); border-radius: 18px; background: linear-gradient(180deg, rgba(255,198,110,.08), var(--room) 70%); width: 100%; }
+.au-lot-emoji { font-size: 58px; line-height: 1; }
+.au-lot-name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 21px; text-align: center; }
+.au-lot-pts { font-size: 12px; color: var(--candle); font-family: 'JetBrains Mono', monospace; }
+
+.au-bidbox { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 420px; }
+.au-bidrow { display: flex; align-items: center; gap: 12px; width: 100%; }
+.au-slider { flex: 1; accent-color: var(--candle); }
+.au-biginput { width: 80px; background: var(--room2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); font-size: 16px; padding: 9px 10px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+.au-bidbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.au-waitline { font-size: 12px; color: var(--candle); }
+.au-locked { font-size: 14px; color: var(--dim); text-align: center; padding: 14px; }
+
+.au-reveal { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.au-reveal-bids { display: flex; gap: 20px; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+.au-reveal-bids .pA { color: var(--p1); } .au-reveal-bids .pB { color: var(--p2); }
+.au-reveal-out { font-size: 16px; text-align: center; }
+.au-reveal-out b { font-weight: 700; }
+
+.au-shelf { display: flex; gap: 14px; width: 100%; margin-top: 6px; }
+.au-shelf.big { margin-top: 12px; }
+.au-shelf-col { flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--room); }
+.au-shelf-h { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; text-align: center; margin-bottom: 8px; }
+.au-shelf-h.pA { color: var(--p1); } .au-shelf-h.pB { color: var(--p2); }
+.au-shelf-items { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 32px; align-items: center; }
+.au-trophy { font-size: 26px; }
+.au-shelf.big .au-trophy { font-size: 34px; }
+.au-shelf-empty { font-size: 11px; color: var(--dim); font-style: italic; }
+
+.au-done { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
+.au-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: var(--candle); text-align: center; }
+.au-final { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--dim); }
+
+.au-status { text-align: center; color: var(--dim); padding: 20px; }
+.au-note { text-align: center; font-size: 11.5px; color: var(--dim); margin-top: 8px; }
+
+.au-btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer;
+  font-family: 'Inter', sans-serif; display: inline-block; }
+.au-btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
+.au-btn.ghost { background: transparent; }
+.au-btn.small { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+.au-btn:disabled { opacity: .45; cursor: default; }

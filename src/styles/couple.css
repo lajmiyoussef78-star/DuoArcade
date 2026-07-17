@@ -441,3 +441,36 @@
   50%{transform:translateY(-120px) translateX(7px) scale(1.08);}
   100%{transform:translateY(-240px) translateX(-9px) scale(.9);opacity:0;}
 }
+
+/* ---------- light appearance: softer glows, cleaner surfaces ---------- */
+html[data-appearance="light"] .arcade-page .av.A,
+html[data-appearance="light"] .arcade-page .av.B{
+  box-shadow:0 0 0 2px color-mix(in srgb, currentColor 18%, transparent),
+             0 4px 14px color-mix(in srgb, currentColor 22%, transparent);}
+html[data-appearance="light"] .arcade-page .av.A{border-color:color-mix(in srgb, var(--p1) 70%, var(--line));}
+html[data-appearance="light"] .arcade-page .av.B{border-color:color-mix(in srgb, var(--p2) 70%, var(--line));}
+html[data-appearance="light"] .arcade-page .av-spark{text-shadow:0 0 8px color-mix(in srgb, var(--candle) 40%, transparent);}
+html[data-appearance="light"] .arcade-page .home-stats .hstat .n{text-shadow:none;filter:none;}
+html[data-appearance="light"] .arcade-page .streak-pill{box-shadow:0 2px 10px color-mix(in srgb, var(--candle) 18%, transparent);}
+html[data-appearance="light"] .arcade-page .ms.lit{box-shadow:0 2px 8px color-mix(in srgb, var(--candle) 18%, transparent);}
+html[data-appearance="light"] .ch-av.A,
+html[data-appearance="light"] .ch-av.B{box-shadow:0 2px 8px color-mix(in srgb, currentColor 20%, transparent);}
+html[data-appearance="light"] .ch-label,
+html[data-appearance="light"] .ch-count b,
+html[data-appearance="light"] .ch-apart{text-shadow:none;}
+html[data-appearance="light"] .ch-loc-dot.you,
+html[data-appearance="light"] .ch-loc-dot.partner{box-shadow:none;}
+html[data-appearance="light"] .ch-stars .st{opacity:.1;background:var(--dim);}
+html[data-appearance="light"] .arcade-page .todo-card::before,
+html[data-appearance="light"] .arcade-page .snc::before,
+html[data-appearance="light"] .arcade-page .wbc::before,
+html[data-appearance="light"] .arcade-page .wkc::before,
+html[data-appearance="light"] .ch-hero .ch-stars{
+  opacity:.55;}
+html[data-appearance="light"] .arcade-page .todo-card,
+html[data-appearance="light"] .arcade-page .snc,
+html[data-appearance="light"] .arcade-page .wbc,
+html[data-appearance="light"] .arcade-page .wkc,
+html[data-appearance="light"] .ch-hero{
+  border-color:color-mix(in srgb, var(--line) 80%, var(--candle));
+  box-shadow:0 10px 28px rgba(28,30,42,.06);}

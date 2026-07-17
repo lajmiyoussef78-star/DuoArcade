@@ -6,6 +6,7 @@ import { ENGINES } from '../engines/index.js';
 import { artFor } from '../engines/art.js';
 import { applyTheme } from '../lib/util.js';
 import { ARENA_GAMES, ARENA_GAME_INFO } from '../lib/arenaGames.js';
+import SettingsMenu from '../arcade/SettingsMenu.jsx';
 
 const GAME_CHOICES = ARENA_GAMES;
 
@@ -121,6 +122,7 @@ export default function Arena() {
         <nav>
           <Link to="/app">My duo</Link>
           <span className="on">2v2 Arena</span>
+          <SettingsMenu />
         </nav>
       </header>
 

@@ -9,6 +9,11 @@
 
 .wb-board { position: relative; width: 100%; border: 1px solid var(--line); border-radius: 16px;
   background: #1E1828; overflow: hidden; }
+html[data-appearance="light"] .wb-board {
+  background: #2A2436;
+  border-color: color-mix(in srgb, var(--line) 70%, var(--p1));
+  box-shadow: 0 8px 24px rgba(28,30,42,.1), inset 0 1px 0 rgba(255,255,255,.06);
+}
 .wb-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; touch-action: none; cursor: crosshair; }
 
 .wb-ghost { position: absolute; width: 14px; height: 14px; border-radius: 50%; pointer-events: none;
@@ -59,6 +64,19 @@
 .arcade-page .wbc-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; }
 .arcade-page .wbc-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: #1E1828; color: var(--dim); font-size: 12.5px; font-style: italic; text-align: center; padding: 12px; }
+html[data-appearance="light"] .arcade-page .wbc-preview,
+html[data-appearance="light"] .arcade-page .wbc-empty {
+  background: #2A2436;
+}
+html[data-appearance="light"] .arcade-page .wbc-preview {
+  border-color: color-mix(in srgb, var(--line) 70%, var(--p1));
+  box-shadow: 0 6px 18px rgba(28,30,42,.08);
+}
+html[data-appearance="light"] .arcade-page .wbc-empty {
+  color: #B8AECA;
+}
+html[data-appearance="light"] .wb-av.A { background: var(--p1s); }
+html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
 .arcade-page .wbc-foot { display: flex; justify-content: center; width: 100%; margin: 14px 0 0; padding: 0; box-sizing: border-box; }
 .arcade-page .wbc-foot .btn { display: block; text-decoration: none; padding: 15px 24px; width: 100%;
   text-align: center; box-sizing: border-box; }

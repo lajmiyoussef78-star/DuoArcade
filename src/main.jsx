@@ -9,7 +9,10 @@ import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
 import Week from './pages/Week.jsx';
+import { initAppearance } from './lib/appearance.js';
 import './styles/base.css';
+
+initAppearance();
 import './styles/landing.scoped.css';
 import './styles/arcade.scoped.css';
 import './styles/couple.css';

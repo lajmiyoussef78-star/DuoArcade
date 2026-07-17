@@ -1,2 +1,46 @@
+/* Site-wide tokens + appearance (dark default, light via data-appearance). */
+
+:root,
+html[data-appearance="dark"] {
+  --night: #191420;
+  --room: #221B2D;
+  --room2: #2B2338;
+  --line: #3D3450;
+  --text: #F2EDF7;
+  --dim: #A99FBC;
+  --p1: #7FA8FF;
+  --p1s: #2A3252;
+  --p2: #FF7FA8;
+  --p2s: #4A2A3A;
+  --candle: #FFC66E;
+  --candles: #4A3A1E;
+  --good: #6FDCA8;
+  --shadow: rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+html[data-appearance="light"] {
+  --night: #D8DCE8;
+  --room: #E8EBF3;
+  --room2: #D2D7E4;
+  --line: #B4BBCD;
+  --text: #1F2330;
+  --dim: #545C70;
+  --p1: #3B6FD4;
+  --p1s: #C5D4F5;
+  --p2: #D94478;
+  --p2s: #F0C4D4;
+  --candle: #B87A1C;
+  --candles: #E8D4A8;
+  --good: #168A5E;
+  --shadow: rgba(28, 30, 42, 0.14);
+  color-scheme: light;
+}
+
 html { scroll-behavior: smooth; }
-body { margin: 0; background: #191420; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--text);
+  transition: background-color .2s ease, color .2s ease;
+}

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import SettingsMenu from '../arcade/SettingsMenu.jsx';
 
 const GAMES = [
   { icon: '●▌', tint: 'p2', name: 'Duo Pong', desc: 'Real-time. First to 7. The ball speeds up — so do the arguments.', rec: 'live physics, no turns' },
@@ -21,7 +22,10 @@ export default function Landing() {
       <div className="wrap">
         <nav>
           <Link className="logo" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
-          <Link className="btn warm" to="/app">Open the arcade</Link>
+          <div className="nav-right">
+            <SettingsMenu />
+            <Link className="btn warm" to="/app">Open the arcade</Link>
+          </div>
         </nav>
 
         <div className="hero">

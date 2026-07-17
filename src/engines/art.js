@@ -590,13 +590,40 @@ export const ART = {
     <rect x="28" y="28" width="184" height="86" rx="8" fill="#15291B" stroke="var(--line)" stroke-width="2"/>
     <path d="M120 28 V114" stroke="rgba(255,255,255,.2)" stroke-width="2"/>
     <circle cx="120" cy="71" r="16" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"/>
-    <rect x="28" y="52" width="6" height="38" fill="var(--p1)" opacity=".45"/>
-    <rect x="206" y="52" width="6" height="38" fill="var(--p2)" opacity=".45"/>
+    <!-- Left goal: posts + net -->
+    <path d="M28 52 L40 56 L40 86 L28 90 Z" fill="var(--p1)" opacity=".18"/>
+    <path d="M28 52 L40 56 M28 60 L40 63 M28 68 L40 70 M28 76 L40 77 M28 84 L40 84 M28 90 L40 86"
+          stroke="rgba(230,235,240,.35)" stroke-width="0.8" fill="none"/>
+    <rect x="28" y="50" width="3" height="42" fill="#F2F4F7"/>
+    <rect x="37" y="56" width="3" height="30" fill="#F2F4F7"/>
+    <path d="M28 52 L40 56 L40 58 L28 54 Z" fill="#F2F4F7"/>
+    <!-- Right goal -->
+    <path d="M212 52 L200 56 L200 86 L212 90 Z" fill="var(--p2)" opacity=".18"/>
+    <path d="M212 52 L200 56 M212 60 L200 63 M212 68 L200 70 M212 76 L200 77 M212 84 L200 84 M212 90 L200 86"
+          stroke="rgba(230,235,240,.35)" stroke-width="0.8" fill="none"/>
+    <rect x="209" y="50" width="3" height="42" fill="#F2F4F7"/>
+    <rect x="200" y="56" width="3" height="30" fill="#F2F4F7"/>
+    <path d="M212 52 L200 56 L200 58 L212 54 Z" fill="#F2F4F7"/>
     <g class="msc-carA">
-      <rect x="52" y="64" width="28" height="14" rx="3" fill="var(--p1)"/>
+      <!-- F1 top-down: nose left, rear wing right -->
+      <rect x="50" y="62" width="5" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="50" y="77" width="5" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="70" y="61" width="6" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="70" y="78" width="6" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="48" y="64" width="4" height="14" rx="1" fill="var(--p1)"/>
+      <path d="M52 68 L62 65 L68 66 L68 76 L62 77 L52 74 Z" fill="var(--p1)"/>
+      <ellipse cx="62" cy="71" rx="3.5" ry="2.5" fill="rgba(20,22,28,.85)"/>
+      <rect x="72" y="63" width="3" height="16" rx="0.5" fill="var(--p1)" opacity=".85"/>
     </g>
     <g class="msc-carB">
-      <rect x="160" y="64" width="28" height="14" rx="3" fill="var(--p2)"/>
+      <rect x="185" y="62" width="5" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="185" y="77" width="5" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="164" y="61" width="6" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="164" y="78" width="6" height="3" rx="1" fill="#1a1a1e"/>
+      <rect x="188" y="64" width="4" height="14" rx="1" fill="var(--p2)"/>
+      <path d="M188 68 L178 65 L172 66 L172 76 L178 77 L188 74 Z" fill="var(--p2)"/>
+      <ellipse cx="178" cy="71" rx="3.5" ry="2.5" fill="rgba(20,22,28,.85)"/>
+      <rect x="165" y="63" width="3" height="16" rx="0.5" fill="var(--p2)" opacity=".85"/>
     </g>
     <circle class="msc-ball" cx="120" cy="71" r="7" fill="var(--candle)" filter="url(#msc-glow)"/>
     ${sparks('msc', [[44, 40, 1.5, 'var(--p1)'], [196, 100, 1.5, 'var(--p2)']])}`,
@@ -627,6 +654,66 @@ export const ART = {
      .md-mole2 { animation: md-pop 1.8s ease-in-out .6s infinite; transform-box: fill-box; transform-origin: 52px 60px; }
      @keyframes md-pop { 0%,100% { transform: translateY(10px); opacity: .35 } 40%,60% { transform: translateY(0); opacity: 1 } }
      ${sparkAnim('md', 2)}`),
+
+  /* ─── Auction Duel: trophy cabinet + coins ─── */
+  auctionduel: scene('auc', '', `
+    <g class="auc-podium">
+      <rect x="70" y="78" width="100" height="28" rx="4" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>
+      <rect x="96" y="62" width="48" height="16" rx="3" fill="var(--candle)" opacity=".35"/>
+    </g>
+    <g class="auc-trophy">
+      <circle cx="120" cy="48" r="16" fill="var(--candle)" filter="url(#auc-glow)" opacity=".9"/>
+      <path d="M112 42 Q120 34 128 42" stroke="var(--night)" stroke-width="2" fill="none"/>
+      <rect x="116" y="54" width="8" height="10" rx="1" fill="var(--candle)"/>
+      <rect x="110" y="62" width="20" height="4" rx="1" fill="var(--candle)"/>
+    </g>
+    <g class="auc-coinL">
+      <circle cx="48" cy="70" r="12" fill="var(--p1)" opacity=".85"/>
+      <text x="48" y="74" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="11" fill="var(--night)">$</text>
+    </g>
+    <g class="auc-coinR">
+      <circle cx="192" cy="70" r="12" fill="var(--p2)" opacity=".85"/>
+      <text x="192" y="74" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="11" fill="var(--night)">$</text>
+    </g>
+    <g font-family="'JetBrains Mono',monospace" font-weight="700" font-size="10" fill="var(--dim)">
+      <text x="48" y="98" text-anchor="middle">bid?</text>
+      <text x="192" y="98" text-anchor="middle">bid?</text>
+    </g>
+    ${sparks('auc', [[88, 28, 1.5, 'var(--candle)'], [152, 32, 1.4, 'var(--p1)'], [120, 110, 1.5, 'var(--p2)']])}`,
+    `.auc-trophy { animation: auc-bob 2.4s ease-in-out infinite; }
+     @keyframes auc-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     .auc-coinL { animation: auc-flip 2.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+     .auc-coinR { animation: auc-flip 2.8s ease-in-out .5s infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes auc-flip { 0%,100% { transform: scaleX(1) } 50% { transform: scaleX(.55) } }
+     ${sparkAnim('auc', 3)}`),
+
+  /* ─── Number Fortress: IQ bids + towers ─── */
+  numberfortress: scene('nf', '', `
+    <g class="nf-towerA">
+      <rect x="48" y="70" width="36" height="40" rx="4" fill="var(--p1)" opacity=".85"/>
+      <rect x="54" y="58" width="24" height="14" rx="3" fill="var(--p1)"/>
+      <rect x="60" y="48" width="12" height="12" rx="2" fill="var(--p1)"/>
+    </g>
+    <g class="nf-towerB">
+      <rect x="156" y="78" width="36" height="32" rx="4" fill="var(--p2)" opacity=".85"/>
+      <rect x="162" y="68" width="24" height="12" rx="3" fill="var(--p2)"/>
+    </g>
+    <g class="nf-chip">
+      <rect x="88" y="36" width="64" height="22" rx="11" fill="var(--room2)" stroke="var(--candle)" stroke-width="2"/>
+      <text x="120" y="51" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="11" fill="var(--candle)">bid 15</text>
+    </g>
+    <g font-family="'Fraunces',serif" font-weight="900" font-size="18" fill="var(--candle)">
+      <text class="nf-qmark" x="120" y="100" text-anchor="middle">?</text>
+    </g>
+    ${sparks('nf', [[72, 30, 1.4, 'var(--p1)'], [168, 40, 1.5, 'var(--p2)'], [120, 118, 1.4, 'var(--candle)']])}`,
+    `.nf-towerA { animation: nf-grow 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; }
+     .nf-towerB { animation: nf-grow 2.6s ease-in-out .4s infinite; transform-box: fill-box; transform-origin: bottom; }
+     @keyframes nf-grow { 0%,100% { transform: scaleY(1) } 50% { transform: scaleY(1.08) } }
+     .nf-chip { animation: nf-pulse 2.2s ease-in-out infinite; }
+     @keyframes nf-pulse { 0%,100% { opacity: .75 } 50% { opacity: 1 } }
+     .nf-qmark { animation: nf-bob 2s ease-in-out infinite; }
+     @keyframes nf-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     ${sparkAnim('nf', 3)}`),
 
   /* ─── Forbidden Words: trap words in a Q&A ─── */
   forbiddenwords: scene('fw', '', `

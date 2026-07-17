@@ -1,14 +1,10 @@
-:root{
-    --night:#191420; --room:#221B2D; --room2:#2B2338; --line:#3D3450;
-    --text:#F2EDF7; --dim:#A99FBC;
-    --p1:#7FA8FF; --p1s:#2A3252; --p2:#FF7FA8; --p2s:#4A2A3A;
-    --candle:#FFC66E; --candles:#4A3A1E; --good:#6FDCA8;
-  }
+/* Surface tokens live in base.css (dark/light via data-appearance). */
 .landing-page, .landing-page *{box-sizing:border-box;margin:0;padding:0;}
 .landing-page{background:var(--night);color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;}
 .landing-page .wrap{max-width:960px;margin:0 auto;padding:0 22px;}
 .landing-page h1, .landing-page h2, .landing-page h3{font-family:'Fraunces',serif;line-height:1.08;}
-.landing-page nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;}
+.landing-page nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;gap:12px;}
+.landing-page .nav-right{display:flex;align-items:center;gap:10px;}
 .landing-page .logo{font-family:'Fraunces',serif;font-weight:900;font-size:21px;text-decoration:none;}
 .landing-page .logo .a{color:var(--p1);}
 .landing-page .logo .b{color:var(--p2);}

@@ -1,0 +1,162 @@
+/* Number Fortress — DuoArcade theme. Prefixed for .arcade-page * reset. */
+
+.arcade-page .nf-root {
+  max-width: 560px; margin: 0 auto; padding: 8px 0 20px;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+}
+.arcade-page .nf-top {
+  display: flex; gap: 12px; align-items: stretch; margin-bottom: 18px; padding: 0;
+}
+.arcade-page .nf-fort {
+  flex: 1; background: var(--room); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 12px; margin: 0;
+}
+.arcade-page .nf-fort-mine { border-color: color-mix(in srgb, var(--candle) 45%, var(--line)); }
+.arcade-page .nf-fort-label { font-size: 12px; color: var(--dim); margin: 0; padding: 0; }
+.arcade-page .nf-fort-value {
+  font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700;
+  display: flex; gap: 8px; align-items: baseline; margin: 0; padding: 0;
+}
+.arcade-page .nf-delta { font-size: 13px; font-weight: 600; animation: nf-pop .3s ease; margin: 0; padding: 0; }
+.arcade-page .nf-up { color: var(--good); }
+.arcade-page .nf-down { color: #ff6b6b; }
+.arcade-page .nf-fort-bar {
+  height: 5px; border-radius: 3px; background: var(--room2);
+  margin-top: 8px; overflow: hidden; padding: 0;
+}
+.arcade-page .nf-fort-fill {
+  height: 100%; border-radius: 3px; margin: 0; padding: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--candle) 45%, transparent), var(--candle));
+  transition: width .5s ease;
+}
+.arcade-page .nf-round {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 56px; margin: 0; padding: 0;
+}
+.arcade-page .nf-round-n {
+  font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700;
+  color: var(--candle); margin: 0; padding: 0;
+}
+.arcade-page .nf-round-l {
+  font-size: 10px; color: var(--dim); text-transform: uppercase;
+  letter-spacing: .1em; margin: 0; padding: 0;
+}
+
+.arcade-page .nf-center {
+  background: var(--room); border: 1px solid var(--line);
+  border-radius: 18px; padding: 26px 20px; margin: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  animation: nf-in .25s ease;
+}
+@keyframes nf-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes nf-pop { from { transform: scale(.5); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .arcade-page .nf-center, .arcade-page .nf-delta { animation: none; }
+}
+
+.arcade-page .nf-title {
+  font-family: 'Fraunces', serif; font-size: 22px; font-weight: 800;
+  text-align: center; margin: 0; padding: 0; color: var(--candle);
+}
+.arcade-page .nf-sub {
+  font-size: 13px; color: var(--dim); text-align: center;
+  max-width: 380px; margin: 0; padding: 0;
+}
+.arcade-page .nf-final {
+  font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700;
+  color: var(--text); margin: 0; padding: 0;
+}
+
+.arcade-page .nf-topic-chip {
+  background: color-mix(in srgb, var(--candle) 12%, transparent);
+  color: var(--candle); border: 1px solid color-mix(in srgb, var(--candle) 35%, var(--line));
+  border-radius: 20px; padding: 5px 14px; margin: 0;
+  font-size: 13px; font-weight: 600;
+}
+.arcade-page .nf-stars { color: var(--candle); letter-spacing: 4px; font-size: 16px; margin: 0; padding: 0; }
+
+.arcade-page .nf-bid-value {
+  font-family: 'Fraunces', serif; font-size: 30px; font-weight: 800;
+  color: var(--candle); margin: 0; padding: 0;
+}
+.arcade-page .nf-slider { width: 100%; max-width: 300px; accent-color: var(--candle); margin: 0; }
+.arcade-page .nf-slider-scale {
+  width: 100%; max-width: 300px; display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--dim); margin: 0; padding: 0;
+}
+
+.arcade-page .nf-btn {
+  background: var(--candle); color: #2a1e05; border: none; cursor: pointer;
+  border-radius: 12px; padding: 11px 26px; margin: 0;
+  font-size: 14px; font-weight: 700; font-family: 'Inter', system-ui, sans-serif;
+  transition: transform .12s ease;
+}
+.arcade-page .nf-btn:hover { transform: scale(1.04); }
+
+.arcade-page .nf-wait { font-size: 14px; color: var(--dim); text-align: center; margin: 0; padding: 0; }
+.arcade-page .nf-wait-sm { font-size: 12px; color: var(--dim); margin: 0; padding: 0; }
+.arcade-page .nf-dots i { animation: nf-blink 1.2s infinite; font-style: normal; }
+.arcade-page .nf-dots i:nth-child(2) { animation-delay: .2s; }
+.arcade-page .nf-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes nf-blink { 0%, 60%, 100% { opacity: .2; } 30% { opacity: 1; } }
+
+.arcade-page .nf-timerbar {
+  width: 100%; height: 5px; background: var(--room2);
+  border-radius: 3px; overflow: hidden; margin: 0; padding: 0;
+}
+.arcade-page .nf-timerfill {
+  height: 100%; margin: 0; padding: 0;
+  background: linear-gradient(90deg, #ff6b6b, var(--good));
+  transition: width 1s linear;
+}
+
+.arcade-page .nf-question {
+  font-size: 17px; font-weight: 600; text-align: center;
+  line-height: 1.5; margin: 0; padding: 0;
+}
+.arcade-page .nf-question-sm {
+  font-size: 14px; color: var(--dim); font-weight: 500; margin: 0; padding: 0;
+}
+
+.arcade-page .nf-opts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;
+  margin: 0; padding: 0;
+}
+@media (max-width: 420px) {
+  .arcade-page .nf-opts { grid-template-columns: 1fr; }
+}
+.arcade-page .nf-opt {
+  background: var(--room2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 12px; padding: 13px 12px; margin: 0; font-size: 14px; cursor: pointer;
+  transition: border-color .12s, transform .12s;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  text-align: left; font-family: 'Inter', system-ui, sans-serif;
+}
+.arcade-page .nf-opt:hover:not(:disabled):not(.nf-opt-static) {
+  border-color: color-mix(in srgb, var(--candle) 50%, var(--line));
+  transform: translateY(-1px);
+}
+.arcade-page .nf-opt:disabled { cursor: default; opacity: .7; }
+.arcade-page .nf-opt-picked {
+  border-color: var(--candle);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--candle) 20%, transparent);
+  opacity: 1 !important;
+}
+.arcade-page .nf-opt-static { cursor: default; }
+.arcade-page .nf-opt-correct {
+  border-color: var(--good);
+  background: color-mix(in srgb, var(--good) 12%, var(--room2));
+}
+.arcade-page .nf-opt-wrong {
+  border-color: rgba(255,92,92,.5);
+  background: rgba(255,92,92,.07);
+}
+.arcade-page .nf-tags { display: flex; gap: 5px; margin: 0; padding: 0; }
+.arcade-page .nf-tags em {
+  font-style: normal; font-size: 10px; font-weight: 700;
+  background: var(--room); color: var(--dim);
+  border-radius: 8px; padding: 2px 7px; margin: 0; white-space: nowrap;
+}
+.arcade-page .nf-reveal-line { font-size: 13px; font-weight: 600; margin: 0; padding: 0; }

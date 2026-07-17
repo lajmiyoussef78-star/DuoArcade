@@ -248,14 +248,9 @@ export default function HomeScreen({
                   style={{ position: 'relative', overflow: 'hidden', minHeight: 104 }}>
                   {artFor(id) && (
                     <>
-                      <div aria-hidden="true"
-                        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+                      <div className="gcard-art" aria-hidden="true"
                         dangerouslySetInnerHTML={{ __html: artFor(id) }} />
-                      <div aria-hidden="true"
-                        style={{
-                          position: 'absolute', inset: 0, pointerEvents: 'none',
-                          background: 'linear-gradient(90deg, rgba(20,15,26,.82) 0%, rgba(20,15,26,.45) 55%, rgba(20,15,26,.12) 100%)'
-                        }} />
+                      <div className="gcard-veil" aria-hidden="true" />
                     </>
                   )}
                   <div className="gname" style={{ position: 'relative' }}>{eng.meta.name}</div>
@@ -292,14 +287,9 @@ export default function HomeScreen({
                 style={{ position: 'relative', overflow: 'hidden', minHeight: 104 }}>
                 {artFor(eng.meta.id) && (
                   <>
-                    <div aria-hidden="true"
-                      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+                    <div className="gcard-art" aria-hidden="true"
                       dangerouslySetInnerHTML={{ __html: artFor(eng.meta.id) }} />
-                    <div aria-hidden="true"
-                      style={{
-                        position: 'absolute', inset: 0, pointerEvents: 'none',
-                        background: 'linear-gradient(90deg, rgba(20,15,26,.82) 0%, rgba(20,15,26,.45) 55%, rgba(20,15,26,.12) 100%)'
-                      }} />
+                    <div className="gcard-veil" aria-hidden="true" />
                   </>
                 )}
                 <div className="gname" style={{ position: 'relative' }}>{eng.meta.name}</div>

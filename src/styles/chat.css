@@ -1,0 +1,422 @@
+/* Partner chat — floating FAB + panel.
+   Prefixed with .arcade-page so padding/margin beat the global
+   `.arcade-page * { padding:0; margin:0 }` reset. */
+
+.arcade-page .pc-fab {
+  position: fixed; bottom: 22px; right: 22px; z-index: 1000;
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--room2);
+  color: var(--candle);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0,0,0,.45);
+  transition: transform .18s ease, box-shadow .18s ease, color .15s ease;
+  margin: 0; padding: 0;
+}
+html[data-appearance="light"] .arcade-page .pc-fab {
+  background: var(--room);
+  border-color: color-mix(in srgb, var(--candle) 35%, var(--line));
+  box-shadow: 0 10px 28px rgba(28,30,42,.16);
+}
+html[data-appearance="light"] .arcade-page .pc-panel {
+  box-shadow: 0 18px 48px rgba(28,30,42,.16);
+}
+.arcade-page .pc-fab:hover { transform: translateY(-2px) scale(1.04); color: var(--text); }
+.arcade-page .pc-fab:focus-visible { outline: 2px solid var(--candle); outline-offset: 3px; }
+.arcade-page .pc-fab-open { color: var(--dim); }
+
+.arcade-page .pc-badge {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: 11px;
+  background: var(--candle); color: #2a1e05;
+  font: 700 12px/22px 'Inter', system-ui, sans-serif;
+  text-align: center;
+  animation: pc-pop .25s ease;
+  margin: 0;
+}
+@keyframes pc-pop { from { transform: scale(.4); } to { transform: scale(1); } }
+
+.arcade-page .pc-panel {
+  position: fixed; bottom: 92px; right: 22px; z-index: 999;
+  width: min(370px, calc(100vw - 32px));
+  height: min(540px, calc(100vh - 130px));
+  display: flex; flex-direction: column;
+  background: var(--room);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+  opacity: 0; transform: translateY(14px) scale(.97);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-panel-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .arcade-page .pc-panel, .arcade-page .pc-fab, .arcade-page .pc-badge { transition: none; animation: none; }
+}
+
+@media (max-width: 720px) {
+  .arcade-page .pc-fab { bottom: 78px; right: 14px; }
+  .arcade-page .pc-panel { bottom: 146px; right: 14px; height: min(480px, calc(100vh - 200px)); }
+}
+
+.arcade-page .pc-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--candle) 8%, transparent), transparent);
+}
+.arcade-page .pc-avatar {
+  position: relative; width: 38px; height: 38px; border-radius: 50%;
+  background: color-mix(in srgb, var(--p2) 22%, var(--room2));
+  color: var(--p2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px;
+  border: 1px solid var(--line);
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-dot {
+  position: absolute; bottom: 0; right: 0;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--dim); border: 2px solid var(--room);
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-dot-on { background: var(--good); box-shadow: 0 0 8px color-mix(in srgb, var(--good) 55%, transparent); }
+.arcade-page .pc-header-text { flex: 1; min-width: 0; margin: 0; padding: 0; }
+.arcade-page .pc-name { color: var(--text); font-weight: 600; font-size: 14px; margin: 0; padding: 0; }
+.arcade-page .pc-status { color: var(--dim); font-size: 12px; margin: 0; padding: 0; }
+.arcade-page .pc-hbtn,
+.arcade-page .pc-min {
+  background: none; border: none; color: var(--dim); cursor: pointer;
+  padding: 7px; border-radius: 9px; margin: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.arcade-page .pc-hbtn:hover:not(:disabled),
+.arcade-page .pc-min:hover { color: var(--candle); background: var(--room2); }
+.arcade-page .pc-hbtn:disabled { opacity: .35; cursor: default; }
+
+.arcade-page .pc-callerror {
+  padding: 8px 14px; margin: 0;
+  font-size: 12px; color: #ff6b6b;
+  background: rgba(255, 92, 92, .08);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 92, 92, .15);
+}
+
+.arcade-page .pc-list {
+  flex: 1; overflow-y: auto;
+  padding: 20px 22px 14px;
+  margin: 0;
+  display: flex; flex-direction: column; gap: 10px;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.arcade-page .pc-empty {
+  color: var(--dim); font-size: 13px; text-align: center;
+  margin: auto; padding: 0;
+}
+
+.arcade-page .pc-row {
+  display: flex; flex-direction: column;
+  max-width: 78%;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-mine {
+  align-self: flex-end; align-items: flex-end;
+  margin-right: 2px;
+}
+.arcade-page .pc-theirs {
+  align-self: flex-start; align-items: flex-start;
+  margin-left: 2px;
+}
+.arcade-page .pc-grouped { margin-top: -4px; }
+
+.arcade-page .pc-system {
+  align-self: center; align-items: center;
+  max-width: 100%; margin: 4px 0; padding: 0;
+}
+.arcade-page .pc-sys {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; margin: 0;
+  border-radius: 999px;
+  background: var(--room2);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 12px; font-weight: 600;
+}
+.arcade-page .pc-sys-icon {
+  display: flex; color: #ff6b6b; margin: 0; padding: 0;
+}
+.arcade-page .pc-sys-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500; font-size: 10.5px;
+  opacity: .85; margin: 0; padding: 0;
+}
+
+.arcade-page .pc-bubble {
+  padding: 9px 14px;
+  margin: 0;
+  border-radius: 16px;
+  font-size: 14px; line-height: 1.45; color: var(--text);
+  word-wrap: break-word; white-space: pre-wrap;
+  display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: flex-end;
+}
+.arcade-page .pc-bubble-img {
+  flex-direction: column; align-items: flex-start; padding: 6px;
+}
+.arcade-page .pc-bubble-img .pc-meta {
+  align-self: flex-end; padding: 0 6px 2px 0;
+}
+.arcade-page .pc-img {
+  max-width: 100%; max-height: 240px; border-radius: 12px;
+  cursor: zoom-in; display: block; margin: 0; padding: 0;
+}
+.arcade-page .pc-mine .pc-bubble {
+  background: color-mix(in srgb, var(--p1) 22%, var(--room2));
+  border: 1px solid color-mix(in srgb, var(--p1) 35%, transparent);
+  border-bottom-right-radius: 6px;
+}
+.arcade-page .pc-theirs .pc-bubble {
+  background: var(--room2);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 6px;
+}
+.arcade-page .pc-bubble-failed { opacity: .55; }
+
+.arcade-page .pc-meta {
+  font-size: 10.5px; color: var(--dim);
+  display: inline-flex; gap: 3px; align-items: center;
+  transform: translateY(2px);
+  font-family: 'JetBrains Mono', monospace;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-receipt { font-size: 11px; letter-spacing: -2px; margin: 0; padding: 0; }
+.arcade-page .pc-delivered { color: var(--dim); }
+.arcade-page .pc-failed { color: #ff6b6b; }
+.arcade-page .pc-seen {
+  font-size: 11px; color: var(--good);
+  margin-top: 3px; margin-bottom: 0; margin-left: 0; margin-right: 0;
+  padding: 0; opacity: .85;
+}
+
+.arcade-page .pc-typing { min-width: 52px; justify-content: center; gap: 4px; padding: 12px; }
+.arcade-page .pc-typing span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--dim);
+  animation: pc-bounce 1.2s infinite;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-typing span:nth-child(2) { animation-delay: .15s; }
+.arcade-page .pc-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes pc-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+.arcade-page .pc-attach {
+  position: relative;
+  margin: 0 16px 6px;
+  align-self: flex-start;
+  padding: 0;
+}
+.arcade-page .pc-attach img {
+  height: 72px; border-radius: 10px; display: block;
+  border: 1px solid var(--line); margin: 0; padding: 0;
+}
+.arcade-page .pc-attach button {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: none; background: var(--room2); color: var(--text);
+  font-size: 11px; cursor: pointer; line-height: 1;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-attach-loading {
+  position: absolute; inset: 0; border-radius: 10px;
+  background: rgba(0,0,0,.55); color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; margin: 0; padding: 0;
+}
+
+.arcade-page .pc-inputbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px 14px;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.arcade-page .pc-attachbtn {
+  background: none; border: none; color: var(--dim); cursor: pointer;
+  padding: 8px; border-radius: 10px; margin: 0;
+  display: flex; flex-shrink: 0; align-items: center; justify-content: center;
+}
+.arcade-page .pc-attachbtn:hover { color: var(--candle); background: var(--room2); }
+
+/* Instant camera capture */
+.arcade-page .pc-snap {
+  position: fixed; inset: 0; z-index: 1003;
+  background: rgba(10, 8, 16, .78);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; margin: 0;
+}
+.arcade-page .pc-snap-frame {
+  width: min(420px, 100%);
+  background: var(--room);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-snap-video {
+  width: 100%; height: min(360px, 55vh);
+  object-fit: cover; display: block;
+  background: var(--night);
+  transform: scaleX(-1); /* mirror selfie */
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-snap-actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 12px 14px; margin: 0;
+  border-top: 1px solid var(--line);
+}
+.arcade-page .pc-btn {
+  font-weight: 600; font-size: 13px; padding: 9px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text);
+  cursor: pointer; margin: 0; font-family: 'Inter', system-ui, sans-serif;
+}
+.arcade-page .pc-btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
+.arcade-page .pc-btn.ghost { background: transparent; }
+.arcade-page .pc-inputbar input[type="text"],
+.arcade-page .pc-inputbar input:not([type]) {
+  flex: 1; min-width: 0;
+  background: var(--room2); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 16px; margin: 0;
+  color: var(--text); font-size: 14px; outline: none;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.arcade-page .pc-inputbar input:focus { border-color: color-mix(in srgb, var(--candle) 55%, var(--line)); }
+.arcade-page .pc-inputbar input::placeholder { color: var(--dim); }
+.arcade-page .pc-send {
+  flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: 14px; border: none; cursor: pointer;
+  background: var(--candle); color: #2a1e05;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; margin: 0;
+  transition: opacity .15s, transform .15s;
+}
+.arcade-page .pc-send svg { display: block; margin: 0 0 0 1px; padding: 0; }
+.arcade-page .pc-send:hover:not(:disabled) { transform: scale(1.05); }
+.arcade-page .pc-send:disabled { opacity: .35; cursor: default; }
+
+/* ---------- Call window ---------- */
+.arcade-page .pc-call {
+  position: fixed; top: 24px; right: 24px; z-index: 1001;
+  width: min(320px, calc(100vw - 32px));
+  background: var(--room);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.6);
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  animation: pc-pop .2s ease;
+  margin: 0; padding: 0;
+  touch-action: none;
+  user-select: none;
+}
+.arcade-page .pc-call-dragging { box-shadow: 0 22px 56px rgba(0,0,0,.7); cursor: grabbing; }
+.arcade-page .pc-call-drag {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; margin: 0;
+  background: color-mix(in srgb, var(--room2) 80%, var(--night));
+  border-bottom: 1px solid var(--line);
+  cursor: grab;
+}
+.arcade-page .pc-call-dragging .pc-call-drag { cursor: grabbing; }
+.arcade-page .pc-call-draggrip {
+  width: 18px; height: 10px; margin: 0; padding: 0;
+  background:
+    radial-gradient(circle, var(--dim) 1.2px, transparent 1.3px) 0 0 / 6px 5px,
+    radial-gradient(circle, var(--dim) 1.2px, transparent 1.3px) 0 5px / 6px 5px;
+  opacity: .7; flex-shrink: 0;
+}
+.arcade-page .pc-call-draglabel {
+  font-size: 12px; color: var(--dim); font-weight: 600;
+  letter-spacing: .02em; margin: 0; padding: 0;
+}
+.arcade-page .pc-call-media {
+  position: relative; background: var(--night);
+  margin: 0; padding: 0; cursor: grab;
+}
+.arcade-page .pc-call-dragging .pc-call-media { cursor: grabbing; }
+.arcade-page .pc-video-remote {
+  width: 100%; height: 220px; object-fit: cover; display: block;
+  background: var(--night); margin: 0; padding: 0;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+.arcade-page .pc-video-local {
+  position: absolute; bottom: 10px; right: 10px;
+  width: 84px; height: 63px; object-fit: cover;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: var(--night); margin: 0; padding: 0;
+  pointer-events: none;
+  transform: translateZ(0) scaleX(-1);
+}
+.arcade-page .pc-video-off { opacity: .25; }
+.arcade-page .pc-call-audioface {
+  height: 180px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-call-ringing {
+  padding: 26px 16px 18px; margin: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.arcade-page .pc-call-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: color-mix(in srgb, var(--p2) 22%, var(--room2));
+  color: var(--p2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 26px;
+  border: 1px solid var(--line); margin: 0; padding: 0;
+}
+.arcade-page .pc-ring-anim { animation: pc-ring 1.4s infinite; }
+@keyframes pc-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--candle) 35%, transparent); }
+  50% { box-shadow: 0 0 0 14px transparent; }
+}
+.arcade-page .pc-call-name { color: var(--text); font-weight: 600; font-size: 15px; margin: 0; padding: 0; }
+.arcade-page .pc-call-sub { color: var(--dim); font-size: 12px; margin: 0; padding: 0; }
+.arcade-page .pc-call-actions {
+  display: flex; justify-content: center; gap: 14px;
+  padding: 14px; margin: 0;
+}
+.arcade-page .pc-cbtn {
+  width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--room2); color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .12s ease, background .12s ease;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-cbtn:hover { transform: scale(1.06); }
+.arcade-page .pc-cbtn-active { background: var(--candle); color: #2a1e05; }
+.arcade-page .pc-cbtn-accept { background: var(--good); color: #0c1208; }
+.arcade-page .pc-cbtn-end { background: #ff5c5c; color: #fff; }
+
+.arcade-page .pc-lightbox {
+  position: fixed; inset: 0; z-index: 1002;
+  background: rgba(5,7,14,.88);
+  display: flex; align-items: center; justify-content: center;
+  cursor: zoom-out; animation: pc-fade .15s ease;
+  margin: 0; padding: 0;
+}
+.arcade-page .pc-lightbox img {
+  max-width: 92vw; max-height: 92vh; border-radius: 12px;
+  margin: 0; padding: 0;
+}
+@keyframes pc-fade { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 720px) {
+  .arcade-page .pc-call { top: 16px; right: 14px; }
+}
