@@ -10,10 +10,8 @@ import '../styles/soccer.css';
 
 export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }) {
   const role = myRole;
-  const [phase, setPhase] = useState('lobby');   // lobby | countdown | live | done
-  const [myReady, setMyReady] = useState(false);
-  const [theirReady, setTheirReady] = useState(false);
-  const [count, setCount] = useState(3);
+  // Shell already ran ready + 3s countdown — kick off as soon as we mount.
+  const [phase, setPhase] = useState('live');   // live | done
   const [hud, setHud] = useState({ A: 0, B: 0, t: MATCH_SECONDS });
   const [result, setResult] = useState(null);
 
@@ -23,54 +21,43 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
   const guestKeys = useRef({});
   const startedRef = useRef(false);
   const endedRef = useRef(false);
-  const phaseRef = useRef('lobby');
+  const phaseRef = useRef('live');
   phaseRef.current = phase;
-  const endAtRef = useRef(0);
+  const endAtRef = useRef(Date.now() + MATCH_SECONDS * 1000);
   const finishedRef = useRef(false);
+
+  function beginMatch(endAt) {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    endAtRef.current = endAt;
+    stRef.current = socInitial();
+    setHud({ A: 0, B: 0, t: MATCH_SECONDS });
+    setPhase('live');
+  }
 
   useEffect(() => {
     if (!rt?.on) return;
     rt.on(m => {
       if (!m || !m.k) return;
-      if (m.k === 'ready') setTheirReady(m.v);
-      else if (m.k === 'start') beginCountdown(m.endAt);
+      if (m.k === 'start') beginMatch(m.endAt);
       else if (m.k === 'st') { stRef.current = m.st; }
       else if (m.k === 'in') { guestKeys.current = m.keys; }
       else if (m.k === 'over') finish(m.winner, false);
     });
   }, [rt]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function pressReady() {
-    const v = !myReady;
-    setMyReady(v);
-    rt?.send({ k: 'ready', v });
-  }
-
+  // Host publishes match clock; guest waits for start (with a short fallback).
   useEffect(() => {
-    if (phase !== 'lobby' || !myReady || !theirReady) return;
-    const delay = role === 'A' ? 120 : 1500;
-    const t = setTimeout(() => {
-      if (startedRef.current || phaseRef.current !== 'lobby') return;
-      const endAt = Date.now() + 3400 + MATCH_SECONDS * 1000;
-      rt?.send({ k: 'start', endAt });
-      beginCountdown(endAt);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [myReady, theirReady, phase, role, rt]);
-
-  function beginCountdown(endAt) {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    endAtRef.current = endAt;
-    stRef.current = socInitial();
-    setPhase('countdown');
-    const liveAt = endAt - MATCH_SECONDS * 1000;
-    const iv = setInterval(() => {
-      const l = Math.ceil((liveAt - Date.now()) / 1000);
-      setCount(Math.max(0, l));
-      if (l <= 0) { clearInterval(iv); setPhase('live'); }
-    }, 150);
-  }
+    if (role !== 'A') {
+      const t = setTimeout(() => {
+        if (!startedRef.current) beginMatch(Date.now() + MATCH_SECONDS * 1000);
+      }, 800);
+      return () => clearTimeout(t);
+    }
+    const endAt = Date.now() + MATCH_SECONDS * 1000;
+    rt?.send({ k: 'start', endAt });
+    beginMatch(endAt);
+  }, [role, rt]);
 
   useEffect(() => {
     if (phase !== 'live') return;
@@ -161,30 +148,6 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
 
   return (
     <div className="sc-page sc-embedded">
-      {phase === 'lobby' && (
-        <div className="sc-lobby">
-          <div className="sc-seats">
-            <div className="sc-seat">
-              <div className="sc-av A">{(names.A || '?')[0].toUpperCase()}</div>
-              <div className={'sc-rd' + ((role === 'A' ? myReady : theirReady) ? ' yes' : '')}>
-                {(role === 'A' ? myReady : theirReady) ? 'ready' : '\u2026'}
-              </div>
-            </div>
-            <div className="sc-vs">vs</div>
-            <div className="sc-seat">
-              <div className="sc-av B">{(names.B || '?')[0].toUpperCase()}</div>
-              <div className={'sc-rd' + ((role === 'B' ? myReady : theirReady) ? ' yes' : '')}>
-                {(role === 'B' ? myReady : theirReady) ? 'ready' : '\u2026'}
-              </div>
-            </div>
-          </div>
-          <p className="sc-blurb">Two cars, one ball, {MATCH_SECONDS} seconds. Nudge the ball into their goal.</p>
-          <button className="btn warm" onClick={pressReady}>{myReady ? 'Cancel' : "I'm ready"}</button>
-        </div>
-      )}
-
-      {phase === 'countdown' && <div className="sc-count">{count || 'GO'}</div>}
-
       {(phase === 'live' || phase === 'done') && (
         <div className="sc-game">
           <div className="sc-hud">

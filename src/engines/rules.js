@@ -115,7 +115,7 @@ export const RULES = {
   microsoccer: {
     goal: 'Score more goals than your partner in 90 seconds.',
     how: [
-      'Both press ready, then drive your car and nudge the ball into their net.',
+      'Both press ready in the lobby, then drive your car and nudge the ball into their net.',
       'Arrows or WASD on desktop; on-screen pad on phones.',
       'Blue (A) defends the left goal; pink (B) defends the right.',
       'Highest score when the clock hits zero wins (draws count).'
@@ -126,7 +126,7 @@ export const RULES = {
   moleduel: {
     goal: 'Claim more moles than your partner across 20 pops.',
     how: [
-      'Both press ready \u2014 the same moles appear on both screens from a shared seed.',
+      'Both press ready in the lobby \u2014 the same moles appear on both screens from a shared seed.',
       'Tap a mole as soon as it pops. Faster reaction time wins that mole.',
       'Normal moles are 1 point; golden moles are 3. Ties on a mole go to nobody.',
       'Lag can\u2019t steal a mole \u2014 only your local reaction time is compared.'

@@ -138,7 +138,8 @@ export default function GameScreen({
       </div>
     );
   } else if (counting) {
-    board = <div className="countdown-big">{Math.ceil((s.liveAt - Date.now()) / 1000)}</div>;
+    const secs = Math.max(1, Math.ceil((s.liveAt - Date.now()) / 1000));
+    board = <div className="countdown-big">{secs}</div>;
     banner = 'get ready…';
   } else if (eng.meta.realtime) {
     if (!s.winner) {
@@ -147,7 +148,7 @@ export default function GameScreen({
           names={{ A: duo.nameA, B: duo.nameB }} paused={paused}
           onFinish={w => onRealtimeFinish(s.game, w)} />
       );
-      banner = paused ? 'Game paused' : 'first to 7 — go!';
+      banner = paused ? 'Game paused' : 'go!';
     } else {
       board = null;
       bannerClass = 'banner ' + s.winner;

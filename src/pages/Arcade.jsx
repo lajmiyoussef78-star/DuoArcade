@@ -243,10 +243,11 @@ export default function Arcade() {
     const { duo, code, myRole } = ctxRef.current;
     const s = duo.session;
     if (!s || s.phase !== 'lobby' || s.ready?.[myRole] || s.paused) return;
-    const ready = { ...s.ready, [myRole]: true };
+    const ready = { ...(s.ready || { A: false, B: false }), [myRole]: true };
     const both = ready.A && ready.B;
+    // Fixed 3-second countdown for every game after both players ready.
     const session = both
-      ? { ...s, ready, phase: 'live', liveAt: Date.now() + 3500 }
+      ? { ...s, ready, phase: 'live', liveAt: Date.now() + 3000 }
       : { ...s, ready };
     patchLocal({ session });
     await upd(code, { session }, { force: true });
@@ -315,7 +316,13 @@ export default function Arcade() {
     const s = duo.session;
     if (!s || s.phase !== 'invite') return;
     try {
-      const session = { ...s, phase: 'live', liveAt: Date.now() + 3500 };
+      // Every game goes through the ready lobby before a fixed 3s countdown.
+      const session = {
+        ...s,
+        phase: 'lobby',
+        ready: { A: false, B: false },
+        liveAt: null
+      };
       patchLocal({ session });
       const ok = await upd(code, { session }, { force: true });
       if (!ok) throw new Error('server refused the update');

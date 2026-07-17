@@ -9,10 +9,8 @@ import '../styles/moles.css';
 
 export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef }) {
   const role = myRole;
-  const [phase, setPhase] = useState('lobby');
-  const [myReady, setMyReady] = useState(false);
-  const [theirReady, setTheirReady] = useState(false);
-  const [count, setCount] = useState(3);
+  // Shell already ran ready + 3s countdown — start moles as soon as we mount.
+  const [phase, setPhase] = useState('live');
   const [live, setLive] = useState({ up: {}, myScore: 0, theirScore: 0, hit: {} });
   const [result, setResult] = useState(null);
 
@@ -25,7 +23,7 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
   const startedRef = useRef(false);
   const endedRef = useRef(false);
   const finishedRef = useRef(false);
-  const phaseRef = useRef('lobby');
+  const phaseRef = useRef('live');
   phaseRef.current = phase;
 
   function clearTimers() {
@@ -37,8 +35,7 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
     if (!rt?.on) return;
     rt.on(m => {
       if (!m || !m.k) return;
-      if (m.k === 'ready') setTheirReady(m.v);
-      else if (m.k === 'start') begin(m.seed, m.startAt);
+      if (m.k === 'start') begin(m.seed, m.startAt);
       else if (m.k === 'whack') {
         if (theirWhacks.current[m.id] == null) theirWhacks.current[m.id] = m.ms;
         recomputeLiveScores();
@@ -48,24 +45,13 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
     return () => clearTimers();
   }, [rt]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function pressReady() {
-    const v = !myReady;
-    setMyReady(v);
-    rt?.send({ k: 'ready', v });
-  }
-
   useEffect(() => {
-    if (phase !== 'lobby' || !myReady || !theirReady) return;
-    const delay = role === 'A' ? 120 : 1500;
-    const t = setTimeout(() => {
-      if (startedRef.current || phaseRef.current !== 'lobby') return;
-      const seed = (Date.now() >>> 0) ^ 0x9e3779b9;
-      const startAt = Date.now() + 3400;
-      rt?.send({ k: 'start', seed, startAt });
-      begin(seed, startAt);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [myReady, theirReady, phase, role, rt]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (role !== 'A') return;
+    const seed = (Date.now() >>> 0) ^ 0x9e3779b9;
+    const startAt = Date.now() + 200; // tiny lead-in so guest can join the channel
+    rt?.send({ k: 'start', seed, startAt });
+    begin(seed, startAt);
+  }, [role, rt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recomputeLiveScores = useCallback(() => {
     const sched = schedRef.current;
@@ -131,13 +117,8 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
     finishedRef.current = false;
     setResult(null);
     setLive({ up: {}, myScore: 0, theirScore: 0, hit: {} });
-    setPhase('countdown');
-
-    const cdIv = setInterval(() => {
-      const l = Math.ceil((startAt - Date.now()) / 1000);
-      setCount(Math.max(0, l));
-      if (l <= 0) { clearInterval(cdIv); runMatch(); }
-    }, 150);
+    const delay = Math.max(0, startAt - Date.now());
+    setTimeout(() => runMatch(), delay);
   }, [runMatch]);
 
   function whack(mole) {
@@ -156,33 +137,6 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
 
   return (
     <div className="mo-page mo-embedded">
-      {phase === 'lobby' && (
-        <div className="mo-lobby">
-          <div className="mo-seats">
-            <div className="mo-seat">
-              <div className="mo-av A">{(names.A || '?')[0].toUpperCase()}</div>
-              <div className={'mo-rd' + ((role === 'A' ? myReady : theirReady) ? ' yes' : '')}>
-                {(role === 'A' ? myReady : theirReady) ? 'ready' : '\u2026'}
-              </div>
-            </div>
-            <div className="mo-vs">vs</div>
-            <div className="mo-seat">
-              <div className="mo-av B">{(names.B || '?')[0].toUpperCase()}</div>
-              <div className={'mo-rd' + ((role === 'B' ? myReady : theirReady) ? ' yes' : '')}>
-                {(role === 'B' ? myReady : theirReady) ? 'ready' : '\u2026'}
-              </div>
-            </div>
-          </div>
-          <p className="mo-blurb">
-            The same moles pop on both screens. Whack faster than {names[role === 'A' ? 'B' : 'A']} to
-            claim each one — golden moles are worth 3. {MOLE.COUNT} moles, fastest hand wins.
-          </p>
-          <button className="btn warm" onClick={pressReady}>{myReady ? 'Cancel' : "I'm ready"}</button>
-        </div>
-      )}
-
-      {phase === 'countdown' && <div className="mo-count">{count || 'GO'}</div>}
-
       {(phase === 'live' || phase === 'done') && (
         <div className="mo-arena">
           <div className="mo-scorebar">

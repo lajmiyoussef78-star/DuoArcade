@@ -33,7 +33,7 @@ export function readySeat(state, seat, now = Date.now()) {
   const ready = { ...state.ready, [seat]: true };
   const allReady = ARENA_SEATS.every(s => ready[s]);
   return allReady
-    ? { ...state, ready, phase: 'countdown', liveAt: now + 3500 }
+    ? { ...state, ready, phase: 'countdown', liveAt: now + 3000 }
     : { ...state, ready };
 }
 
