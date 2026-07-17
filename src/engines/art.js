@@ -607,6 +607,27 @@ export const ART = {
      @keyframes msc-bounce { 0%,100% { transform: translate(0,0) } 50% { transform: translate(10px,-6px) } }
      ${sparkAnim('msc', 2)}`),
 
+  /* ─── Mole Duel: whack grid ─── */
+  moleduel: scene('md', '', `
+    <g class="md-holes">
+      ${[[52,48],[120,48],[188,48],[52,88],[120,88],[188,88]].map(([x,y],i) =>
+        `<circle cx="${x}" cy="${y}" r="16" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>`
+      ).join('')}
+    </g>
+    <g class="md-mole">
+      <circle cx="120" cy="88" r="11" fill="var(--candle)" filter="url(#md-glow)"/>
+      <circle cx="116" cy="85" r="1.6" fill="var(--night)"/>
+      <circle cx="124" cy="85" r="1.6" fill="var(--night)"/>
+    </g>
+    <g class="md-mole2">
+      <circle cx="52" cy="48" r="9" fill="var(--p1)" opacity=".85"/>
+    </g>
+    ${sparks('md', [[90, 28, 1.5, 'var(--candle)'], [160, 110, 1.5, 'var(--p2)']])}`,
+    `.md-mole { animation: md-pop 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: 120px 100px; }
+     .md-mole2 { animation: md-pop 1.8s ease-in-out .6s infinite; transform-box: fill-box; transform-origin: 52px 60px; }
+     @keyframes md-pop { 0%,100% { transform: translateY(10px); opacity: .35 } 40%,60% { transform: translateY(0); opacity: 1 } }
+     ${sparkAnim('md', 2)}`),
+
   /* ─── Ready, Set, Cook: co-op kitchen ─── */
   readysetcook: scene('rsc', '', `
     <rect x="36" y="88" width="168" height="28" rx="6" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>

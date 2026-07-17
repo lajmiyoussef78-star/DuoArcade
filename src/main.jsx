@@ -18,6 +18,7 @@ import './styles/todos.css';
 import './styles/kitchen.scoped.css';
 import './styles/timetable.css';
 import './styles/soccer.css';
+import './styles/moles.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

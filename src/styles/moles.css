@@ -1,0 +1,44 @@
+/* src/styles/moles.css — Mole Duel. Inherits DuoArcade theme vars. */
+
+.mo-page { max-width: 620px; margin: 0 auto; padding: 20px 14px 50px; color: var(--text); font-family: 'Inter', sans-serif; }
+.mo-embedded { padding: 8px 0 20px; }
+
+.mo-lobby { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 26px 0; }
+.mo-seats { display: flex; align-items: center; gap: 26px; }
+.mo-seat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mo-av { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 18px; border: 2px solid var(--night); }
+.mo-av.A { background: #2A3252; color: var(--p1); }
+.mo-av.B { background: #4A2A3A; color: var(--p2); }
+.mo-rd { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); font-weight: 700; }
+.mo-rd.yes { color: var(--good); }
+.mo-vs { font-family: 'Fraunces', serif; font-weight: 900; color: var(--dim); font-size: 18px; }
+.mo-blurb { font-size: 13px; color: var(--dim); text-align: center; max-width: 440px; line-height: 1.5; }
+
+.mo-count { font-family: 'Fraunces', serif; font-weight: 900; font-size: 96px; color: var(--candle); text-align: center; padding: 40px 0; }
+
+.mo-arena { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.mo-scorebar { display: flex; align-items: center; gap: 12px; font-family: 'Fraunces', serif; font-weight: 900; }
+.mo-scorebar .pA { color: var(--p1); font-size: 30px; min-width: 34px; text-align: right; }
+.mo-scorebar .pB { color: var(--p2); font-size: 30px; min-width: 34px; text-align: left; }
+.mo-scorelbl { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.mo-scoremid { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 12px; color: var(--dim); }
+
+.mo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; max-width: 460px; }
+.mo-hole { position: relative; aspect-ratio: 1 / 1; border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #2B2338 60%, #171120 100%);
+  border: 1px solid var(--line); overflow: hidden;
+  box-shadow: inset 0 -8px 16px rgba(0,0,0,.5); }
+.mo-mole { position: absolute; inset: 12% 12% 0 12%; border: none; background: transparent;
+  font-size: clamp(34px, 12vw, 62px); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  animation: mo-pop .13s ease-out; touch-action: manipulation; padding: 0; line-height: 1; }
+.mo-mole.gold { filter: drop-shadow(0 0 10px var(--candle)); }
+.mo-mole.bonked { animation: mo-bonk .18s ease-out forwards; }
+@keyframes mo-pop { from { transform: translateY(60%); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
+@keyframes mo-bonk { to { transform: translateY(70%) scale(.8); opacity: 0; } }
+
+.mo-hint { font-size: 12px; color: var(--dim); text-align: center; }
+
+.mo-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 0; }
+.mo-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: var(--candle); }
+.mo-final { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--dim); }

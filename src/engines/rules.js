@@ -123,6 +123,17 @@ export const RULES = {
     tip: 'Ram the ball at an angle \u2014 straight-on bumps are easier to steal back.'
   },
 
+  moleduel: {
+    goal: 'Claim more moles than your partner across 20 pops.',
+    how: [
+      'Both press ready \u2014 the same moles appear on both screens from a shared seed.',
+      'Tap a mole as soon as it pops. Faster reaction time wins that mole.',
+      'Normal moles are 1 point; golden moles are 3. Ties on a mole go to nobody.',
+      'Lag can\u2019t steal a mole \u2014 only your local reaction time is compared.'
+    ],
+    tip: 'Don\u2019t spam the grid \u2014 watch the holes and react clean.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {
