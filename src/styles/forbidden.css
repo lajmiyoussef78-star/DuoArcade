@@ -37,6 +37,23 @@
 .fb-topicbanner { text-align: center; font-size: 14px; color: var(--dim); margin-bottom: 8px; }
 .fb-topicbanner b { color: var(--text); }
 
+.fb-mywords { width: 100%; text-align: center; padding: 10px 12px; border-radius: 12px;
+  background: var(--room); border: 1px solid var(--candle); }
+.fb-mywords-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--candle); font-weight: 700; margin-bottom: 8px; }
+.fb-mywords-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.fb-myword { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700;
+  padding: 6px 12px; border-radius: 999px; background: var(--room2); border: 1px solid var(--line);
+  color: var(--text); }
+
+.fb-reveal { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.fb-reveal-col { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--room);
+  min-width: 150px; flex: 1; max-width: 240px; }
+.fb-reveal-h { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700;
+  text-align: center; margin-bottom: 8px; }
+.fb-reveal-words { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.fb-reveal-words span { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }
+
 .fb-play { display: flex; flex-direction: column; gap: 12px; }
 .fb-progress { display: flex; gap: 6px; justify-content: center; }
 .fb-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }

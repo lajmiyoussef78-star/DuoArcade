@@ -30,6 +30,7 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
   const [draftQ, setDraftQ] = useState('');
   const [draftA, setDraftA] = useState('');
   const [result, setResult] = useState(null);
+  const [myWords, setMyWords] = useState([]); // words I must avoid (shown while playing)
 
   const myForbiddenRef = useRef([]);
   const myPicksRef = useRef([]);
@@ -51,6 +52,8 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
     const haveAll = merged.every(m => m.answer && m.answer.length);
     if (!haveAll && !(pendingReveal.current && partnerReveal.current)) return;
 
+    const wordsA = role === 'A' ? myForbiddenRef.current : myPicksRef.current;
+    const wordsB = role === 'B' ? myForbiddenRef.current : myPicksRef.current;
     const perRoundSlips = { A: [0, 0, 0], B: [0, 0, 0] };
     let totalA = 0, totalB = 0;
     const scored = merged.map(m => {
@@ -61,7 +64,7 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
       return { ...m, slips: hits };
     });
     const w = decide(totalA, totalB, perRoundSlips.A, perRoundSlips.B);
-    setResult({ w, totalA, totalB, scored });
+    setResult({ w, totalA, totalB, scored, wordsA, wordsB });
     setPhase('done');
     if (role === 'A' && !finishedRef.current) {
       finishedRef.current = true;
@@ -85,6 +88,7 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
       if (m.k === 'topic') { setTopic(m.topic); setPhase('traps'); }
       else if (m.k === 'assign') {
         myForbiddenRef.current = m.words;
+        setMyWords(m.words);
         setTheySubmitted(true);
         maybeStart();
       }
@@ -212,8 +216,8 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
           <div className="fb-topicbanner">Topic: <b>{topic}</b></div>
           <h3>Set 3 traps for {partnerName}</h3>
           <p className="fb-sub">
-            3 words {partnerName} can't say in their answers. They won't see them —
-            they'll have to dodge blind.
+            3 words {partnerName} can't say in their answers. They'll see their own list while playing —
+            you won't see theirs until the reveal.
           </p>
           <div className="fb-chosen">
             {[0, 1, 2].map(i => (
@@ -254,6 +258,14 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
       {phase === 'play' && (
         <div className="fb-play">
           <div className="fb-topicbanner">Topic: <b>{topic}</b></div>
+          {myWords.length === 3 && (
+            <div className="fb-mywords">
+              <div className="fb-mywords-label">Your forbidden words — don't say these</div>
+              <div className="fb-mywords-row">
+                {myWords.map(w => <span key={w} className="fb-myword">{w}</span>)}
+              </div>
+            </div>
+          )}
           <div className="fb-progress">
             {plan.map((p, i) => (
               <span key={i} className={'fb-dot' + (i < turnIdx ? ' done' : i === turnIdx ? ' now' : '')} />
@@ -333,6 +345,20 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
           <div className="fb-final">
             {names.A} said {result.totalA} forbidden {result.totalA === 1 ? 'word' : 'words'} ·
             {' '}{names.B} said {result.totalB} (fewer wins{result.totalA === result.totalB ? '; tie broken by who stayed clean longer' : ''})
+          </div>
+          <div className="fb-reveal">
+            <div className="fb-reveal-col">
+              <div className="fb-reveal-h pA">{names.A}'s forbidden words</div>
+              <div className="fb-reveal-words">
+                {(result.wordsA || []).map(w => <span key={w}>{w}</span>)}
+              </div>
+            </div>
+            <div className="fb-reveal-col">
+              <div className="fb-reveal-h pB">{names.B}'s forbidden words</div>
+              <div className="fb-reveal-words">
+                {(result.wordsB || []).map(w => <span key={w}>{w}</span>)}
+              </div>
+            </div>
           </div>
           <div className="fb-transcript">
             {result.scored.map((m, i) => (
