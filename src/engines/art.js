@@ -628,24 +628,44 @@ export const ART = {
      @keyframes md-pop { 0%,100% { transform: translateY(10px); opacity: .35 } 40%,60% { transform: translateY(0); opacity: 1 } }
      ${sparkAnim('md', 2)}`),
 
-  /* ─── Forbidden Words: sealed lips ─── */
+  /* ─── Forbidden Words: trap words in a Q&A ─── */
   forbiddenwords: scene('fw', '', `
-    <rect x="40" y="36" width="160" height="72" rx="12" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>
-    <text x="120" y="62" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="18" fill="var(--candle)">shh</text>
-    <g class="fw-lips">
-      <path d="M78 88 Q120 108 162 88" stroke="var(--p2)" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <path d="M86 84 Q120 70 154 84" stroke="var(--p1)" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+    <g class="fw-q">
+      <path d="M28 28 h78 a10 10 0 0 1 10 10 v22 a10 10 0 0 1 -10 10 h-50 l-12 12 v-12 h-16 a10 10 0 0 1 -10 -10 v-22 a10 10 0 0 1 10 -10 Z"
+        fill="var(--room)" stroke="var(--p1)" stroke-width="2.2"/>
+      <text x="72" y="54" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="20" fill="var(--p1)">?</text>
     </g>
-    <g class="fw-x">
-      <path d="M52 48 L64 60 M64 48 L52 60" stroke="var(--candle)" stroke-width="3" stroke-linecap="round"/>
-      <path d="M176 48 L188 60 M188 48 L176 60" stroke="var(--candle)" stroke-width="3" stroke-linecap="round"/>
+    <g class="fw-a">
+      <path d="M212 42 h-70 a10 10 0 0 0 -10 10 v20 a10 10 0 0 0 10 10 h44 l12 12 v-12 h14 a10 10 0 0 0 10 -10 v-20 a10 10 0 0 0 -10 -10 Z"
+        fill="var(--room2)" stroke="var(--p2)" stroke-width="2.2"/>
+      <text x="172" y="66" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="11" fill="var(--dim)">····</text>
     </g>
-    ${sparks('fw', [[70, 28, 1.5, 'var(--p2)'], [170, 100, 1.5, 'var(--candle)']])}`,
-    `.fw-lips { animation: fw-seal 2.8s ease-in-out infinite; }
-     @keyframes fw-seal { 0%,100% { transform: translateY(0) } 50% { transform: translateY(3px) } }
-     .fw-x { animation: fw-pulse 2.2s ease-in-out infinite; }
-     @keyframes fw-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
-     ${sparkAnim('fw', 2)}`),
+    <g font-family="'JetBrains Mono',monospace" font-weight="700" font-size="12">
+      <g class="fw-trap0">
+        <rect x="36" y="96" width="52" height="22" rx="11" fill="var(--room2)" stroke="var(--candle)" stroke-width="2"/>
+        <text x="62" y="111" text-anchor="middle" fill="var(--candle)">love</text>
+        <path d="M44 107 L80 107" stroke="var(--candle)" stroke-width="2.2" stroke-linecap="round"/>
+      </g>
+      <g class="fw-trap1">
+        <rect x="94" y="96" width="52" height="22" rx="11" fill="var(--room2)" stroke="var(--p2)" stroke-width="2"/>
+        <text x="120" y="111" text-anchor="middle" fill="var(--p2)">yes</text>
+        <path d="M104 107 L136 107" stroke="var(--p2)" stroke-width="2.2" stroke-linecap="round"/>
+      </g>
+      <g class="fw-trap2">
+        <rect x="152" y="96" width="52" height="22" rx="11" fill="var(--room2)" stroke="var(--p1)" stroke-width="2"/>
+        <text x="178" y="111" text-anchor="middle" fill="var(--p1)">like</text>
+        <path d="M160 107 L196 107" stroke="var(--p1)" stroke-width="2.2" stroke-linecap="round"/>
+      </g>
+    </g>
+    ${sparks('fw', [[118, 24, 1.6, 'var(--candle)'], [48, 86, 1.4, 'var(--p1)'], [200, 88, 1.5, 'var(--p2)']])}`,
+    `.fw-q { animation: fw-bob 3.2s ease-in-out infinite; }
+     .fw-a { animation: fw-bob 3.2s ease-in-out 1.6s infinite; }
+     @keyframes fw-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     .fw-trap0 { animation: fw-ban 2.6s ease-in-out infinite; }
+     .fw-trap1 { animation: fw-ban 2.6s ease-in-out .35s infinite; }
+     .fw-trap2 { animation: fw-ban 2.6s ease-in-out .7s infinite; }
+     @keyframes fw-ban { 0%,100% { opacity: .7; transform: translateY(0) } 50% { opacity: 1; transform: translateY(-3px) } }
+     ${sparkAnim('fw', 3)}`),
 
   /* ─── Ready, Set, Cook: co-op kitchen ─── */
   readysetcook: scene('rsc', '', `
