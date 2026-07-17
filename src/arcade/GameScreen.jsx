@@ -162,9 +162,6 @@ export default function GameScreen({
       );
       banner = paused ? 'Game paused' : 'go!';
     } else {
-      board = null;
-      bannerClass = 'banner ' + s.winner;
-      banner = `${s.winner === 'A' ? duo.nameA : duo.nameB} takes the match`;
       showRematch = true;
     }
   } else {
@@ -174,10 +171,16 @@ export default function GameScreen({
       ? 'Game paused'
       : !s.winner
         ? (s.turn === myRole ? 'Your move' : `${s.turn === 'A' ? duo.nameA : duo.nameB}’s move…`)
-        : s.winner === 'draw' ? 'A draw — the classic couple result'
-          : `${s.winner === 'A' ? duo.nameA : duo.nameB} takes the round`;
+        : '';
     showRematch = !!s.winner;
   }
+
+  const winnerName = s.winner === 'A' ? duo.nameA
+    : s.winner === 'B' ? duo.nameB
+      : null;
+  const iWon = s.winner && s.winner === myRole;
+  const isDraw = s.winner === 'draw';
+  const showResult = !!s.winner;
 
   const turnA = !eng.meta.realtime && s.turn === 'A' && !s.winner && s.phase === 'live' && !counting && !paused;
   const turnB = !eng.meta.realtime && s.turn === 'B' && !s.winner && s.phase === 'live' && !counting && !paused;
@@ -194,7 +197,7 @@ export default function GameScreen({
   const kitchenGame = s.game === 'readysetcook';
 
   return (
-    <section className={'on gv-screen' + (kitchenGame ? ' gv-kitchen' : '')}>
+    <section className={'on gv-screen' + (kitchenGame ? ' gv-kitchen' : '') + (showResult ? ' gv-result-screen' : '')}>
       <header className="gv-top">
         <button className="btn small ghost gv-back" onClick={onBack}>{'←'} Back</button>
         <h2 className="gv-title h3">{eng.meta.name}</h2>
@@ -219,51 +222,92 @@ export default function GameScreen({
               <RulesIcon />
             </button>
           )}
-          {showRematch && (
-            <button className="btn small warm" onClick={onRematch}>Rematch</button>
-          )}
         </div>
       </header>
 
-      {showRulesNote && (
-        <p className="gv-rules-note">
-          Game rules are in the top right, have a quick look before the game start.
-        </p>
-      )}
+      <div className="gv-stage">
+        {showRulesNote && (
+          <p className="gv-rules-note">
+            Game rules are in the top right, have a quick look before the game start.
+          </p>
+        )}
 
-      {showRules && rules && (
-        <div className="gv-rules-panel">
-          <div className="gv-rules-head">How to play — {eng.meta.name}</div>
-          <div className="gv-rules-goal">{rules.goal}</div>
-          <ol className="gv-rules-list">
-            {rules.how.map((line, i) => <li key={i}>{line}</li>)}
-          </ol>
-          {rules.tip && <div className="gv-rules-tip">💡 {rules.tip}</div>}
-        </div>
-      )}
-
-      <div className="gv-players">
-        <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
-          <div className="dot" /><span>{duo.nameA}</span>
-        </div>
-        <div className="tally">{rec.a} {'–'} {rec.b}</div>
-        <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
-          <div className="dot" /><span>{duo.nameB}</span>
-        </div>
-      </div>
-
-      {pausePending === partnerRole && !paused && (
-        <div className="gv-pause-request">
-          <span><b>{partner}</b> requested a pause.</span>
-          <div className="gv-pause-request-actions">
-            <button className="btn small warm" onClick={() => onRespondPause(true, setBannerStatus)}>Accept</button>
-            <button className="btn small ghost" onClick={() => onRespondPause(false, setBannerStatus)}>Decline</button>
+        {showRules && rules && (
+          <div className="gv-rules-panel">
+            <div className="gv-rules-head">How to play — {eng.meta.name}</div>
+            <div className="gv-rules-goal">{rules.goal}</div>
+            <ol className="gv-rules-list">
+              {rules.how.map((line, i) => <li key={i}>{line}</li>)}
+            </ol>
+            {rules.tip && <div className="gv-rules-tip">💡 {rules.tip}</div>}
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="gv-board">{board}</div>
-      <div className={bannerClass}>{bannerStatus || banner}</div>
+        {!showResult && (
+          <div className="gv-players">
+            <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
+              <div className="dot" /><span>{duo.nameA}</span>
+            </div>
+            <div className="tally">{rec.a} {'–'} {rec.b}</div>
+            <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
+              <div className="dot" /><span>{duo.nameB}</span>
+            </div>
+          </div>
+        )}
+
+        {pausePending === partnerRole && !paused && (
+          <div className="gv-pause-request">
+            <span><b>{partner}</b> requested a pause.</span>
+            <div className="gv-pause-request-actions">
+              <button className="btn small warm" onClick={() => onRespondPause(true, setBannerStatus)}>Accept</button>
+              <button className="btn small ghost" onClick={() => onRespondPause(false, setBannerStatus)}>Decline</button>
+            </div>
+          </div>
+        )}
+
+        {showResult ? (
+          <div className={`gv-result gv-result-${s.winner}`}>
+            <div className="gv-result-kicker">{eng.meta.name}</div>
+            <div className="gv-result-avs" aria-hidden="true">
+              <div className={'gv-result-av A' + (s.winner === 'A' ? ' win' : '')}>
+                {duo.nameA[0]?.toUpperCase()}
+              </div>
+              <div className="gv-result-vs">vs</div>
+              <div className={'gv-result-av B' + (s.winner === 'B' ? ' win' : '')}>
+                {duo.nameB[0]?.toUpperCase()}
+              </div>
+            </div>
+            <div className="gv-result-score">{rec.a} <span>–</span> {rec.b}</div>
+            <h3 className="gv-result-title">
+              {isDraw
+                ? 'A perfectly tied match'
+                : iWon
+                  ? 'You take the match'
+                  : `${winnerName} takes the match`}
+            </h3>
+            <p className="gv-result-sub">
+              {isDraw
+                ? 'Same record after that round — rare and very couple of you.'
+                : iWon
+                  ? 'Nice one. Offer a rematch while the streak is warm.'
+                  : `Well played — challenge ${winnerName} to a rematch.`}
+            </p>
+            {showRematch && (
+              <div className="gv-result-actions">
+                <button className="btn warm" onClick={onRematch}>Rematch</button>
+                <button className="btn ghost" onClick={onBack}>Back to shelf</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="gv-board">{board}</div>
+            {(bannerStatus || banner) && (
+              <div className={bannerClass}>{bannerStatus || banner}</div>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }

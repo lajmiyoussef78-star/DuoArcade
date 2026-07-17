@@ -191,9 +191,16 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 .arcade-page .price-row{grid-template-columns:1fr;}
 }
 /* game view */
-.arcade-page .gv-screen{width:100%;max-width:520px;}
+.arcade-page .gv-screen{
+  width:100%;max-width:520px;
+  min-height:calc(100vh - 48px);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:12px 0 40px;}
 .arcade-page .gv-screen.gv-kitchen{max-width:min(980px,calc(100vw - 28px));}
-.arcade-page .gv-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;width:100%;margin-bottom:14px;gap:10px;}
+.arcade-page .gv-stage{
+  width:100%;display:flex;flex-direction:column;align-items:center;
+  flex:1;justify-content:center;min-height:0;}
+.arcade-page .gv-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;width:100%;margin-bottom:14px;gap:10px;flex:none;}
 .arcade-page .gv-back{justify-self:start;}
 .arcade-page .gv-title{font-size:18px;text-align:center;margin:0;justify-self:center;}
 .arcade-page .gv-actions{display:flex;align-items:center;gap:6px;justify-self:end;}
@@ -201,7 +208,70 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
   display:inline-flex;align-items:center;justify-content:center;line-height:0;flex-shrink:0;}
 .arcade-page .btn.gv-rules svg,
 .arcade-page .gv-rules-icon{width:34px;height:34px;display:block;flex:none;}
-.arcade-page .gv-rules-note{margin:-4px 0 10px;text-align:right;font-size:11.5px;line-height:1.4;color:var(--dim);}
+.arcade-page .gv-rules-note{margin:-4px 0 10px;text-align:right;font-size:11.5px;line-height:1.4;color:var(--dim);width:100%;}
+.arcade-page .gv-result{
+  width:100%;max-width:420px;margin:0 auto;padding:36px 28px 32px;
+  border-radius:22px;border:1px solid var(--line);text-align:center;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--candle) 16%, transparent), transparent 70%),
+    linear-gradient(165deg, color-mix(in srgb, var(--p1) 10%, var(--room)), var(--room) 55%, color-mix(in srgb, var(--p2) 10%, var(--room)));
+  box-shadow:0 22px 50px rgba(0,0,0,.38);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  animation:gv-result-in .35s ease;}
+.arcade-page .gv-result-A{
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0%, color-mix(in srgb, var(--p1) 22%, transparent), transparent 68%),
+    linear-gradient(165deg, color-mix(in srgb, var(--p1) 14%, var(--room)), var(--room));}
+.arcade-page .gv-result-B{
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0%, color-mix(in srgb, var(--p2) 22%, transparent), transparent 68%),
+    linear-gradient(165deg, color-mix(in srgb, var(--p2) 14%, var(--room)), var(--room));}
+.arcade-page .gv-result-draw{
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0%, color-mix(in srgb, var(--candle) 20%, transparent), transparent 68%),
+    linear-gradient(165deg, color-mix(in srgb, var(--candle) 12%, var(--room)), var(--room));}
+@keyframes gv-result-in{from{opacity:0;transform:translateY(14px) scale(.97);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){
+  .arcade-page .gv-result{animation:none;}
+}
+.arcade-page .gv-result-kicker{
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);margin:0;}
+.arcade-page .gv-result-avs{
+  display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 2px;}
+.arcade-page .gv-result-av{
+  width:56px;height:56px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:900;font-size:22px;
+  border:2px solid var(--line);}
+.arcade-page .gv-result-av.A{background:var(--p1s);color:var(--p1);}
+.arcade-page .gv-result-av.B{background:var(--p2s);color:var(--p2);}
+.arcade-page .gv-result-av.win{
+  border-color:var(--candle);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--candle) 28%, transparent),
+             0 0 22px color-mix(in srgb, var(--candle) 35%, transparent);
+  transform:scale(1.08);}
+.arcade-page .gv-result-vs{
+  font-family:'Fraunces',serif;font-size:13px;font-weight:700;color:var(--dim);
+  text-transform:uppercase;letter-spacing:.08em;}
+.arcade-page .gv-result-score{
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:28px;
+  color:var(--candle);margin:2px 0 0;letter-spacing:.04em;}
+.arcade-page .gv-result-score span{opacity:.55;margin:0 4px;}
+.arcade-page .gv-result-title{
+  font-family:'Fraunces',serif;font-weight:900;font-size:26px;line-height:1.2;
+  margin:4px 0 0;color:var(--text);}
+.arcade-page .gv-result-A .gv-result-title{color:var(--p1);}
+.arcade-page .gv-result-B .gv-result-title{color:var(--p2);}
+.arcade-page .gv-result-draw .gv-result-title{color:var(--candle);}
+.arcade-page .gv-result-sub{
+  font-size:13.5px;line-height:1.5;color:var(--dim);max-width:280px;margin:0;}
+.arcade-page .gv-result-actions{
+  display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px;}
+.arcade-page .gv-result-actions .btn{min-width:132px;}
+@media (max-width:768px){
+  .arcade-page .gv-screen{min-height:calc(100vh - 96px);padding-bottom:88px;}
+}
 
 /* ---------- feature rail (Supabase-style side dock) ---------- */
 .arcade-page .frail{position:fixed;left:14px;top:50%;transform:translateY(-50%);
@@ -443,8 +513,9 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .ready-pl{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;}
 .arcade-page .ready-check{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);}
 .arcade-page .ready-check.yes{color:var(--good);}
-.arcade-page .countdown-big{font-family:'Fraunces',serif;font-weight:900;font-size:96px;color:var(--candle);
-                 text-align:center;padding:40px 0;}
+.arcade-page .countdown-big{font-family:'Fraunces',serif;font-weight:900;font-size:110px;color:var(--candle);
+  line-height:1;text-align:center;width:100%;padding:40px 0;
+  text-shadow:0 0 40px color-mix(in srgb,var(--candle) 35%,transparent);}
 @media (max-width:460px){
 .arcade-page .gmk-grid{grid-template-columns:repeat(11,26px);grid-template-rows:repeat(11,26px);}
 .arcade-page .mem-grid{grid-template-columns:repeat(5,54px);}
