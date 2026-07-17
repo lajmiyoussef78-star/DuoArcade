@@ -158,13 +158,14 @@ export const RULES = {
   },
 
   wordrace: {
-    goal: 'Out-type your partner before the clock runs out.',
+    goal: 'Solve the same 5-letter word in fewer guesses than your partner.',
     how: [
-      'Both play live on the same letters.',
-      'Form valid words \u2014 longer and rarer words score more.',
-      'Highest score when time\u2019s up takes the round.'
+      'You both get the same secret word and six tries each (Wordle-style colors).',
+      'While playing you only see your partner\u2019s color feedback, not their letters.',
+      'When both are done, every guessed word is revealed on both boards.',
+      'Fewer guesses wins. Same number of guesses = a draw (including both missing it).'
     ],
-    tip: 'Don\u2019t chase the perfect long word \u2014 a stream of short ones adds up faster.'
+    tip: 'Start with a vowel-heavy opener \u2014 you and your partner share the answer, not the clock.'
   },
 
   maze: {

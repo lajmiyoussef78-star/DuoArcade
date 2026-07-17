@@ -1,6 +1,7 @@
 // engines/wordrace.js — Word Race. Same secret word, two boards, six
-// guesses each. First to solve wins; you see your partner's COLORS only.
-// Host (A) picks the word. Pure scoring function exported for tests.
+// guesses each. First to solve wins; same attempt count = draw.
+// During play you see your partner's COLORS only; after both finish,
+// every guessed word is revealed on both boards.
 
 export const meta = { id: 'wordrace', name: 'Word Race', tag: 'creative \u00b7 5 letters', accent: 'p1', realtime: true };
 
@@ -32,7 +33,12 @@ export function mount(el, ctx) {
   unmount();
   el.innerHTML = '';
   const me = ctx.myRole, other = me === 'A' ? 'B' : 'A';
-  let answer = null, row = 0, done = false, theirRows = 0, theirDone = null;
+  let answer = null, row = 0, done = false;
+  let myDone = null;      // { rows } | 'failed'
+  let theirDone = null;   // { rows } | 'failed'
+  let finished = false;
+  const myGuesses = [];   // [{ word, colors }]
+  const theirGuesses = [];
 
   el.insertAdjacentHTML('beforeend', `
     <div class="wr-wrap">
@@ -64,61 +70,99 @@ export function mount(el, ctx) {
   const paint = (sel, r, letters, colors) => {
     for (let c = 0; c < 5; c++) {
       const cell = q(sel).querySelector(`[data-rc="${r}-${c}"]`);
+      if (!cell) continue;
       cell.textContent = letters ? letters[c].toUpperCase() : '';
-      cell.className = 'wr-cell ' + ({ g: 'green', y: 'yellow', '.': 'gray' }[colors[c]] || '');
+      cell.className = 'wr-cell ' + ({ g: 'green', y: 'yellow', '.': 'gray' }[colors?.[c]] || '');
     }
   };
 
+  function revealAll() {
+    myGuesses.forEach((g, i) => paint('.wr-board.mine', i, g.word, g.colors));
+    theirGuesses.forEach((g, i) => paint('.wr-board.theirs', i, g.word, g.colors));
+    q('.wr-wrap').classList.add('wr-revealed');
+  }
+
+  function endMessage() {
+    if (!myDone || !theirDone) return;
+    const mine = myDone === 'failed' ? 99 : myDone.rows;
+    const theirs = theirDone === 'failed' ? 99 : theirDone.rows;
+    const ans = answer ? ` · word was "${answer}"` : '';
+    if (mine === 99 && theirs === 99) {
+      q('.wr-msg').textContent = `neither got it${ans}`;
+    } else if (mine === theirs) {
+      q('.wr-msg').textContent = `tie — both in ${mine} ${mine === 1 ? 'try' : 'tries'}${ans}`;
+    } else if (mine < theirs) {
+      q('.wr-msg').textContent = `you win in ${mine}${ans}`;
+    } else {
+      q('.wr-msg').textContent = `${ctx.names[other]} wins in ${theirs}${ans}`;
+    }
+  }
+
+  function checkEnd() {
+    if (finished || myDone === null || theirDone === null) return;
+    finished = true;
+    revealAll();
+    endMessage();
+    q('.wr-input').disabled = true;
+    q('.wr-go').disabled = true;
+    if (me !== 'A') return;
+    const mine = myDone === 'failed' ? 99 : myDone.rows;
+    const theirs = theirDone === 'failed' ? 99 : theirDone.rows;
+    later(() => {
+      if (mine === theirs) ctx.onFinish('draw');
+      else ctx.onFinish(mine < theirs ? 'A' : 'B');
+    }, 900);
+  }
+
   function submit() {
-    if (done || !answer) return;
+    if (done || !answer || finished) return;
     const v = q('.wr-input').value.trim().toLowerCase();
     if (!/^[a-z]{5}$/.test(v)) { q('.wr-msg').textContent = 'five letters, please'; return; }
     q('.wr-msg').textContent = '';
     q('.wr-input').value = '';
     const colors = scoreGuess(v, answer);
     paint('.wr-board.mine', row, v, colors);
+    myGuesses.push({ word: v, colors });
     row++;
-    ctx.rt.send({ k: 'row', n: row, colors });
+    // send colors + word (word stays hidden on partner's screen until both finish)
+    ctx.rt.send({ k: 'row', n: row, colors, word: v });
     if (colors === 'ggggg') {
       done = true;
+      myDone = { rows: row };
       ctx.rt.send({ k: 'solved', rows: row });
-      q('.wr-msg').textContent = 'solved!';
-      if (me === 'A') settle(me, row, theirDone);
+      q('.wr-msg').textContent = 'solved! waiting for partner…';
+      checkEnd();
     } else if (row >= 6) {
       done = true;
+      myDone = 'failed';
       ctx.rt.send({ k: 'failed' });
-      q('.wr-msg').textContent = `out of guesses \u2014 it was "${answer}"`;
-      if (me === 'A') settle(null, 99, theirDone);
+      q('.wr-msg').textContent = `out of guesses — waiting for partner…`;
+      checkEnd();
     }
   }
   on(q('.wr-go'), 'click', submit);
   on(q('.wr-input'), 'keydown', e => { if (e.key === 'Enter') submit(); });
 
-  // A is scorekeeper: decide once both outcomes are known
-  let myOutcome = null; // {solvedRows} | 'failed'
-  function settle(solvedBy, myRows, their) {
-    myOutcome = solvedBy ? { rows: myRows } : 'failed';
-    decide();
-  }
-  function decide() {
-    if (me !== 'A' || myOutcome === null || theirDone === null) return;
-    const mine = myOutcome === 'failed' ? 99 : myOutcome.rows;
-    const theirs = theirDone === 'failed' ? 99 : theirDone.rows;
-    if (mine === 99 && theirs === 99) { later(() => ctx.onFinish(Math.random() < 0.5 ? 'A' : 'B'), 800); return; }
-    later(() => ctx.onFinish(mine <= theirs ? 'A' : 'B'), 800);
-  }
-
   ctx.rt.on(m => {
     if (m.k === 'word') { answer = m.w; }
-    if (m.k === 'row') { paint('.wr-board.theirs', m.n - 1, null, m.colors); theirRows = m.n; }
-    if (m.k === 'solved') { theirDone = { rows: m.rows }; q('.wr-label:last-child'); decide(); }
-    if (m.k === 'failed') { theirDone = 'failed'; decide(); }
+    if (m.k === 'row') {
+      // colors only while playing; store the word for the end reveal
+      paint('.wr-board.theirs', m.n - 1, null, m.colors);
+      theirGuesses[m.n - 1] = { word: m.word || '', colors: m.colors };
+    }
+    if (m.k === 'solved') {
+      theirDone = { rows: m.rows };
+      checkEnd();
+    }
+    if (m.k === 'failed') {
+      theirDone = 'failed';
+      checkEnd();
+    }
     if (m.k === 'needword' && me === 'A' && answer) ctx.rt.send({ k: 'word', w: answer });
   });
 
   if (me === 'A') {
     answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
-    // send now and again shortly after, in case B mounts late
     ctx.rt.send({ k: 'word', w: answer });
     later(() => ctx.rt.send({ k: 'word', w: answer }), 1500);
   } else {
