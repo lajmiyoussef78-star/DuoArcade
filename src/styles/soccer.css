@@ -1,0 +1,65 @@
+/* src/styles/soccer.css — Micro Soccer. Inherits DuoArcade theme vars. */
+
+.sc-page { max-width: 860px; margin: 0 auto; padding: 20px 14px 50px; color: var(--text); font-family: 'Inter', sans-serif; }
+.sc-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.sc-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px; flex: 1; text-align: center; }
+.sc-tally { font-family: 'JetBrains Mono', monospace; font-size: 12px; display: flex; gap: 6px; }
+.sc-tally .pA { color: var(--p1); } .sc-tally .pB { color: var(--p2); } .sc-tally .dash { color: var(--dim); }
+
+.sc-lobby { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 26px 0; }
+.sc-seats { display: flex; align-items: center; gap: 26px; }
+.sc-seat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sc-av { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 18px; border: 2px solid var(--night); }
+.sc-av.A { background: #2A3252; color: var(--p1); }
+.sc-av.B { background: #4A2A3A; color: var(--p2); }
+.sc-rd { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); font-weight: 700; }
+.sc-rd.yes { color: var(--good); }
+.sc-vs { font-family: 'Fraunces', serif; font-weight: 900; color: var(--dim); font-size: 18px; }
+.sc-blurb { font-size: 13px; color: var(--dim); text-align: center; max-width: 420px; }
+
+.sc-count { font-family: 'Fraunces', serif; font-weight: 900; font-size: 96px; color: var(--candle); text-align: center; padding: 40px 0; }
+
+.sc-game { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.sc-hud { display: flex; align-items: center; justify-content: center; gap: 26px; font-family: 'Fraunces', serif; font-weight: 900; }
+.sc-hud .pA { color: var(--p1); font-size: 30px; }
+.sc-hud .pB { color: var(--p2); font-size: 30px; }
+.sc-clock { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--text);
+  background: var(--room2); border: 1px solid var(--line); border-radius: 8px; padding: 3px 12px; }
+.sc-canvas { width: 100%; max-width: 800px; aspect-ratio: 8 / 5; border: 1px solid var(--line);
+  border-radius: 12px; touch-action: none; background: #15291B; }
+.sc-hint { font-size: 12px; color: var(--dim); text-align: center; }
+
+.sc-pad { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 6px; user-select: none; }
+.sc-pad-row { display: flex; gap: 6px; }
+.sc-padbtn { width: 58px; height: 46px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--room2); color: var(--text); font-size: 20px; cursor: pointer; touch-action: none; }
+.sc-padbtn:active { background: var(--candle); color: #2a1e05; }
+@media (min-width: 820px) { .sc-pad { display: none; } }
+
+.sc-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 0; }
+.sc-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: var(--candle); }
+.sc-final { font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--dim); }
+.sc-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+.sc-status { text-align: center; color: var(--dim); padding: 20px; }
+.sc-note { text-align: center; font-size: 11.5px; color: var(--dim); margin-top: 16px; }
+
+.scc { border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; background: var(--room); width: 100%;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.scc-emoji { font-size: 34px; }
+.scc-body { flex: 1; min-width: 200px; }
+.scc-body h3 { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; }
+.scc-body p { font-size: 12.5px; color: var(--dim); line-height: 1.5; margin-top: 4px; }
+.scc-rec { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); margin-top: 6px; }
+.scc .btn { text-decoration: none; }
+
+.btn { font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer;
+  font-family: 'Inter', sans-serif; display: inline-block; }
+.btn.warm { background: var(--candle); border-color: var(--candle); color: #2a1e05; }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+@media (max-width: 480px) { .scc { justify-content: center; text-align: center; } .scc .btn { width: 100%; text-align: center; } }

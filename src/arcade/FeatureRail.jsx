@@ -61,6 +61,13 @@ const I = {
       <circle cx="12" cy="12" r="3.4" />
     </svg>
   ),
+  soccer: (
+    <svg viewBox="0 0 24 24" {...S}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 3.5v3.2M12 17.3v3.2M3.5 12h3.2M17.3 12h3.2" />
+      <path d="M8.2 6.4l2.2 2.6M15.8 6.4l-2.2 2.6M8.2 17.6l2.2-2.6M15.8 17.6l-2.2-2.6" />
+    </svg>
+  ),
   watch: (
     <svg viewBox="0 0 24 24" {...S}>
       <rect x="3" y="5" width="18" height="14" rx="3" />
@@ -94,6 +101,8 @@ const ITEMS = [
     desc: 'A shared weekly timetable — plans, calls, and free evenings, live for both of you.' },
   { id: 'sect-snap', icon: 'snap', label: 'Duo Snap', accent: 'candle',
     desc: 'Timed paired photos — both of you snap, then reveal together. Streaks, pause, history.' },
+  { id: 'sect-soccer', icon: 'soccer', label: 'Micro Soccer', accent: 'good',
+    desc: 'Two cars, one ball, 90 seconds — nudge it into their net. Highest score wins.' },
   { id: 'sect-watch', icon: 'watch', label: 'Movie night', accent: 'candle',
     desc: 'Paste a YouTube link — playback syncs live on both screens.' },
   { id: 'sect-pass', icon: 'pass', label: 'Duo Pass', accent: 'candle',
