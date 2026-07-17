@@ -101,6 +101,17 @@ export const RULES = {
     tip: 'Split jobs \u2014 one chops, one plates. Closing time stops new orders, so finish what\u2019s on the pass.'
   },
 
+  stickmanswordduel: {
+    goal: 'Win three rounds in a neon sword duel.',
+    how: [
+      'Player A picks the arena; both of you fight online, each on your own device.',
+      'A/D move \u00b7 W jump \u00b7 S dash \u00b7 F attack \u00b7 G block \u00b7 H kick.',
+      'Tap attack up to three times for a combo; hold attack to charge a heavy; dash+attack lunges; air+attack plunges.',
+      'Perfect-timed block = parry. Kick breaks a raised guard.'
+    ],
+    tip: 'Don\u2019t spam heavies \u2014 a parry beats everything, including a charged swing.'
+  },
+
   // Note: the four rule sets below describe the standard version of each
   // game \u2014 tweak the wording if your engine plays it differently.
   sketch: {

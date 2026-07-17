@@ -27,8 +27,9 @@ import * as TTL from './twotruths.js';
 import * as CB from './codebreak.js';
 import * as SS from './sparksplash.js';
 import * as RSC from './readysetcook.js';
+import * as SSD from './stickmanswordduel.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD]
     .map(e => [e.meta.id, e])
 );

@@ -564,6 +564,27 @@ export const ART = {
      @keyframes cb-pop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
      ${pulse('cb', 'cb-lock', 2.4)} ${sparkAnim('cb', 3)}`),
 
+  /* ─── Stickman Sword Duel: neon fighters ─── */
+  stickmanswordduel: scene('ssd', '', `
+    <rect x="20" y="100" width="200" height="14" rx="3" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
+    <g class="ssd-p1">
+      <circle cx="78" cy="58" r="8" fill="var(--p1)"/>
+      <path d="M78 66 V92 M66 74 H90 M78 92 L68 108 M78 92 L88 108" stroke="var(--p1)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M90 72 L118 54" stroke="var(--candle)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="118" cy="54" r="3" fill="var(--candle)" filter="url(#ssd-glow)"/>
+    </g>
+    <g class="ssd-p2">
+      <circle cx="162" cy="58" r="8" fill="var(--p2)"/>
+      <path d="M162 66 V92 M148 74 H176 M162 92 L152 108 M162 92 L172 108" stroke="var(--p2)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M148 72 L122 56" stroke="var(--candle)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="122" cy="56" r="3" fill="var(--candle)" filter="url(#ssd-glow)"/>
+    </g>
+    ${sparks('ssd', [[40, 28, 1.6, 'var(--p1)'], [200, 36, 1.6, 'var(--p2)'], [120, 22, 1.4, 'var(--candle)']])}`,
+    `.ssd-p1 { animation: ssd-lunge 2.4s ease-in-out infinite; }
+     .ssd-p2 { animation: ssd-lunge 2.4s ease-in-out .3s infinite reverse; }
+     @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
+     ${sparkAnim('ssd', 3)}`),
+
   /* ─── Ready, Set, Cook: co-op kitchen ─── */
   readysetcook: scene('rsc', '', `
     <rect x="36" y="88" width="168" height="28" rx="6" fill="var(--room2)" stroke="var(--line)" stroke-width="2"/>

@@ -304,6 +304,7 @@
 .arcade-page .ss-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
 .arcade-page .ss-canvas{width:100%;max-width:800px;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;}
 .arcade-page .rsc-wrap{width:100%;}
+.arcade-page .ssd-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .ss-hint{text-align:center;max-width:640px;line-height:1.45;}
 .arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,32px);grid-template-rows:repeat(11,32px);gap:2px;
             background:var(--room2);padding:8px;border-radius:12px;}
