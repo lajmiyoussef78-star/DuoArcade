@@ -55,6 +55,7 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
   const callWinRef = useRef(null);
   const dragRef = useRef(null); // { ox, oy, left, top }
   const missedPostedRef = useRef(false);
+  const endedPostedRef = useRef(false);
 
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -125,6 +126,14 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
   }
 
   function cleanupCall(notifyPeer) {
+    const c = callRef.current;
+    // Whoever hangs up after a connected call logs duration in chat
+    if (notifyPeer && c?.status === 'active') {
+      const secs = c.startedAt
+        ? Math.max(1, Math.round((Date.now() - c.startedAt) / 1000))
+        : Math.max(1, callSeconds);
+      postEndedCall(c.video, secs);
+    }
     clearRingTimer();
     if (notifyPeer) {
       liveChannelRef.current?.send({ type: 'broadcast', event: 'call-end', payload: { userId } });
@@ -174,6 +183,15 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
     missedPostedRef.current = true;
     try {
       await sendCallEvent(code, userId, { kind, video: !!video });
+    } catch { /* ignore */ }
+  }
+
+  // Either side posts a completed-call line with duration after hang-up.
+  async function postEndedCall(video, seconds) {
+    if (!code || !userId || endedPostedRef.current) return;
+    endedPostedRef.current = true;
+    try {
+      await sendCallEvent(code, userId, { kind: 'ended', video: !!video, seconds });
     } catch { /* ignore */ }
   }
 
@@ -236,6 +254,7 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
         }
         incomingOfferRef.current = payload.sdp;
         missedPostedRef.current = false;
+        endedPostedRef.current = false;
         setCall({ status: 'ringing', video: payload.video });
         setOpen(true);
         armRingTimeout();
@@ -245,6 +264,7 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
         await pcRef.current.setRemoteDescription(payload.sdp);
         await flushIce();
         missedPostedRef.current = true; // connected — not a miss
+        endedPostedRef.current = false;
         clearRingTimer();
         setCall(c => (c ? { ...c, status: 'active', startedAt: Date.now() } : c));
       })
@@ -277,6 +297,8 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
           postMissedCall(c.video, 'missed');
           setCallError('No answer');
         }
+        // Peer hung up — they log the ended call; we just tear down
+        if (c?.status === 'active') endedPostedRef.current = true;
         cleanupCall(false);
       })
       .on('presence', { event: 'sync' }, () => {
@@ -576,6 +598,7 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
     if (call) return;
     setCallError(null);
     missedPostedRef.current = false;
+    endedPostedRef.current = false;
     try {
       setCall({ status: 'calling', video });
       armRingTimeout();
@@ -620,6 +643,7 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
         payload: { userId, sdp: pc.localDescription }
       });
       missedPostedRef.current = true;
+      endedPostedRef.current = false;
       clearRingTimer();
       setCall(c => (c ? { ...c, status: 'active', startedAt: Date.now() } : c));
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -731,12 +755,18 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
           {messages.map((m, i) => {
             const callEvt = parseCallEvent(m.content);
             if (callEvt) {
-              const label = callEvt.kind === 'busy'
-                ? (callEvt.video ? 'No answer · video call' : 'No answer · voice call')
-                : (callEvt.video ? 'Missed video call' : 'Missed voice call');
+              const ended = callEvt.kind === 'ended';
+              let label;
+              if (ended) {
+                label = (callEvt.video ? 'Video call' : 'Voice call') + ' · ' + fmtDur(callEvt.seconds || 0);
+              } else if (callEvt.kind === 'busy') {
+                label = callEvt.video ? 'No answer · video call' : 'No answer · voice call';
+              } else {
+                label = callEvt.video ? 'Missed video call' : 'Missed voice call';
+              }
               return (
                 <div key={m.id} className="pc-row pc-system">
-                  <div className="pc-sys">
+                  <div className={`pc-sys${ended ? ' pc-sys-ended' : ' pc-sys-missed'}`}>
                     <span className="pc-sys-icon" aria-hidden="true">
                       {callEvt.video ? (
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

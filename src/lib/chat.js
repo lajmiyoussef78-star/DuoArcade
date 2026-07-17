@@ -70,8 +70,12 @@ export async function markChatSeen(ids) {
 /* Call events stored as special content so they show in chat history. */
 const CALL_PREFIX = '⟦duo:call⟧';
 
-export function encodeCallEvent({ kind, video }) {
-  return CALL_PREFIX + JSON.stringify({ kind, video: !!video });
+export function encodeCallEvent({ kind, video, seconds }) {
+  const payload = { kind, video: !!video };
+  if (kind === 'ended' && Number.isFinite(seconds)) {
+    payload.seconds = Math.max(0, Math.floor(seconds));
+  }
+  return CALL_PREFIX + JSON.stringify(payload);
 }
 
 export function parseCallEvent(content) {
@@ -79,12 +83,16 @@ export function parseCallEvent(content) {
   try {
     const data = JSON.parse(content.slice(CALL_PREFIX.length));
     if (!data || typeof data.kind !== 'string') return null;
-    return { kind: data.kind, video: !!data.video };
+    return {
+      kind: data.kind,
+      video: !!data.video,
+      seconds: Number.isFinite(data.seconds) ? Math.max(0, Math.floor(data.seconds)) : 0
+    };
   } catch {
     return null;
   }
 }
 
-export async function sendCallEvent(duoCode, senderId, { kind, video }) {
-  return sendChatMessage(duoCode, senderId, encodeCallEvent({ kind, video }));
+export async function sendCallEvent(duoCode, senderId, { kind, video, seconds }) {
+  return sendChatMessage(duoCode, senderId, encodeCallEvent({ kind, video, seconds }));
 }

@@ -150,8 +150,12 @@ html[data-appearance="light"] .arcade-page .pc-panel {
   font-size: 12px; font-weight: 600;
 }
 .arcade-page .pc-sys-icon {
-  display: flex; color: #ff6b6b; margin: 0; padding: 0;
+  display: flex; margin: 0; padding: 0;
 }
+.arcade-page .pc-sys-missed { color: #ff8a8a; }
+.arcade-page .pc-sys-missed .pc-sys-icon { color: #ff6b6b; }
+.arcade-page .pc-sys-ended { color: var(--good); }
+.arcade-page .pc-sys-ended .pc-sys-icon { color: var(--good); }
 .arcade-page .pc-sys-time {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 500; font-size: 10.5px;
