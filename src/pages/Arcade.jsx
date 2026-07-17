@@ -489,8 +489,9 @@ export default function Arcade() {
         setGeoStatus(error);
         return;
       }
-      setGeoStatus('');
-      pushGeo({ lat, lng, place });
+      setGeoStatus(place ? '' : 'Updating location…');
+      // Always push lat/lng; place may be null briefly after a move until geocode returns.
+      pushGeo({ lat, lng, place: place ?? null });
     });
 
     return () => {

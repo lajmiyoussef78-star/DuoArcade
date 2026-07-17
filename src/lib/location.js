@@ -28,29 +28,49 @@ export async function reverseGeocode(lat, lng) {
   return data.city || data.locality || data.principalSubdivision || data.countryName || 'Unknown place';
 }
 
-export function watchGeo(onUpdate, { enableHighAccuracy = false, maximumAge = 120000 } = {}) {
+/** Fresh GPS preferred — stale browser caches were keeping old cities after travel. */
+const FRESH = { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 };
+/** ~3km — enough to drop a stale city name before reverse-geocode finishes. */
+const MOVE_KM = 3;
+
+export function watchGeo(onUpdate, opts = {}) {
   if (!navigator.geolocation) {
     onUpdate({ error: 'Geolocation is not supported in this browser.' });
     return () => {};
   }
 
-  let lastKey = '';
+  const options = { ...FRESH, ...opts, maximumAge: 0 };
+  let last = null; // { lat, lng, place }
+  let cancelled = false;
+  let watchId = null;
 
   const handle = async pos => {
+    if (cancelled) return;
     const { latitude: lat, longitude: lng } = pos.coords;
-    const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-    if (key === lastKey) return;
-    lastKey = key;
-    onUpdate({ lat, lng, place: null, accuracy: pos.coords.accuracy });
+    const moved = !last || haversineKm(last.lat, last.lng, lat, lng) >= MOVE_KM;
+    // Drop the old city immediately when you move — don't keep "Tunisia" over Aachen coords.
+    const place = moved ? null : (last?.place ?? null);
+    last = { lat, lng, place };
+    onUpdate({ lat, lng, place, accuracy: pos.coords.accuracy, moved });
+
     try {
-      const place = await reverseGeocode(lat, lng);
-      onUpdate({ lat, lng, place, accuracy: pos.coords.accuracy });
+      const resolved = await reverseGeocode(lat, lng);
+      if (cancelled) return;
+      // Ignore a late geocode if GPS has already moved on.
+      if (haversineKm(last.lat, last.lng, lat, lng) >= MOVE_KM) return;
+      last = { lat, lng, place: resolved };
+      onUpdate({ lat, lng, place: resolved, accuracy: pos.coords.accuracy });
     } catch (e) {
-      onUpdate({ lat, lng, place: null, accuracy: pos.coords.accuracy, geocodeError: e.message });
+      if (cancelled) return;
+      onUpdate({
+        lat: last.lat, lng: last.lng, place: last.place,
+        accuracy: pos.coords.accuracy, geocodeError: e.message
+      });
     }
   };
 
   const fail = err => {
+    if (cancelled) return;
     const msg = err.code === 1
       ? 'Location permission denied'
       : err.code === 2
@@ -59,7 +79,24 @@ export function watchGeo(onUpdate, { enableHighAccuracy = false, maximumAge = 12
     onUpdate({ error: msg });
   };
 
-  navigator.geolocation.getCurrentPosition(handle, fail, { enableHighAccuracy, maximumAge, timeout: 15000 });
-  const id = navigator.geolocation.watchPosition(handle, fail, { enableHighAccuracy, maximumAge, timeout: 15000 });
-  return () => navigator.geolocation.clearWatch(id);
+  const refresh = () => {
+    navigator.geolocation.getCurrentPosition(handle, fail, options);
+  };
+
+  refresh();
+  watchId = navigator.geolocation.watchPosition(handle, fail, options);
+
+  // Coming back to the tab / app: force a brand-new fix (don't trust cache).
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') refresh();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('pageshow', refresh);
+
+  return () => {
+    cancelled = true;
+    if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    document.removeEventListener('visibilitychange', onVisible);
+    window.removeEventListener('pageshow', refresh);
+  };
 }

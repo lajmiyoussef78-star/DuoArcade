@@ -181,12 +181,19 @@ async function supabaseSync() {
           const db = dbRows[r];
           const fresh = !!db && (Date.now() + clockSkew - new Date(db.last_seen).getTime() < FRESH_MS);
           const online = !!rt?.online || fresh;
+          // Prefer the source that owns the coordinates so a stale DB city
+          // (e.g. Tunisia) can't stick on top of fresher Aachen coords.
+          const lat = (typeof rt?.lat === 'number') ? rt.lat
+            : (fresh && typeof db?.lat === 'number' ? db.lat : null);
+          const lng = (typeof rt?.lng === 'number') ? rt.lng
+            : (fresh && typeof db?.lng === 'number' ? db.lng : null);
+          let place = null;
+          if (typeof rt?.lat === 'number') place = rt.place || null;
+          else if (fresh) place = db?.place || null;
           return {
             online,
             focused: rt ? rt.focused : online,
-            place: rt?.place ?? db?.place ?? null,
-            lat: rt?.lat ?? (fresh && typeof db.lat === 'number' ? db.lat : null),
-            lng: rt?.lng ?? (fresh && typeof db.lng === 'number' ? db.lng : null)
+            place, lat, lng
           };
         };
         return { A: norm('A'), B: norm('B') };
@@ -281,7 +288,10 @@ async function supabaseSync() {
       return {
         setFocused: f => { state = { ...state, focused: f }; scheduleTrack(); },
         setGeo: geo => {
+          // When coords move, allow place:null through so we don't keep
+          // broadcasting the previous city until reverse-geocode finishes.
           state = { ...state, ...geo };
+          if (geo && 'place' in geo && geo.place == null) state.place = null;
           scheduleTrack();
           if (Date.now() - lastBeat > 3000) beat();
         },
