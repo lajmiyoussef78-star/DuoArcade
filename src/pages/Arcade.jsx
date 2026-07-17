@@ -221,7 +221,7 @@ export default function Arcade() {
     if (!s || s.winner || s.turn !== myRole) return;
     if (s.paused) return;
     if (s.phase && s.phase !== 'live') return;
-    if (s.liveAt && Date.now() < s.liveAt) return;
+    // Countdown is enforced locally in GameScreen (clock-skew safe) — don't gate on liveAt here.
     const eng = ENGINES[s.game];
     const res = eng.applyMove(s.gs, m, myRole);
     if (!res) return;
@@ -247,9 +247,9 @@ export default function Arcade() {
     if (!s || s.phase !== 'lobby' || s.ready?.[myRole] || s.paused) return;
     const ready = { ...(s.ready || { A: false, B: false }), [myRole]: true };
     const both = ready.A && ready.B;
-    // Fixed 3-second countdown for every game after both players ready.
+    // Mark countdown start; each client runs a fixed local 3s (avoids clock skew).
     const session = both
-      ? { ...s, ready, phase: 'live', liveAt: Date.now() + 3000 }
+      ? { ...s, ready, phase: 'live', liveAt: Date.now() + 3000, countdownMs: 3000 }
       : { ...s, ready };
     patchLocal({ session });
     await upd(code, { session }, { force: true });

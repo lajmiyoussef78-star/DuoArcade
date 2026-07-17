@@ -8,7 +8,10 @@ import {
 } from '../lib/numberfortress.js';
 import '../styles/numberfortress.css';
 
-export default function NumberFortress({ myRole, names = {}, rt, onComplete }) {
+// Survive Strict Mode remounts — same duo code must keep the same host seed.
+const seedByCode = new Map();
+
+export default function NumberFortress({ myRole, names = {}, rt, code, onComplete }) {
   const role = myRole;
   const partnerRole = role === 'A' ? 'B' : 'A';
   const partnerName = names[partnerRole] || 'Partner';
@@ -30,14 +33,35 @@ export default function NumberFortress({ myRole, names = {}, rt, onComplete }) {
   const finishedRef = useRef(false);
   const appliedRef = useRef(new Set());
   const timerRef = useRef(null);
+  const seedRef = useRef(null);
+  const pendingRef = useRef([]); // partner msgs that arrived before start
   const stateRef = useRef({});
   stateRef.current = { phase, round, bids, answers, budgets, questions, picked, readyNext };
 
   const q = questions[round];
 
+  const applyMsg = useCallback((m) => {
+    if (!m || !m.k) return;
+    if (m.k === 'bid') {
+      if (m.by === role) return;
+      if (m.round !== stateRef.current.round) return;
+      setBids(b => ({ ...b, [m.by]: m.amount }));
+    } else if (m.k === 'answer') {
+      if (m.by === role) return;
+      if (m.round !== stateRef.current.round) return;
+      setAnswers(a => ({ ...a, [m.by]: m.choice }));
+    } else if (m.k === 'ready') {
+      if (m.by === role) return;
+      if (m.round !== stateRef.current.round) return;
+      setReadyNext(r => ({ ...r, [m.by]: true }));
+    }
+  }, [role]);
+
   const begin = useCallback((seed) => {
-    if (startedRef.current) return;
+    if (!seed || startedRef.current) return;
     startedRef.current = true;
+    seedRef.current = seed;
+    if (code) seedByCode.set(code, seed);
     setQuestions(pickQuestions(seed));
     setRound(0);
     setBudgets({ A: START_BUDGET, B: START_BUDGET });
@@ -49,40 +73,59 @@ export default function NumberFortress({ myRole, names = {}, rt, onComplete }) {
     setLastDelta(null);
     appliedRef.current = new Set();
     setPhase('bid');
-  }, []);
+    // Replay anything the partner sent while we were still waiting for the seed
+    const pending = pendingRef.current;
+    pendingRef.current = [];
+    queueMicrotask(() => { pending.forEach(applyMsg); });
+  }, [code, applyMsg]);
 
   useEffect(() => {
     if (!rt?.on) return;
     rt.on(m => {
       if (!m || !m.k) return;
-      if (m.k === 'start') begin(m.seed);
-      else if (m.k === 'bid') {
-        if (m.by === role) return;
-        if (m.round !== stateRef.current.round) return;
-        setBids(b => ({ ...b, [m.by]: m.amount }));
-      } else if (m.k === 'answer') {
-        if (m.by === role) return;
-        if (m.round !== stateRef.current.round) return;
-        setAnswers(a => ({ ...a, [m.by]: m.choice }));
-      } else if (m.k === 'ready') {
-        if (m.by === role) return;
-        if (m.round !== stateRef.current.round) return;
-        setReadyNext(r => ({ ...r, [m.by]: true }));
+      if (m.k === 'needstart') {
+        // Guest missed the first broadcast — retransmit the same seed
+        if (role === 'A' && seedRef.current) {
+          rt.send({ k: 'start', seed: seedRef.current });
+        }
+        return;
       }
+      if (m.k === 'start') {
+        begin(m.seed);
+        return;
+      }
+      if (!startedRef.current) {
+        pendingRef.current.push(m);
+        return;
+      }
+      applyMsg(m);
     });
-  }, [rt, role, begin]);
+  }, [rt, role, begin, applyMsg]);
 
   useEffect(() => {
-    if (role !== 'A') {
-      const t = setTimeout(() => {
-        if (!startedRef.current) begin(`fallback-${Date.now()}`);
-      }, 900);
-      return () => clearTimeout(t);
+    if (role === 'A') {
+      let seed = (code && seedByCode.get(code)) || seedRef.current;
+      if (!seed) {
+        seed = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        if (code) seedByCode.set(code, seed);
+      }
+      seedRef.current = seed;
+      const push = () => rt?.send({ k: 'start', seed });
+      push();
+      begin(seed);
+      // Retransmit a few times in case the guest channel wasn't ready
+      const t1 = setTimeout(push, 400);
+      const t2 = setTimeout(push, 1200);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
-    const seed = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-    rt?.send({ k: 'start', seed });
-    begin(seed);
-  }, [role, rt, begin]);
+    // Guest: keep asking until the shared seed arrives — never invent our own
+    const ask = () => {
+      if (!startedRef.current) rt?.send({ k: 'needstart' });
+    };
+    ask();
+    const iv = setInterval(ask, 700);
+    return () => clearInterval(iv);
+  }, [role, rt, begin, code]);
 
   const lockBid = () => {
     const mine = budgets[role];

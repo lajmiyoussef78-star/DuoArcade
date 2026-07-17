@@ -61,6 +61,8 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paus
   );
 }
 
+const LOBBY_COUNTDOWN_MS = 3000;
+
 export default function GameScreen({
   duo, code, myRole, isAway, sync,
   onMove, onReady, onRematch, onBack,
@@ -72,11 +74,21 @@ export default function GameScreen({
   const [showRules, setShowRules] = useState(false);
   useEffect(() => { setShowRules(false); }, [s.game]);
   const [, forceTick] = useState(0);
+  // Local end time — ignore skewed wall clocks on liveAt (was showing 7 vs 3).
+  const [goAt, setGoAt] = useState(null);
 
-  const counting = s.liveAt && Date.now() < s.liveAt && !s.winner;
+  useEffect(() => {
+    if (s.phase === 'live' && s.liveAt && !s.winner) {
+      setGoAt(Date.now() + LOBBY_COUNTDOWN_MS);
+    } else {
+      setGoAt(null);
+    }
+  }, [s.liveAt, s.phase, s.winner, s.startedAt, s.game]);
+
+  const counting = goAt != null && Date.now() < goAt && !s.winner;
   useEffect(() => {
     if (!counting) return;
-    const t = setTimeout(() => forceTick(n => n + 1), 250);
+    const t = setTimeout(() => forceTick(n => n + 1), 200);
     return () => clearTimeout(t);
   });
 
@@ -138,7 +150,7 @@ export default function GameScreen({
       </div>
     );
   } else if (counting) {
-    const secs = Math.max(1, Math.ceil((s.liveAt - Date.now()) / 1000));
+    const secs = Math.min(3, Math.max(1, Math.ceil((goAt - Date.now()) / 1000)));
     board = <div className="countdown-big">{secs}</div>;
     banner = 'get ready…';
   } else if (eng.meta.realtime) {
