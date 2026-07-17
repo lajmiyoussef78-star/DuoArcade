@@ -23,6 +23,11 @@ const I = {
       <circle cx="18" cy="13.4" r="0.6" fill="currentColor" stroke="none" />
     </svg>
   ),
+  star: (
+    <svg viewBox="0 0 24 24" {...S}>
+      <path d="M12 3.2l2.4 5.1 5.6.7-4.1 3.8 1.1 5.5L12 15.8 6.9 18.3l1.1-5.5-4.1-3.8 5.6-.7L12 3.2Z" />
+    </svg>
+  ),
   arena: (
     <svg viewBox="0 0 24 24" {...S}>
       <path d="M8 4H4v3c0 2 1.8 4 4 4M16 4h4v3c0 2-1.8 4-4 4" />
@@ -78,7 +83,7 @@ const I = {
 const ITEMS = [
   { id: 'sect-together', icon: 'together', label: 'Together', accent: 'p2',
     desc: 'How long you’ve been together, where you both are, and your anniversary countdown.' },
-  { id: 'sect-favorites', icon: 'play', label: 'Favorites', accent: 'candle',
+  { id: 'sect-favorites', icon: 'star', label: 'Favorites', accent: 'candle',
     desc: 'Games you both starred — quick access above the full Play shelf.' },
   { id: 'sect-play', icon: 'play', label: 'Games', accent: 'p1',
     desc: 'Pick a game and invite your partner — Connect 4, Tic-Tac-Toe, quizzes, and more.' },
