@@ -255,11 +255,14 @@ export default function Arcade() {
     await upd(code, { session }, { force: true });
   }, [patchLocal, upd]);
 
-  const realtimeFinish = useCallback(async (gameId, w) => {
+  const realtimeFinish = useCallback(async (gameId, w, scores) => {
     const { duo, code } = ctxRef.current;
     const s = duo.session;
     if (!s || s.game !== gameId || s.winner) return;
-    const session = { ...s, winner: w };
+    const matchScore = scores && typeof scores.a === 'number' && typeof scores.b === 'number'
+      ? { a: scores.a, b: scores.b }
+      : null;
+    const session = { ...s, winner: w, ...(matchScore ? { matchScore } : {}) };
     const patch = { session, turn: '-' };
     const records = structuredClone(duo.records || {});
     const rec = records[gameId] ?? (records[gameId] = { a: 0, b: 0, d: 0 });

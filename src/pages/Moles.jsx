@@ -1,5 +1,5 @@
 // src/pages/Moles.jsx — Heart Duel play UI (moleduel engine).
-// Shared host seed → same pops; host merges both whack maps before declaring winner.
+// Host waits for partner's final scoreboard before declaring a winner.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -8,7 +8,7 @@ import {
 import '../styles/moles.css';
 
 const LEAD_MS = 800;
-const FINISH_GRACE_MS = 1400;
+const FINISH_WAIT_MS = 6000;
 const seedByCode = new Map();
 
 function glyphFor(kind) {
@@ -18,17 +18,22 @@ function glyphFor(kind) {
 }
 
 function mergeWhacks(into, from) {
-  if (!from || typeof from !== 'object') return;
+  if (!from || typeof from !== 'object') return 0;
+  let n = 0;
   for (const [id, ms] of Object.entries(from)) {
     if (typeof ms !== 'number') continue;
     const key = Number(id);
-    if (into[key] == null || ms < into[key]) into[key] = ms;
+    if (into[key] == null || ms < into[key]) {
+      into[key] = ms;
+      n++;
+    }
   }
+  return n;
 }
 
 export default function Moles({ myRole, names = {}, rt, code, onComplete, pausedRef }) {
   const role = myRole;
-  const [phase, setPhase] = useState('wait'); // wait | live | done
+  const [phase, setPhase] = useState('wait');
   const [live, setLive] = useState({ up: {}, myScore: 0, theirScore: 0, hit: {} });
   const [result, setResult] = useState(null);
 
@@ -37,6 +42,8 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
   const startAtRef = useRef(0);
   const myWhacks = useRef({});
   const theirWhacks = useRef({});
+  const myScoreRef = useRef(0);
+  const partnerReportRef = useRef(null); // { score, whacks }
   const timersRef = useRef([]);
   const startedRef = useRef(false);
   const endedRef = useRef(false);
@@ -59,11 +66,10 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
 
   const recomputeLiveScores = useCallback(() => {
     const { scoreA, scoreB } = scoresFromMaps();
-    setLive(s => ({
-      ...s,
-      myScore: role === 'A' ? scoreA : scoreB,
-      theirScore: role === 'A' ? scoreB : scoreA
-    }));
+    const mine = role === 'A' ? scoreA : scoreB;
+    const theirs = role === 'A' ? scoreB : scoreA;
+    myScoreRef.current = mine;
+    setLive(s => ({ ...s, myScore: mine, theirScore: theirs }));
   }, [role, scoresFromMaps]);
 
   const applyOutcome = useCallback((w, scoreA, scoreB) => {
@@ -80,41 +86,80 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
     clearTimers();
   }, [role]);
 
+  const resolveScores = useCallback(() => {
+    // Prefer merged whack settle; fall back to each side's self-reported live score
+    // so a 26–0 can't collapse to 0–0 when mid-game RT drops.
+    const settled = settle(schedRef.current, myWhacks.current, theirWhacks.current);
+    let scoreA = settled.scoreA;
+    let scoreB = settled.scoreB;
+    const partnerHits = Object.keys(theirWhacks.current).length;
+    const report = partnerReportRef.current;
+
+    if (Object.keys(myWhacks.current).length > 0) {
+      scoreA = myScoreRef.current;
+    }
+    if (report && typeof report.score === 'number') {
+      if (partnerHits === 0 || Math.abs(report.score) > Math.abs(scoreB)) {
+        scoreB = report.score;
+      }
+    }
+    return { scoreA, scoreB, w: winnerOf(scoreA, scoreB) };
+  }, []);
+
   const hostFinish = useCallback(() => {
     if (role !== 'A' || finishedRef.current) return;
     finishedRef.current = true;
-    const { scoreA, scoreB } = settle(schedRef.current, myWhacks.current, theirWhacks.current);
-    const w = winnerOf(scoreA, scoreB);
+    const { scoreA, scoreB, w } = resolveScores();
     const payload = { k: 'outcome', w, a: scoreA, b: scoreB };
     rt?.send(payload);
-    setTimeout(() => rt?.send(payload), 250);
+    setTimeout(() => rt?.send(payload), 200);
+    setTimeout(() => rt?.send(payload), 500);
     applyOutcome(w, scoreA, scoreB);
-    onComplete?.(w);
-  }, [role, rt, applyOutcome, onComplete]);
+    onComplete?.(w, { a: scoreA, b: scoreB });
+  }, [role, rt, resolveScores, applyOutcome, onComplete]);
 
   const publishFinal = useCallback(() => {
-    const payload = { k: 'final', by: role, whacks: { ...myWhacks.current } };
+    const payload = {
+      k: 'final',
+      by: role,
+      score: myScoreRef.current,
+      whacks: { ...myWhacks.current }
+    };
     rt?.send(payload);
-    setTimeout(() => rt?.send(payload), 180);
-    setTimeout(() => rt?.send(payload), 450);
+    setTimeout(() => rt?.send(payload), 150);
+    setTimeout(() => rt?.send(payload), 400);
+    setTimeout(() => rt?.send(payload), 900);
   }, [role, rt]);
 
   const endMatch = useCallback(() => {
     if (endedRef.current) return;
     endedRef.current = true;
     publishFinal();
+
     if (role === 'A') {
-      // Wait for partner's final dump (or grace), then settle with full maps
-      timersRef.current.push(setTimeout(() => hostFinish(), FINISH_GRACE_MS));
+      // Keep asking until partner final arrives, then settle
+      let tries = 0;
+      const ask = () => {
+        if (finishedRef.current) return;
+        rt?.send({ k: 'needfinal' });
+        publishFinal();
+        tries += 1;
+        if (partnerReportRef.current) {
+          hostFinish();
+          return;
+        }
+        if (tries * 400 >= FINISH_WAIT_MS) hostFinish();
+        else timersRef.current.push(setTimeout(ask, 400));
+      };
+      timersRef.current.push(setTimeout(ask, 300));
     } else {
-      // Guest waits for host outcome; local fallback if host never answers
       timersRef.current.push(setTimeout(() => {
-        if (finishedRef.current || phaseRef.current === 'done') return;
-        const { scoreA, scoreB } = scoresFromMaps();
-        applyOutcome(winnerOf(scoreA, scoreB), scoreA, scoreB);
-      }, FINISH_GRACE_MS + 800));
+        if (outcomeAppliedRef.current) return;
+        const { scoreA, scoreB, w } = resolveScores();
+        applyOutcome(w, scoreA, scoreB);
+      }, FINISH_WAIT_MS + 500));
     }
-  }, [role, publishFinal, hostFinish, scoresFromMaps, applyOutcome]);
+  }, [role, rt, publishFinal, hostFinish, resolveScores, applyOutcome]);
 
   const runMatch = useCallback(() => {
     setPhase('live');
@@ -147,6 +192,8 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
     startAtRef.current = Date.now() + LEAD_MS;
     myWhacks.current = {};
     theirWhacks.current = {};
+    myScoreRef.current = 0;
+    partnerReportRef.current = null;
     endedRef.current = false;
     finishedRef.current = false;
     outcomeAppliedRef.current = false;
@@ -169,8 +216,12 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
         begin(m.seed);
         return;
       }
+      if (m.k === 'needfinal') {
+        if (endedRef.current || Object.keys(myWhacks.current).length) publishFinal();
+        return;
+      }
       if (m.k === 'whack') {
-        if (m.by && m.by === role) return;
+        if (m.by === role) return;
         if (theirWhacks.current[m.id] == null) theirWhacks.current[m.id] = m.ms;
         recomputeLiveScores();
         return;
@@ -178,9 +229,12 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
       if (m.k === 'final') {
         if (m.by === role) return;
         mergeWhacks(theirWhacks.current, m.whacks);
+        partnerReportRef.current = {
+          score: typeof m.score === 'number' ? m.score : partnerReportRef.current?.score,
+          whacks: m.whacks
+        };
         recomputeLiveScores();
-        // Host can finish as soon as partner's full map arrives
-        if (role === 'A' && endedRef.current) hostFinish();
+        if (role === 'A' && endedRef.current && !finishedRef.current) hostFinish();
         return;
       }
       if (m.k === 'outcome') {
@@ -189,7 +243,7 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
       }
     });
     return () => clearTimers();
-  }, [rt, role, begin, recomputeLiveScores, hostFinish, applyOutcome]);
+  }, [rt, role, begin, recomputeLiveScores, hostFinish, applyOutcome, publishFinal]);
 
   useEffect(() => {
     if (role === 'A') {
@@ -272,7 +326,7 @@ export default function Moles({ myRole, names = {}, rt, code, onComplete, paused
 
           {phase === 'live' && (
             <div className="mo-hint">
-              {'\u{2764}\u{FE0F}'} +1 · {'\u{1F48D}'} +3 · {'\u{1F494}'} −2 · fastest claim wins
+              {'\u{2764}\u{FE0F}'} +1 · {'\u{1F48D}'} +3 · {'\u{1F494}'} −2 · scores can go negative
             </div>
           )}
         </div>

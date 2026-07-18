@@ -165,7 +165,7 @@ export default function GameScreen({
       board = (
         <RealtimeBoard eng={eng} session={s} myRole={myRole} sync={sync} code={code}
           names={{ A: duo.nameA, B: duo.nameB }} paused={paused}
-          onFinish={w => onRealtimeFinish(s.game, w)} />
+          onFinish={(w, scores) => onRealtimeFinish(s.game, w, scores)} />
       );
       banner = paused ? 'Game paused' : 'go!';
     } else {
@@ -293,7 +293,11 @@ export default function GameScreen({
               </div>
             </div>
             <div className="gv-result-score">
-              {isDraw ? 'Draw' : <>{rec.a} <span>–</span> {rec.b}</>}
+              {s.matchScore
+                ? <>{s.matchScore.a} <span>–</span> {s.matchScore.b}</>
+                : isDraw
+                  ? 'Draw'
+                  : <>{rec.a} <span>–</span> {rec.b}</>}
             </div>
             <p className="gv-result-series">
               Series · {rec.a}–{rec.b}{rec.d ? ` · ${rec.d} draws` : ''}

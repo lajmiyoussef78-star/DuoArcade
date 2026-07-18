@@ -83,8 +83,8 @@ export function settle(schedule, whacksA, whacksB) {
     claims[m.id] = who;
     if (!who) continue;
     const pts = pointsFor(m);
-    if (who === 'A') scoreA = Math.max(0, scoreA + pts);
-    else scoreB = Math.max(0, scoreB + pts);
+    if (who === 'A') scoreA += pts;
+    else scoreB += pts;
   }
   return { scoreA, scoreB, claims };
 }

@@ -26,10 +26,10 @@ export function mount(el, ctx) {
   el.appendChild(wrap);
 
   const isHost = ctx.myRole === 'A';
-  const finish = w => {
+  const finish = (w, scores) => {
     if (finished) return;
     finished = true;
-    ctx.onFinish(w);
+    ctx.onFinish(w, scores);
   };
 
   root = createRoot(wrap);
@@ -39,8 +39,8 @@ export function mount(el, ctx) {
     rt: ctx.rt,
     code: ctx.code,
     pausedRef,
-    onComplete: w => {
-      if (isHost) finish(w);
+    onComplete: (w, scores) => {
+      if (isHost) finish(w, scores);
     }
   }));
 }
