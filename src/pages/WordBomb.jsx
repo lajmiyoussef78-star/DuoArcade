@@ -1,50 +1,34 @@
-// src/pages/WordBomb.jsx — route: /wordbomb/:code
-//
-// Word Bomb — hot-potato word game:
-//   * A fragment appears ("...OR..."). The bomb HOLDER must type a word
-//     containing it (3+ letters, not used before this match) to pass the
-//     bomb. The fragment changes with every valid word.
-//   * The fuse is HIDDEN (22–42s per round, seeded — both devices know
-//     when, neither player does). Whoever holds the bomb at the boom
-//     loses a life. 3 lives each; last one alive wins.
-//   * Side A adjudicates the boom moment (avoids device clock-skew
-//     arguments); B has a fallback if A's boom never arrives.
+// src/pages/WordBomb.jsx — Word Bomb play UI (mounted by the wordbomb engine).
+// Shell already ran ready + countdown. Host seeds the match; A adjudicates booms.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import {
-  myRoleInDuo, duoNames, bombChannel, loadWordBomb, recordWordBomb,
   fragmentAt, fuseDuration, validateWord, LIVES
 } from '../lib/wordbomb.js';
+import { loadWordBombDict, isEnglishWord, isDictReady } from '../lib/wordbombDict.js';
 import '../styles/wordbomb.css';
 
-export default function WordBomb() {
-  const { code } = useParams();
-  const navigate = useNavigate();
-  const backToDuo = useCallback(() => {
-    navigate(`/app?duo=${encodeURIComponent(code)}`, { replace: true });
-  }, [code, navigate]);
+const seedByCode = new Map();
 
-  const [role, setRole] = useState(undefined);
-  const [names, setNames] = useState({ A: 'A', B: 'B' });
-  const [tally, setTally] = useState({ a: 0, b: 0 });
-  const [phase, setPhase] = useState('lobby');  // lobby | countdown | live | boom | done
-  const [myReady, setMyReady] = useState(false);
-  const [theirReady, setTheirReady] = useState(false);
-  const [count, setCount] = useState(3);
+export default function WordBomb({ myRole, names = {}, rt, code, onComplete }) {
+  const role = myRole;
+  const partnerRole = role === 'A' ? 'B' : 'A';
+  const partnerName = names[partnerRole] || 'Partner';
 
+  const [phase, setPhase] = useState('wait'); // wait | live | boom | done
+  const [dictReady, setDictReady] = useState(isDictReady());
+  const [dictError, setDictError] = useState(false);
   const [holder, setHolder] = useState('A');
   const [fragment, setFragment] = useState('');
   const [lives, setLives] = useState({ A: LIVES, B: LIVES });
-  const [words, setWords] = useState([]);        // {by, word}
+  const [words, setWords] = useState([]);
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState('');
   const [boomLoser, setBoomLoser] = useState(null);
   const [winner, setWinner] = useState(null);
-  const [heat, setHeat] = useState(0);           // 0..1 fuse suspense (visual only)
+  const [heat, setHeat] = useState(0);
 
-  const chRef = useRef(null);
-  const seedRef = useRef(0);
+  const seedRef = useRef(null);
   const fragIdxRef = useRef(0);
   const roundRef = useRef(0);
   const usedRef = useRef(new Set());
@@ -55,21 +39,31 @@ export default function WordBomb() {
   const heatIv = useRef(null);
   const roundStartRef = useRef(0);
   const startedRef = useRef(false);
-  const phaseRef = useRef('lobby'); phaseRef.current = phase;
-  const roleRef = useRef(null);
-  const codeRef = useRef(code);
+  const finishedRef = useRef(false);
+  const phaseRef = useRef('wait');
+  phaseRef.current = phase;
   holderRef.current = holder;
-  useEffect(() => { roleRef.current = role; }, [role]);
-  useEffect(() => { codeRef.current = code; }, [code]);
+
+  const clearTimers = () => {
+    clearTimeout(fuseTimer.current);
+    clearTimeout(fallbackTimer.current);
+    clearInterval(heatIv.current);
+  };
+
+  useEffect(() => {
+    let alive = true;
+    loadWordBombDict()
+      .then(() => { if (alive) { setDictReady(true); setDictError(false); } })
+      .catch(() => { if (alive) setDictError(true); });
+    return () => { alive = false; };
+  }, []);
 
   const startRoundRef = useRef(() => {});
   const applyBoomRef = useRef(() => {});
-  const beginRef = useRef(() => {});
-  const acceptWordRef = useRef(() => {});
 
   const applyBoom = useCallback((loser) => {
     if (phaseRef.current !== 'live') return;
-    clearTimeout(fuseTimer.current); clearTimeout(fallbackTimer.current); clearInterval(heatIv.current);
+    clearTimers();
     livesRef.current = { ...livesRef.current, [loser]: livesRef.current[loser] - 1 };
     setLives({ ...livesRef.current });
     setBoomLoser(loser);
@@ -79,54 +73,58 @@ export default function WordBomb() {
       const w = loser === 'A' ? 'B' : 'A';
       setWinner(w);
       setPhase('done');
-      if (roleRef.current === 'A') {
-        recordWordBomb(codeRef.current, w).then(r => setTally({ a: r.wins_a, b: r.wins_b })).catch(() => {});
+      if (role === 'A' && !finishedRef.current) {
+        finishedRef.current = true;
+        onComplete?.(w);
       }
       return;
     }
-    if (roleRef.current === 'A') {
+    if (role === 'A') {
       setTimeout(() => {
         const round = roundRef.current + 1;
         const fragIdx = fragIdxRef.current;
-        chRef.current?.send({ k: 'round', round, holder: loser, fragIdx });
+        rt?.send({ k: 'round', round, holder: loser, fragIdx });
         startRoundRef.current(round, loser, fragIdx);
       }, 2200);
     }
-  }, []);
+  }, [role, rt, onComplete]);
   applyBoomRef.current = applyBoom;
 
   const startRound = useCallback((round, startHolder, fragIdx) => {
     roundRef.current = round;
     fragIdxRef.current = fragIdx;
     roundStartRef.current = Date.now();
-    setHolder(startHolder); holderRef.current = startHolder;
+    setHolder(startHolder);
+    holderRef.current = startHolder;
     setFragment(fragmentAt(seedRef.current, fragIdx));
-    setBoomLoser(null); setErr(''); setDraft('');
+    setBoomLoser(null);
+    setErr('');
+    setDraft('');
+    setHeat(0);
     setPhase('live');
 
-    clearInterval(heatIv.current);
+    clearTimers();
     const dur = fuseDuration(seedRef.current, round);
     heatIv.current = setInterval(() => {
       setHeat(Math.min(1, (Date.now() - roundStartRef.current) / dur));
     }, 400);
 
-    clearTimeout(fuseTimer.current); clearTimeout(fallbackTimer.current);
-    if (roleRef.current === 'A') {
+    if (role === 'A') {
       fuseTimer.current = setTimeout(() => {
         const loser = holderRef.current;
-        chRef.current?.send({ k: 'boom', loser });
+        rt?.send({ k: 'boom', loser });
         applyBoomRef.current(loser);
       }, dur);
     } else {
       fallbackTimer.current = setTimeout(() => {
         if (phaseRef.current === 'live') {
           const loser = holderRef.current;
-          chRef.current?.send({ k: 'boom', loser });
+          rt?.send({ k: 'boom', loser });
           applyBoomRef.current(loser);
         }
       }, dur + 2500);
     }
-  }, []);
+  }, [role, rt]);
   startRoundRef.current = startRound;
 
   const acceptWord = useCallback((by, word, fragIdx, nextHolder, mine) => {
@@ -135,187 +133,195 @@ export default function WordBomb() {
     setWords(w => [...w, { by, word }]);
     fragIdxRef.current = fragIdx + 1;
     setFragment(fragmentAt(seedRef.current, fragIdx + 1));
-    setHolder(nextHolder); holderRef.current = nextHolder;
+    setHolder(nextHolder);
+    holderRef.current = nextHolder;
     if (mine) { setDraft(''); setErr(''); }
   }, []);
-  acceptWordRef.current = acceptWord;
 
   const begin = useCallback((seed) => {
-    if (startedRef.current) return;
+    if (seed == null || startedRef.current) return;
     startedRef.current = true;
-    seedRef.current = seed;
+    const n = seed >>> 0;
+    seedRef.current = n;
+    if (code) seedByCode.set(code, n);
     usedRef.current = new Set();
     livesRef.current = { A: LIVES, B: LIVES };
     setLives({ A: LIVES, B: LIVES });
     setWords([]);
     setWinner(null);
-    setPhase('countdown');
-    let c = 3;
-    setCount(c);
-    const iv = setInterval(() => {
-      c -= 1; setCount(c);
-      if (c <= 0) { clearInterval(iv); startRoundRef.current(0, 'A', 0); }
-    }, 900);
-  }, []);
-  beginRef.current = begin;
+    finishedRef.current = false;
+    startRound(0, 'A', 0);
+  }, [code, startRound]);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      const r = await myRoleInDuo(code);
-      if (!alive) return;
-      setRole(r);
-      if (!r) return;
-      setNames(await duoNames(code));
-      setTally(await loadWordBomb(code));
-
-      const ch = await bombChannel(code);
-      if (!alive) { ch.close(); return; }
-      chRef.current = ch;
-      ch.on(m => {
-        if (m.k === 'ready') setTheirReady(m.v);
-        else if (m.k === 'start') beginRef.current(m.seed);
-        else if (m.k === 'word') acceptWordRef.current(m.by, m.word, m.fragIdx, m.next, false);
-        else if (m.k === 'boom') applyBoomRef.current(m.loser);
-        else if (m.k === 'round') startRoundRef.current(m.round, m.holder, m.fragIdx);
-      });
-    })();
-
-    return () => {
-      alive = false;
-      chRef.current?.close();
-      chRef.current = null;
-      clearTimeout(fuseTimer.current);
-      clearTimeout(fallbackTimer.current);
-      clearInterval(heatIv.current);
-    };
-  }, [code]);
-
-  function pressReady() {
-    const v = !myReady;
-    setMyReady(v);
-    chRef.current?.send({ k: 'ready', v });
-  }
+    if (!rt?.on) return undefined;
+    rt.on(m => {
+      if (!m || !m.k) return;
+      if (m.k === 'needstart') {
+        if (role === 'A' && seedRef.current != null) {
+          rt.send({ k: 'start', seed: seedRef.current });
+        }
+        return;
+      }
+      if (m.k === 'start') {
+        begin(m.seed);
+        return;
+      }
+      if (m.k === 'word') {
+        if (m.by === role) return;
+        // Re-check on receive so a bad client can't pass gibberish
+        const frag = fragmentAt(seedRef.current, m.fragIdx);
+        const res = validateWord(m.word, frag, usedRef.current, isDictReady() ? isEnglishWord : undefined);
+        if (!res.ok) return;
+        acceptWord(m.by, res.word, m.fragIdx, m.next, false);
+        return;
+      }
+      if (m.k === 'boom') {
+        applyBoom(m.loser);
+        return;
+      }
+      if (m.k === 'round') {
+        startRound(m.round, m.holder, m.fragIdx);
+      }
+    });
+    return () => clearTimers();
+  }, [rt, role, begin, acceptWord, applyBoom, startRound]);
 
   useEffect(() => {
-    if (phase !== 'lobby' || !myReady || !theirReady) return;
-    const delay = role === 'A' ? 120 : 1500;
-    const t = setTimeout(() => {
-      if (startedRef.current || phaseRef.current !== 'lobby') return;
-      const seed = (Date.now() >>> 0) ^ 0x1B0B0;
-      chRef.current?.send({ k: 'start', seed });
+    if (role === 'A') {
+      let seed = (code && seedByCode.get(code)) || seedRef.current;
+      if (seed == null) {
+        seed = ((Date.now() ^ (Math.random() * 0xFFFFFFFF)) >>> 0);
+        if (code) seedByCode.set(code, seed);
+      }
+      seedRef.current = seed;
+      const push = () => rt?.send({ k: 'start', seed });
+      push();
       begin(seed);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [myReady, theirReady, phase, role, begin]);
+      const t1 = setTimeout(push, 400);
+      const t2 = setTimeout(push, 1200);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    const ask = () => {
+      if (!startedRef.current) rt?.send({ k: 'needstart' });
+    };
+    ask();
+    const iv = setInterval(ask, 700);
+    return () => clearInterval(iv);
+  }, [role, rt, begin, code]);
 
   function submit() {
     if (phaseRef.current !== 'live' || holderRef.current !== role) return;
-    const res = validateWord(draft, fragment, usedRef.current);
+    if (!dictReady) {
+      setErr(dictError ? 'dictionary failed to load' : 'loading dictionary…');
+      return;
+    }
+    const res = validateWord(draft, fragment, usedRef.current, isEnglishWord);
     if (!res.ok) { setErr(res.reason); return; }
     const nextHolder = role === 'A' ? 'B' : 'A';
     const idx = fragIdxRef.current;
     acceptWord(role, res.word, idx, nextHolder, true);
-    chRef.current?.send({ k: 'word', by: role, word: res.word, fragIdx: idx, next: nextHolder });
+    rt?.send({ k: 'word', by: role, word: res.word, fragIdx: idx, next: nextHolder });
   }
 
-  function rematch() {
-    startedRef.current = false;
-    setMyReady(false); setTheirReady(false);
-    setWinner(null); setWords([]); setBoomLoser(null);
-    setLives({ A: LIVES, B: LIVES });
-    setPhase('lobby');
-    chRef.current?.send({ k: 'ready', v: false });
-  }
+  const iHold = holder === role;
+  const heatStage = heat < 0.4 ? 'cool' : heat < 0.72 ? 'warn' : 'hot';
+  const bombSide = phase === 'boom' ? (boomLoser || holder) : holder;
 
-  if (role === undefined) return <div className="bo-page"><p className="bo-status">Loading…</p></div>;
-  if (role === null) {
+  function Hearts({ who }) {
+    const n = lives[who] ?? 0;
     return (
-      <div className="bo-page">
-        <p className="bo-status">Sign in as a member of this duo to play.</p>
-        <button type="button" className="btn" onClick={backToDuo}>Back to the arcade</button>
+      <div className="bo-hearts" aria-label={`${n} lives`}>
+        {Array.from({ length: LIVES }, (_, i) => (
+          <span key={i} className={'bo-heart' + (i < n ? ' on' : ' off')}>
+            {i < n ? '\u2764\uFE0F' : '\u{1F5A4}'}
+          </span>
+        ))}
       </div>
     );
   }
 
-  const partner = role === 'A' ? 'B' : 'A';
-  const iHold = holder === role;
-  const hearts = r => '\u2764\uFE0F'.repeat(lives[r]) + '\u{1F5A4}'.repeat(LIVES - lives[r]);
-
-  return (
-    <div className="bo-page">
-      <div className="bo-top">
-        <button type="button" className="btn small ghost" onClick={backToDuo}>&larr; Back</button>
-        <div className="bo-title">{'\u{1F4A3}'} Word Bomb</div>
-        <div className="bo-tally">
-          <span className="pA">{names.A} {tally.a}</span>
-          <span className="dash">{'\u2013'}</span>
-          <span className="pB">{tally.b} {names.B}</span>
+  if (phase === 'wait') {
+    return (
+      <div className="bo-page bo-embedded">
+        <div className="bo-status">
+          {dictError ? 'Dictionary failed to load — refresh and try again.'
+            : dictReady ? 'Lighting the fuse…' : 'Loading English dictionary…'}
         </div>
       </div>
+    );
+  }
 
-      {phase === 'lobby' && (
-        <div className="bo-lobby">
-          <div className="bo-seats">
-            <div className="bo-seat">
-              <div className="bo-av A">{(names.A || '?')[0].toUpperCase()}</div>
-              <div className={'bo-rd' + ((role === 'A' ? myReady : theirReady) ? ' yes' : '')}>
-                {(role === 'A' ? myReady : theirReady) ? 'ready' : '\u2026'}
-              </div>
-            </div>
-            <div className="bo-vs">vs</div>
-            <div className="bo-seat">
-              <div className="bo-av B">{(names.B || '?')[0].toUpperCase()}</div>
-              <div className={'bo-rd' + ((role === 'B' ? myReady : theirReady) ? ' yes' : '')}>
-                {(role === 'B' ? myReady : theirReady) ? 'ready' : '\u2026'}
-              </div>
-            </div>
-          </div>
-          <p className="bo-blurb">
-            Type a word containing the fragment to pass the bomb — the fuse is
-            hidden, and whoever&apos;s holding it at the boom loses a life.
-            {' '}{LIVES} lives each. No repeats. House rule: real words only —
-            you know each other. {'\u{1F608}'}
-          </p>
-          <button type="button" className="btn warm" onClick={pressReady}>{myReady ? 'Cancel' : "I'm ready"}</button>
-        </div>
-      )}
-
-      {phase === 'countdown' && <div className="bo-count">{count || 'GO'}</div>}
-
+  return (
+    <div className="bo-page bo-embedded">
       {(phase === 'live' || phase === 'boom') && (
         <div className="bo-arena">
-          <div className="bo-lives">
-            <span className="pA">{names.A} {hearts('A')}</span>
-            <span className="pB">{hearts('B')} {names.B}</span>
-          </div>
+          <div
+            className={[
+              'bo-duel',
+              `hold-${bombSide}`,
+              `heat-${heatStage}`,
+              phase === 'boom' ? 'boomed' : '',
+              iHold && phase === 'live' ? 'mine' : ''
+            ].filter(Boolean).join(' ')}
+            style={{ '--heat': heat }}
+          >
+            <div className={'bo-side A' + (bombSide === 'A' ? ' has-bomb' : '')}>
+              <div className="bo-side-name pA">{names.A || 'A'}</div>
+              <Hearts who="A" />
+              <div className="bo-pad" aria-hidden="true" />
+            </div>
 
-          <div className={'bo-bomb-zone' + (phase === 'boom' ? ' boomed' : '')}
-            style={{ '--heat': heat }}>
-            {phase === 'boom' ? (
-              <div className="bo-boom">{'\u{1F4A5}'}</div>
-            ) : (
-              <div className={'bo-bomb' + (iHold ? ' mine' : '')}>{'\u{1F4A3}'}</div>
-            )}
-            <div className="bo-holderline">
-              {phase === 'boom'
-                ? <b>{names[boomLoser]} got caught holding it!</b>
-                : iHold ? <b>you&apos;re holding the bomb!</b> : <>{names[partner]} is holding it…</>}
+            <div className="bo-mid">
+              {phase === 'boom' ? (
+                <div className="bo-boom-msg">
+                  <b>{names[boomLoser] || boomLoser}</b> got caught holding it!
+                </div>
+              ) : (
+                <>
+                  <div className="bo-fragment">…<b>{fragment}</b>…</div>
+                  <div className="bo-holderline">
+                    {iHold ? <b>your turn — type a word!</b> : <>{partnerName} is guessing…</>}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className={'bo-side B' + (bombSide === 'B' ? ' has-bomb' : '')}>
+              <div className="bo-side-name pB">{names.B || 'B'}</div>
+              <Hearts who="B" />
+              <div className="bo-pad" aria-hidden="true" />
+            </div>
+
+            <div className={'bo-bomb-fly' + (phase === 'boom' ? ' explode' : '')} aria-hidden="true">
+              {phase === 'boom' ? (
+                <span className="bo-boom">💥</span>
+              ) : (
+                <span className={'bo-bomb-viz heat-' + heatStage}>
+                  <span className="bo-bomb-body" />
+                  <span className="bo-bomb-fuse" />
+                  <span className="bo-bomb-spark" />
+                </span>
+              )}
             </div>
           </div>
 
           {phase === 'live' && (
             <>
-              <div className="bo-fragment">
-                …<b>{fragment}</b>…
-              </div>
               {iHold ? (
                 <div className="bo-inputrow">
-                  <input value={draft} autoFocus autoCapitalize="none" autoCorrect="off"
+                  <input
+                    value={draft}
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     placeholder={`a word containing "${fragment}"`}
                     onChange={e => { setDraft(e.target.value); setErr(''); }}
-                    onKeyDown={e => { if (e.key === 'Enter') submit(); }} />
-                  <button type="button" className="btn warm small" onClick={submit}>Pass {'\u{1F4A3}'}</button>
+                    onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+                  />
+                  <button type="button" className="btn warm small" onClick={submit}>
+                    Pass
+                  </button>
                 </div>
               ) : (
                 <div className="bo-waitline">think ahead — it&apos;s coming back…</div>
@@ -334,16 +340,12 @@ export default function WordBomb() {
 
       {phase === 'done' && winner && (
         <div className="bo-done">
-          <div className="bo-winline">{names[winner]} survives the bomb!</div>
-          <div className="bo-final">{words.length} words survived the match</div>
-          <div className="bo-actions">
-            <button type="button" className="btn warm" onClick={rematch}>Rematch</button>
-            <button type="button" className="btn ghost" onClick={backToDuo}>Back home</button>
+          <div className="bo-winline">
+            {winner === role ? 'You survive the bomb!' : `${names[winner] || winner} survives the bomb!`}
           </div>
+          <div className="bo-final">{words.length} words survived the match</div>
         </div>
       )}
-
-      {phase === 'lobby' && <div className="bo-note">Both players need to be on this screen. Open the same duo on each device.</div>}
     </div>
   );
 }

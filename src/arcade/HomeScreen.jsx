@@ -5,7 +5,6 @@ import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, SEAT_KEY, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
-import WordBombCard from './WordBombCard.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
@@ -314,10 +313,6 @@ export default function HomeScreen({
 
         <div id="sect-wall" className="shelf-anchor">
           <WhiteboardCard code={code} />
-        </div>
-
-        <div id="sect-wordbomb" className="shelf-anchor">
-          <WordBombCard code={code} />
         </div>
 
         <div id="sect-list" className="shelf-anchor">

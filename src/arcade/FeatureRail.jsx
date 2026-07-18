@@ -47,13 +47,6 @@ const I = {
       <path d="M14 7l3 3" />
     </svg>
   ),
-  bomb: (
-    <svg viewBox="0 0 24 24" {...S}>
-      <circle cx="11" cy="13" r="6.5" />
-      <path d="M14.5 7.5l2-2M16.5 5.5l1.2-.4M17.2 6.8l.4-1.2" />
-      <path d="M9 12.5h4M11 10.5v4" />
-    </svg>
-  ),
   list: (
     <svg viewBox="0 0 24 24" {...S}>
       <rect x="4" y="4" width="16" height="16" rx="4" />
@@ -105,8 +98,6 @@ const ITEMS = [
     desc: 'Take on another duo in public matchmaking or a direct challenge.' },
   { id: 'sect-wall', icon: 'wall', label: 'Our wall', accent: 'p2',
     desc: 'A shared whiteboard you both draw on in real time.' },
-  { id: 'sect-wordbomb', icon: 'bomb', label: 'Word Bomb', accent: 'candle',
-    desc: 'Pass the bomb with a word that fits the fragment — hidden fuse, 3 lives each.' },
   { id: 'sect-list', icon: 'list', label: 'Our list', accent: 'good',
     desc: 'A todo list you build together — movies to watch, places to go, anything.' },
   { id: 'sect-week', icon: 'week', label: 'Our week', accent: 'p1',

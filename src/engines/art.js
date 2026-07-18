@@ -715,6 +715,26 @@ export const ART = {
      @keyframes nf-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
      ${sparkAnim('nf', 3)}`),
 
+  /* ─── Word Bomb: hot-potato fragment fuse ─── */
+  wordbomb: scene('wb', '', `
+    <g class="wb-bomb">
+      <circle cx="120" cy="72" r="28" fill="var(--room2)" stroke="var(--candle)" stroke-width="2.5"/>
+      <circle cx="120" cy="72" r="22" fill="var(--night)" opacity=".55"/>
+      <path d="M136 52 Q148 40 156 34" stroke="var(--candle)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <circle class="wb-spark" cx="158" cy="32" r="4" fill="var(--candle)"/>
+      <text x="120" y="78" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="18" fill="var(--candle)">OR</text>
+    </g>
+    <g font-family="'JetBrains Mono',monospace" font-weight="700" font-size="11" fill="var(--dim)">
+      <text x="48" y="108" text-anchor="middle">pass</text>
+      <text x="192" y="108" text-anchor="middle">boom?</text>
+    </g>
+    ${sparks('wb', [[88, 36, 1.5, 'var(--candle)'], [168, 48, 1.4, 'var(--p2)'], [120, 118, 1.4, 'var(--p1)']])}`,
+    `.wb-bomb { animation: wb-tick 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes wb-tick { 0%,100% { transform: rotate(-5deg) } 50% { transform: rotate(5deg) } }
+     .wb-spark { animation: wb-glow 0.7s ease-in-out infinite; }
+     @keyframes wb-glow { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
+     ${sparkAnim('wb', 3)}`),
+
   /* ─── Forbidden Words: trap words in a Q&A ─── */
   forbiddenwords: scene('fw', '', `
     <g class="fw-q">

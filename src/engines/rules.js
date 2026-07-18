@@ -157,6 +157,18 @@ export const RULES = {
     tip: 'Overbidding wastes coins even when you win \u2014 save ammo for the high-value titles.'
   },
 
+  wordbomb: {
+    goal: 'Be the last one standing when the hidden fuse pops.',
+    how: [
+      'A 2-letter fragment appears (e.g. \u2026OR\u2026). Whoever holds the bomb must type a word containing it.',
+      'Pass a real English word (3+ letters, no repeats this match) to hand the bomb to your partner.',
+      'Made-up spellings are rejected by the dictionary.',
+      'The fuse is hidden (about 22\u201342s). Whoever is holding the bomb at the boom loses a life.',
+      'Three lives each. The exploded player starts the next round holding the bomb.'
+    ],
+    tip: 'Think of backup words while your partner holds it \u2014 the bomb comes back fast.'
+  },
+
   numberfortress: {
     goal: 'Grow the bigger fortress by bidding points on your answers.',
     how: [

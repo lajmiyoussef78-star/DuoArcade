@@ -33,8 +33,9 @@ import * as MD from './moleduel.js';
 import * as FW from './forbiddenwords.js';
 import * as AUC from './auctionduel.js';
 import * as NF from './numberfortress.js';
+import * as WB from './wordbomb.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD, FW, AUC, NF]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD, FW, AUC, NF, WB]
     .map(e => [e.meta.id, e])
 );

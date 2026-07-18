@@ -9,7 +9,6 @@ import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
 import Week from './pages/Week.jsx';
-import WordBomb from './pages/WordBomb.jsx';
 import { initAppearance } from './lib/appearance.js';
 import './styles/base.css';
 
@@ -38,7 +37,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="/snap/:code" element={<Snap />} />
         <Route path="/spark-splash" element={<SparkSplash />} />
         <Route path="/week/:code" element={<Week />} />
-        <Route path="/wordbomb/:code" element={<WordBomb />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
