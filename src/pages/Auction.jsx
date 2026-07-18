@@ -10,6 +10,12 @@ import '../styles/auction.css';
 
 const seedByCode = new Map();
 
+function cardTone(pts) {
+  if (pts >= 8) return 'hi';
+  if (pts >= 5) return 'mid';
+  return 'lo';
+}
+
 function Shelf({ names, wonA, wonB, big }) {
   return (
     <div className={`au-shelf${big ? ' big' : ''}`}>
@@ -17,7 +23,11 @@ function Shelf({ names, wonA, wonB, big }) {
         <div className="au-shelf-h pA">{names.A || 'A'}</div>
         <div className="au-shelf-items">
           {wonA.length
-            ? wonA.map(t => <span key={t.id} className="au-trophy" title={t.name}>{t.emoji}</span>)
+            ? wonA.map(t => (
+              <span key={t.id} className={`au-mini au-mini-${cardTone(t.pts)}`} title={`${t.pts} pts`}>
+                {t.pts}
+              </span>
+            ))
             : <span className="au-shelf-empty">empty shelf</span>}
         </div>
       </div>
@@ -25,9 +35,49 @@ function Shelf({ names, wonA, wonB, big }) {
         <div className="au-shelf-h pB">{names.B || 'B'}</div>
         <div className="au-shelf-items">
           {wonB.length
-            ? wonB.map(t => <span key={t.id} className="au-trophy" title={t.name}>{t.emoji}</span>)
+            ? wonB.map(t => (
+              <span key={t.id} className={`au-mini au-mini-${cardTone(t.pts)}`} title={`${t.pts} pts`}>
+                {t.pts}
+              </span>
+            ))
             : <span className="au-shelf-empty">empty shelf</span>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DeckList({ deck, lotIdx, phase, reveal, won }) {
+  const ownerOf = (card, i) => {
+    if (won.A.some(t => t.id === card.id)) return 'A';
+    if (won.B.some(t => t.id === card.id)) return 'B';
+    if (i < lotIdx) return 'tie';
+    if (i === lotIdx && phase === 'reveal') {
+      if (reveal?.winner === 'A') return 'A';
+      if (reveal?.winner === 'B') return 'B';
+      return 'tie';
+    }
+    if (i === lotIdx) return 'now';
+    return 'soon';
+  };
+
+  return (
+    <div className="au-deck" aria-label="All 20 cards">
+      <div className="au-deck-h">Cabinet · 20 cards · values 1–10 (×2)</div>
+      <div className="au-deck-grid">
+        {deck.map((card, i) => {
+          const own = ownerOf(card, i);
+          return (
+            <div
+              key={card.id}
+              className={`au-deck-card au-deck-${own} au-tone-${cardTone(card.pts)}`}
+              title={`Card ${i + 1}: ${card.pts} pts`}
+            >
+              <span className="au-deck-val">{card.pts}</span>
+              <span className="au-deck-i">{i + 1}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -319,7 +369,7 @@ export default function Auction({ myRole, names = {}, rt, code, onComplete }) {
   if (phase === 'wait') {
     return (
       <div className="au-page au-embedded">
-        <div className="au-status">Shuffling the trophy cabinet…</div>
+        <div className="au-status">Shuffling the 20-card cabinet…</div>
       </div>
     );
   }
@@ -344,14 +394,22 @@ export default function Auction({ myRole, names = {}, rt, code, onComplete }) {
             </div>
           </div>
 
-          <div className={`au-lot au-lot-${lot.pts}`}>
+          <div className={`au-lot au-tone-${cardTone(lot.pts)}`}>
             <div className="au-lot-glow" aria-hidden="true" />
-            <div className="au-lot-emoji">{lot.emoji}</div>
-            <div className="au-lot-name">{lot.name}</div>
+            <div className="au-lot-val">{lot.pts}</div>
+            <div className="au-lot-name">Value card</div>
             <div className="au-lot-pts">
-              {lot.pts} title point{lot.pts === 1 ? '' : 's'}
+              {lot.pts} point{lot.pts === 1 ? '' : 's'}
             </div>
           </div>
+
+          <DeckList
+            deck={deck}
+            lotIdx={lotIdx}
+            phase={phase}
+            reveal={reveal}
+            won={won}
+          />
 
           {phase === 'bid' && (
             myLocked ? (
@@ -386,7 +444,7 @@ export default function Auction({ myRole, names = {}, rt, code, onComplete }) {
                 <button type="button" className="au-btn warm" onClick={lockBid}>
                   Lock secret bid
                 </button>
-                <p className="au-note">Higher bid wins the title — both still spend their coins.</p>
+                <p className="au-note">Higher bid wins the card — both still spend their coins.</p>
               </div>
             )
           )}
@@ -405,7 +463,7 @@ export default function Auction({ myRole, names = {}, rt, code, onComplete }) {
               </div>
               <div className="au-reveal-out">
                 {reveal.winner
-                  ? <><b>{reveal.winner === 'A' ? (names.A || 'A') : (names.B || 'B')}</b> claims {reveal.lot.emoji}</>
+                  ? <><b>{reveal.winner === 'A' ? (names.A || 'A') : (names.B || 'B')}</b> claims the {reveal.lot.pts}-point card</>
                   : <>Tie — nobody gets it, both paid</>}
               </div>
               <button type="button" className="au-btn warm" onClick={requestNext}>

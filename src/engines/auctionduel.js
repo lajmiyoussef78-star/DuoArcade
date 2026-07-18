@@ -1,4 +1,4 @@
-// Auction Duel — secret bids for silly trophy titles.
+// Auction Duel — secret bids for a 20-card value cabinet (1–10 ×2).
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
@@ -10,7 +10,7 @@ let finished = false;
 export const meta = {
   id: 'auctionduel',
   name: 'Auction Duel',
-  tag: 'secret bids · trophy cabinet',
+  tag: 'secret bids · 20 value cards',
   accent: 'candle',
   realtime: true
 };

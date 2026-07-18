@@ -1,27 +1,19 @@
 // src/lib/auction.js — Auction Duel PURE logic (used by the auctionduel engine).
 
 export const START_COINS = 100;
-export const LOTS_PER_GAME = 8;
+export const LOTS_PER_GAME = 20;
+export const MIN_VALUE = 1;
+export const MAX_VALUE = 10;
 
-// Trophy titles. `pts` = title-points (bragging weight). Purely in-game.
-export const TITLES = [
-  { id: 'cook',    emoji: '\u{1F373}', name: 'The Better Cook', pts: 2 },
-  { id: 'funny',   emoji: '\u{1F602}', name: 'Certified Funnier One', pts: 3 },
-  { id: 'movies',  emoji: '\u{1F3AC}', name: 'Best Taste in Movies', pts: 2 },
-  { id: 'pixar',   emoji: '\u{1F979}', name: 'Most Likely to Cry at Pixar', pts: 1 },
-  { id: 'parking', emoji: '\u{1F697}', name: 'Undisputed Parking Champion', pts: 2 },
-  { id: 'sleepy',  emoji: '\u{1F634}', name: 'Reigning Nap Monarch', pts: 1 },
-  { id: 'dancer',  emoji: '\u{1F483}', name: 'Superior Dancer', pts: 2 },
-  { id: 'memory',  emoji: '\u{1F9E0}', name: 'Keeper of All the Dates', pts: 3 },
-  { id: 'singer',  emoji: '\u{1F3A4}', name: 'Shower Concert Legend', pts: 1 },
-  { id: 'petname', emoji: '\u{1F415}', name: 'The Pets Love More', pts: 2 },
-  { id: 'texter',  emoji: '\u{1F4F1}', name: 'Fastest Text Replier', pts: 1 },
-  { id: 'planner', emoji: '\u{1F5D3}', name: 'Master Plan-Maker', pts: 3 },
-  { id: 'snacker', emoji: '\u{1F36B}', name: 'Snack Thief Supreme', pts: 1 },
-  { id: 'driver',  emoji: '\u{1F6E3}', name: 'Best Road-Trip DJ', pts: 2 },
-  { id: 'green',   emoji: '\u{1F331}', name: 'Not-Killer of Plants', pts: 1 },
-  { id: 'argue',   emoji: '\u2696\uFE0F', name: 'Winner of Every Argument', pts: 3 }
-];
+// Full cabinet: values 1–10, two cards each → 20 lots.
+export function makeCardPool() {
+  const pool = [];
+  for (let v = MIN_VALUE; v <= MAX_VALUE; v++) {
+    pool.push({ id: `v${v}a`, pts: v, name: String(v), emoji: String(v) });
+    pool.push({ id: `v${v}b`, pts: v, name: String(v), emoji: String(v) });
+  }
+  return pool;
+}
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -33,10 +25,10 @@ export function mulberry32(seed) {
   };
 }
 
-// Deterministic shuffled selection so both devices auction the same lots.
+// Deterministic shuffle so both devices auction the same 20 cards.
 export function buildDeck(seed, n = LOTS_PER_GAME) {
   const rnd = mulberry32(seed);
-  const pool = TITLES.map(t => ({ ...t }));
+  const pool = makeCardPool();
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];

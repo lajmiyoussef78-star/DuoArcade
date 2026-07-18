@@ -54,22 +54,27 @@
   box-shadow: 0 18px 40px rgba(0,0,0,.35);
   animation: au-lot-in .28s ease;
 }
-.au-lot-3 {
-  border-color: color-mix(in srgb, var(--candle) 65%, var(--line));
-  box-shadow: 0 18px 44px rgba(0,0,0,.38), 0 0 28px color-mix(in srgb, var(--candle) 12%, transparent);
+.au-lot.au-tone-hi {
+  border-color: color-mix(in srgb, var(--candle) 70%, var(--line));
+  box-shadow: 0 18px 44px rgba(0,0,0,.38), 0 0 28px color-mix(in srgb, var(--candle) 14%, transparent);
+}
+.au-lot.au-tone-mid {
+  border-color: color-mix(in srgb, var(--candle) 50%, var(--line));
 }
 .au-lot-glow {
   position: absolute; inset: -40% -20% auto; height: 70%; pointer-events: none;
   background: radial-gradient(circle, color-mix(in srgb, var(--candle) 16%, transparent), transparent 68%);
 }
-.au-lot-emoji {
-  position: relative; font-size: 64px; line-height: 1;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,.35));
+.au-lot-val {
+  position: relative; font-family: 'Fraunces', serif; font-weight: 900;
+  font-size: clamp(64px, 16vw, 88px); line-height: 1; color: var(--candle);
+  text-shadow: 0 0 28px color-mix(in srgb, var(--candle) 40%, transparent);
   animation: au-bob 2.8s ease-in-out infinite;
 }
 .au-lot-name {
-  position: relative; font-family: 'Fraunces', serif; font-weight: 800;
-  font-size: clamp(18px, 4.5vw, 24px); text-align: center; line-height: 1.25; max-width: 20ch;
+  position: relative; font-family: 'Fraunces', serif; font-weight: 700;
+  font-size: 15px; text-align: center; color: var(--dim); letter-spacing: .04em;
+  text-transform: uppercase;
 }
 .au-lot-pts {
   position: relative; font-size: 12px; font-weight: 700; letter-spacing: .06em;
@@ -79,11 +84,68 @@
   border: 1px solid color-mix(in srgb, var(--candle) 35%, var(--line));
 }
 
+.au-deck {
+  width: 100%; padding: 12px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--room);
+}
+.au-deck-h {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dim); text-align: center; margin-bottom: 10px;
+}
+.au-deck-grid {
+  display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px;
+}
+.au-deck-card {
+  position: relative; aspect-ratio: 3 / 4; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: var(--room2);
+  transition: transform .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.au-deck-val {
+  font-family: 'Fraunces', serif; font-weight: 800; font-size: clamp(12px, 3.2vw, 16px);
+  color: var(--text); line-height: 1;
+}
+.au-deck-i {
+  position: absolute; bottom: 3px; right: 4px;
+  font-size: 8px; color: var(--dim); font-family: 'JetBrains Mono', monospace;
+}
+.au-deck-card.au-tone-hi .au-deck-val { color: var(--candle); }
+.au-deck-card.au-tone-mid .au-deck-val { color: color-mix(in srgb, var(--candle) 75%, var(--text)); }
+.au-deck-now {
+  border-color: var(--candle);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--candle) 55%, transparent), 0 6px 16px rgba(0,0,0,.35);
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--candle) 12%, var(--room));
+}
+.au-deck-A {
+  border-color: color-mix(in srgb, var(--p1) 55%, var(--line));
+  background: color-mix(in srgb, var(--p1) 14%, var(--room));
+}
+.au-deck-B {
+  border-color: color-mix(in srgb, var(--p2) 55%, var(--line));
+  background: color-mix(in srgb, var(--p2) 14%, var(--room));
+}
+.au-deck-tie { opacity: .38; filter: grayscale(.4); }
+.au-deck-soon { opacity: .85; }
+@media (max-width: 420px) {
+  .au-deck-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
 @keyframes au-lot-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes au-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @media (prefers-reduced-motion: reduce) {
-  .au-lot, .au-lot-emoji { animation: none; }
+  .au-lot, .au-lot-val { animation: none; }
 }
+
+.au-mini {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px;
+  font-family: 'Fraunces', serif; font-weight: 800; font-size: 14px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text);
+}
+.au-mini-hi { color: var(--candle); border-color: color-mix(in srgb, var(--candle) 45%, var(--line)); }
+.au-mini-mid { color: color-mix(in srgb, var(--candle) 80%, var(--text)); }
+.au-shelf.big .au-mini { min-width: 34px; height: 34px; font-size: 17px; }
 
 .au-bidbox {
   display: flex; flex-direction: column; align-items: center; gap: 14px;
@@ -165,8 +227,6 @@
   display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
   min-height: 36px; align-items: center;
 }
-.au-trophy { font-size: 26px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
-.au-shelf.big .au-trophy { font-size: 34px; }
 .au-shelf-empty { font-size: 11px; color: var(--dim); font-style: italic; }
 
 .au-done {
