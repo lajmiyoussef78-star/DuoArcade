@@ -157,6 +157,18 @@ export const RULES = {
     tip: 'Overbidding wastes coins even when you win \u2014 save ammo for the high-value titles.'
   },
 
+  uno: {
+    goal: 'Empty your hand before your partner does.',
+    how: [
+      'Match the discard by color or symbol \u2014 or play a Wild / Wild +4.',
+      'In a duo, Reverse works like Skip. Skip, Reverse, +2, and +4 let you go again.',
+      'Draw if you cannot play; if the drawn card fits you may play it, otherwise Pass.',
+      'When you go down to one card, hit UNO! or your partner can Catch you for +2.',
+      'First to dump every card wins the table.'
+    ],
+    tip: 'Save a Wild for when you\u2019re stuck \u2014 and never forget to tap UNO.'
+  },
+
   wordbomb: {
     goal: 'Be the last one standing when the hidden fuse pops.',
     how: [

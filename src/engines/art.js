@@ -715,6 +715,35 @@ export const ART = {
      @keyframes nf-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
      ${sparkAnim('nf', 3)}`),
 
+  /* ─── UNO: felt table + fan ─── */
+  uno: scene('uno', '', `
+    <ellipse cx="120" cy="78" rx="88" ry="36" fill="#1e3d32" stroke="var(--candle)" stroke-width="2" opacity=".95"/>
+    <g class="uno-cardA" transform="translate(78 48) rotate(-18)">
+      <rect width="34" height="50" rx="6" fill="#c62828" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
+      <text x="17" y="30" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="16" fill="#fff">7</text>
+    </g>
+    <g class="uno-cardB" transform="translate(128 46) rotate(16)">
+      <rect width="34" height="50" rx="6" fill="#1565c0" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
+      <text x="17" y="30" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#fff">+2</text>
+    </g>
+    <g class="uno-wild" transform="translate(103 40)">
+      <rect width="34" height="50" rx="6" fill="url(#uno-w)" stroke="var(--candle)" stroke-width="1.8"/>
+      <text x="17" y="30" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="12" fill="#fff">W</text>
+    </g>
+    <defs>
+      <linearGradient id="uno-w" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#c62828"/><stop offset="35%" stop-color="#f9a825"/>
+        <stop offset="70%" stop-color="#2e7d32"/><stop offset="100%" stop-color="#1565c0"/>
+      </linearGradient>
+    </defs>
+    ${sparks('uno', [[40, 40, 1.4, 'var(--candle)'], [200, 50, 1.5, 'var(--p1)'], [120, 118, 1.4, 'var(--p2)']])}`,
+    `.uno-cardA { animation: uno-fan 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; }
+     .uno-cardB { animation: uno-fan 2.6s ease-in-out .3s infinite; transform-box: fill-box; transform-origin: bottom; }
+     .uno-wild { animation: uno-bob 2.2s ease-in-out infinite; }
+     @keyframes uno-fan { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     @keyframes uno-bob { 0%,100% { transform: translateY(0) rotate(0) } 50% { transform: translateY(-5px) rotate(3deg) } }
+     ${sparkAnim('uno', 3)}`),
+
   /* ─── Word Bomb: hot-potato fragment fuse ─── */
   wordbomb: scene('wb', '', `
     <g class="wb-bomb">
