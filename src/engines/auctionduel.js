@@ -1,4 +1,4 @@
-// Auction Duel — secret bids for a 20-card value cabinet (1–10 ×2).
+// Auction Duel — secret bids; 10 random draws from a 20-card pool (1–10 ×2).
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
@@ -10,7 +10,7 @@ let finished = false;
 export const meta = {
   id: 'auctionduel',
   name: 'Auction Duel',
-  tag: 'secret bids · 20 value cards',
+  tag: 'secret bids · 10 random titles',
   accent: 'candle',
   realtime: true
 };

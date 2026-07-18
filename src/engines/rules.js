@@ -146,15 +146,15 @@ export const RULES = {
   },
 
   auctionduel: {
-    goal: 'Win the most points by bidding on a 20-card cabinet.',
+    goal: 'Win the most points by bidding on titled cabinet cards.',
     how: [
-      'You each start with 100 coins. Twenty cards go up one at a time.',
-      'Values run 1\u201310, and every value appears twice.',
+      'You each start with 100 coins. Ten titled cards are drawn one at a time at random from a 20-card pool.',
+      'The pool has values 1\u201310 twice each \u2014 upcoming draws stay face-down.',
       'Set a secret bid and Lock \u2014 neither sees the other\u2019s number until both are in.',
-      'Higher bid claims the card; BOTH bids are spent. A tie means you both paid for nothing.',
+      'Higher bid claims the title; BOTH bids are spent. A tie means you both paid for nothing.',
       'Most points wins (then most cards, then coins left).'
     ],
-    tip: 'Overbidding wastes coins even when you win \u2014 save ammo for the high-value cards.'
+    tip: 'Overbidding wastes coins even when you win \u2014 save ammo for the high-value titles.'
   },
 
   numberfortress: {

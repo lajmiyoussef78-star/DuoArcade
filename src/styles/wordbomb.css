@@ -1,0 +1,92 @@
+/* src/styles/wordbomb.css — Word Bomb (uses host theme tokens). */
+
+.bo-page { max-width: 600px; margin: 0 auto; padding: 20px 14px 50px; color: var(--text); }
+.bo-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.bo-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px; flex: 1; text-align: center; }
+.bo-tally { font-family: 'JetBrains Mono', monospace; font-size: 12px; display: flex; gap: 6px; }
+.bo-page .pA { color: var(--p1); }
+.bo-page .pB { color: var(--p2); }
+.bo-tally .dash { color: var(--dim); }
+
+.bo-lobby { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 22px 0; }
+.bo-seats { display: flex; align-items: center; gap: 26px; }
+.bo-seat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bo-av {
+  width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 18px; border: 2px solid var(--night);
+}
+.bo-av.A { background: #2A3252; color: var(--p1); }
+.bo-av.B { background: #4A2A3A; color: var(--p2); }
+.bo-rd { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); font-weight: 700; }
+.bo-rd.yes { color: var(--good); }
+.bo-vs { font-family: 'Fraunces', serif; font-weight: 900; color: var(--dim); font-size: 18px; }
+.bo-blurb { font-size: 13px; color: var(--dim); text-align: center; max-width: 460px; line-height: 1.55; }
+
+.bo-count { font-family: 'Fraunces', serif; font-weight: 900; font-size: 96px; color: var(--candle); text-align: center; padding: 40px 0; }
+
+.bo-arena { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.bo-lives { display: flex; justify-content: space-between; width: 100%; font-size: 14px; font-weight: 600; }
+
+.bo-bomb-zone {
+  --heat: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  border: 1px solid var(--line); border-radius: 18px; padding: 24px;
+  background:
+    radial-gradient(circle at 50% 45%,
+      rgba(255, calc(198 - var(--heat) * 120), calc(110 - var(--heat) * 80), calc(0.05 + var(--heat) * 0.16)),
+      var(--room) 75%);
+}
+.bo-bomb { font-size: 64px; animation: bo-tick 1.4s ease-in-out infinite; }
+.bo-bomb.mine { animation: bo-panic calc(1.2s - var(--heat) * 0.75s) ease-in-out infinite; }
+@keyframes bo-tick { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes bo-panic { 0%, 100% { transform: rotate(-7deg) scale(1); } 50% { transform: rotate(7deg) scale(1.06); } }
+.bo-bomb-zone.boomed { border-color: var(--bad); }
+.bo-boom { font-size: 76px; animation: bo-blast .5s ease-out; }
+@keyframes bo-blast { from { transform: scale(.3); opacity: 0; } 60% { transform: scale(1.35); } to { transform: scale(1); opacity: 1; } }
+.bo-holderline { font-size: 14px; color: var(--dim); text-align: center; }
+.bo-holderline b { color: var(--candle); }
+
+.bo-fragment { font-family: 'JetBrains Mono', monospace; font-size: 26px; color: var(--dim); letter-spacing: .06em; }
+.bo-fragment b { color: var(--candle); font-size: 34px; }
+
+.bo-inputrow { display: flex; gap: 8px; width: 100%; max-width: 420px; }
+.bo-inputrow input {
+  flex: 1; background: var(--room2); border: 1px solid var(--candle); border-radius: 12px;
+  color: var(--text); font-size: 16px; padding: 12px 14px;
+}
+.bo-inputrow input:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--candle) 35%, transparent); }
+.bo-waitline { font-size: 13px; color: var(--dim); font-style: italic; }
+.bo-err { font-size: 12.5px; color: var(--bad); font-weight: 600; }
+
+.bo-words { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; min-height: 26px; max-width: 480px; }
+.bo-word {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 10px; background: var(--room2);
+}
+
+.bo-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 0; }
+.bo-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: var(--candle); }
+.bo-final { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--dim); }
+.bo-actions { display: flex; gap: 10px; margin-top: 10px; }
+
+.bo-status { text-align: center; color: var(--dim); padding: 20px; }
+.bo-note { text-align: center; font-size: 11.5px; color: var(--dim); margin-top: 16px; }
+
+.boc {
+  border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; background: var(--room); width: 100%;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.boc-emoji { font-size: 34px; }
+.boc-body { flex: 1; min-width: 200px; }
+.boc-body h3 { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; }
+.boc-body p { font-size: 12.5px; color: var(--dim); line-height: 1.5; margin-top: 4px; }
+.boc-rec { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); margin-top: 6px; }
+.boc .btn { text-decoration: none; }
+
+@media (max-width: 480px) {
+  .boc { justify-content: center; text-align: center; }
+  .boc .btn { width: 100%; text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bo-bomb, .bo-bomb.mine, .bo-boom { animation: none; }
+}
