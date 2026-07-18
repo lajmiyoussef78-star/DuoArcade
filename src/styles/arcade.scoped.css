@@ -200,15 +200,67 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 .arcade-page .gv-stage{
   width:100%;display:flex;flex-direction:column;align-items:center;
   flex:1;justify-content:center;min-height:0;}
-.arcade-page .gv-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;width:100%;margin-bottom:14px;gap:10px;flex:none;}
-.arcade-page .gv-back{justify-self:start;}
-.arcade-page .gv-title{font-size:18px;text-align:center;margin:0;justify-self:center;}
-.arcade-page .gv-actions{display:flex;align-items:center;gap:6px;justify-self:end;}
-.arcade-page .btn.gv-rules{width:42px;height:42px;min-width:42px;padding:4px;box-sizing:border-box;
-  display:inline-flex;align-items:center;justify-content:center;line-height:0;flex-shrink:0;}
-.arcade-page .btn.gv-rules svg,
-.arcade-page .gv-rules-icon{width:34px;height:34px;display:block;flex:none;}
-.arcade-page .gv-rules-note{margin:-4px 0 10px;text-align:right;font-size:11.5px;line-height:1.4;color:var(--dim);width:100%;}
+.arcade-page .gv-top{
+  display:grid;grid-template-columns:minmax(88px,auto) 1fr minmax(88px,auto);
+  align-items:center;width:100%;margin-bottom:18px;gap:10px;flex:none;
+  padding:10px 12px;border-radius:18px;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--room) 92%, transparent), color-mix(in srgb, var(--room2) 88%, transparent));
+  border:1px solid color-mix(in srgb, var(--candle) 22%, var(--line));
+  box-shadow:0 10px 28px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  position:relative;overflow:hidden;}
+.arcade-page .gv-top::before{
+  content:'';position:absolute;left:12%;right:12%;top:0;height:2px;
+  background:linear-gradient(90deg, transparent, var(--p1), var(--candle), var(--p2), transparent);
+  opacity:.85;pointer-events:none;}
+.arcade-page .gv-back{
+  justify-self:start;display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line);background:color-mix(in srgb, var(--night) 35%, var(--room));
+  color:var(--text);border-radius:999px;padding:8px 14px 8px 10px;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;
+  transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s ease;}
+.arcade-page .gv-back:hover{
+  border-color:color-mix(in srgb, var(--candle) 55%, var(--line));
+  color:var(--candle);background:color-mix(in srgb, var(--candle) 10%, var(--room));}
+.arcade-page .gv-back:active{transform:scale(.97);}
+.arcade-page .gv-back-icon{width:16px;height:16px;display:block;flex:none;}
+.arcade-page .gv-heading{
+  justify-self:center;text-align:center;min-width:0;padding:0 4px;}
+.arcade-page .gv-title{
+  font-family:'Fraunces',serif;font-weight:900;font-size:clamp(17px, 4.2vw, 22px);
+  line-height:1.15;margin:0;color:var(--text);
+  background:linear-gradient(120deg, var(--text) 20%, color-mix(in srgb, var(--candle) 70%, var(--text)) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){
+  .arcade-page .gv-title{color:var(--text);background:none;}
+}
+.arcade-page .gv-tag{
+  margin:3px 0 0;font-size:11px;font-weight:600;letter-spacing:.04em;
+  color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw;}
+.arcade-page .gv-actions{display:flex;align-items:center;gap:8px;justify-self:end;}
+.arcade-page .gv-iconbtn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line);background:color-mix(in srgb, var(--night) 35%, var(--room));
+  color:var(--dim);border-radius:12px;cursor:pointer;padding:0;
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+  transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s ease;}
+.arcade-page .gv-iconbtn:hover{color:var(--text);border-color:color-mix(in srgb, var(--p1) 40%, var(--line));}
+.arcade-page .gv-iconbtn:active{transform:scale(.97);}
+.arcade-page .gv-iconbtn:disabled{opacity:.45;cursor:default;transform:none;}
+.arcade-page .gv-iconbtn.on{
+  color:var(--candle);border-color:color-mix(in srgb, var(--candle) 55%, var(--line));
+  background:color-mix(in srgb, var(--candle) 14%, var(--room));
+  box-shadow:0 0 16px color-mix(in srgb, var(--candle) 18%, transparent);}
+.arcade-page .gv-rules{width:42px;height:42px;min-width:42px;}
+.arcade-page .gv-rules-icon{width:22px;height:22px;display:block;flex:none;}
+.arcade-page .gv-pause{height:42px;padding:0 12px;border-radius:12px;white-space:nowrap;max-width:148px;}
+.arcade-page .gv-rules-note{margin:0 0 12px;text-align:center;font-size:12px;line-height:1.45;color:var(--dim);width:100%;}
+@media (max-width:420px){
+  .arcade-page .gv-back span{display:none;}
+  .arcade-page .gv-back{padding:9px;border-radius:12px;}
+  .arcade-page .gv-pause{font-size:11px;padding:0 9px;max-width:110px;}
+  .arcade-page .gv-tag{max-width:36vw;}
+}
 .arcade-page .gv-result{
   width:100%;max-width:420px;margin:0 auto;padding:36px 28px 32px;
   border-radius:22px;border:1px solid var(--line);text-align:center;
@@ -353,8 +405,11 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .gv-wait-sub{font-size:14px;color:var(--text);margin:0;}
 .arcade-page .gv-wait-hint{font-size:12.5px;color:var(--dim);line-height:1.5;max-width:340px;margin:0;}
 .arcade-page .gv-ready{display:flex;flex-direction:column;align-items:center;gap:16px;}
-.arcade-page .gv-rules-panel{width:100%;background:var(--room);border:1px solid var(--line);border-radius:14px;
-  padding:14px 18px;margin:0 0 12px;text-align:left;}
+.arcade-page .gv-rules-panel{
+  width:100%;border-radius:14px;padding:14px 18px;margin:0 0 12px;text-align:left;
+  border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  background:linear-gradient(165deg, color-mix(in srgb, var(--candle) 8%, var(--room)), var(--room));
+  box-shadow:0 12px 28px rgba(0,0,0,.22);}
 .arcade-page .gv-rules-head{font-family:'Fraunces',serif;font-weight:700;font-size:15px;margin-bottom:4px;}
 .arcade-page .gv-rules-goal{color:var(--candle);font-size:13px;font-weight:600;margin-bottom:8px;}
 .arcade-page .gv-rules-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;}

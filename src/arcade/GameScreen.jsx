@@ -5,21 +5,24 @@ import { getRules } from '../engines/rules.js';
 
 function RulesIcon() {
   return (
-    <svg className="gv-rules-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="gv-rules-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
       <path
-        d="M3 3h8.2c1.1 0 2 .9 2 2v14.6L8 17.8 3 19.6V3Z"
-        fill="currentColor" fillOpacity=".22" stroke="currentColor" strokeWidth="1.6"
-        strokeLinejoin="round"
+        d="M4 4.5h6.2c1.2 0 2.2.9 2.2 2.1V20l-4.2-1.6L4 20V4.5Z"
+        stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"
       />
       <path
-        d="M21 3h-8.2c-1.1 0-2 .9-2 2v14.6l5.2-2.1L21 19.6V3Z"
-        fill="currentColor" fillOpacity=".22" stroke="currentColor" strokeWidth="1.6"
-        strokeLinejoin="round"
+        d="M20 4.5h-6.2c-1.2 0-2.2.9-2.2 2.1V20l4.2-1.6L20 20V4.5Z"
+        stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"
       />
-      <path
-        d="M7.5 7.5h9M7.5 11h9M7.5 14.5h6.5"
-        stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-      />
+      <path d="M7.2 8h3.2M7.2 11h3.2M14.6 8H17.8M14.6 11H17.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg className="gv-back-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <path d="M14.5 6.5 9 12l5.5 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -199,14 +202,22 @@ export default function GameScreen({
   return (
     <section className={'on gv-screen' + (kitchenGame ? ' gv-kitchen' : '') + (showResult ? ' gv-result-screen' : '')}>
       <header className="gv-top">
-        <button className="btn small ghost gv-back" onClick={onBack}>{'←'} Back</button>
-        <h2 className="gv-title h3">{eng.meta.name}</h2>
+        <button type="button" className="gv-back" onClick={onBack}>
+          <BackIcon />
+          <span>Back</span>
+        </button>
+        <div className="gv-heading">
+          <h2 className="gv-title">{eng.meta.name}</h2>
+          {eng.meta.tag && <p className="gv-tag">{eng.meta.tag}</p>}
+        </div>
         <div className="gv-actions">
           {canPause && (
             <button
-              className="btn small ghost"
+              type="button"
+              className={'gv-iconbtn gv-pause' + (paused ? ' on' : '')}
               disabled={pausePending === myRole && !paused}
               onClick={() => onRequestPause(setBannerStatus)}
+              title={pauseLabel}
             >
               {pauseLabel}
             </button>
@@ -214,9 +225,9 @@ export default function GameScreen({
           {rules && (
             <button
               type="button"
-              className={'btn small gv-rules' + (showRules ? ' warm' : ' ghost')}
+              className={'gv-iconbtn gv-rules' + (showRules ? ' on' : '')}
               aria-label="Rules"
-              title="Rules"
+              title="How to play"
               onClick={() => setShowRules(v => !v)}
             >
               <RulesIcon />
