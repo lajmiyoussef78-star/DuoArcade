@@ -163,7 +163,7 @@ export const RULES = {
       'A 2-letter fragment appears (e.g. \u2026OR\u2026). Whoever holds the bomb must type a word containing it.',
       'Pass a real English word (3+ letters, no repeats this match) to hand the bomb to your partner.',
       'Made-up spellings are rejected by the dictionary.',
-      'The fuse is hidden (about 22\u201342s). Whoever is holding the bomb at the boom loses a life.',
+      'The fuse is hidden (30\u201360s, random each round). Letters reshuffle every round and every pass.',
       'Three lives each. The exploded player starts the next round holding the bomb.'
     ],
     tip: 'Think of backup words while your partner holds it \u2014 the bomb comes back fast.'

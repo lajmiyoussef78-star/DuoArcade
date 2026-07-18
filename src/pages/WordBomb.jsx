@@ -82,21 +82,21 @@ export default function WordBomb({ myRole, names = {}, rt, code, onComplete }) {
     if (role === 'A') {
       setTimeout(() => {
         const round = roundRef.current + 1;
-        const fragIdx = fragIdxRef.current;
-        rt?.send({ k: 'round', round, holder: loser, fragIdx });
-        startRoundRef.current(round, loser, fragIdx);
+        // New round → fresh random letters from pass 0
+        rt?.send({ k: 'round', round, holder: loser, fragIdx: 0 });
+        startRoundRef.current(round, loser, 0);
       }, 2200);
     }
   }, [role, rt, onComplete]);
   applyBoomRef.current = applyBoom;
 
-  const startRound = useCallback((round, startHolder, fragIdx) => {
+  const startRound = useCallback((round, startHolder, fragIdx = 0) => {
     roundRef.current = round;
     fragIdxRef.current = fragIdx;
     roundStartRef.current = Date.now();
     setHolder(startHolder);
     holderRef.current = startHolder;
-    setFragment(fragmentAt(seedRef.current, fragIdx));
+    setFragment(fragmentAt(seedRef.current, round, fragIdx));
     setBoomLoser(null);
     setErr('');
     setDraft('');
@@ -131,8 +131,9 @@ export default function WordBomb({ myRole, names = {}, rt, code, onComplete }) {
     if (usedRef.current.has(word)) return;
     usedRef.current.add(word);
     setWords(w => [...w, { by, word }]);
-    fragIdxRef.current = fragIdx + 1;
-    setFragment(fragmentAt(seedRef.current, fragIdx + 1));
+    const nextPass = fragIdx + 1;
+    fragIdxRef.current = nextPass;
+    setFragment(fragmentAt(seedRef.current, roundRef.current, nextPass));
     setHolder(nextHolder);
     holderRef.current = nextHolder;
     if (mine) { setDraft(''); setErr(''); }
@@ -170,7 +171,8 @@ export default function WordBomb({ myRole, names = {}, rt, code, onComplete }) {
       if (m.k === 'word') {
         if (m.by === role) return;
         // Re-check on receive so a bad client can't pass gibberish
-        const frag = fragmentAt(seedRef.current, m.fragIdx);
+        const round = typeof m.round === 'number' ? m.round : roundRef.current;
+        const frag = fragmentAt(seedRef.current, round, m.fragIdx);
         const res = validateWord(m.word, frag, usedRef.current, isDictReady() ? isEnglishWord : undefined);
         if (!res.ok) return;
         acceptWord(m.by, res.word, m.fragIdx, m.next, false);
@@ -221,7 +223,10 @@ export default function WordBomb({ myRole, names = {}, rt, code, onComplete }) {
     const nextHolder = role === 'A' ? 'B' : 'A';
     const idx = fragIdxRef.current;
     acceptWord(role, res.word, idx, nextHolder, true);
-    rt?.send({ k: 'word', by: role, word: res.word, fragIdx: idx, next: nextHolder });
+    rt?.send({
+      k: 'word', by: role, word: res.word, fragIdx: idx,
+      round: roundRef.current, next: nextHolder
+    });
   }
 
   const iHold = holder === role;

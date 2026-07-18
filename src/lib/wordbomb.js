@@ -2,8 +2,8 @@
 
 export const LIVES = 3;
 export const MIN_LEN = 3;
-export const FUSE_MIN_MS = 22000;   // hidden fuse: 22–42s per round
-export const FUSE_MAX_MS = 42000;
+export const FUSE_MIN_MS = 30000;   // hidden fuse: 30–60s per round
+export const FUSE_MAX_MS = 60000;
 
 // Always exactly 2 letters per bomb.
 export const FRAGMENTS = [
@@ -23,17 +23,10 @@ export function mulberry32(seed) {
   };
 }
 
-// Deterministic infinite-ish fragment sequence from a seed.
-export function fragmentAt(seed, index) {
-  const cycle = Math.floor(index / FRAGMENTS.length);
-  const pos = index % FRAGMENTS.length;
-  const rnd = mulberry32((seed ^ (cycle * 2654435761)) >>> 0);
-  const pool = [...FRAGMENTS];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool[pos];
+// Fresh random 2-letter fragment for this round + pass (same on both devices).
+export function fragmentAt(seed, round = 0, pass = 0) {
+  const rnd = mulberry32((seed ^ (round * 0x9E3779B9) ^ ((pass + 1) * 0x85EBCA6B)) >>> 0);
+  return FRAGMENTS[Math.floor(rnd() * FRAGMENTS.length)];
 }
 
 // Hidden fuse duration for a round — deterministic on both devices.
