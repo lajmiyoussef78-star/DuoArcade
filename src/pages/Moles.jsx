@@ -1,5 +1,5 @@
-// src/pages/Moles.jsx — Mole Duel play UI (mounted by the moleduel engine).
-// Same seeded moles on both screens; faster local reaction claims each mole.
+// src/pages/Moles.jsx — Heart Duel play UI (moleduel engine).
+// Shared host seed → same hearts/rings/bombs on both screens.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -7,14 +7,22 @@ import {
 } from '../lib/moles.js';
 import '../styles/moles.css';
 
-export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef }) {
+const LEAD_MS = 800;
+const seedByCode = new Map();
+
+function glyphFor(kind) {
+  if (kind === 'bomb') return '\u{1F494}'; // broken heart
+  if (kind === 'ring') return '\u{1F48D}'; // ring
+  return '\u{2764}\u{FE0F}';             // heart
+}
+
+export default function Moles({ myRole, names = {}, rt, code, onComplete, pausedRef }) {
   const role = myRole;
-  // Shell already ran ready + 3s countdown — start moles as soon as we mount.
-  const [phase, setPhase] = useState('live');
+  const [phase, setPhase] = useState('wait'); // wait | live | done
   const [live, setLive] = useState({ up: {}, myScore: 0, theirScore: 0, hit: {} });
   const [result, setResult] = useState(null);
 
-  const seedRef = useRef(0);
+  const seedRef = useRef(null);
   const schedRef = useRef([]);
   const startAtRef = useRef(0);
   const myWhacks = useRef({});
@@ -23,35 +31,13 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
   const startedRef = useRef(false);
   const endedRef = useRef(false);
   const finishedRef = useRef(false);
-  const phaseRef = useRef('live');
+  const phaseRef = useRef('wait');
   phaseRef.current = phase;
 
   function clearTimers() {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
   }
-
-  useEffect(() => {
-    if (!rt?.on) return;
-    rt.on(m => {
-      if (!m || !m.k) return;
-      if (m.k === 'start') begin(m.seed, m.startAt);
-      else if (m.k === 'whack') {
-        if (theirWhacks.current[m.id] == null) theirWhacks.current[m.id] = m.ms;
-        recomputeLiveScores();
-      }
-      else if (m.k === 'done') maybeSettle();
-    });
-    return () => clearTimers();
-  }, [rt]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (role !== 'A') return;
-    const seed = (Date.now() >>> 0) ^ 0x9e3779b9;
-    const startAt = Date.now() + 200; // tiny lead-in so guest can join the channel
-    rt?.send({ k: 'start', seed, startAt });
-    begin(seed, startAt);
-  }, [role, rt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recomputeLiveScores = useCallback(() => {
     const sched = schedRef.current;
@@ -105,21 +91,70 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
     }, Math.max(0, t0 + matchDurationMs(sched) - Date.now())));
   }, [rt, pausedRef, maybeSettle]);
 
-  const begin = useCallback((seed, startAt) => {
-    if (startedRef.current) return;
+  const begin = useCallback((seed) => {
+    if (seed == null || startedRef.current) return;
     startedRef.current = true;
-    seedRef.current = seed;
-    schedRef.current = moleSchedule(seed);
-    startAtRef.current = startAt;
+    const n = seed >>> 0;
+    seedRef.current = n;
+    if (code) seedByCode.set(code, n);
+    schedRef.current = moleSchedule(n);
+    // Local clock — avoids skewed wall-clock startAt between devices
+    startAtRef.current = Date.now() + LEAD_MS;
     myWhacks.current = {};
     theirWhacks.current = {};
     endedRef.current = false;
     finishedRef.current = false;
     setResult(null);
     setLive({ up: {}, myScore: 0, theirScore: 0, hit: {} });
-    const delay = Math.max(0, startAt - Date.now());
-    setTimeout(() => runMatch(), delay);
-  }, [runMatch]);
+    setTimeout(() => runMatch(), LEAD_MS);
+  }, [runMatch, code]);
+
+  useEffect(() => {
+    if (!rt?.on) return;
+    rt.on(m => {
+      if (!m || !m.k) return;
+      if (m.k === 'needstart') {
+        if (role === 'A' && seedRef.current != null) {
+          rt.send({ k: 'start', seed: seedRef.current });
+        }
+        return;
+      }
+      if (m.k === 'start') {
+        begin(m.seed);
+        return;
+      }
+      if (m.k === 'whack') {
+        if (theirWhacks.current[m.id] == null) theirWhacks.current[m.id] = m.ms;
+        recomputeLiveScores();
+        return;
+      }
+      if (m.k === 'done') maybeSettle();
+    });
+    return () => clearTimers();
+  }, [rt, role, begin, recomputeLiveScores, maybeSettle]);
+
+  useEffect(() => {
+    if (role === 'A') {
+      let seed = (code && seedByCode.get(code)) || seedRef.current;
+      if (seed == null) {
+        seed = ((Date.now() ^ (Math.random() * 0xFFFFFFFF)) >>> 0);
+        if (code) seedByCode.set(code, seed);
+      }
+      seedRef.current = seed;
+      const push = () => rt?.send({ k: 'start', seed });
+      push();
+      begin(seed);
+      const t1 = setTimeout(push, 400);
+      const t2 = setTimeout(push, 1200);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    const ask = () => {
+      if (!startedRef.current) rt?.send({ k: 'needstart' });
+    };
+    ask();
+    const iv = setInterval(ask, 700);
+    return () => clearInterval(iv);
+  }, [role, rt, begin, code]);
 
   function whack(mole) {
     if (pausedRef?.current) return;
@@ -128,11 +163,20 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
     if (reaction < 0) return;
     myWhacks.current[mole.id] = reaction;
     rt?.send({ k: 'whack', id: mole.id, ms: reaction });
+    const hitKind = mole.kind === 'bomb' ? 'bomb' : mole.kind === 'ring' ? 'ring' : 'me';
     setLive(s => {
       const up = { ...s.up }; delete up[mole.id];
-      return { ...s, up, hit: { ...s.hit, [mole.id]: mole.gold ? 'gold' : 'me' } };
+      return { ...s, up, hit: { ...s.hit, [mole.id]: hitKind } };
     });
     recomputeLiveScores();
+  }
+
+  if (phase === 'wait') {
+    return (
+      <div className="mo-page mo-embedded">
+        <div className="mo-wait">Syncing hearts…</div>
+      </div>
+    );
   }
 
   return (
@@ -151,14 +195,16 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
             {Array.from({ length: MOLE.HOLES }).map((_, hole) => {
               const upMole = Object.values(live.up).find(m => m.hole === hole);
               const hitState = upMole ? live.hit[upMole.id] : null;
+              const kind = upMole?.kind || 'heart';
               return (
                 <div className="mo-hole" key={hole}>
                   {upMole && (
                     <button
-                      className={'mo-mole' + (upMole.gold ? ' gold' : '') + (hitState ? ' bonked' : '')}
+                      type="button"
+                      className={'mo-mole mo-' + kind + (hitState ? ' bonked' : '')}
                       onPointerDown={e => { e.preventDefault(); whack(upMole); }}
                     >
-                      {upMole.gold ? '\u{1F31F}' : '\u{1F42D}'}
+                      {glyphFor(kind)}
                     </button>
                   )}
                 </div>
@@ -167,7 +213,9 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
           </div>
 
           {phase === 'live' && (
-            <div className="mo-hint">tap the moles · {'\u{1F31F}'} gold = 3 · fastest hand claims each</div>
+            <div className="mo-hint">
+              {'\u{2764}\u{FE0F}'} +1 · {'\u{1F48D}'} +3 · {'\u{1F494}'} −2 · fastest claim wins
+            </div>
           )}
         </div>
       )}
@@ -175,7 +223,9 @@ export default function Moles({ myRole, names = {}, rt, onComplete, pausedRef })
       {phase === 'done' && result && (
         <div className="mo-done">
           <div className="mo-winline">
-            {result.w === 'draw' ? 'Dead heat — a draw!' : `${result.w === 'A' ? names.A : names.B} wins!`}
+            {result.w === 'draw'
+              ? 'Dead heat — a draw!'
+              : `${result.w === role ? 'You' : (result.w === 'A' ? names.A : names.B)} win${result.w === role ? '' : 's'}!`}
           </div>
           <div className="mo-final">
             {names.A} {result.a} {'\u2013'} {result.b} {names.B}

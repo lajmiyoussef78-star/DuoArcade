@@ -292,7 +292,12 @@ export default function GameScreen({
                 {duo.nameB[0]?.toUpperCase()}
               </div>
             </div>
-            <div className="gv-result-score">{rec.a} <span>–</span> {rec.b}</div>
+            <div className="gv-result-score">
+              {isDraw ? 'Draw' : <>{rec.a} <span>–</span> {rec.b}</>}
+            </div>
+            <p className="gv-result-series">
+              Series · {rec.a}–{rec.b}{rec.d ? ` · ${rec.d} draws` : ''}
+            </p>
             <h3 className="gv-result-title">
               {isDraw
                 ? 'A perfectly tied match'
@@ -302,7 +307,7 @@ export default function GameScreen({
             </h3>
             <p className="gv-result-sub">
               {isDraw
-                ? 'Same record after that round — rare and very couple of you.'
+                ? 'This round ended even — check the series line for your record.'
                 : iWon
                   ? 'Nice one. Offer a rematch while the streak is warm.'
                   : `Well played — challenge ${winnerName} to a rematch.`}

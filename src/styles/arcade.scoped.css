@@ -310,6 +310,8 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
   font-family:'JetBrains Mono',monospace;font-weight:700;font-size:28px;
   color:var(--candle);margin:2px 0 0;letter-spacing:.04em;}
 .arcade-page .gv-result-score span{opacity:.55;margin:0 4px;}
+.arcade-page .gv-result-series{
+  font-size:12px;font-weight:600;color:var(--dim);margin:0;letter-spacing:.02em;}
 .arcade-page .gv-result-title{
   font-family:'Fraunces',serif;font-weight:900;font-size:26px;line-height:1.2;
   margin:4px 0 0;color:var(--text);}

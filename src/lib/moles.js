@@ -1,14 +1,16 @@
-// src/lib/moles.js — Mole Duel PURE schedule / settle logic.
+// src/lib/moles.js — Heart Duel (moleduel) PURE schedule / settle logic.
 
 export const MOLE = {
-  HOLES: 9,          // 3x3 grid
-  COUNT: 20,         // moles per match
-  GAP_MIN: 650,      // ms between mole spawns (start)
-  GAP_MAX: 1050,     // ms between spawns (start); shrinks as match progresses
-  UP_MS: 1150,       // how long a mole stays up (start); shrinks too
-  UP_MIN: 620,       // floor for up-time
-  GOLD_CHANCE: 0.16, // golden moles worth 3
-  GOLD_POINTS: 3,
+  HOLES: 16,         // 4×4 grid
+  COUNT: 36,         // pops per match (~longer game)
+  GAP_MIN: 720,
+  GAP_MAX: 1180,
+  UP_MS: 1280,
+  UP_MIN: 680,
+  RING_CHANCE: 0.14, // bonus hearts (was gold)
+  RING_POINTS: 3,
+  BOMB_CHANCE: 0.12, // broken hearts — hit = penalty
+  BOMB_PENALTY: 2,
   NORMAL_POINTS: 1
 };
 
@@ -22,24 +24,36 @@ export function mulberry32(seed) {
   };
 }
 
-// Deterministic mole schedule from a shared seed: identical on both devices.
+// Deterministic schedule from a shared seed: identical on both devices.
 export function moleSchedule(seed) {
-  const rnd = mulberry32(seed);
+  const rnd = mulberry32(seed >>> 0);
   const moles = [];
-  let clock = 800;
+  let clock = 900;
   let lastHole = -1;
   for (let i = 0; i < MOLE.COUNT; i++) {
     const prog = i / MOLE.COUNT;
-    const gapMin = MOLE.GAP_MIN - prog * 300;
-    const gapMax = MOLE.GAP_MAX - prog * 380;
-    const upMs = Math.max(MOLE.UP_MIN, MOLE.UP_MS - prog * 430);
+    const gapMin = MOLE.GAP_MIN - prog * 280;
+    const gapMax = MOLE.GAP_MAX - prog * 360;
+    const upMs = Math.max(MOLE.UP_MIN, MOLE.UP_MS - prog * 400);
 
     let hole = Math.floor(rnd() * MOLE.HOLES);
     if (hole === lastHole) hole = (hole + 1 + Math.floor(rnd() * (MOLE.HOLES - 1))) % MOLE.HOLES;
     lastHole = hole;
 
-    const gold = rnd() < MOLE.GOLD_CHANCE;
-    moles.push({ id: i, hole, up: Math.round(clock), downAt: Math.round(clock + upMs), gold });
+    const roll = rnd();
+    let kind = 'heart';
+    if (roll < MOLE.BOMB_CHANCE) kind = 'bomb';
+    else if (roll < MOLE.BOMB_CHANCE + MOLE.RING_CHANCE) kind = 'ring';
+
+    moles.push({
+      id: i,
+      hole,
+      up: Math.round(clock),
+      downAt: Math.round(clock + upMs),
+      kind,
+      // legacy flag so older settle paths stay safe
+      gold: kind === 'ring'
+    });
     clock += gapMax - rnd() * (gapMax - gapMin);
   }
   return moles;
@@ -47,11 +61,13 @@ export function moleSchedule(seed) {
 
 export function matchDurationMs(schedule) {
   if (!schedule.length) return 0;
-  return schedule[schedule.length - 1].downAt + 500;
+  return schedule[schedule.length - 1].downAt + 600;
 }
 
 export function pointsFor(mole) {
-  return mole.gold ? MOLE.GOLD_POINTS : MOLE.NORMAL_POINTS;
+  if (mole.kind === 'bomb') return -MOLE.BOMB_PENALTY;
+  if (mole.kind === 'ring' || mole.gold) return MOLE.RING_POINTS;
+  return MOLE.NORMAL_POINTS;
 }
 
 export function settle(schedule, whacksA, whacksB) {
@@ -65,8 +81,10 @@ export function settle(schedule, whacksA, whacksB) {
     else if (hasA) who = 'A';
     else if (hasB) who = 'B';
     claims[m.id] = who;
-    if (who === 'A') scoreA += pointsFor(m);
-    else if (who === 'B') scoreB += pointsFor(m);
+    if (!who) continue;
+    const pts = pointsFor(m);
+    if (who === 'A') scoreA = Math.max(0, scoreA + pts);
+    else scoreB = Math.max(0, scoreB + pts);
   }
   return { scoreA, scoreB, claims };
 }

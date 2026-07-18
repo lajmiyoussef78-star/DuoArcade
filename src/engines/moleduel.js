@@ -1,4 +1,4 @@
-// Mole Duel — latency-fair whack-a-mole, shared seeded schedule.
+// Heart Duel (moleduel) — latency-fair pops, shared seeded schedule.
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
@@ -10,9 +10,9 @@ let finished = false;
 
 export const meta = {
   id: 'moleduel',
-  name: 'Mole Duel',
-  tag: 'real-time · fastest hand · 20 moles',
-  accent: 'candle',
+  name: 'Heart Duel',
+  tag: 'real-time · hearts · rings · bombs',
+  accent: 'p2',
   realtime: true
 };
 
@@ -37,6 +37,7 @@ export function mount(el, ctx) {
     myRole: ctx.myRole,
     names: ctx.names,
     rt: ctx.rt,
+    code: ctx.code,
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

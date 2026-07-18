@@ -124,14 +124,14 @@ export const RULES = {
   },
 
   moleduel: {
-    goal: 'Claim more moles than your partner across 20 pops.',
+    goal: 'Score more points than your partner across a longer heart-pop match.',
     how: [
-      'Both press ready in the lobby \u2014 the same moles appear on both screens from a shared seed.',
-      'Tap a mole as soon as it pops. Faster reaction time wins that mole.',
-      'Normal moles are 1 point; golden moles are 3. Ties on a mole go to nobody.',
-      'Lag can\u2019t steal a mole \u2014 only your local reaction time is compared.'
+      'Both press ready \u2014 the same hearts appear on both screens from a shared seed.',
+      'Tap as soon as one pops. Faster reaction claims that hole.',
+      'Heart = +1, ring = +3, broken heart = \u22122. Ties on a hole go to nobody.',
+      'Only your local reaction time is compared \u2014 lag can\u2019t steal a claim.'
     ],
-    tip: 'Don\u2019t spam the grid \u2014 watch the holes and react clean.'
+    tip: 'Skip the broken hearts \u2014 they cost you points.'
   },
 
   forbiddenwords: {
