@@ -6,15 +6,19 @@ import { getRules } from '../engines/rules.js';
 function RulesIcon() {
   return (
     <svg className="gv-rules-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      {/* Curled scroll document */}
       <path
-        d="M4 4.5h6.2c1.2 0 2.2.9 2.2 2.1V20l-4.2-1.6L4 20V4.5Z"
-        stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"
+        d="M8 6.8V19.2c0 .9.7 1.6 1.6 1.6h7.2c.7 0 1.2-.5 1.2-1.2V7.6"
+        stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
       />
       <path
-        d="M20 4.5h-6.2c-1.2 0-2.2.9-2.2 2.1V20l4.2-1.6L20 20V4.5Z"
-        stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"
+        d="M8 6.8c0-1.3 1-2.4 2.3-2.4h5.4c.7 0 1.3.4 1.5 1.1l.9 2.6c.2.6-.2 1.3-.9 1.3H9.6C8.7 9.4 8 8.7 8 7.8V6.8Z"
+        stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round"
       />
-      <path d="M7.2 8h3.2M7.2 11h3.2M14.6 8H17.8M14.6 11H17.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path
+        d="M10.2 11.4h5.6M10.2 13.6h5.6M10.2 15.8h5.6M10.2 18h3.8"
+        stroke="currentColor" strokeWidth="1.55" strokeLinecap="round"
+      />
     </svg>
   );
 }
