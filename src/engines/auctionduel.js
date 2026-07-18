@@ -35,6 +35,7 @@ export function mount(el, ctx) {
     myRole: ctx.myRole,
     names: ctx.names,
     rt: ctx.rt,
+    code: ctx.code,
     onComplete: w => {
       if (isHost) finish(w);
     }

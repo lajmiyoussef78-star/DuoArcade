@@ -1,5 +1,5 @@
 // src/pages/Auction.jsx — Auction Duel play UI (mounted by the auctionduel engine).
-// Shell already ran ready + countdown. Host seeds the deck; both bid in secret.
+// Host seeds the deck; bids buffered by lot so late/early messages never get lost.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -8,10 +8,12 @@ import {
 } from '../lib/auction.js';
 import '../styles/auction.css';
 
+const seedByCode = new Map();
+
 function Shelf({ names, wonA, wonB, big }) {
   return (
     <div className={`au-shelf${big ? ' big' : ''}`}>
-      <div className="au-shelf-col">
+      <div className="au-shelf-col A">
         <div className="au-shelf-h pA">{names.A || 'A'}</div>
         <div className="au-shelf-items">
           {wonA.length
@@ -19,7 +21,7 @@ function Shelf({ names, wonA, wonB, big }) {
             : <span className="au-shelf-empty">empty shelf</span>}
         </div>
       </div>
-      <div className="au-shelf-col">
+      <div className="au-shelf-col B">
         <div className="au-shelf-h pB">{names.B || 'B'}</div>
         <div className="au-shelf-items">
           {wonB.length
@@ -31,8 +33,11 @@ function Shelf({ names, wonA, wonB, big }) {
   );
 }
 
-export default function Auction({ myRole, names = {}, rt, onComplete }) {
+export default function Auction({ myRole, names = {}, rt, code, onComplete }) {
   const role = myRole;
+  const partnerRole = role === 'A' ? 'B' : 'A';
+  const partnerName = names[partnerRole] || 'Partner';
+
   const [phase, setPhase] = useState('wait'); // wait | bid | reveal | done
   const [deck, setDeck] = useState([]);
   const [lotIdx, setLotIdx] = useState(0);
@@ -41,29 +46,36 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
   const [draft, setDraft] = useState(0);
   const [myLocked, setMyLocked] = useState(false);
   const [myBid, setMyBid] = useState(null);
-  const [theirBid, setTheirBid] = useState(null);
+  const [waitingPartner, setWaitingPartner] = useState(false);
   const [reveal, setReveal] = useState(null);
   const [result, setResult] = useState(null);
 
   const startedRef = useRef(false);
   const finishedRef = useRef(false);
+  const revealedLotsRef = useRef(new Set());
   const lotIdxRef = useRef(0);
+  const phaseRef = useRef('wait');
   const coinsRef = useRef(coins);
   const wonRef = useRef(won);
-  const myLockedRef = useRef(false);
-  const myBidRef = useRef(null);
-  const theirBidRef = useRef(null);
   const deckRef = useRef([]);
-
+  const seedRef = useRef(null);
+  const bidsByLotRef = useRef({}); // { [lot]: { A?: number, B?: number } }
+  const retransmitRef = useRef(null);
   lotIdxRef.current = lotIdx;
+  phaseRef.current = phase;
   coinsRef.current = coins;
   wonRef.current = won;
-  myLockedRef.current = myLocked;
-  myBidRef.current = myBid;
-  theirBidRef.current = theirBid;
   deckRef.current = deck;
 
+  const stopRetransmit = () => {
+    if (retransmitRef.current) {
+      clearInterval(retransmitRef.current);
+      retransmitRef.current = null;
+    }
+  };
+
   const finishGame = useCallback((coinsNow, wonNow) => {
+    stopRetransmit();
     const { pointsA, pointsB } = scoreTrophies(wonNow.A, wonNow.B);
     const w = decideWinner(
       pointsA, pointsB,
@@ -78,9 +90,13 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
     }
   }, [role, onComplete]);
 
-  const applyReveal = useCallback((bidA, bidB) => {
-    const lot = deckRef.current[lotIdxRef.current];
-    if (!lot) return;
+  const applyReveal = useCallback((lot, bidA, bidB) => {
+    if (revealedLotsRef.current.has(lot)) return;
+    const title = deckRef.current[lot];
+    if (!title) return;
+    revealedLotsRef.current.add(lot);
+    stopRetransmit();
+
     const res = resolveLot(bidA, bidB);
     const coinsNow = {
       A: coinsRef.current.A - res.spentA,
@@ -90,8 +106,8 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
       A: [...wonRef.current.A],
       B: [...wonRef.current.B]
     };
-    if (res.winner === 'A') wonNow.A.push(lot);
-    if (res.winner === 'B') wonNow.B.push(lot);
+    if (res.winner === 'A') wonNow.A.push(title);
+    if (res.winner === 'B') wonNow.B.push(title);
 
     setCoins(coinsNow);
     setWon(wonNow);
@@ -99,22 +115,46 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
       bidA: res.spentA,
       bidB: res.spentB,
       winner: res.winner,
-      lot
+      lot: title
     });
+    setWaitingPartner(false);
+    setMyLocked(true);
     setPhase('reveal');
-  }, []);
 
-  const tryReveal = useCallback(() => {
-    if (myBidRef.current == null || theirBidRef.current == null) return;
-    const bidA = role === 'A' ? myBidRef.current : theirBidRef.current;
-    const bidB = role === 'B' ? myBidRef.current : theirBidRef.current;
-    applyReveal(bidA, bidB);
-  }, [role, applyReveal]);
+    // Host broadcasts canonical reveal so both screens match
+    if (role === 'A') {
+      const payload = { k: 'reveal', lot, bidA: res.spentA, bidB: res.spentB };
+      rt?.send(payload);
+      setTimeout(() => rt?.send(payload), 200);
+    }
+  }, [role, rt]);
+
+  const tryRevealLot = useCallback((lot) => {
+    if (lot !== lotIdxRef.current) return;
+    if (phaseRef.current !== 'bid' && phaseRef.current !== 'wait') return;
+    if (revealedLotsRef.current.has(lot)) return;
+    const row = bidsByLotRef.current[lot] || {};
+    if (row.A == null || row.B == null) return;
+    applyReveal(lot, row.A, row.B);
+  }, [applyReveal]);
+
+  const storeBid = useCallback((by, lot, bid) => {
+    if (typeof lot !== 'number' || typeof bid !== 'number') return;
+    const row = bidsByLotRef.current[lot] || (bidsByLotRef.current[lot] = {});
+    row[by] = bid;
+    if (by !== role && lot === lotIdxRef.current) {
+      setWaitingPartner(false);
+    }
+    tryRevealLot(lot);
+  }, [role, tryRevealLot]);
 
   const begin = useCallback((seed) => {
-    if (startedRef.current) return;
+    if (seed == null || startedRef.current) return;
     startedRef.current = true;
-    const d = buildDeck(seed >>> 0);
+    const n = seed >>> 0;
+    seedRef.current = n;
+    if (code) seedByCode.set(code, n);
+    const d = buildDeck(n);
     deckRef.current = d;
     setDeck(d);
     setLotIdx(0);
@@ -124,41 +164,128 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
     setDraft(Math.min(25, START_COINS));
     setMyLocked(false);
     setMyBid(null);
-    setTheirBid(null);
-    myLockedRef.current = false;
-    myBidRef.current = null;
-    theirBidRef.current = null;
+    setWaitingPartner(false);
     setReveal(null);
+    bidsByLotRef.current = {};
+    revealedLotsRef.current = new Set();
+    finishedRef.current = false;
     setPhase('bid');
-  }, []);
+  }, [code]);
+
+  const goToLot = useCallback((next) => {
+    stopRetransmit();
+    if (next < lotIdxRef.current) return;
+    if (next === lotIdxRef.current && phaseRef.current === 'bid') return;
+    if (next >= deckRef.current.length || next >= LOTS_PER_GAME) {
+      finishGame(coinsRef.current, wonRef.current);
+      return;
+    }
+    setLotIdx(next);
+    lotIdxRef.current = next;
+    setMyLocked(false);
+    setMyBid(null);
+    setWaitingPartner(false);
+    setReveal(null);
+    const rem = coinsRef.current[role];
+    setDraft(Math.min(25, rem));
+    setPhase('bid');
+
+    // Partner may have already locked this lot while we were on reveal
+    const row = bidsByLotRef.current[next] || {};
+    if (row[role] != null) {
+      setMyBid(row[role]);
+      setMyLocked(true);
+      setDraft(row[role]);
+      setWaitingPartner(row[partnerRole] == null);
+    }
+    tryRevealLot(next);
+  }, [role, partnerRole, finishGame, tryRevealLot]);
 
   useEffect(() => {
     if (!rt?.on) return;
     rt.on(m => {
       if (!m || !m.k) return;
-      if (m.k === 'start') begin(m.seed);
-      else if (m.k === 'bid') {
+      if (m.k === 'needstart') {
+        if (role === 'A' && seedRef.current != null) {
+          rt.send({ k: 'start', seed: seedRef.current });
+        }
+        return;
+      }
+      if (m.k === 'start') {
+        begin(m.seed);
+        return;
+      }
+      if (m.k === 'bid') {
         if (m.by === role) return;
-        if (m.lot !== lotIdxRef.current) return;
-        theirBidRef.current = m.bid;
-        setTheirBid(m.bid);
-        if (myLockedRef.current) tryReveal();
+        storeBid(m.by, m.lot, m.bid);
+        return;
+      }
+      if (m.k === 'reveal') {
+        if (typeof m.lot !== 'number') return;
+        if (m.lot > lotIdxRef.current) {
+          lotIdxRef.current = m.lot;
+          setLotIdx(m.lot);
+        }
+        storeBid('A', m.lot, m.bidA);
+        storeBid('B', m.lot, m.bidB);
+        if (!revealedLotsRef.current.has(m.lot)) {
+          applyReveal(m.lot, m.bidA, m.bidB);
+        }
+        return;
+      }
+      if (m.k === 'advance') {
+        if (typeof m.to !== 'number') return;
+        if (m.to > lotIdxRef.current || phaseRef.current === 'reveal') {
+          goToLot(m.to);
+        }
+        return;
+      }
+      if (m.k === 'needbid') {
+        // Partner stuck waiting — resend our lock for that lot
+        const lot = typeof m.lot === 'number' ? m.lot : lotIdxRef.current;
+        const mine = bidsByLotRef.current[lot]?.[role];
+        if (mine != null) {
+          rt.send({ k: 'bid', lot, bid: mine, by: role });
+        }
       }
     });
-  }, [rt, role, begin, tryReveal]);
+  }, [rt, role, begin, storeBid, applyReveal, goToLot]);
 
-  // Host seeds; guest waits with short fallback.
   useEffect(() => {
-    if (role !== 'A') {
-      const t = setTimeout(() => {
-        if (!startedRef.current) begin((Date.now() ^ 0xA7C710) >>> 0);
-      }, 900);
-      return () => clearTimeout(t);
+    if (role === 'A') {
+      let seed = (code && seedByCode.get(code)) || seedRef.current;
+      if (seed == null) {
+        seed = ((Date.now() ^ (Math.random() * 0xFFFFFFFF)) >>> 0);
+        if (code) seedByCode.set(code, seed);
+      }
+      seedRef.current = seed;
+      const push = () => rt?.send({ k: 'start', seed });
+      push();
+      begin(seed);
+      const t1 = setTimeout(push, 400);
+      const t2 = setTimeout(push, 1200);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
-    const seed = (Math.random() * 0xFFFFFFFF) >>> 0;
-    rt?.send({ k: 'start', seed });
-    begin(seed);
-  }, [role, rt, begin]);
+    const ask = () => {
+      if (!startedRef.current) rt?.send({ k: 'needstart' });
+    };
+    ask();
+    const iv = setInterval(ask, 700);
+    return () => clearInterval(iv);
+  }, [role, rt, begin, code]);
+
+  // While waiting for partner bid, retransmit ours + nudge them
+  useEffect(() => {
+    stopRetransmit();
+    if (phase !== 'bid' || !myLocked || myBid == null) return undefined;
+    const tick = () => {
+      rt?.send({ k: 'bid', lot: lotIdxRef.current, bid: myBid, by: role });
+      rt?.send({ k: 'needbid', lot: lotIdxRef.current, by: role });
+    };
+    tick();
+    retransmitRef.current = setInterval(tick, 900);
+    return stopRetransmit;
+  }, [phase, myLocked, myBid, role, rt]);
 
   function setBidValue(v) {
     const rem = coins[role];
@@ -169,43 +296,30 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
     if (phase !== 'bid' || myLocked) return;
     const rem = coins[role];
     const bid = clampBid(draft, rem);
-    myBidRef.current = bid;
-    myLockedRef.current = true;
+    storeBid(role, lotIdx, bid);
     setMyBid(bid);
     setMyLocked(true);
     setDraft(bid);
+    setWaitingPartner(true);
     rt?.send({ k: 'bid', lot: lotIdx, bid, by: role });
-    if (theirBidRef.current != null) tryReveal();
   }
 
-  function nextLot() {
-    const next = lotIdx + 1;
-    if (next >= deck.length || next >= LOTS_PER_GAME) {
-      finishGame(coins, won);
-      return;
-    }
-    setLotIdx(next);
-    lotIdxRef.current = next;
-    setMyLocked(false);
-    setMyBid(null);
-    setTheirBid(null);
-    myLockedRef.current = false;
-    myBidRef.current = null;
-    theirBidRef.current = null;
-    setReveal(null);
-    const rem = coins[role];
-    setDraft(Math.min(25, rem));
-    setPhase('bid');
+  function requestNext() {
+    if (phase !== 'reveal') return;
+    const to = lotIdx + 1;
+    rt?.send({ k: 'advance', to, by: role });
+    goToLot(to);
   }
 
   const lot = deck[lotIdx];
   const { pointsA, pointsB } = scoreTrophies(won.A, won.B);
   const myCoins = coins[role] ?? START_COINS;
+  const partnerBidKnown = !!(bidsByLotRef.current[lotIdx]?.[partnerRole] != null);
 
   if (phase === 'wait') {
     return (
       <div className="au-page au-embedded">
-        <div className="au-status">shuffling the trophy cabinet…</div>
+        <div className="au-status">Shuffling the trophy cabinet…</div>
       </div>
     );
   }
@@ -216,62 +330,63 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
         <div className="au-arena">
           <div className="au-hud">
             <div className="au-coins">
-              <span className="au-coin-lbl">your coins</span>
+              <span className="au-coin-lbl">Your coins</span>
               <span className="au-coin-val">{myCoins}</span>
             </div>
-            <div className="au-lotno">lot {lotIdx + 1}/{deck.length}</div>
-            <div className="au-points">
-              <span className="au-pts-lbl">pts</span>
+            <div className="au-lotpill">
+              <span className="au-lotno">Lot {lotIdx + 1}</span>
+              <span className="au-lotden">/ {deck.length}</span>
+            </div>
+            <div className="au-points" title="Title points">
               <span className="pA">{pointsA}</span>
-              <span>–</span>
+              <span className="au-pts-sep">–</span>
               <span className="pB">{pointsB}</span>
             </div>
           </div>
 
-          <div className="au-lot">
+          <div className={`au-lot au-lot-${lot.pts}`}>
+            <div className="au-lot-glow" aria-hidden="true" />
             <div className="au-lot-emoji">{lot.emoji}</div>
             <div className="au-lot-name">{lot.name}</div>
-            <div className="au-lot-pts">{lot.pts} pt{lot.pts === 1 ? '' : 's'}</div>
+            <div className="au-lot-pts">
+              {lot.pts} title point{lot.pts === 1 ? '' : 's'}
+            </div>
           </div>
 
           {phase === 'bid' && (
             myLocked ? (
               <div className="au-locked">
-                Bid locked at <b>{myBid}</b>.
+                <div className="au-locked-amt">Bid locked · <b>{myBid}</b></div>
                 <div className="au-waitline">
-                  {theirBid != null ? 'Revealing…' : 'Waiting for their secret bid…'}
+                  {partnerBidKnown
+                    ? 'Revealing…'
+                    : `Waiting for ${partnerName}'s secret bid…`}
                 </div>
+                <div className="au-pulse" aria-hidden="true"><i /><i /><i /></div>
               </div>
             ) : (
               <div className="au-bidbox">
+                <div className="au-bid-display">{clampBid(draft, myCoins)}</div>
                 <div className="au-bidrow">
                   <input
                     className="au-slider"
                     type="range"
                     min={0}
-                    max={myCoins}
+                    max={Math.max(0, myCoins)}
                     value={Math.min(draft, myCoins)}
-                    onChange={e => setBidValue(e.target.value)}
-                  />
-                  <input
-                    className="au-biginput"
-                    type="number"
-                    min={0}
-                    max={myCoins}
-                    value={draft}
                     onChange={e => setBidValue(e.target.value)}
                   />
                 </div>
                 <div className="au-bidbtns">
-                  <button type="button" className="au-btn small ghost" onClick={() => setBidValue(0)}>0</button>
-                  <button type="button" className="au-btn small ghost" onClick={() => setBidValue(Math.floor(myCoins * 0.25))}>25%</button>
-                  <button type="button" className="au-btn small ghost" onClick={() => setBidValue(Math.floor(myCoins * 0.5))}>50%</button>
-                  <button type="button" className="au-btn small ghost" onClick={() => setBidValue(myCoins)}>all-in</button>
+                  <button type="button" className="au-chip" onClick={() => setBidValue(0)}>0</button>
+                  <button type="button" className="au-chip" onClick={() => setBidValue(Math.floor(myCoins * 0.25))}>25%</button>
+                  <button type="button" className="au-chip" onClick={() => setBidValue(Math.floor(myCoins * 0.5))}>50%</button>
+                  <button type="button" className="au-chip" onClick={() => setBidValue(myCoins)}>all-in</button>
                 </div>
-                <button type="button" className="au-btn warm" onClick={lockBid} disabled={myCoins < 0}>
-                  Lock bid ({clampBid(draft, myCoins)})
+                <button type="button" className="au-btn warm" onClick={lockBid}>
+                  Lock secret bid
                 </button>
-                <p className="au-note">Secret until both lock. Higher bid wins the title — both still spend.</p>
+                <p className="au-note">Higher bid wins the title — both still spend their coins.</p>
               </div>
             )
           )}
@@ -279,15 +394,21 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
           {phase === 'reveal' && reveal && (
             <div className="au-reveal">
               <div className="au-reveal-bids">
-                <span className="pA">{names.A || 'A'}: {reveal.bidA}</span>
-                <span className="pB">{names.B || 'B'}: {reveal.bidB}</span>
+                <div className="au-reveal-bid A">
+                  <span className="lbl">{names.A || 'A'}</span>
+                  <span className="amt">{reveal.bidA}</span>
+                </div>
+                <div className="au-reveal-bid B">
+                  <span className="lbl">{names.B || 'B'}</span>
+                  <span className="amt">{reveal.bidB}</span>
+                </div>
               </div>
               <div className="au-reveal-out">
                 {reveal.winner
-                  ? <><b>{reveal.winner === 'A' ? (names.A || 'A') : (names.B || 'B')}</b> claims {reveal.lot.emoji} {reveal.lot.name}</>
-                  : <>Tie — nobody gets {reveal.lot.emoji}, but both paid</>}
+                  ? <><b>{reveal.winner === 'A' ? (names.A || 'A') : (names.B || 'B')}</b> claims {reveal.lot.emoji}</>
+                  : <>Tie — nobody gets it, both paid</>}
               </div>
-              <button type="button" className="au-btn warm" onClick={nextLot}>
+              <button type="button" className="au-btn warm" onClick={requestNext}>
                 {lotIdx + 1 >= deck.length ? 'See results' : 'Next lot'}
               </button>
             </div>
@@ -302,7 +423,7 @@ export default function Auction({ myRole, names = {}, rt, onComplete }) {
           <div className="au-winline">
             {result.w === 'draw'
               ? "It's a draw — shared cabinet!"
-              : `${result.w === 'A' ? (names.A || 'A') : (names.B || 'B')} wins the cabinet!`}
+              : `${result.w === role ? 'You win' : `${result.w === 'A' ? (names.A || 'A') : (names.B || 'B')} wins`} the cabinet!`}
           </div>
           <div className="au-final">
             {result.pointsA}–{result.pointsB} pts · coins left {result.coins.A}–{result.coins.B}
