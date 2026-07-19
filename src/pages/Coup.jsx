@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   initialState, applyMove, ROLES, ROLE_IDS, ACTIONS, CORRUPTION_COST, TAX_RICH_AT
 } from '../lib/coup.js';
-import { RoleArt, CoinArt } from '../arcade/VeilcourtIcons.jsx';
+import { RoleArt, CoinArt, ExpositionArt } from '../arcade/VeilcourtIcons.jsx';
 import '../styles/coup.css';
 
 function CoinIcon({ size = 'md' }) {
@@ -27,10 +27,18 @@ function CoinStack({ count = 1, size = 'md' }) {
   );
 }
 
+function ExpositionIcon({ size = 'md' }) {
+  return (
+    <span className={`cp-expo size-${size}`} aria-hidden="true" title="Exposition">
+      <ExpositionArt />
+    </span>
+  );
+}
+
 function ActionGlyph({ action }) {
   if (action === 'income') return <CoinStack count={1} size="md" />;
   if (action === 'aid') return <CoinStack count={2} size="sm" />;
-  if (action === 'coup') return <span className="cp-act-emoji" aria-hidden="true">!</span>;
+  if (action === 'coup') return <ExpositionIcon size="md" />;
   return <CoinIcon size="md" />;
 }
 
@@ -52,7 +60,7 @@ const SHEET = [
       'Exposition: pay 7 to kill a character.'
     ],
     other: [
-      'Corruption: pay 9 coins to be spared.'
+      'Corruption: pay 9 coins to defend yourself from Exposition (or any kill).'
     ]
   },
   {
@@ -630,6 +638,7 @@ function ActionDock({ st, me, opp, dispatch, accusePick, setAccusePick }) {
                 {A.cost ? `pay ${A.cost}` : ''}
                 {A.claim ? `${A.cost ? ' · ' : ''}as ${ROLES[A.claim].name}` : ''}
                 {a === 'tax' ? ` · ${TAX_RICH_AT}+` : ''}
+                {a === 'coup' ? ` · they may pay ${CORRUPTION_COST} to defend` : ''}
               </span>
             </button>
           );
@@ -746,12 +755,19 @@ function ResponseStage({ st, me, names, dispatch, keepPick, setKeepPick }) {
   }
 
   if (st.phase === 'corrupt') {
+    const expo = st.loseReason === 'exposition';
     return shell(
-      'Corruption',
-      <>Pay {CORRUPTION_COST} coins to be spared?</>,
+      expo ? 'Defend Exposition' : 'Corruption',
+      expo
+        ? <>Pay {CORRUPTION_COST} coins to defend yourself from Exposition?</>
+        : <>Pay {CORRUPTION_COST} coins to be spared?</>,
       <>
         <button type="button" className="cp-resp-primary" onClick={() => dispatch({ t: 'corrupt' })}>
-          Pay {CORRUPTION_COST} — survive
+          {expo ? (
+            <><ExpositionIcon size="sm" /> Pay {CORRUPTION_COST} — defend</>
+          ) : (
+            <>Pay {CORRUPTION_COST} — survive</>
+          )}
         </button>
         <button type="button" className="cp-resp-soft" onClick={() => dispatch({ t: 'refuseCorrupt' })}>
           Lose a card

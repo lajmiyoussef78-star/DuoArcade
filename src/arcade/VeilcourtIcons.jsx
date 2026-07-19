@@ -233,6 +233,25 @@ export function RoleArt({ roleId }) {
   return <Cmp />;
 }
 
+/** Exposition — spotlight revealing a figure (kill action). */
+export function ExpositionArt({ className = 'cp-expo-art' }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      {/* lamp */}
+      <path d="M9 3.5h6l1.2 3.2H7.8Z" fill="#2a2235" />
+      <rect x="11.1" y="1.8" width="1.8" height="2.2" rx=".4" fill="#2a2235" />
+      {/* beam */}
+      <path d="M8.2 6.8 4.2 20.5h15.6L15.8 6.8Z" fill="currentColor" opacity=".35" />
+      <path d="M9.2 7.2 6.2 19.2h11.6L14.8 7.2Z" fill="currentColor" opacity=".55" />
+      {/* exposed silhouette */}
+      <circle cx="12" cy="13.2" r="2.35" fill="#2a2235" opacity=".9" />
+      <path d="M8.6 19.6c.4-3.2 2.1-4.4 3.4-4.4s3 1.2 3.4 4.4Z" fill="#2a2235" opacity=".9" />
+      {/* flash ring */}
+      <circle cx="12" cy="12.5" r="8.2" fill="none" stroke="currentColor" strokeWidth="1.1" opacity=".45" />
+    </svg>
+  );
+}
+
 /** Gold coin — rim, face, embossed V (Veilcourt). */
 export function CoinArt({ className = 'cp-coin-art' }) {
   const uid = useId().replace(/:/g, '');

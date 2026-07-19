@@ -30,7 +30,7 @@
 .arcade-page .cp-actbtn { padding: 10px 6px; }
 .arcade-page .cp-rolebtn { padding: 10px; }
 .arcade-page .cp-poolbtn { padding: 10px 12px; }
-.arcade-page .cp-card-name { padding: 0 6px; }
+.arcade-page .cp-card-name { padding: 0 3px; }
 .arcade-page .cp-status { padding: 20px; }
 .arcade-page .cp-toolbar { padding: 0 0 2px; }
 .arcade-page .cp-resp-primary,
@@ -266,6 +266,7 @@
 @media (max-width: 560px) {
   .cp-card { width: 68px; height: 94px; }
   .cp-cards { gap: 8px; }
+  .cp-card-name { font-size: 9px; padding: 0 2px; }
   .cp-card-backface { inset: 4px; gap: 4px; }
   .cp-card-back-medallion { width: 28px; height: 28px; }
   .cp-card-back-mark { font-size: 14px; }
@@ -371,6 +372,16 @@
 .cp-coinstack.n-2 .cp-coin:first-child { transform: translateY(1px) rotate(-8deg); }
 .cp-coinstack.n-2 .cp-coin:last-child { transform: translateY(-1px) rotate(8deg); }
 
+.cp-expo {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; line-height: 0;
+  color: var(--bad);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+}
+.cp-expo.size-sm { width: 22px; height: 22px; }
+.cp-expo.size-md { width: 28px; height: 28px; }
+.cp-expo-art { width: 100%; height: 100%; display: block; }
+
 .cp-cards { display: flex; gap: 12px; }
 .cp-card {
   width: 86px; height: 118px; border-radius: 12px;
@@ -382,6 +393,9 @@
 }
 .cp-card.face {
   --role: var(--candle);
+  padding: 8px 4px 6px;
+  gap: 6px;
+  justify-content: center;
   background: linear-gradient(165deg, color-mix(in srgb, var(--role) 28%, var(--room2)), var(--room2));
   border-color: color-mix(in srgb, var(--role) 55%, var(--line));
   box-shadow: 0 4px 14px var(--shadow);
@@ -461,6 +475,8 @@
 
 .cp-card.dead {
   --role: var(--dim);
+  padding: 8px 4px 6px;
+  gap: 4px;
   background:
     linear-gradient(165deg, color-mix(in srgb, var(--bad) 12%, var(--night)), var(--night));
   border-color: color-mix(in srgb, var(--bad) 40%, var(--line));
@@ -472,8 +488,18 @@
 }
 .cp-card.dead .cp-roleicon { opacity: .85; }
 .cp-card-name {
-  font-family: 'Fraunces', serif; font-weight: 700; font-size: 11.5px;
-  line-height: 1.15; padding: 0 6px; color: var(--text);
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 9.5px;
+  line-height: 1.2;
+  padding: 0 3px;
+  color: var(--text);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  text-wrap: balance;
 }
 .cp-card-dead {
   font-size: 9px; text-transform: uppercase; letter-spacing: .08em;

@@ -172,8 +172,8 @@ export const RULES = {
   coup: {
     goal: 'Destroy all of your partner\u2019s influence cards.',
     how: [
-      'Veilcourt: 7 characters \u00d7 3 = 21 cards, shuffled once. Three hidden cards each. First player starts with 1 coin, second with 2.',
-      'Always: Wage +1 · Governmental aid +2 (Taxman can block) · Exposition pay 7 to kill (forced at 10+). Corruption: pay 9 when targeted to be spared.',
+      'Veilcourt: 7 characters \u00d7 3 = 21 cards, shuffled once. Three hidden cards each. Both players start with 2 coins.',
+      'Always: Wage +1 · Governmental aid +2 (Taxman can block) · Exposition pay 7 to kill (forced at 10+). When hit by Exposition (or any kill), pay 9 Corruption to defend and keep your card.',
       'Businesswoman +4 · Terrorist pay 3 to kill · Politician exchanges · Thief steals 2 (Thief blocks) · Colonel accuses for 4 / blocks Terrorist · Taxman taxes 7+ or skims deals · Cop inspects and may swap (Cop blocks Cop).',
       'Claim any character anytime. Challenges are free \u2014 liars lose a card; truthful claimers force the challenger to lose one. On your turn, actions matching your live cards are marked so you can play them without bluffing.',
       'The deck never reshuffles: returned cards go under the bottom. Count everything.'

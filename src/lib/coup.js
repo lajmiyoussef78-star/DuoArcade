@@ -130,11 +130,12 @@ export function initialState(seed) {
     seq: 0,                              // bumps on every successful move (lockstep sync)
     deck: deck.slice(i),                 // ordered; draw from index 0 (top)
     hands,
-    coins: { A: 1, B: 2 },               // A moves first, so starts poorer
+    coins: { A: 2, B: 2 },
     turn: 'A',
     phase: 'action',                     // action|challenge|block|blockChallenge|skim|skimChallenge|lose|exchange|over
     pending: null,                       // context of the in-flight action
     loseQueue: [],                       // players who must discard, in order
+    loseReason: null,                    // 'exposition' | 'assassin' | 'challenge' | …
     peeks: { A: null, B: null },         // last peek result per peeker {idx, role}
     winner: null,
     log: []
@@ -156,10 +157,13 @@ function swapRevealed(st, p, role) {
   st.hands[p][idx] = { role: st.deck.shift(), dead: false };
 }
 
-function queueLose(st, p) { st.loseQueue.push(p); }
+function queueLose(st, p, reason = 'influence') {
+  st.loseQueue.push(p);
+  st.loseReason = reason;
+}
 
 function enterLoseFor(st, p) {
-  // Corruption: pay 9 to be spared.
+  // Corruption: pay 9 coins to defend (esp. against Exposition).
   if (st.coins[p] >= CORRUPTION_COST) {
     st.phase = 'corrupt';
     return;
@@ -227,7 +231,7 @@ function resolveAction(st) {
     case 'aid':    st.coins[by] += 2; st.log.push(`${by} takes governmental aid (+2).`); break;
     case 'coup':
       st.log.push(`${by} stages an Exposition!`);
-      queueLose(st, opp);
+      queueLose(st, opp, 'exposition');
       break;
     case 'business':
       st.coins[by] += 4;
@@ -244,7 +248,7 @@ function resolveAction(st) {
     }
     case 'assassinate':
       st.log.push(`${by}'s terrorist strikes!`);
-      queueLose(st, opp);
+      queueLose(st, opp, 'assassin');
       break;
     case 'peek': {
       const av = st.hands[opp].map((c, i) => ({ c, i })).filter(x => !x.c.dead);
@@ -442,7 +446,9 @@ function applyMoveInner(state, move, by) {
       if (st.coins[by] < CORRUPTION_COST) return fail('Need 9 coins for Corruption');
       st.coins[by] -= CORRUPTION_COST;
       st.loseQueue.shift();
-      st.log.push(`${by} pays ${CORRUPTION_COST} — Corruption spares them.`);
+      const via = st.loseReason === 'exposition' ? 'Exposition' : 'the hit';
+      st.log.push(`${by} pays ${CORRUPTION_COST} — Corruption defends them from ${via}.`);
+      st.loseReason = null;
       processQueueThen(st);
       return st;
     }
@@ -455,6 +461,7 @@ function applyMoveInner(state, move, by) {
         st.hands[by][idx].dead = true;
         st.log.push(`${by} refuses Corruption and loses their last influence: ${ROLES[st.hands[by][idx].role].name}.`);
         st.loseQueue.shift();
+        st.loseReason = null;
         processQueueThen(st);
       } else {
         st.phase = 'lose';
@@ -469,6 +476,7 @@ function applyMoveInner(state, move, by) {
       card.dead = true;
       st.log.push(`${by} loses influence: ${ROLES[card.role].name}.`);
       st.loseQueue.shift();
+      st.loseReason = null;
       processQueueThen(st);
       return st;
     }
