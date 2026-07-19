@@ -28,6 +28,7 @@
 .arcade-page .ca-status { padding: 20px; }
 .arcade-page .ca-toolbar { padding: 0 0 4px; }
 .arcade-page .ca-peekbtn { padding: 8px 14px; }
+.arcade-page .ca-choicebtn { padding: 8px 12px; }
 .arcade-page .ca-roundno { padding: 0 2px; }
 
 .ca-shell {
@@ -114,8 +115,19 @@
   box-shadow: 0 0 18px color-mix(in srgb, var(--candle) 10%, transparent);
 }
 .ca-zone.top { flex-direction: column; }
+.ca-zone-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .ca-zone-name {
   font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px;
+}
+.ca-choicebtn {
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .ca-boxwrap {
@@ -170,9 +182,22 @@
 }
 .ca-box-content { font-size: 44px; animation: ca-pop .4s ease-out; }
 .ca-box-content.priv { font-size: 38px; }
+.ca-box-hole {
+  width: 42px; height: 42px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 40%, #1a1420 0%, #0d0a12 55%, #2a2338 78%, transparent 79%);
+  box-shadow:
+    inset 0 4px 10px rgba(0,0,0,.75),
+    inset 0 -1px 0 rgba(255,255,255,.06),
+    0 0 0 2px color-mix(in srgb, var(--line) 70%, transparent);
+  animation: ca-pop .4s ease-out;
+}
+.ca-box-hole.priv {
+  width: 36px; height: 36px;
+}
 @keyframes ca-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .ca-box-privnote {
-  font-size: 9.5px; color: var(--p1); text-transform: uppercase; letter-spacing: .05em;
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700;
 }
 
 /* Center felt */
@@ -269,7 +294,6 @@
   text-transform: uppercase; text-align: center;
   color: var(--candle); margin: 0;
 }
-.ca-choosebtns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .ca-peekbtn {
   font-size: 13px;
   padding: 8px 14px;

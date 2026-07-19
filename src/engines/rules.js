@@ -192,6 +192,17 @@ export const RULES = {
     tip: 'Sometimes the truth is the best bluff \u2014 especially if you always lie.'
   },
 
+  minusone: {
+    goal: 'Win classic RPS with the hand you keep \u2014 first to 5 points.',
+    how: [
+      'Throw with BOTH hands (rock, paper, or scissors on left and right), then Lock. Nothing shows until both of you lock.',
+      'All four hands appear \u2014 theirs across the table, yours below.',
+      'Minus one: an 8-second countdown. Tap the hand you KEEP; the other vanishes. Choices stay secret until both are in. Time out and your left hand is kept.',
+      'The kept hands duel classic RPS. Draw = no point. First to 5 wins the match.'
+    ],
+    tip: 'The mind-game is the keep \u2014 you can see both of their throws before you choose.'
+  },
+
   chkobba: {
     goal: 'Score Carta, Diamonds, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
     how: [

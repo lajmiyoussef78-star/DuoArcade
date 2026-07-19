@@ -1,0 +1,176 @@
+/* src/styles/minusone.css — RPS Minus One (shell table). */
+/* Beat arcade-page * { padding:0 } reset */
+
+.arcade-page .minusone-wrap,
+.minusone-wrap { width: 100%; }
+
+.arcade-page .m1-shell,
+.arcade-page .m1-table,
+.arcade-page .m1-board,
+.arcade-page .m1-dock,
+.arcade-page .m1-felt,
+.arcade-page .m1-hand,
+.arcade-page .m1-gbtn { box-sizing: border-box; }
+
+.arcade-page .m1-shell { padding: 4px 0 8px; }
+.arcade-page .m1-table { padding: 14px 12px 16px; }
+.arcade-page .m1-felt { padding: 12px 14px; }
+.arcade-page .m1-dock { padding: 12px 10px 14px; }
+.arcade-page .m1-status { padding: 20px; }
+.arcade-page .m1-toolbar { padding: 0 0 4px; }
+.arcade-page .m1-gbtn { padding: 0; }
+.arcade-page .m1-hand { padding: 0; }
+
+.m1-shell {
+  width: 100%; max-width: 560px; margin: 0 auto;
+  color: var(--text); font-family: 'Inter', sans-serif;
+}
+.pA { color: var(--p1); } .pB { color: var(--p2); }
+
+.m1-table {
+  position: relative;
+  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--candle) 32%, var(--line));
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, color-mix(in srgb, var(--candle) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 20% 80%, color-mix(in srgb, var(--p1) 12%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 80% 80%, color-mix(in srgb, var(--p2) 12%, transparent), transparent 50%),
+    linear-gradient(165deg, var(--room2), var(--room) 45%, var(--night));
+  box-shadow:
+    0 22px 48px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  overflow: hidden;
+}
+
+.m1-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.m1-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.m1-brand {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .14em;
+  color: var(--candle);
+  opacity: .85;
+}
+.m1-bo5 { display: flex; align-items: center; gap: 8px; }
+.m1-pips { display: flex; align-items: center; gap: 5px; }
+.m1-pip {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--room2);
+}
+.m1-pip.A.on { background: var(--p1); border-color: var(--p1); }
+.m1-pip.B.on { background: var(--p2); border-color: var(--p2); }
+.m1-mid { color: var(--dim); }
+
+.m1-row {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  transition: border-color .3s, background .3s;
+}
+.m1-row.active {
+  border-color: color-mix(in srgb, var(--candle) 50%, transparent);
+  background: color-mix(in srgb, var(--candle) 6%, transparent);
+}
+.m1-row-label {
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px; color: var(--dim);
+}
+.m1-hands { display: flex; gap: 18px; }
+.m1-hand {
+  width: 92px; height: 92px; border-radius: 20px; font-size: 46px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--room2); border: 1px solid var(--line); cursor: default;
+  transition: transform .25s ease, opacity .3s ease, border-color .2s;
+  color: var(--text);
+}
+.m1-row.top .m1-hand { transform: rotate(180deg); }
+.m1-hand.mine { border-color: color-mix(in srgb, var(--candle) 40%, var(--line)); }
+.m1-hand.selectable {
+  cursor: pointer; border-color: var(--candle);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--candle) 18%, transparent);
+}
+.m1-hand.selectable:hover { transform: translateY(-4px); }
+.m1-hand.kept {
+  border-color: #6FDCA8;
+  box-shadow: 0 0 16px rgba(111,220,168,.25);
+}
+.m1-hand.dropped { opacity: .18; transform: scale(.8) translateY(10px); }
+.m1-row.top .m1-hand.dropped { transform: rotate(180deg) scale(.8) translateY(10px); }
+.m1-hand:disabled { cursor: default; }
+
+.m1-felt {
+  min-height: 48px; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--candle) 22%, var(--line));
+  background:
+    radial-gradient(ellipse 85% 70% at 50% 40%, rgba(255,198,110,.06), transparent 70%),
+    color-mix(in srgb, var(--night) 70%, transparent);
+  font-size: 14px; color: var(--dim); text-align: center;
+}
+.m1-count { font-size: 15px; }
+.m1-count b {
+  font-family: 'Fraunces', serif; font-size: 24px; color: var(--candle); margin-left: 6px;
+}
+.m1-result {
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; color: var(--candle);
+}
+.m1-result.pA { color: var(--p1); }
+.m1-result.pB { color: var(--p2); }
+
+.m1-dock {
+  margin-top: 12px;
+  border-radius: 18px;
+  background: var(--room);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 28px rgba(0,0,0,.35);
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+
+.m1-pickzone { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+.m1-pickcol { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.m1-pickhead {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--dim); font-weight: 700;
+}
+.m1-pickbtns { display: flex; gap: 7px; }
+.m1-gbtn {
+  width: 52px; height: 52px; border-radius: 14px; font-size: 26px;
+  background: var(--room2); border: 1px solid var(--line); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--text);
+}
+.m1-gbtn.on {
+  border-color: var(--candle);
+  background: color-mix(in srgb, var(--candle) 14%, var(--room2));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--candle) 22%, transparent);
+}
+
+.m1-hint { margin-top: 10px; font-size: 12.5px; color: var(--dim); text-align: center; }
+
+.m1-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 12px; }
+.m1-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; color: var(--candle); }
+.m1-final { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--dim); }
+.m1-status {
+  text-align: center; color: var(--dim); font-family: 'Fraunces', serif; font-weight: 700;
+}
+.m1-note { text-align: center; font-size: 11.5px; color: var(--dim); }
+
+@media (max-width: 440px) {
+  .m1-hand { width: 78px; height: 78px; font-size: 38px; }
+  .m1-brand { letter-spacing: .1em; font-size: 12px; }
+}

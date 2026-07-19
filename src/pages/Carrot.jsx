@@ -1,7 +1,7 @@
 // src/pages/Carrot.jsx — Carrot in a Box (mounted by the carrot engine).
 //
 // Two boxes, one carrot. Peeker looks in their own box, then bluffs in chat.
-// Chooser keeps or swaps. Holder of the carrot wins the round. First to 4.
+// Chooser keeps or swaps. Holder of the carrot wins the round. First to 3.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -31,6 +31,7 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   const scoreRef = useRef({ A: 0, B: 0 });
   const startedRef = useRef(false);
   const finishedRef = useRef(false);
+  const resolvedRoundRef = useRef(-1); // each round scores at most once
   const chatEndRef = useRef(null);
   meRef.current = me;
 
@@ -41,6 +42,7 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
     seedRef.current = n;
     if (code) seedByCode.set(code, n);
     finishedRef.current = false;
+    resolvedRoundRef.current = -1;
     roundRef.current = 0;
     scoreRef.current = { A: 0, B: 0 };
     setScore({ A: 0, B: 0 });
@@ -53,7 +55,12 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   }, [code]);
 
   const resolveRound = useCallback((swap) => {
-    const h = carrotHolder(seedRef.current, roundRef.current);
+    const r = roundRef.current;
+    // Local apply + RT echo/retry must not double-count the same round
+    if (resolvedRoundRef.current === r) return;
+    resolvedRoundRef.current = r;
+
+    const h = carrotHolder(seedRef.current, r);
     const w = roundWinner(h, swap);
     scoreRef.current = { ...scoreRef.current, [w]: scoreRef.current[w] + POINTS_PER_ROUND };
     setScore({ ...scoreRef.current });
@@ -70,6 +77,8 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   }, [onComplete]);
 
   const nextRound = useCallback((r) => {
+    if (r == null || r === roundRef.current) return;
+    if (r < roundRef.current) return;
     roundRef.current = r;
     setRound(r);
     setPeeked(false);
@@ -92,15 +101,18 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
         return;
       }
       if (m.k === 'peeked') {
+        if (m.by === me) return;
         setPeeked(true);
         setPhase('choose');
         return;
       }
       if (m.k === 'choice') {
+        if (m.by === me) return;
         resolveRound(!!m.swap);
         return;
       }
       if (m.k === 'next') {
+        if (m.by === me) return;
         nextRound(m.round);
         return;
       }
@@ -139,13 +151,14 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   function doPeek() {
     setPeeked(true);
     setPhase('choose');
-    rt?.send({ k: 'peeked' });
-    setTimeout(() => rt?.send({ k: 'peeked' }), 180);
+    const payload = { k: 'peeked', by: me };
+    rt?.send(payload);
+    setTimeout(() => rt?.send(payload), 180);
   }
 
   function choose(swap) {
     resolveRound(swap);
-    const payload = { k: 'choice', swap };
+    const payload = { k: 'choice', swap, by: me };
     rt?.send(payload);
     setTimeout(() => rt?.send(payload), 180);
   }
@@ -153,8 +166,9 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   function pressNext() {
     const r = roundRef.current + 1;
     nextRound(r);
-    rt?.send({ k: 'next', round: r });
-    setTimeout(() => rt?.send({ k: 'next', round: r }), 180);
+    const payload = { k: 'next', round: r, by: me };
+    rt?.send(payload);
+    setTimeout(() => rt?.send(payload), 180);
   }
 
   function sendChat(text) {
@@ -187,7 +201,12 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
 
   let roleEvent = null;
   if (phase === 'reveal' && lastResult) {
-    roleEvent = <>{nm[lastResult.winner]} takes the round!</>;
+    const w = lastResult.winner;
+    roleEvent = (
+      <span className={w === 'A' ? 'pA' : 'pB'}>
+        {nm[w]} takes the round!
+      </span>
+    );
   } else if (phase === 'peek' && iPeek && !peeked) {
     roleEvent = (
       <>
@@ -226,16 +245,23 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
               <div className={'ca-zone-name ' + (opp === 'A' ? 'pA' : 'pB')}>
                 {nm[opp]}
               </div>
-              <Box
-                seat={opp}
-                mine={false}
-                face="down"
-                open={phase === 'reveal'}
-                hasCarrot={carrotSeat === opp}
-                privateView={oppPeekHere}
-                showsCarrot={undefined}
-                swap={swapping}
-              />
+              <div className="ca-zone-main">
+                {phase === 'choose' && iChoose && (
+                  <button type="button" className="btn warm ca-choicebtn" onClick={() => choose(true)}>
+                    SWAP boxes
+                  </button>
+                )}
+                <Box
+                  seat={opp}
+                  mine={false}
+                  face="down"
+                  open={phase === 'reveal'}
+                  hasCarrot={carrotSeat === opp}
+                  privateView={oppPeekHere}
+                  showsCarrot={undefined}
+                  swap={swapping}
+                />
+              </div>
             </div>
 
             {/* Center felt — status only */}
@@ -256,16 +282,23 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
 
             {/* You — this side of the table */}
             <div className={'ca-zone' + ((iPeek && !peeked) || iChoose ? ' active' : '')}>
-              <Box
-                seat={me}
-                mine
-                face="up"
-                open={phase === 'reveal'}
-                hasCarrot={carrotSeat === me}
-                privateView={myPeekHere}
-                showsCarrot={myPeekHere ? holder === me : undefined}
-                swap={swapping}
-              />
+              <div className="ca-zone-main">
+                <Box
+                  seat={me}
+                  mine
+                  face="up"
+                  open={phase === 'reveal'}
+                  hasCarrot={carrotSeat === me}
+                  privateView={myPeekHere}
+                  showsCarrot={myPeekHere ? holder === me : undefined}
+                  swap={swapping}
+                />
+                {phase === 'choose' && iChoose && (
+                  <button type="button" className="btn warm ca-choicebtn" onClick={() => choose(false)}>
+                    Keep my box
+                  </button>
+                )}
+              </div>
               <div className={'ca-zone-name ' + (me === 'A' ? 'pA' : 'pB')}>
                 {nm[me]} (you)
               </div>
@@ -274,23 +307,14 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
                   Peek inside your box
                 </button>
               )}
-              {myPeekHere && <div className="ca-box-privnote">only you can see this</div>}
+              {myPeekHere && (
+                <div className={'ca-box-privnote ' + (me === 'A' ? 'pA' : 'pB')}>
+                  only you can see this
+                </div>
+              )}
             </div>
           </div>
 
-          {phase === 'choose' && iChoose && (
-            <div className="ca-dock">
-              <div className="ca-dock-title">Keep or swap</div>
-              <div className="ca-choosebtns">
-                <button type="button" className="btn warm" onClick={() => choose(false)}>
-                  {'\u{1F4E6}'} Keep my box
-                </button>
-                <button type="button" className="btn warm" onClick={() => choose(true)}>
-                  {'\u{1F500}'} SWAP boxes
-                </button>
-              </div>
-            </div>
-          )}
           {phase === 'reveal' && lastResult && !winner && (
             <div className="ca-dock">
               <button type="button" className="btn warm" onClick={pressNext}>Next round</button>
@@ -354,9 +378,17 @@ function Box({ seat, mine, face, open, hasCarrot, privateView, showsCarrot, swap
     }>
       <div className={'ca-box' + (open ? ' open' : '') + (privateView ? ' privview' : '')}>
         {open ? (
-          <span className="ca-box-content">{hasCarrot ? '\u{1F955}' : '\u{1F4A8}'}</span>
+          hasCarrot ? (
+            <span className="ca-box-content">{'\u{1F955}'}</span>
+          ) : (
+            <span className="ca-box-hole" aria-label="empty" />
+          )
         ) : privateView ? (
-          <span className="ca-box-content priv">{showsCarrot ? '\u{1F955}' : '\u{1F573}\uFE0F'}</span>
+          showsCarrot ? (
+            <span className="ca-box-content priv">{'\u{1F955}'}</span>
+          ) : (
+            <span className="ca-box-hole priv" aria-label="empty" />
+          )
         ) : (
           <span className="ca-box-lid">?</span>
         )}

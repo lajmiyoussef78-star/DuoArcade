@@ -38,8 +38,9 @@ import * as UNO from './uno.js';
 import * as COUP from './coup.js';
 import * as CARROT from './carrot.js';
 import * as CHKOBBA from './chkobba.js';
+import * as MINUSONE from './minusone.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, MINUSONE]
     .map(e => [e.meta.id, e])
 );

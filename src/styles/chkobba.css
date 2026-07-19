@@ -120,9 +120,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 14px;
+  gap: 28px;
   width: 100%;
   flex-wrap: wrap;
+}
+.ck-zone-row .ck-cap-pile {
+  margin-left: 8px;
+  padding-left: 16px;
+  border-left: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
 }
 .ck-cards { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; min-height: 100px; align-items: center; }
 .ck-hand-empty { font-size: 12px; color: var(--dim); font-style: italic; }
@@ -137,18 +142,9 @@
 }
 .ck-cap-stack {
   position: relative;
-  width: 52px;
-  height: 76px;
+  width: 58px;
+  height: 82px;
   flex-shrink: 0;
-}
-.ck-cap-layer {
-  position: absolute;
-  left: 0; bottom: 0;
-  width: 52px !important;
-  height: 76px !important;
-  border-radius: 8px;
-  transform: translate(calc(var(--i) * 2px), calc(var(--i) * -2px));
-  z-index: calc(var(--i) + 1);
 }
 .ck-cap-count {
   position: absolute;
@@ -497,6 +493,20 @@
 .ck-card.suit-spades .ck-card-pips,
 .ck-card.suit-spades .ck-card-court { color: var(--suit-black); }
 .ck-card.suit-diamonds.face { box-shadow: 0 4px 14px rgba(0,0,0,.35), inset 0 0 0 2px rgba(198,40,40,.22); }
+
+/* Must follow .ck-card { position:relative } so the pile actually overlaps */
+.ck-cap-stack .ck-cap-layer.ck-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 52px;
+  height: 76px;
+  margin: 0;
+  border-radius: 8px;
+  transform: translate(calc(var(--i, 0) * 2px), calc(var(--i, 0) * 2px));
+  z-index: calc(var(--i, 0) + 1);
+  transition: none;
+}
 
 /* Action dock — same as Veilcourt */
 .ck-dock {

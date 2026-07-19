@@ -896,6 +896,97 @@ export const ART = {
      @keyframes carrot-wiggle { 0%,100% { transform: rotate(-7deg) } 50% { transform: rotate(7deg) } }
      ${sparkAnim('carrot', 3)}`),
 
+  /* ─── Minus One: scattered neon hands + −1 ─── */
+  minusone: scene('mo', `
+    <filter id="mo-soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>`, `
+    <ellipse cx="150" cy="118" rx="64" ry="9" fill="#191420" opacity=".4"/>
+
+    <g transform="translate(148 58)">
+      <g class="mo-badge">
+        <circle r="12" fill="var(--room2)" stroke="var(--candle)" stroke-width="5" filter="url(#mo-soft)" opacity=".4"/>
+        <circle r="12" fill="var(--room2)" stroke="var(--candle)" stroke-width="2"/>
+        <text text-anchor="middle" y="4.5" font-family="'Fraunces',serif" font-weight="900" font-size="12" fill="var(--candle)">\u22121</text>
+      </g>
+    </g>
+
+    <g transform="translate(82 56) rotate(-22) scale(0.74)">
+      <g class="mo-rock">
+        <g stroke="#ff4da6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <g stroke-width="6" filter="url(#mo-soft)" opacity=".4">
+            <path d="M14 40c-5 0-8-3-8-8V24c0-4 2-7 6-8 1-5 5-8 10-8 4 0 7 2 9 6 1-2 4-3 6-3 5 0 8 4 8 9v12c0 7-5 12-11 12H18c-1.5 0-3-.4-4-1.5z"/>
+            <path d="M16 18v8M22 15v11M28 16v10M34 20v8"/>
+          </g>
+          <g stroke-width="2.4">
+            <path d="M14 40c-5 0-8-3-8-8V24c0-4 2-7 6-8 1-5 5-8 10-8 4 0 7 2 9 6 1-2 4-3 6-3 5 0 8 4 8 9v12c0 7-5 12-11 12H18c-1.5 0-3-.4-4-1.5z"/>
+            <path d="M16 18v8M22 15v11M28 16v10M34 20v8"/>
+          </g>
+        </g>
+      </g>
+    </g>
+
+    <g transform="translate(168 2) rotate(18) scale(0.7)">
+      <g class="mo-scissors">
+        <g stroke="var(--candle)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <g stroke-width="6" filter="url(#mo-soft)" opacity=".4">
+            <rect x="12" y="28" width="32" height="22" rx="8"/>
+            <rect x="14" y="4" width="10" height="28" rx="5"/>
+            <rect x="32" y="2" width="10" height="30" rx="5"/>
+          </g>
+          <g stroke-width="2.4">
+            <rect x="12" y="28" width="32" height="22" rx="8"/>
+            <rect x="14" y="4" width="10" height="28" rx="5"/>
+            <rect x="32" y="2" width="10" height="30" rx="5"/>
+            <path d="M20 38h16"/>
+          </g>
+        </g>
+      </g>
+    </g>
+
+    <g transform="translate(182 64) rotate(-8) scale(0.68)">
+      <g class="mo-paper">
+        <g stroke="#5ec8ff" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <g stroke-width="6" filter="url(#mo-soft)" opacity=".4">
+            <rect x="10" y="28" width="36" height="22" rx="8"/>
+            <rect x="10" y="6" width="8" height="26" rx="4"/>
+            <rect x="20" y="2" width="8" height="30" rx="4"/>
+            <rect x="30" y="2" width="8" height="30" rx="4"/>
+            <rect x="40" y="8" width="8" height="24" rx="4"/>
+          </g>
+          <g stroke-width="2.4">
+            <rect x="10" y="28" width="36" height="22" rx="8"/>
+            <rect x="10" y="6" width="8" height="26" rx="4"/>
+            <rect x="20" y="2" width="8" height="30" rx="4"/>
+            <rect x="30" y="2" width="8" height="30" rx="4"/>
+            <rect x="40" y="8" width="8" height="24" rx="4"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    ${sparks('mo', [[70, 42, 1.5, '#ff4da6'], [200, 18, 1.6, 'var(--candle)'], [220, 88, 1.5, '#5ec8ff']])}`,
+    `.mo-badge { animation: mo-badge 2.6s ease-in-out infinite; }
+     @keyframes mo-badge { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(0,-4px) scale(1.08) } }
+     .mo-rock { animation: mo-flyA 3.6s ease-in-out infinite; }
+     .mo-scissors { animation: mo-flyB 3s ease-in-out .2s infinite; }
+     .mo-paper { animation: mo-flyC 3.8s ease-in-out .45s infinite; }
+     @keyframes mo-flyA {
+       0%,100% { transform: translate(0,0) rotate(0deg) }
+       33% { transform: translate(6px,-10px) rotate(-6deg) }
+       66% { transform: translate(-4px,-4px) rotate(3deg) }
+     }
+     @keyframes mo-flyB {
+       0%,100% { transform: translate(0,0) rotate(0deg) }
+       40% { transform: translate(-8px,6px) rotate(8deg) }
+       70% { transform: translate(4px,-8px) rotate(-3deg) }
+     }
+     @keyframes mo-flyC {
+       0%,100% { transform: translate(0,0) rotate(0deg) }
+       35% { transform: translate(-5px,-9px) rotate(5deg) }
+       65% { transform: translate(7px,3px) rotate(-7deg) }
+     }
+     ${sparkAnim('mo', 3)}`),
+
   /* ─── Chkobba: French-suited capture fan ─── */
   chkobba: scene('ck', `
     <linearGradient id="ck-face" x1="0" y1="0" x2="0" y2="1">
