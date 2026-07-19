@@ -1,4 +1,4 @@
-// Coup: Köln Edition — realtime engine for the duo game shell.
+// Veilcourt — realtime engine for the duo game shell.
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
@@ -9,8 +9,8 @@ let finished = false;
 
 export const meta = {
   id: 'coup',
-  name: 'Coup',
-  tag: '7 roles · bluff · count the deck',
+  name: 'Veilcourt',
+  tag: 'court intrigue · bluff · coins',
   accent: 'candle',
   realtime: true
 };

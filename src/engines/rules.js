@@ -170,15 +170,15 @@ export const RULES = {
   },
 
   coup: {
-    goal: 'Destroy both of your partner\u2019s influence cards.',
+    goal: 'Destroy all of your partner\u2019s influence cards.',
     how: [
-      '7 roles \u00d7 3 copies = 21 cards, shuffled once. You each hold 2 hidden cards. First player starts with 1 coin, second with 2.',
-      'Always available: Income +1, Foreign Aid +2 (Taxman can block), Coup for 7 (forced at 10+ coins).',
-      'Role actions: Assassin (pay 3), Colonel Accuse (pay 4), Policeman inspect, Businessman +4, Taxman skim, Thief steal 2, Ambassador exchange.',
-      'Claim any role anytime. Any claim can be challenged for free \u2014 liars lose a card; truthful claimers force the challenger to lose one.',
-      'The deck never reshuffles: revealed and returned cards go under the bottom. Count everything.'
+      'Veilcourt: 7 characters \u00d7 3 = 21 cards, shuffled once. Three hidden cards each. First player starts with 1 coin, second with 2.',
+      'Always: Wage +1 · Governmental aid +2 (Taxman can block) · Exposition pay 7 to kill (forced at 10+). Corruption: pay 9 when targeted to be spared.',
+      'Businesswoman +4 · Terrorist pay 3 to kill · Politician exchanges · Thief steals 2 (Thief blocks) · Colonel accuses for 4 / blocks Terrorist · Taxman taxes 7+ or skims deals · Cop inspects and may swap (Cop blocks Cop).',
+      'Claim any character anytime. Challenges are free \u2014 liars lose a card; truthful claimers force the challenger to lose one. On your turn, actions matching your live cards are marked so you can play them without bluffing.',
+      'The deck never reshuffles: returned cards go under the bottom. Count everything.'
     ],
-    tip: 'A bluff Colonel block against a real Assassin can cost you both cards if they challenge.'
+    tip: 'Save 9 coins for Corruption when you smell an Exposition or a Terrorist hit.'
   },
 
   wordbomb: {

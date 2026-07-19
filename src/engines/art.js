@@ -778,39 +778,74 @@ export const ART = {
      @keyframes uno-fan { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
      ${sparkAnim('uno', 4)}`),
 
-  /* ─── Coup: hidden influence + coins ─── */
-  coup: scene('coup', '', `
-    <ellipse cx="120" cy="108" rx="90" ry="14" fill="var(--night)" opacity=".5"/>
-    <g transform="translate(78 28) rotate(-12)">
-      <g class="coup-cardA">
-        <rect width="44" height="64" rx="8" fill="var(--room2)" stroke="var(--candle)" stroke-width="1.8"/>
-        <path d="M14 22 L22 14 L30 22 L26 22 L26 34 L18 34 L18 22 Z" fill="var(--candle)" opacity=".9"/>
-        <circle cx="22" cy="40" r="6" fill="none" stroke="var(--candle)" stroke-width="1.6"/>
-        <text x="22" y="56" text-anchor="middle" font-family="'Fraunces',serif" font-weight="700" font-size="9" fill="var(--text)">blade</text>
+  /* ─── Veilcourt: veiled influence fan, coin, court intrigue ─── */
+  coup: scene('coup', `
+    <linearGradient id="coup-veil" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="var(--p1)" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="var(--p2)" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="coup-back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--room2)"/>
+      <stop offset="100%" stop-color="var(--night)"/>
+    </linearGradient>
+    <linearGradient id="coup-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--room2)"/>
+      <stop offset="100%" stop-color="var(--room)"/>
+    </linearGradient>
+    <radialGradient id="coup-coinG" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffe6a8"/>
+      <stop offset="55%" stop-color="var(--candle)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--candle) 55%, var(--night))"/>
+    </radialGradient>`, `
+    <path d="M0 0 C60 40 90 20 120 50 C150 20 180 45 240 0 V130 H0 Z" fill="url(#coup-veil)" opacity=".7"/>
+    <ellipse cx="120" cy="128" rx="100" ry="16" fill="var(--night)" opacity=".4"/>
+
+    <g transform="translate(52 28) rotate(-18)">
+      <g class="coup-c1">
+        <rect width="48" height="72" rx="8" fill="url(#coup-back)" stroke="var(--line)" stroke-width="2"/>
+        <rect x="5" y="5" width="38" height="62" rx="5" fill="none" stroke="color-mix(in srgb, var(--p1) 35%, transparent)" stroke-width="1.2"/>
+        <circle cx="24" cy="34" r="11" fill="url(#coup-coinG)" opacity=".95"/>
+        <text x="24" y="39" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="13" fill="var(--night)">V</text>
       </g>
     </g>
-    <g transform="translate(118 24) rotate(10)">
-      <g class="coup-cardB">
-        <rect width="44" height="64" rx="8" fill="var(--room)" stroke="var(--line)" stroke-width="1.8"/>
-        <text x="22" y="40" text-anchor="middle" font-size="22" fill="color-mix(in srgb, var(--candle) 55%, transparent)">\u2666</text>
+    <g transform="translate(86 20) rotate(-4)">
+      <g class="coup-c2">
+        <rect width="48" height="72" rx="8" fill="url(#coup-back)" stroke="var(--line)" stroke-width="2"/>
+        <rect x="5" y="5" width="38" height="62" rx="5" fill="none" stroke="color-mix(in srgb, var(--p1) 35%, transparent)" stroke-width="1.2"/>
+        <circle cx="24" cy="34" r="11" fill="url(#coup-coinG)" opacity=".95"/>
+        <text x="24" y="39" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="13" fill="var(--night)">V</text>
       </g>
     </g>
-    <g transform="translate(175 65)">
-      <g class="coup-coin">
-        <circle cx="13" cy="13" r="16" fill="var(--candle)" opacity=".35" filter="url(#coup-glow)"/>
-        <circle cx="13" cy="13" r="13" fill="var(--candle)"/>
-        <text x="13" y="18" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#2a1e05">4</text>
+    <g transform="translate(122 18) rotate(12)">
+      <g class="coup-c3">
+        <rect width="48" height="72" rx="8" fill="url(#coup-face)" stroke="var(--p2)" stroke-width="2"/>
+        <rect x="5" y="5" width="38" height="62" rx="5" fill="none" stroke="color-mix(in srgb, var(--p2) 40%, transparent)" stroke-width="1.2"/>
+        <circle cx="24" cy="28" r="8" fill="color-mix(in srgb, var(--p2) 55%, var(--text))" opacity=".9"/>
+        <path d="M14 52 C14 40 34 40 34 52 Z" fill="var(--p1)" opacity=".85"/>
+        <path d="M16 28 Q24 34 32 28" fill="none" stroke="var(--text)" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>
+        <text x="24" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="7" fill="var(--dim)" letter-spacing="0.5">CLAIM?</text>
       </g>
     </g>
-    <text x="48" y="96" font-family="'JetBrains Mono',monospace" font-size="11" fill="var(--p1)">bluff?</text>
-    <text x="48" y="112" font-family="'JetBrains Mono',monospace" font-size="11" fill="var(--p2)">challenge</text>
-    ${sparks('coup', [[36, 36, 1.5, 'var(--candle)'], [200, 40, 1.4, 'var(--p2)'], [160, 112, 1.3, 'var(--p1)']])}`,
-    `.coup-cardA { animation: coup-tilt 2.8s ease-in-out infinite; }
-     .coup-cardB { animation: coup-tilt 2.8s ease-in-out .35s infinite reverse; }
+
+    <g class="coup-coin" transform="translate(186 58)">
+      <circle cx="16" cy="16" r="17" fill="var(--candle)" opacity=".22" filter="url(#coup-glow)"/>
+      <circle cx="16" cy="16" r="13.5" fill="url(#coup-coinG)" stroke="color-mix(in srgb, var(--candle) 40%, var(--night))" stroke-width="1.5"/>
+      <text x="16" y="21" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="13" fill="var(--night)">9</text>
+    </g>
+
+    <g font-family="'JetBrains Mono',monospace" font-weight="700" font-size="10" letter-spacing="0.4">
+      <text x="36" y="118" fill="var(--p1)">bluff</text>
+      <text x="96" y="118" fill="var(--p2)">challenge</text>
+      <text x="172" y="118" fill="var(--candle)">corrupt</text>
+    </g>
+    ${sparks('coup', [[28, 36, 1.5, 'var(--p1)'], [210, 40, 1.5, 'var(--candle)'], [200, 108, 1.3, 'var(--p2)'], [70, 100, 1.2, 'var(--candle)']])}`,
+    `.coup-c1 { animation: coup-fan 2.8s ease-in-out infinite; }
+     .coup-c2 { animation: coup-fan 2.8s ease-in-out .15s infinite; }
+     .coup-c3 { animation: coup-fan 2.8s ease-in-out .3s infinite; }
+     @keyframes coup-fan { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
      .coup-coin { animation: coup-bob 2.2s ease-in-out infinite; }
-     @keyframes coup-tilt { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
      @keyframes coup-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
-     ${sparkAnim('coup', 3)}`),
+     ${sparkAnim('coup', 4)}`),
 
   /* ─── Word Bomb: hot-potato fragment fuse ─── */
   wordbomb: scene('wb', '', `
