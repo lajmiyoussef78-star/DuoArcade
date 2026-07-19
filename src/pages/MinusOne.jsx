@@ -5,8 +5,9 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  GESTURES, GESTURE_IDS, duel, WIN_SCORE, KEEP_SECONDS
+  GESTURES, GESTURE_IDS, duel, WIN_SCORE, KEEP_SECONDS, randomKeepIndex
 } from '../lib/minusone.js';
+import NeonRpsIcon from '../components/NeonRpsIcon.jsx';
 import '../styles/minusone.css';
 
 export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
@@ -25,7 +26,6 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
   const [roundResult, setRoundResult] = useState(null);
   const [winner, setWinner] = useState(null);
   const [countdown, setCountdown] = useState(KEEP_SECONDS);
-
   const meRef = useRef(me);
   const handsRef = useRef({ A: null, B: null });
   const keepsRef = useRef({ A: null, B: null });
@@ -35,6 +35,8 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
   const startedRef = useRef(false);
   const finishedRef = useRef(false);
   const duelDoneRef = useRef(false);
+  const minusSentRef = useRef(false);
+  const minusActiveRef = useRef(false);
   const phaseRef = useRef('wait');
   const cdIvRef = useRef(null);
   meRef.current = me;
@@ -47,6 +49,8 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
     handsRef.current = { A: null, B: null };
     keepsRef.current = { A: null, B: null };
     duelDoneRef.current = false;
+    minusSentRef.current = false;
+    minusActiveRef.current = false;
     setHands({ A: null, B: null });
     setKeeps({ A: null, B: null });
     setMyHands([null, null]);
@@ -106,25 +110,66 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
     maybeDuel();
   }, [rt, maybeDuel]);
 
+  // Apply host-issued auto keeps. Each seat is rolled independently.
+  const applyAutoKeeps = useCallback((picks) => {
+    if (!picks || typeof picks !== 'object') return;
+    let changed = false;
+    const next = { ...keepsRef.current };
+    for (const seat of ['A', 'B']) {
+      if (next[seat] != null || picks[seat] == null) continue;
+      next[seat] = picks[seat];
+      changed = true;
+      if (seat === meRef.current) {
+        setMyKeep(picks[seat]);
+        myKeepRef.current = picks[seat];
+      }
+    }
+    if (!changed) return;
+    keepsRef.current = next;
+    setKeeps({ ...next });
+    maybeDuel();
+  }, [maybeDuel]);
+
+  const startMinus = useCallback((endsAt) => {
+    if (minusActiveRef.current) return;
+    if (phaseRef.current !== 'throw' && phaseRef.current !== 'minus') return;
+    minusActiveRef.current = true;
+    setPhase('minus');
+    clearInterval(cdIvRef.current);
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setCountdown(left);
+      if (left <= 0) {
+        clearInterval(cdIvRef.current);
+        // Host rolls a separate random keep for each player still undecided.
+        if (meRef.current !== 'A') return;
+        const picks = {};
+        if (keepsRef.current.A == null) picks.A = randomKeepIndex();
+        if (keepsRef.current.B == null) picks.B = randomKeepIndex();
+        if (!Object.keys(picks).length) return;
+        const payload = { k: 'autokeep', picks };
+        rt?.send(payload);
+        setTimeout(() => rt?.send(payload), 180);
+        applyAutoKeeps(picks);
+      }
+    };
+    tick();
+    cdIvRef.current = setInterval(tick, 200);
+  }, [rt, applyAutoKeeps]);
+
   const maybeReveal = useCallback(() => {
     if (phaseRef.current !== 'throw') return;
     const h = handsRef.current;
     if (!h.A || !h.B) return;
-    setPhase('minus');
-    let left = KEEP_SECONDS;
-    setCountdown(left);
-    clearInterval(cdIvRef.current);
-    cdIvRef.current = setInterval(() => {
-      left -= 1;
-      setCountdown(Math.max(0, left));
-      if (left <= 0) {
-        clearInterval(cdIvRef.current);
-        if (myKeepRef.current == null && keepsRef.current[meRef.current] == null) {
-          chooseKeep(0);
-        }
-      }
-    }, 1000);
-  }, [chooseKeep]);
+    // Host owns the shared timer so both see the same countdown.
+    if (meRef.current !== 'A' || minusSentRef.current) return;
+    minusSentRef.current = true;
+    const endsAt = Date.now() + KEEP_SECONDS * 1000;
+    const payload = { k: 'minus', endsAt };
+    rt?.send(payload);
+    setTimeout(() => rt?.send(payload), 180);
+    startMinus(endsAt);
+  }, [rt, startMinus]);
 
   const nextRound = useCallback(() => {
     resetRound();
@@ -153,6 +198,16 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
         maybeReveal();
         return;
       }
+      if (m.k === 'minus') {
+        if (!m.endsAt) return;
+        startMinus(m.endsAt);
+        return;
+      }
+      if (m.k === 'autokeep') {
+        if (me === 'A') return; // host already applied locally
+        applyAutoKeeps(m.picks);
+        return;
+      }
       if (m.k === 'keep') {
         if (m.by === me || m.idx == null) return;
         keepsRef.current = { ...keepsRef.current, [m.by]: m.idx };
@@ -166,7 +221,7 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
       }
     });
     return () => clearInterval(cdIvRef.current);
-  }, [rt, me, begin, maybeReveal, maybeDuel, nextRound]);
+  }, [rt, me, begin, maybeReveal, startMinus, applyAutoKeeps, maybeDuel, nextRound]);
 
   useEffect(() => {
     if (me === 'A') {
@@ -223,7 +278,14 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
         <div className="m1-table">
           <div className="m1-board">
             <div className="m1-toolbar">
-              <div className="m1-brand">{'\u270A\u270B\u270C\uFE0F'} Minus One</div>
+              <div className="m1-brand">
+                <span className="m1-brand-icons" aria-hidden="true">
+                  <NeonRpsIcon id="rock" size={18} />
+                  <NeonRpsIcon id="scissors" size={18} />
+                  <NeonRpsIcon id="paper" size={18} />
+                </span>
+                Minus One
+              </div>
               <div className="m1-bo5" title={`First to ${WIN_SCORE}`}>
                 <div className="m1-pips">
                   {Array.from({ length: WIN_SCORE }).map((_, i) => (
@@ -241,29 +303,45 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
 
             <HandRow
               label={nm[opp]}
+              seat={opp}
               hands={hands[opp]}
               revealed={phase !== 'throw'}
               keptIdx={phase === 'duel' ? keeps[opp] : null}
-              waiting={phase === 'throw' && !hands[opp]}
               top
             />
 
             <div className="m1-felt">
               {phase === 'throw' && (
-                <span>{locked ? `waiting for ${nm[opp]}\u2026` : 'pick BOTH hands, then lock'}</span>
+                <span>
+                  {locked
+                    ? <>waiting for <span className={opp === 'A' ? 'pA' : 'pB'}>{nm[opp]}</span>…</>
+                    : 'pick both hands, choose wisely then lock'}
+                </span>
               )}
               {phase === 'minus' && (
-                <span className="m1-count">minus one! <b>{countdown}</b></span>
+                <span className="m1-minus-line">
+                  <span className="m1-count" title="Time left to keep a hand">
+                    <b>{countdown}</b>
+                  </span>
+                  <span>
+                    {myKeep == null
+                      ? 'Tap the one you keep, the other hand vanishes.'
+                      : <>kept — waiting for <span className={opp === 'A' ? 'pA' : 'pB'}>{nm[opp]}</span>…</>}
+                  </span>
+                </span>
               )}
               {phase === 'duel' && roundResult && (
                 <span className={'m1-result' + (roundResult !== 'draw' ? (roundResult === 'A' ? ' pA' : ' pB') : '')}>
-                  {roundResult === 'draw' ? 'Draw \u2014 again!' : `${nm[roundResult]} takes the point!`}
+                  {roundResult === 'draw'
+                    ? 'Draw'
+                    : <><span className={roundResult === 'A' ? 'pA' : 'pB'}>{nm[roundResult]}</span> takes the point!</>}
                 </span>
               )}
             </div>
 
             <HandRow
               label={`${nm[me]} (you)`}
+              seat={me}
               hands={phase === 'throw' ? myHands : hands[me]}
               revealed
               mine
@@ -284,10 +362,14 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
                         <button
                           key={g}
                           type="button"
-                          className={'m1-gbtn' + (myHands[slot] === g ? ' on' : '')}
+                          className={
+                            'm1-gbtn m1-gbtn-' + g + (myHands[slot] === g ? ' on' : '')
+                          }
+                          aria-label={GESTURES[g].name}
+                          title={GESTURES[g].name}
                           onClick={() => pickHand(slot, g)}
                         >
-                          {GESTURES[g].emoji}
+                          <NeonRpsIcon id={g} size={34} label />
                         </button>
                       ))}
                     </div>
@@ -300,17 +382,11 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
                 disabled={!myHands[0] || !myHands[1]}
                 onClick={lockHands}
               >
-                Lock both hands
+                Lock
               </button>
             </div>
           )}
 
-          {phase === 'minus' && myKeep == null && (
-            <div className="m1-hint">tap the hand you KEEP — the other one vanishes</div>
-          )}
-          {phase === 'minus' && myKeep != null && (
-            <div className="m1-hint">kept — waiting for {nm[opp]}…</div>
-          )}
           {phase === 'duel' && !winner && (
             <div className="m1-dock">
               <button type="button" className="btn warm" onClick={pressNext}>Next round</button>
@@ -322,7 +398,9 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
       {phase === 'over' && winner && (
         <div className="m1-table">
           <div className="m1-done">
-            <div className="m1-winline">{nm[winner]} wins the duel!</div>
+            <div className="m1-winline">
+              <span className={winner === 'A' ? 'pA' : 'pB'}>{nm[winner]}</span> wins the duel!
+            </div>
             <div className="m1-final">{score.A} {'\u2013'} {score.B}</div>
             <p className="m1-note">Use Rematch in the shell for another first-to-{WIN_SCORE}.</p>
           </div>
@@ -332,10 +410,10 @@ export default function MinusOne({ myRole, names = {}, rt, code, onComplete }) {
   );
 }
 
-function HandRow({ label, hands, revealed, mine, keptIdx, selectable, onKeep, waiting, top }) {
+function HandRow({ label, seat, hands, revealed, mine, keptIdx, selectable, onKeep, top }) {
   return (
     <div className={'m1-row' + (top ? ' top' : '') + (selectable ? ' active' : '')}>
-      <div className="m1-row-label">{label}</div>
+      <div className={'m1-row-label ' + (seat === 'A' ? 'pA' : 'pB')}>{label}</div>
       <div className="m1-hands">
         {[0, 1].map(i => {
           const g = hands ? hands[i] : null;
@@ -347,6 +425,8 @@ function HandRow({ label, hands, revealed, mine, keptIdx, selectable, onKeep, wa
               type="button"
               className={
                 'm1-hand' +
+                (seat === 'A' ? ' seatA' : ' seatB') +
+                (g ? ' m1-hand-' + g : '') +
                 (dropped ? ' dropped' : '') +
                 (kept ? ' kept' : '') +
                 (selectable ? ' selectable' : '') +
@@ -355,7 +435,11 @@ function HandRow({ label, hands, revealed, mine, keptIdx, selectable, onKeep, wa
               disabled={!selectable}
               onClick={() => onKeep && onKeep(i)}
             >
-              {revealed && g ? GESTURES[g].emoji : (waiting ? '\u23F3' : '\u{1F91B}')}
+              {revealed && g ? (
+                <NeonRpsIcon id={g} size={56} />
+              ) : (
+                <span className="m1-hidden" aria-hidden="true">?</span>
+              )}
             </button>
           );
         })}

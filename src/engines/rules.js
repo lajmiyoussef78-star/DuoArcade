@@ -197,7 +197,7 @@ export const RULES = {
     how: [
       'Throw with BOTH hands (rock, paper, or scissors on left and right), then Lock. Nothing shows until both of you lock.',
       'All four hands appear \u2014 theirs across the table, yours below.',
-      'Minus one: an 8-second countdown. Tap the hand you KEEP; the other vanishes. Choices stay secret until both are in. Time out and your left hand is kept.',
+      'Minus one: an 8-second countdown both of you see. Tap the hand you KEEP; the other vanishes. Choices stay secret until both are in. Time out and each player who has not picked gets their own random left/right keep (they can differ).',
       'The kept hands duel classic RPS. Draw = no point. First to 5 wins the match.'
     ],
     tip: 'The mind-game is the keep \u2014 you can see both of their throws before you choose.'
