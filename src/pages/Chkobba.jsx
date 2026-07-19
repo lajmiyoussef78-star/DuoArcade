@@ -1,9 +1,8 @@
 // src/pages/Chkobba.jsx — Chkobba (mounted by the chkobba engine).
 //
-// Lockstep like UNO: every move is broadcast and both clients apply the
-// identical pure reducer. Opponent cards render face-down.
-//
-// Flow: cut → play → auto deals → round scores → next until 21+ with a 2 lead.
+// Full court table layout (same design language as Veilcourt): opponent
+// zone, center stage with felt + deck, your zone, action dock.
+// Lockstep moves over the shell RT channel.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -121,7 +120,7 @@ export default function Chkobba({ myRole, names = {}, rt, code, onComplete }) {
   }
 
   if (!st) {
-    return <div className="ck-shell"><p className="ck-status">Shuffling the Tunisian deck…</p></div>;
+    return <div className="ck-shell"><p className="ck-status">Chkobba is dealing…</p></div>;
   }
 
   const myTurn = st.phase === 'play' && st.turn === me;
@@ -131,118 +130,262 @@ export default function Chkobba({ myRole, names = {}, rt, code, onComplete }) {
     (selTable.length === 0 && legal.length === 0) ||
     legal.some(o => o.length === selTable.length && o.every(x => selTable.includes(x)))
   );
+  const showDock = myTurn && selHand != null;
+  const lastLine = st.log?.[st.log.length - 1] || '';
 
   return (
     <div className="ck-shell">
-      <div className="ck-brand">{'\u{1F0CF}'} Chkobba</div>
+      <div className="ck-table">
+        <div className="ck-board">
+          <div className="ck-toolbar">
+            <div className="ck-brand">Chkobba</div>
+            <div className="ck-scorepill" title={`First to ${TARGET} with a 2-point lead`}>
+              <span className="pA">{st.totals.A}</span>
+              <span className="ck-scoresep">–</span>
+              <span className="pB">{st.totals.B}</span>
+            </div>
+          </div>
 
-      <div className="ck-totals">
-        <span className="pA">{nm.A} <b>{st.totals.A}</b></span>
-        <span className="ck-target">first to {TARGET} (+2)</span>
-        <span className="pB"><b>{st.totals.B}</b> {nm.B}</span>
-      </div>
+          <PlayerZone
+            st={st} p={opp} me={me} names={nm} top
+          />
 
-      <div className="ck-oppstrip">
-        <span className={'ck-pname ' + (opp === 'A' ? 'pA' : 'pB')}>
-          {nm[opp]}{st.dealer === opp ? ' \u00b7 dealer' : ''}{st.turn === opp && st.phase === 'play' ? ' \u{1F0CF}' : ''}
-        </span>
-        <div className="ck-oppcards">
-          {st.hands[opp].map((_, i) => <div key={i} className="ck-card back small" />)}
+          <div className="ck-stage">
+            <div className="ck-deck" aria-hidden={st.phase === 'cut'}>
+              <div className="ck-deckstack">
+                <div className="ck-deck-layer"><CardBack /></div>
+                <div className="ck-deck-layer"><CardBack /></div>
+                <div className="ck-deck-layer"><CardBack /></div>
+              </div>
+              <div className="ck-deckcount">{st.deck.length}</div>
+            </div>
+
+            <div className={'ck-center' + (myTurn ? ' my-turn' : '')}>
+              {st.phase === 'cut' && (
+                st.cutter === me ? (
+                  <div className="ck-cutpanel">
+                    <p className="ck-event">You cut — keep or leave this card</p>
+                    <Card c={st.cutCard} />
+                    <p className="ck-cut-note">Keep it and you&apos;ll be dealt only 2 more.</p>
+                  </div>
+                ) : (
+                  <p className="ck-wait-chip">{nm[opp]} is cutting the deck…</p>
+                )
+              )}
+
+              {st.phase !== 'cut' && st.phase !== 'roundEnd' && st.phase !== 'over' && (
+                <>
+                  <div className="ck-felt">
+                    {st.table.length === 0 && <div className="ck-table-empty">table is clear</div>}
+                    {st.table.map((c, i) => (
+                      <Card
+                        key={`${c.s}-${c.v}-${i}`}
+                        c={c}
+                        selectable={selHand != null}
+                        selected={selTable.includes(i)}
+                        onClick={() => tapTable(i)}
+                      />
+                    ))}
+                  </div>
+                  {lastLine ? <p className="ck-event">{lastLine}</p> : null}
+                  {!myTurn && (
+                    <p className="ck-wait-chip">{nm[opp]}&apos;s turn</p>
+                  )}
+                  {myTurn && selHand == null && (
+                    <p className="ck-turn-chip">Your turn — tap a card below</p>
+                  )}
+                </>
+              )}
+
+              {st.phase === 'roundEnd' && st.lastRound && (
+                <RoundScore sc={st.lastRound} names={nm} totals={st.totals} />
+              )}
+              {st.phase === 'over' && (
+                <div className="ck-over">
+                  {st.lastRound && <RoundScore sc={st.lastRound} names={nm} totals={st.totals} final />}
+                  <div className="ck-winline">{nm[st.winner]} wins {st.totals.A}–{st.totals.B}!</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <PlayerZone
+            st={st} p={me} me={me} names={nm}
+            selHand={selHand}
+            myTurn={myTurn}
+            onTapHand={tapHand}
+          />
+
+          {st.error && <div className="ck-err">{st.error}</div>}
         </div>
-        <span className="ck-capcount">{st.caps[opp].length} captured{st.chk[opp] ? ` \u00b7 ${st.chk[opp]} chkobba` : ''}</span>
-      </div>
 
-      {st.phase === 'cut' && (
-        st.cutter === me ? (
-          <div className="ck-cutpanel">
-            <div className="ck-cut-title">You cut the deck — the cut card is:</div>
-            <Card c={st.cutCard} />
-            <div className="ck-cut-note">Keep it and you'll be dealt only 2 more. Or leave it in the deck.</div>
+        {st.phase === 'cut' && st.cutter === me && (
+          <div className="ck-dock">
+            <div className="ck-dock-title">The cut</div>
             <div className="ck-btnrow">
               <button type="button" className="btn warm" onClick={() => dispatch({ t: 'cutKeep' })}>Keep it</button>
               <button type="button" className="btn ghost" onClick={() => dispatch({ t: 'cutPass' })}>Leave it</button>
             </div>
           </div>
-        ) : (
-          <div className="ck-wait">{nm[opp]} is cutting the deck…</div>
-        )
-      )}
+        )}
 
-      {st.phase !== 'cut' && (
-        <div className="ck-tablezone">
-          <div className="ck-deckinfo">{'\u{1F0A0}'} {st.deck.length}</div>
-          <div className="ck-table">
-            {st.table.length === 0 && <div className="ck-table-empty">table is clear</div>}
-            {st.table.map((c, i) => (
-              <Card key={i} c={c}
-                selectable={selHand != null}
-                selected={selTable.includes(i)}
-                onClick={() => tapTable(i)} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {st.phase === 'roundEnd' && st.lastRound && (
-        <RoundScore sc={st.lastRound} names={nm} onNext={() => dispatch({ t: 'nextRound' })} totals={st.totals} />
-      )}
-      {st.phase === 'over' && (
-        <div className="ck-over">
-          {st.lastRound && <RoundScore sc={st.lastRound} names={nm} totals={st.totals} final />}
-          <div className="ck-winline">{nm[st.winner]} wins {st.totals.A}–{st.totals.B}!</div>
-        </div>
-      )}
-
-      {st.phase === 'play' && (
-        <div className="ck-myzone">
-          <div className="ck-myhead">
-            <span className={'ck-pname ' + (me === 'A' ? 'pA' : 'pB')}>
-              {nm[me]} (you){st.dealer === me ? ' \u00b7 dealer' : ''}
-            </span>
-            <span className="ck-capcount">{st.caps[me].length} captured{st.chk[me] ? ` \u00b7 ${st.chk[me]} chkobba` : ''}</span>
-          </div>
-          <div className="ck-hand">
-            {st.hands[me].map((c, i) => (
-              <Card key={i} c={c}
-                selectable={myTurn}
-                selected={selHand === i}
-                lifted={selHand === i}
-                onClick={() => tapHand(i)} />
-            ))}
-          </div>
-
-          {myTurn ? (
-            selHand == null ? (
-              <div className="ck-hint">your turn — tap a card</div>
-            ) : legal.length === 0 ? (
+        {showDock && (
+          <div className="ck-dock">
+            <div className="ck-dock-title">
+              {legal.length === 0 ? 'Lay on the table' : 'Capture'}
+            </div>
+            {legal.length === 0 ? (
               <button type="button" className="btn warm" onClick={confirmPlay}>Lay it on the table</button>
             ) : (
               <div className="ck-capturebar">
-                <div className="ck-hint">
+                <p className="ck-hint">
                   {selTable.length === 0
-                    ? 'this card CAN capture \u2014 tap the table cards to take'
-                    : selValid ? 'valid capture!' : 'that selection doesn\u2019t add up'}
-                </div>
-                <button type="button" className="btn warm" disabled={!selValid || selTable.length === 0} onClick={confirmPlay}>
+                    ? 'Tap table cards that sum to your card'
+                    : selValid ? 'Valid capture' : 'That selection doesn\u2019t add up'}
+                </p>
+                <button
+                  type="button"
+                  className="btn warm"
+                  disabled={!selValid || selTable.length === 0}
+                  onClick={confirmPlay}
+                >
                   Capture {selTable.length ? `(${selTable.length})` : ''}
                 </button>
               </div>
-            )
+            )}
+          </div>
+        )}
+
+        {st.phase === 'roundEnd' && (
+          <div className="ck-dock">
+            <div className="ck-dock-title">Round complete</div>
+            <button type="button" className="btn warm" onClick={() => dispatch({ t: 'nextRound' })}>
+              Next round
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlayerZone({ st, p, me, names, top, selHand, myTurn, onTapHand }) {
+  const mine = p === me;
+  const active = st.phase === 'play' && st.turn === p;
+  const cutting = st.phase === 'cut' && st.cutter === p;
+
+  return (
+    <div className={'ck-zone' + (active || cutting ? ' active' : '') + (top ? ' top' : '')}>
+      <div className="ck-zone-head">
+        <span className={'ck-zone-name ' + (p === 'A' ? 'pA' : 'pB')}>
+          {names[p]}{mine ? ' (you)' : ''}
+          {st.dealer === p ? ' · dealer' : ''}
+          {st.cutter === p && st.phase === 'cut' ? ' · cutter' : ''}
+        </span>
+      </div>
+      <div className="ck-zone-row">
+        <div className="ck-cards">
+          {mine && st.phase === 'play' ? (
+            st.hands[p].map((c, i) => (
+              <Card
+                key={`${c.s}-${c.v}-${i}`}
+                c={c}
+                selectable={!!myTurn}
+                selected={selHand === i}
+                lifted={selHand === i}
+                onClick={() => onTapHand?.(i)}
+              />
+            ))
           ) : (
-            <div className="ck-hint">{nm[opp]}'s turn…</div>
+            st.hands[p].map((_, i) => (
+              <div key={i} className="ck-card back">
+                <CardBack />
+              </div>
+            ))
           )}
-          {st.error && <div className="ck-err">{st.error}</div>}
+          {st.hands[p].length === 0 && (
+            <span className="ck-hand-empty">{mine ? 'no cards' : 'empty hand'}</span>
+          )}
+        </div>
+        <CapturePile caps={st.caps[p]} />
+      </div>
+    </div>
+  );
+}
+
+/** Face-down capture stack; Chkobba sweep cards stay face-up. */
+function CapturePile({ caps }) {
+  if (!caps?.length) return null;
+  const faceDown = caps.filter(c => !c.chkobba);
+  const faceUp = caps.filter(c => c.chkobba);
+  const stackCount = faceDown.length;
+  const showLayers = Math.min(stackCount, 5);
+
+  return (
+    <div className="ck-cap-pile" title={`${caps.length} captured`}>
+      <div className="ck-cap-stack" style={{ '--n': showLayers }}>
+        {stackCount > 0 && Array.from({ length: showLayers }).map((_, i) => (
+          <div
+            key={`d-${i}`}
+            className="ck-card back ck-cap-layer"
+            style={{ '--i': i }}
+            aria-hidden={i < showLayers - 1}
+          >
+            <CardBack />
+          </div>
+        ))}
+        {stackCount > 5 && (
+          <span className="ck-cap-count">+{stackCount - 5}</span>
+        )}
+      </div>
+      {faceUp.length > 0 && (
+        <div className="ck-cap-faceups">
+          {faceUp.map((c, i) => (
+            <div key={`u-${c.s}-${c.v}-${i}`} className="ck-cap-faceup">
+              <Card c={c} />
+              <span className="ck-cap-chk-tag">Chkobba</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function Card({ c, selectable, selected, lifted, onClick, small }) {
+function CardBack() {
+  return (
+    <div className="ck-card-backface">
+      <span className="ck-card-back-mesh" aria-hidden="true" />
+      <span className="ck-card-back-diamonds" aria-hidden="true" />
+      <span className="ck-card-back-frame" aria-hidden="true">
+        <i className="ck-orn tl" />
+        <i className="ck-orn tr" />
+        <i className="ck-orn bl" />
+        <i className="ck-orn br" />
+      </span>
+      <span className="ck-card-back-ring outer" aria-hidden="true" />
+      <span className="ck-card-back-ring inner" aria-hidden="true" />
+      <span className="ck-card-back-rosette" aria-hidden="true">
+        <span className="ck-card-back-petals">
+          <i>♥</i><i>♦</i><i>♣</i><i>♠</i>
+        </span>
+        <span className="ck-card-back-core">
+          <span className="ck-card-back-core-ring" />
+          <span className="ck-card-back-mark">C</span>
+        </span>
+      </span>
+      <span className="ck-card-back-banner">
+        <span className="ck-card-back-label">Chkobba</span>
+      </span>
+    </div>
+  );
+}
+
+function Card({ c, selectable, selected, lifted, onClick }) {
   if (!c) return null;
   const suit = SUITS[c.s];
   const court = c.v >= 8;
-  const courtEmoji = c.v === 8 ? '\u{1F451}' : c.v === 9 ? '\u{1F396}\uFE0F' : '\u265A';
+  const courtGlyph = c.v === 8 ? 'Q' : c.v === 9 ? 'L' : 'K';
   return (
     <button
       type="button"
@@ -250,8 +393,7 @@ function Card({ c, selectable, selected, lifted, onClick, small }) {
         'ck-card face suit-' + c.s +
         (selectable ? ' selectable' : '') +
         (selected ? ' selected' : '') +
-        (lifted ? ' lifted' : '') +
-        (small ? ' small' : '')
+        (lifted ? ' lifted' : '')
       }
       onClick={onClick}
       disabled={!selectable}
@@ -259,7 +401,7 @@ function Card({ c, selectable, selected, lifted, onClick, small }) {
       <span className="ck-card-corner">{faceOf(c.v)}<em>{suit.symbol}</em></span>
       <span className="ck-card-mid">
         {court ? (
-          <span className="ck-card-court">{courtEmoji}</span>
+          <span className="ck-card-court">{courtGlyph}</span>
         ) : (
           <span className={'ck-card-pips n' + c.v}>
             {Array.from({ length: c.v }).map((_, i) => <i key={i}>{suit.symbol}</i>)}
@@ -271,10 +413,10 @@ function Card({ c, selectable, selected, lifted, onClick, small }) {
   );
 }
 
-function RoundScore({ sc, names, onNext, totals, final }) {
+function RoundScore({ sc, names, totals, final }) {
   return (
     <div className="ck-score">
-      <div className="ck-score-title">{final ? 'Final round' : 'Round complete'}</div>
+      <div className="ck-score-title">{final ? 'Final round' : 'Round scored'}</div>
       <div className="ck-score-cols">
         {['A', 'B'].map(p => (
           <div key={p} className="ck-score-col">
@@ -287,7 +429,6 @@ function RoundScore({ sc, names, onNext, totals, final }) {
       </div>
       {sc.beji.length > 0 && <div className="ck-beji">Beji (tied): {sc.beji.join(', ')}</div>}
       <div className="ck-score-totals">{names.A} {totals.A} – {totals.B} {names.B}</div>
-      {onNext && <button type="button" className="btn warm" onClick={onNext}>Next round</button>}
     </div>
   );
 }

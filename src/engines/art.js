@@ -896,7 +896,7 @@ export const ART = {
      @keyframes carrot-wiggle { 0%,100% { transform: rotate(-7deg) } 50% { transform: rotate(7deg) } }
      ${sparkAnim('carrot', 3)}`),
 
-  /* ─── Chkobba: Tunisian capture fan ─── */
+  /* ─── Chkobba: French-suited capture fan ─── */
   chkobba: scene('ck', `
     <linearGradient id="ck-face" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#FBF6EA"/>
@@ -918,18 +918,18 @@ export const ART = {
     <g transform="translate(122 16) rotate(-4)">
       <g class="ck-c2">
         <rect width="50" height="76" rx="8" fill="url(#ck-face)" stroke="#c9b89a" stroke-width="1.6"/>
-        <text x="10" y="20" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#B8860B">7</text>
-        <text x="10" y="32" font-size="10">🪙</text>
-        <text x="25" y="52" text-anchor="middle" font-size="18">🪙</text>
-        <text x="25" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="7" fill="#B8860B" letter-spacing=".4">7AYA</text>
+        <text x="10" y="20" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#C62828">7</text>
+        <text x="10" y="34" font-size="12" fill="#C62828">♦</text>
+        <text x="25" y="52" text-anchor="middle" font-size="20" fill="#C62828">♦</text>
+        <text x="25" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="7" fill="#C62828" letter-spacing=".4">7AYA</text>
       </g>
     </g>
     <g transform="translate(150 18) rotate(14)">
       <g class="ck-c3">
         <rect width="50" height="76" rx="8" fill="url(#ck-face)" stroke="#c9b89a" stroke-width="1.6"/>
-        <text x="10" y="20" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#C25776">K</text>
-        <text x="10" y="32" font-size="10">🏆</text>
-        <text x="25" y="54" text-anchor="middle" font-size="22">♚</text>
+        <text x="10" y="20" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#1E1A24">K</text>
+        <text x="10" y="34" font-size="12" fill="#1E1A24">♠</text>
+        <text x="25" y="54" text-anchor="middle" font-size="22" fill="#1E1A24">♠</text>
       </g>
     </g>
     ${sparks('ck', [[70, 36, 1.5, 'var(--candle)'], [210, 40, 1.5, 'var(--p2)'], [148, 118, 1.3, 'var(--p1)']])}`,

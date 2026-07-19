@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  carrotHolder, peekerFor, roundWinner, WIN_SCORE, QUICK_LINES
+  carrotHolder, peekerFor, roundWinner, WIN_SCORE, POINTS_PER_ROUND, QUICK_LINES
 } from '../lib/carrot.js';
 import '../styles/carrot.css';
 
@@ -55,7 +55,7 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   const resolveRound = useCallback((swap) => {
     const h = carrotHolder(seedRef.current, roundRef.current);
     const w = roundWinner(h, swap);
-    scoreRef.current = { ...scoreRef.current, [w]: scoreRef.current[w] + 1 };
+    scoreRef.current = { ...scoreRef.current, [w]: scoreRef.current[w] + POINTS_PER_ROUND };
     setScore({ ...scoreRef.current });
     setLastResult({ holder: h, swap, winner: w });
     setPhase('reveal');
@@ -174,74 +174,113 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
   const chooser = peeker === 'A' ? 'B' : 'A';
   const iPeek = me === peeker;
   const iChoose = me === chooser;
-  // Same layout for both players: A's box left, B's box right.
+  // Each seat sees the opponent across the table and themselves near.
   // After a swap, the carrot ends with the other seat.
   const carrotSeat = phase === 'reveal' && lastResult
     ? roundWinner(lastResult.holder, lastResult.swap)
     : holder;
   const inRound = phase === 'peek' || phase === 'choose' || phase === 'reveal';
 
+  const oppPeekHere = false; // opponent never shows private peek
+  const myPeekHere = iPeek && peeked && phase !== 'reveal';
+  const swapping = phase === 'reveal' && lastResult?.swap;
+
+  let roleEvent = null;
+  if (phase === 'reveal' && lastResult) {
+    roleEvent = <>{nm[lastResult.winner]} takes the round!</>;
+  } else if (phase === 'peek' && iPeek && !peeked) {
+    roleEvent = (
+      <>
+        <span className="ca-event-line">You&apos;re <span className="ca-role-hl">the peeker</span></span>
+        <span className="ca-event-line">look in your box, then convince {nm[opp]}</span>
+      </>
+    );
+  } else if (phase === 'peek' && !iPeek) {
+    roleEvent = <>{nm[opp]} is peeking — you&apos;ll keep or swap</>;
+  }
+
   return (
     <div className="ca-shell">
-      <div className="ca-brand">{'\u{1F955}'} Carrot in a Box</div>
-
       {inRound && (
-        <div className="ca-game">
-          <div className="ca-scorebar">
-            <span className={'ca-name pA' + (peeker === 'A' ? ' peeking' : '')}>{nm.A}</span>
-            <div className="ca-pips">
-              {Array.from({ length: WIN_SCORE }).map((_, i) => (
-                <span key={'a' + i} className={'ca-pip A' + (score.A > i ? ' on' : '')} />
-              ))}
-              <span className="ca-roundno">R{round + 1}</span>
-              {Array.from({ length: WIN_SCORE }).map((_, i) => (
-                <span key={'b' + i} className={'ca-pip B' + (score.B > i ? ' on' : '')} />
-              ))}
+        <div className="ca-table">
+          <div className="ca-board">
+            <div className="ca-toolbar">
+              <div className="ca-brand">{'\u{1F955}'} Carrot in a Box</div>
+              <div className="ca-bo5" title="Best of 5 — first to 3">
+                <div className="ca-pips">
+                  {Array.from({ length: WIN_SCORE }).map((_, i) => (
+                    <span key={'a' + i} className={'ca-pip A' + (score.A > i ? ' on' : '')} />
+                  ))}
+                </div>
+                <span className="ca-roundno">R{round + 1}</span>
+                <div className="ca-pips">
+                  {Array.from({ length: WIN_SCORE }).map((_, i) => (
+                    <span key={'b' + i} className={'ca-pip B' + (score.B > i ? ' on' : '')} />
+                  ))}
+                </div>
+              </div>
             </div>
-            <span className={'ca-name pB' + (peeker === 'B' ? ' peeking' : '')}>{nm.B}</span>
+
+            {/* Opponent — across the table */}
+            <div className={'ca-zone top' + ((iPeek ? peeker === opp : chooser === opp) && phase !== 'reveal' ? ' active' : '')}>
+              <div className={'ca-zone-name ' + (opp === 'A' ? 'pA' : 'pB')}>
+                {nm[opp]}
+              </div>
+              <Box
+                seat={opp}
+                mine={false}
+                face="down"
+                open={phase === 'reveal'}
+                hasCarrot={carrotSeat === opp}
+                privateView={oppPeekHere}
+                showsCarrot={undefined}
+                swap={swapping}
+              />
+            </div>
+
+            {/* Center felt — status only */}
+            <div className={'ca-stage' + (iChoose || (iPeek && !peeked) ? ' my-turn' : '')}>
+              <div className="ca-felt">
+                {roleEvent && <p className="ca-event">{roleEvent}</p>}
+                {phase === 'peek' && !iPeek && (
+                  <p className="ca-wait-chip">{nm[opp]} hasn&apos;t peeked yet…</p>
+                )}
+                {phase === 'choose' && !iChoose && (
+                  <p className="ca-wait-chip">Sell the lie — {nm[chooser]} is deciding…</p>
+                )}
+                {phase === 'choose' && iChoose && (
+                  <p className="ca-turn-chip">Believe them?</p>
+                )}
+              </div>
+            </div>
+
+            {/* You — this side of the table */}
+            <div className={'ca-zone' + ((iPeek && !peeked) || iChoose ? ' active' : '')}>
+              <Box
+                seat={me}
+                mine
+                face="up"
+                open={phase === 'reveal'}
+                hasCarrot={carrotSeat === me}
+                privateView={myPeekHere}
+                showsCarrot={myPeekHere ? holder === me : undefined}
+                swap={swapping}
+              />
+              <div className={'ca-zone-name ' + (me === 'A' ? 'pA' : 'pB')}>
+                {nm[me]} (you)
+              </div>
+              {phase === 'peek' && iPeek && !peeked && (
+                <button type="button" className="btn warm ca-peekbtn" onClick={doPeek}>
+                  Peek inside your box
+                </button>
+              )}
+              {myPeekHere && <div className="ca-box-privnote">only you can see this</div>}
+            </div>
           </div>
 
-          <div className="ca-rolebanner">
-            {phase === 'reveal' && lastResult ? (
-              <b>{nm[lastResult.winner]} takes the round!</b>
-            ) : iPeek ? (
-              <>you&apos;re the <b>peeker</b> — look in your box, then convince {nm[opp]}</>
-            ) : (
-              <>{nm[opp]} is peeking — you&apos;ll <b>keep or swap</b></>
-            )}
-          </div>
-
-          <div className="ca-boxes">
-            {(['A', 'B']).map(seat => {
-              const mine = seat === me;
-              const peekHere = iPeek && peeked && phase !== 'reveal' && mine;
-              return (
-                <Box
-                  key={seat}
-                  label={mine ? `${nm[seat]} (you)` : nm[seat]}
-                  mine={mine}
-                  seat={seat}
-                  open={phase === 'reveal'}
-                  hasCarrot={carrotSeat === seat}
-                  privateView={peekHere}
-                  showsCarrot={peekHere ? holder === seat : undefined}
-                  swap={phase === 'reveal' && lastResult?.swap}
-                />
-              );
-            })}
-          </div>
-
-          {phase === 'peek' && iPeek && !peeked && (
-            <button type="button" className="btn warm ca-peekbtn" onClick={doPeek}>
-              {'\u{1F440}'} Peek inside your box
-            </button>
-          )}
-          {phase === 'peek' && !iPeek && (
-            <div className="ca-wait">{nm[opp]} hasn&apos;t peeked yet…</div>
-          )}
           {phase === 'choose' && iChoose && (
-            <div className="ca-choosebar">
-              <div className="ca-choosetitle">Believe them?</div>
+            <div className="ca-dock">
+              <div className="ca-dock-title">Keep or swap</div>
               <div className="ca-choosebtns">
                 <button type="button" className="btn warm" onClick={() => choose(false)}>
                   {'\u{1F4E6}'} Keep my box
@@ -252,11 +291,10 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
               </div>
             </div>
           )}
-          {phase === 'choose' && !iChoose && (
-            <div className="ca-wait">you&apos;ve peeked — now sell it. {nm[chooser]} is deciding…</div>
-          )}
           {phase === 'reveal' && lastResult && !winner && (
-            <button type="button" className="btn warm" onClick={pressNext}>Next round</button>
+            <div className="ca-dock">
+              <button type="button" className="btn warm" onClick={pressNext}>Next round</button>
+            </div>
           )}
 
           <div className="ca-chat">
@@ -289,21 +327,28 @@ export default function Carrot({ myRole, names = {}, rt, code, onComplete }) {
       )}
 
       {phase === 'over' && winner && (
-        <div className="ca-done">
-          <div className="ca-winline">{'\u{1F955}'} {nm[winner]} wins the carrot crown!</div>
-          <div className="ca-final">{nm.A} {score.A} {'\u2013'} {score.B} {nm.B}</div>
-          <p className="ca-note">Use Rematch in the shell for another best-of-{WIN_SCORE * 2 - 1}.</p>
+        <div className="ca-table">
+          <div className="ca-done">
+            <div className="ca-winline">{'\u{1F955}'} {nm[winner]} wins the carrot crown!</div>
+            <div className="ca-final">{nm.A} {score.A} {'\u2013'} {score.B} {nm.B}</div>
+            <p className="ca-note">Use Rematch in the shell for another best-of-{WIN_SCORE * 2 - 1}.</p>
+          </div>
         </div>
+      )}
+
+      {!inRound && phase !== 'over' && (
+        <p className="ca-status">Boxing the carrot…</p>
       )}
     </div>
   );
 }
 
-function Box({ label, mine, seat, open, hasCarrot, privateView, showsCarrot, swap }) {
+function Box({ seat, mine, face, open, hasCarrot, privateView, showsCarrot, swap }) {
   return (
     <div className={
       'ca-boxwrap'
       + (mine ? ' mine' : '')
+      + (face === 'down' ? ' face-down' : ' face-up')
       + (seat === 'A' ? ' seatA' : ' seatB')
       + (swap ? ' swapped' : '')
     }>
@@ -316,8 +361,6 @@ function Box({ label, mine, seat, open, hasCarrot, privateView, showsCarrot, swa
           <span className="ca-box-lid">?</span>
         )}
       </div>
-      <div className={'ca-box-label ' + (seat === 'A' ? 'pA' : 'pB')}>{label}</div>
-      {privateView && <div className="ca-box-privnote">only you can see this</div>}
     </div>
   );
 }

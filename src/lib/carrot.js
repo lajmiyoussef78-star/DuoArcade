@@ -33,7 +33,8 @@ export async function recordCarrot(code, winner) {
 
 /* ================= PURE (no imports below this line) ================= */
 
-export const WIN_SCORE = 4;   // best of 7
+export const POINTS_PER_ROUND = 1; // every round win is worth 1
+export const WIN_SCORE = 3;        // best of 5 — first to 3
 
 export const QUICK_LINES = [
   "I've got the carrot \u{1F955}",

@@ -7,14 +7,16 @@
 export const TARGET = 21;          // win at 21+ with a 2-point lead
 export const LEAD = 2;
 
-// Tunisian deck: 4 suits x 10 values (1..7, 8=Queen, 9=Lieutenant, 10=King)
+// French-suited Chkobba deck: 4 suits x 10 values (1..7, 8=Queen, 9=Lieutenant, 10=King)
+// Diamonds stand in for the classic Dinari scoring suit.
 export const SUITS = {
-  dinari: { id: 'dinari', name: 'Dinari', symbol: '\u{1FA99}' },
-  kubba:  { id: 'kubba',  name: 'Kubba',  symbol: '\u{1F3C6}' },
-  spata:  { id: 'spata',  name: 'Spata',  symbol: '\u2694\uFE0F' },
-  zdenda: { id: 'zdenda', name: 'Zdenda', symbol: '\u{1F33F}' }
+  hearts:   { id: 'hearts',   name: 'Hearts',   symbol: '\u2665', color: 'red' },
+  diamonds: { id: 'diamonds', name: 'Diamonds', symbol: '\u2666', color: 'red' },
+  clubs:    { id: 'clubs',    name: 'Clubs',    symbol: '\u2663', color: 'black' },
+  spades:   { id: 'spades',   name: 'Spades',   symbol: '\u2660', color: 'black' }
 };
 export const SUIT_IDS = Object.keys(SUITS);
+export const SCORE_SUIT = 'diamonds';
 
 export function faceOf(v) {
   return v === 8 ? 'Q' : v === 9 ? 'L' : v === 10 ? 'K' : String(v);
@@ -143,10 +145,10 @@ function endRound(st) {
 
 export function scoreRound(caps, chk) {
   const count = p => caps[p].length;
-  const dinari = p => caps[p].filter(c => c.s === 'dinari').length;
+  const diamonds = p => caps[p].filter(c => c.s === SCORE_SUIT).length;
   const sevens = p => caps[p].filter(c => c.v === 7).length;
   const sixes = p => caps[p].filter(c => c.v === 6).length;
-  const has7aya = p => caps[p].some(c => c.s === 'dinari' && c.v === 7);
+  const has7aya = p => caps[p].some(c => c.s === SCORE_SUIT && c.v === 7);
 
   const res = {
     A: { total: 0, items: [] },
@@ -159,9 +161,10 @@ export function scoreRound(caps, chk) {
   else if (count('B') > count('A')) award('B', `Carta (${count('B')} cards)`);
   else res.beji.push('Carta');
 
-  if (dinari('A') > dinari('B')) award('A', `Dinari (${dinari('A')})`);
-  else if (dinari('B') > dinari('A')) award('B', `Dinari (${dinari('B')})`);
-  else res.beji.push('Dinari');
+  // Diamonds = classic Dinari suit
+  if (diamonds('A') > diamonds('B')) award('A', `Diamonds (${diamonds('A')})`);
+  else if (diamonds('B') > diamonds('A')) award('B', `Diamonds (${diamonds('B')})`);
+  else res.beji.push('Diamonds');
 
   if (has7aya('A')) award('A', '7aya');
   else if (has7aya('B')) award('B', '7aya');
@@ -220,12 +223,15 @@ export function applyMove(state, move, by) {
         const taken = take.map(i => st.table[i]);
         st.table = st.table.filter((_, i) => !take.includes(i));
         st.hands[by].splice(move.idx, 1);
-        st.caps[by].push(card, ...taken);
+        const playCard = { ...card };
+        const takenCards = taken.map(c => ({ ...c }));
+        st.caps[by].push(playCard, ...takenCards);
         st.lastCap = by;
         st.log.push(`${by} plays ${faceOf(card.v)} of ${SUITS[card.s].name} and captures ${taken.length}.`);
         const isFinalCard = st.deck.length === 0 && st.hands.A.length === 0 && st.hands.B.length === 0;
         if (st.table.length === 0 && !isFinalCard) {
           st.chk[by] += 1;
+          playCard.chkobba = true; // face-up trophy in the capture pile
           st.log.push(`CHKOBBA for ${by}! \u{1F389}`);
         }
       }

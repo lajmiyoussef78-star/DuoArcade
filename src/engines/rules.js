@@ -182,25 +182,25 @@ export const RULES = {
   },
 
   carrot: {
-    goal: 'Hold the carrot when the boxes open \u2014 first to 4 rounds wins.',
+    goal: 'Hold the carrot when the boxes open \u2014 first to 3 rounds wins.',
     how: [
       'Two gift boxes, one carrot. Roles alternate each round: one peeks, one decides.',
       'Peeker: look inside YOUR box (only you see it), then sell the lie in the chat.',
-      'Chooser: Keep your box, or SWAP. Whoever holds the carrot after the choice wins the round.',
-      'Quick lines in chat are ammo \u2014 use them. Best of 7 (first to 4).'
+      'Chooser: Keep your box, or SWAP. Whoever holds the carrot after the choice wins the round (+1).',
+      'Quick lines in chat are ammo \u2014 use them. Best of 5 (first to 3).'
     ],
     tip: 'Sometimes the truth is the best bluff \u2014 especially if you always lie.'
   },
 
   chkobba: {
-    goal: 'Score Carta, Dinari, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
+    goal: 'Score Carta, Diamonds, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
     how: [
-      'Tunisian deck (40 cards). Cut: keep the cut card (dealt only 2 more) or leave it. Dealer alternates each round.',
+      '40-card French deck (Hearts, Diamonds, Clubs, Spades). Cut: keep the cut card (dealt only 2 more) or leave it. Dealer alternates each round.',
       '3 cards each, 4 on the table. Play a card that captures table cards summing to its value \u2014 or lay it if it cannot.',
       'Single-card rule: if an equal is on the table, you must take that single, not a longer combo. Clearing the table = Chkobba (+1), except on the round\u2019s final card.',
-      'Values: 1\u20137 as printed, Queen = 8, Lieutenant = 9, King = 10. Leftovers go to the last capturer; then score and deal again until someone wins the match.'
+      'Values: 1\u20137 as printed, Queen = 8, Lieutenant = 9, King = 10. Diamonds score like classic Dinari; the 7 of Diamonds is 7aya.'
     ],
-    tip: 'Hunt the 7 of Dinari (7aya) and keep an eye on who is winning Carta.'
+    tip: 'Hunt the 7 of Diamonds (7aya) and keep an eye on who is winning Carta.'
   },
 
   wordbomb: {
