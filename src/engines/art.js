@@ -847,6 +847,98 @@ export const ART = {
      @keyframes coup-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
      ${sparkAnim('coup', 4)}`),
 
+  /* ─── Carrot in a Box: centered gift fan ─── */
+  carrot: scene('carrot', `
+    <linearGradient id="carrot-boxA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a5a88"/>
+      <stop offset="100%" stop-color="#221B2D"/>
+    </linearGradient>
+    <linearGradient id="carrot-boxB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7a3d58"/>
+      <stop offset="100%" stop-color="#221B2D"/>
+    </linearGradient>
+    <linearGradient id="carrot-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb06a"/>
+      <stop offset="55%" stop-color="#ff8a2b"/>
+      <stop offset="100%" stop-color="#d45510"/>
+    </linearGradient>`, `
+    <ellipse cx="148" cy="116" rx="78" ry="12" fill="#191420" opacity=".5"/>
+
+    <g transform="translate(98 24) rotate(-14)">
+      <g class="carrot-boxA">
+        <rect width="64" height="74" rx="11" fill="url(#carrot-boxA)" stroke="var(--p1)" stroke-width="2.6"/>
+        <rect x="27" y="0" width="10" height="74" fill="var(--p1)" opacity=".65"/>
+        <rect x="0" y="32" width="64" height="10" fill="var(--p1)" opacity=".65"/>
+        <text x="32" y="48" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="22" fill="#F2EDF7" opacity=".55">?</text>
+      </g>
+    </g>
+    <g transform="translate(138 20) rotate(12)">
+      <g class="carrot-boxB">
+        <rect width="64" height="74" rx="11" fill="url(#carrot-boxB)" stroke="var(--p2)" stroke-width="2.6"/>
+        <rect x="27" y="0" width="10" height="74" fill="var(--p2)" opacity=".65"/>
+        <rect x="0" y="32" width="64" height="10" fill="var(--p2)" opacity=".65"/>
+        <g transform="translate(19 14)">
+          <g class="carrot-veg">
+            <path d="M8 15c0 11 2.6 18 5.2 18s5.2-7 5.2-18c0-4.2-2-7.5-5.2-7.5S8 10.8 8 15z" fill="url(#carrot-body)"/>
+            <path d="M10.8 9c-1.3-4.6-4-7-4-7 .9 2.4.5 4.8.5 4.8Z" fill="#3d9a4e"/>
+            <path d="M13.2 8.2c.2-4.6 3-7.4 3-7.4-.2 2.8.4 5.2.4 5.2Z" fill="#55c068"/>
+            <path d="M15.4 9.4c1.7-3.8 4.5-5.6 4.5-5.6-1.5 2.2-1.7 4.6-1.7 4.6Z" fill="#2f7d3c"/>
+            <path d="M10 19h6.5M9.6 23h7.2" stroke="#b04810" stroke-width="1" stroke-linecap="round" opacity=".55"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    ${sparks('carrot', [[72, 36, 1.5, 'var(--p1)'], [210, 34, 1.5, 'var(--p2)'], [148, 118, 1.3, 'var(--candle)']])}`,
+    `.carrot-boxA { animation: carrot-bob 2.5s ease-in-out infinite; }
+     .carrot-boxB { animation: carrot-bob 2.5s ease-in-out .2s infinite; }
+     @keyframes carrot-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     .carrot-veg { animation: carrot-wiggle 1.7s ease-in-out infinite; transform-origin: 13px 20px; transform-box: fill-box; }
+     @keyframes carrot-wiggle { 0%,100% { transform: rotate(-7deg) } 50% { transform: rotate(7deg) } }
+     ${sparkAnim('carrot', 3)}`),
+
+  /* ─── Chkobba: Tunisian capture fan ─── */
+  chkobba: scene('ck', `
+    <linearGradient id="ck-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FBF6EA"/>
+      <stop offset="100%" stop-color="#EDE5D0"/>
+    </linearGradient>
+    <linearGradient id="ck-back" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#33284A"/>
+      <stop offset="100%" stop-color="#2A2140"/>
+    </linearGradient>`, `
+    <ellipse cx="148" cy="118" rx="86" ry="12" fill="#191420" opacity=".5"/>
+    <ellipse cx="148" cy="72" rx="70" ry="42" fill="#23303F" opacity=".55"/>
+
+    <g transform="translate(96 22) rotate(-18)">
+      <g class="ck-c1">
+        <rect width="50" height="76" rx="8" fill="url(#ck-back)" stroke="var(--line)" stroke-width="2"/>
+        <rect x="6" y="8" width="38" height="60" rx="4" fill="none" stroke="var(--candle)" stroke-width="1.2" opacity=".35"/>
+      </g>
+    </g>
+    <g transform="translate(122 16) rotate(-4)">
+      <g class="ck-c2">
+        <rect width="50" height="76" rx="8" fill="url(#ck-face)" stroke="#c9b89a" stroke-width="1.6"/>
+        <text x="10" y="20" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#B8860B">7</text>
+        <text x="10" y="32" font-size="10">🪙</text>
+        <text x="25" y="52" text-anchor="middle" font-size="18">🪙</text>
+        <text x="25" y="70" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="7" fill="#B8860B" letter-spacing=".4">7AYA</text>
+      </g>
+    </g>
+    <g transform="translate(150 18) rotate(14)">
+      <g class="ck-c3">
+        <rect width="50" height="76" rx="8" fill="url(#ck-face)" stroke="#c9b89a" stroke-width="1.6"/>
+        <text x="10" y="20" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#C25776">K</text>
+        <text x="10" y="32" font-size="10">🏆</text>
+        <text x="25" y="54" text-anchor="middle" font-size="22">♚</text>
+      </g>
+    </g>
+    ${sparks('ck', [[70, 36, 1.5, 'var(--candle)'], [210, 40, 1.5, 'var(--p2)'], [148, 118, 1.3, 'var(--p1)']])}`,
+    `.ck-c1 { animation: ck-bob 2.6s ease-in-out infinite; }
+     .ck-c2 { animation: ck-bob 2.6s ease-in-out .15s infinite; }
+     .ck-c3 { animation: ck-bob 2.6s ease-in-out .3s infinite; }
+     @keyframes ck-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     ${sparkAnim('ck', 3)}`),
+
   /* ─── Word Bomb: hot-potato fragment fuse ─── */
   wordbomb: scene('wb', '', `
     <g class="wb-bomb">
