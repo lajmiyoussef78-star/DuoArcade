@@ -715,34 +715,102 @@ export const ART = {
      @keyframes nf-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
      ${sparkAnim('nf', 3)}`),
 
-  /* ─── UNO: felt table + fan ─── */
-  uno: scene('uno', '', `
-    <ellipse cx="120" cy="78" rx="88" ry="36" fill="#1e3d32" stroke="var(--candle)" stroke-width="2" opacity=".95"/>
-    <g class="uno-cardA" transform="translate(78 48) rotate(-18)">
-      <rect width="34" height="50" rx="6" fill="#c62828" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
-      <text x="17" y="30" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="16" fill="#fff">7</text>
+  /* ─── UNO: theme blue / candle / pink-red / pitch-green fan ─── */
+  uno: scene('uno', `
+    <linearGradient id="uno-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--p1)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--p1) 50%, var(--night))"/>
+    </linearGradient>
+    <linearGradient id="uno-yellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--candle)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--candle) 50%, var(--night))"/>
+    </linearGradient>
+    <linearGradient id="uno-red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--p2)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--p2) 50%, var(--night))"/>
+    </linearGradient>
+    <linearGradient id="uno-green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2e5c40"/><stop offset="100%" stop-color="#15291B"/>
+    </linearGradient>`, `
+    <ellipse cx="148" cy="118" rx="88" ry="14" fill="var(--night)" opacity=".45"/>
+
+    <g transform="translate(96 20) rotate(-22)">
+      <g class="uno-c1">
+        <rect width="52" height="78" rx="9" fill="url(#uno-blue)" stroke="color-mix(in srgb, var(--text) 45%, transparent)" stroke-width="2"/>
+        <rect x="4" y="4" width="44" height="70" rx="7" fill="none" stroke="color-mix(in srgb, var(--text) 22%, transparent)" stroke-width="1.2"/>
+        <ellipse cx="26" cy="39" rx="15" ry="24" fill="var(--text)" transform="rotate(-34 26 39)"/>
+        <text x="26" y="47" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="26" fill="var(--p1)">7</text>
+        <text x="11" y="18" font-family="'Fraunces',serif" font-weight="900" font-size="12" fill="var(--text)">7</text>
+      </g>
     </g>
-    <g class="uno-cardB" transform="translate(128 46) rotate(16)">
-      <rect width="34" height="50" rx="6" fill="#1565c0" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
-      <text x="17" y="30" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#fff">+2</text>
+    <g transform="translate(122 14) rotate(-6)">
+      <g class="uno-c2">
+        <rect width="52" height="78" rx="9" fill="url(#uno-yellow)" stroke="color-mix(in srgb, var(--text) 45%, transparent)" stroke-width="2"/>
+        <rect x="4" y="4" width="44" height="70" rx="7" fill="none" stroke="color-mix(in srgb, var(--text) 22%, transparent)" stroke-width="1.2"/>
+        <ellipse cx="26" cy="39" rx="15" ry="24" fill="var(--text)" transform="rotate(-34 26 39)"/>
+        <text x="26" y="47" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="26" fill="color-mix(in srgb, var(--candle) 70%, var(--night))">0</text>
+        <text x="11" y="18" font-family="'Fraunces',serif" font-weight="900" font-size="12" fill="var(--night)">0</text>
+      </g>
     </g>
-    <g class="uno-wild" transform="translate(103 40)">
-      <rect width="34" height="50" rx="6" fill="url(#uno-w)" stroke="var(--candle)" stroke-width="1.8"/>
-      <text x="17" y="30" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="12" fill="#fff">W</text>
+    <g transform="translate(148 14) rotate(10)">
+      <g class="uno-c3">
+        <rect width="52" height="78" rx="9" fill="url(#uno-red)" stroke="color-mix(in srgb, var(--text) 45%, transparent)" stroke-width="2"/>
+        <rect x="4" y="4" width="44" height="70" rx="7" fill="none" stroke="color-mix(in srgb, var(--text) 22%, transparent)" stroke-width="1.2"/>
+        <ellipse cx="26" cy="39" rx="15" ry="24" fill="var(--text)" transform="rotate(-34 26 39)"/>
+        <text x="26" y="47" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="26" fill="var(--p2)">2</text>
+        <text x="11" y="18" font-family="'Fraunces',serif" font-weight="900" font-size="12" fill="var(--text)">2</text>
+      </g>
     </g>
-    <defs>
-      <linearGradient id="uno-w" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#c62828"/><stop offset="35%" stop-color="#f9a825"/>
-        <stop offset="70%" stop-color="#2e7d32"/><stop offset="100%" stop-color="#1565c0"/>
-      </linearGradient>
-    </defs>
-    ${sparks('uno', [[40, 40, 1.4, 'var(--candle)'], [200, 50, 1.5, 'var(--p1)'], [120, 118, 1.4, 'var(--p2)']])}`,
-    `.uno-cardA { animation: uno-fan 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; }
-     .uno-cardB { animation: uno-fan 2.6s ease-in-out .3s infinite; transform-box: fill-box; transform-origin: bottom; }
-     .uno-wild { animation: uno-bob 2.2s ease-in-out infinite; }
-     @keyframes uno-fan { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
-     @keyframes uno-bob { 0%,100% { transform: translateY(0) rotate(0) } 50% { transform: translateY(-5px) rotate(3deg) } }
-     ${sparkAnim('uno', 3)}`),
+    <g transform="translate(174 22) rotate(24)">
+      <g class="uno-c4">
+        <rect width="52" height="78" rx="9" fill="url(#uno-green)" stroke="color-mix(in srgb, var(--text) 45%, transparent)" stroke-width="2"/>
+        <rect x="4" y="4" width="44" height="70" rx="7" fill="none" stroke="color-mix(in srgb, var(--text) 22%, transparent)" stroke-width="1.2"/>
+        <ellipse cx="26" cy="39" rx="15" ry="24" fill="var(--text)" transform="rotate(-34 26 39)"/>
+        <text x="26" y="46" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="18" fill="#15291B">+2</text>
+        <text x="9" y="18" font-family="'Fraunces',serif" font-weight="900" font-size="10" fill="var(--text)">+2</text>
+      </g>
+    </g>
+    ${sparks('uno', [[40, 40, 1.4, 'var(--p1)'], [70, 100, 1.3, 'var(--p2)'], [210, 48, 1.4, 'var(--candle)'], [200, 110, 1.3, '#2e5c40']])}`,
+    `.uno-c1 { animation: uno-fan 2.8s ease-in-out infinite; }
+     .uno-c2 { animation: uno-fan 2.8s ease-in-out .15s infinite; }
+     .uno-c3 { animation: uno-fan 2.8s ease-in-out .3s infinite; }
+     .uno-c4 { animation: uno-fan 2.8s ease-in-out .45s infinite; }
+     @keyframes uno-fan { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     ${sparkAnim('uno', 4)}`),
+
+  /* ─── Coup: hidden influence + coins ─── */
+  coup: scene('coup', '', `
+    <ellipse cx="120" cy="108" rx="90" ry="14" fill="var(--night)" opacity=".5"/>
+    <g transform="translate(78 28) rotate(-12)">
+      <g class="coup-cardA">
+        <rect width="44" height="64" rx="8" fill="var(--room2)" stroke="var(--candle)" stroke-width="1.8"/>
+        <path d="M14 22 L22 14 L30 22 L26 22 L26 34 L18 34 L18 22 Z" fill="var(--candle)" opacity=".9"/>
+        <circle cx="22" cy="40" r="6" fill="none" stroke="var(--candle)" stroke-width="1.6"/>
+        <text x="22" y="56" text-anchor="middle" font-family="'Fraunces',serif" font-weight="700" font-size="9" fill="var(--text)">blade</text>
+      </g>
+    </g>
+    <g transform="translate(118 24) rotate(10)">
+      <g class="coup-cardB">
+        <rect width="44" height="64" rx="8" fill="var(--room)" stroke="var(--line)" stroke-width="1.8"/>
+        <text x="22" y="40" text-anchor="middle" font-size="22" fill="color-mix(in srgb, var(--candle) 55%, transparent)">\u2666</text>
+      </g>
+    </g>
+    <g transform="translate(175 65)">
+      <g class="coup-coin">
+        <circle cx="13" cy="13" r="16" fill="var(--candle)" opacity=".35" filter="url(#coup-glow)"/>
+        <circle cx="13" cy="13" r="13" fill="var(--candle)"/>
+        <text x="13" y="18" text-anchor="middle" font-family="'Fraunces',serif" font-weight="900" font-size="14" fill="#2a1e05">4</text>
+      </g>
+    </g>
+    <text x="48" y="96" font-family="'JetBrains Mono',monospace" font-size="11" fill="var(--p1)">bluff?</text>
+    <text x="48" y="112" font-family="'JetBrains Mono',monospace" font-size="11" fill="var(--p2)">challenge</text>
+    ${sparks('coup', [[36, 36, 1.5, 'var(--candle)'], [200, 40, 1.4, 'var(--p2)'], [160, 112, 1.3, 'var(--p1)']])}`,
+    `.coup-cardA { animation: coup-tilt 2.8s ease-in-out infinite; }
+     .coup-cardB { animation: coup-tilt 2.8s ease-in-out .35s infinite reverse; }
+     .coup-coin { animation: coup-bob 2.2s ease-in-out infinite; }
+     @keyframes coup-tilt { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     @keyframes coup-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     ${sparkAnim('coup', 3)}`),
 
   /* ─── Word Bomb: hot-potato fragment fuse ─── */
   wordbomb: scene('wb', '', `

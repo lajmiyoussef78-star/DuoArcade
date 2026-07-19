@@ -1,16 +1,16 @@
-// UNO — classic duo match on a shared felt table.
+// Coup: Köln Edition — realtime engine for the duo game shell.
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
-import Uno from '../pages/Uno.jsx';
+import Coup from '../pages/Coup.jsx';
 
 let root = null;
 let finished = false;
 
 export const meta = {
-  id: 'uno',
-  name: 'UNO',
-  tag: 'classic · 2 players · race to empty',
+  id: 'coup',
+  name: 'Coup',
+  tag: '7 roles · bluff · count the deck',
   accent: 'candle',
   realtime: true
 };
@@ -20,7 +20,7 @@ export function mount(el, ctx) {
   finished = false;
   el.innerHTML = '';
   const wrap = document.createElement('div');
-  wrap.className = 'uno-wrap';
+  wrap.className = 'coup-wrap';
   el.appendChild(wrap);
 
   const isHost = ctx.myRole === 'A';
@@ -31,7 +31,7 @@ export function mount(el, ctx) {
   };
 
   root = createRoot(wrap);
-  root.render(createElement(Uno, {
+  root.render(createElement(Coup, {
     myRole: ctx.myRole,
     names: ctx.names,
     rt: ctx.rt,

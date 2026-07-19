@@ -31,6 +31,23 @@ function BackIcon() {
   );
 }
 
+function PauseIcon() {
+  return (
+    <svg className="gv-pause-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <rect x="6.5" y="5" width="3.5" height="14" rx="1.2" />
+      <rect x="14" y="5" width="3.5" height="14" rx="1.2" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg className="gv-pause-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M8.2 5.6v12.8c0 .7.8 1.1 1.4.7l9.2-6.1c.5-.4.5-1.1 0-1.4L9.6 5c-.6-.4-1.4 0-1.4.6Z" />
+    </svg>
+  );
+}
+
 /** Turn-based boards keep the exact same DOM engine interface as before:
  *  eng.render(hostEl, gs, { myRole, turn, winner, onMove }) */
 function TurnBoard({ eng, session, myRole, onMove, paused }) {
@@ -167,7 +184,7 @@ export default function GameScreen({
           names={{ A: duo.nameA, B: duo.nameB }} paused={paused}
           onFinish={(w, scores) => onRealtimeFinish(s.game, w, scores)} />
       );
-      banner = paused ? 'Game paused' : 'go!';
+      banner = paused ? 'Game paused' : '';
     } else {
       showRematch = true;
     }
@@ -222,8 +239,9 @@ export default function GameScreen({
               disabled={pausePending === myRole && !paused}
               onClick={() => onRequestPause(setBannerStatus)}
               title={pauseLabel}
+              aria-label={pauseLabel}
             >
-              {pauseLabel}
+              {paused ? <PlayIcon /> : <PauseIcon />}
             </button>
           )}
           {rules && (

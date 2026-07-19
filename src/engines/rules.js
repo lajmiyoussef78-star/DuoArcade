@@ -163,10 +163,22 @@ export const RULES = {
       'Match the discard by color or symbol \u2014 or play a Wild / Wild +4.',
       'In a duo, Reverse works like Skip. Skip, Reverse, +2, and +4 let you go again.',
       'Draw if you cannot play; if the drawn card fits you may play it, otherwise Pass.',
-      'When you go down to one card, hit UNO! or your partner can Catch you for +2.',
-      'First to dump every card wins the table.'
+      'At 2 cards, tap UNO! before playing down to one \u2014 or your partner can Catch you for +2.',
+      'Tap the draw pile to take a card. First to empty their hand wins.'
     ],
-    tip: 'Save a Wild for when you\u2019re stuck \u2014 and never forget to tap UNO.'
+    tip: 'Arm UNO while you still have two cards \u2014 waiting until you have one is often too late.'
+  },
+
+  coup: {
+    goal: 'Destroy both of your partner\u2019s influence cards.',
+    how: [
+      '7 roles \u00d7 3 copies = 21 cards, shuffled once. You each hold 2 hidden cards. First player starts with 1 coin, second with 2.',
+      'Always available: Income +1, Foreign Aid +2 (Taxman can block), Coup for 7 (forced at 10+ coins).',
+      'Role actions: Assassin (pay 3), Colonel Accuse (pay 4), Policeman inspect, Businessman +4, Taxman skim, Thief steal 2, Ambassador exchange.',
+      'Claim any role anytime. Any claim can be challenged for free \u2014 liars lose a card; truthful claimers force the challenger to lose one.',
+      'The deck never reshuffles: revealed and returned cards go under the bottom. Count everything.'
+    ],
+    tip: 'A bluff Colonel block against a real Assassin can cost you both cards if they challenge.'
   },
 
   wordbomb: {

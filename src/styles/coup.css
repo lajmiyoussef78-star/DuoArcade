@@ -1,0 +1,130 @@
+/* src/styles/coup.css — Coup: Köln Edition (shell board). */
+/* Beat arcade-page * { padding:0 } reset */
+
+.arcade-page .coup-wrap,
+.coup-wrap { width: 100%; }
+
+.arcade-page .cp-shell,
+.arcade-page .cp-table,
+.arcade-page .cp-zone,
+.arcade-page .cp-panel,
+.arcade-page .cp-event,
+.arcade-page .cp-peek,
+.arcade-page .cp-log,
+.arcade-page .cp-actbtn,
+.arcade-page .cp-rolebtn,
+.arcade-page .cp-poolbtn { box-sizing: border-box; }
+
+.arcade-page .cp-table { padding: 16px 14px 18px; }
+.arcade-page .cp-zone { padding: 10px 12px; }
+.arcade-page .cp-zone-coins { padding: 2px 12px; }
+.arcade-page .cp-event { padding: 9px 14px; }
+.arcade-page .cp-log { padding: 10px 12px; }
+.arcade-page .cp-peek { padding: 8px 12px; }
+.arcade-page .cp-panel { padding: 14px; }
+.arcade-page .cp-actbtn { padding: 10px 6px; }
+.arcade-page .cp-rolebtn { padding: 10px; }
+.arcade-page .cp-poolbtn { padding: 10px 12px; }
+.arcade-page .cp-card-name { padding: 0 6px; }
+.arcade-page .cp-wait { padding: 12px; }
+.arcade-page .cp-status { padding: 20px; }
+
+.cp-shell {
+  --bad: #FF8A8A;
+  width: 100%; max-width: 680px; margin: 0 auto; padding: 4px 0 8px; color: var(--text);
+  font-family: 'Inter', sans-serif;
+}
+.pA { color: var(--p1); } .pB { color: var(--p2); }
+
+/* ---------- the table ---------- */
+.cp-table { display: flex; flex-direction: column; gap: 12px;
+  border: 1px solid var(--line); border-radius: 22px; padding: 16px 14px 18px;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 42%, rgba(255,198,110,.05), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, #241C31, var(--night) 95%);
+  box-shadow: inset 0 0 44px rgba(0,0,0,.45); }
+
+/* player zones */
+.cp-zone { display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border-radius: 16px; padding: 10px 12px; border: 1px solid transparent; transition: border-color .3s, box-shadow .3s; }
+.cp-zone.active { border-color: rgba(255,198,110,.5); box-shadow: 0 0 18px rgba(255,198,110,.10); }
+.cp-zone-head { display: flex; align-items: center; gap: 14px; }
+.cp-zone-name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px; }
+.cp-zone-coins { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--candle);
+  background: rgba(255,198,110,.08); border: 1px solid rgba(255,198,110,.3); border-radius: 999px; padding: 2px 12px; }
+
+.cp-cards { display: flex; gap: 12px; }
+.cp-card { width: 86px; height: 118px; border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px; text-align: center; position: relative;
+  border: 1px solid var(--line); }
+.cp-card.face { background: linear-gradient(165deg, #2E2540, var(--room2));
+  border-color: rgba(255,198,110,.35); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.cp-card.back { background:
+    repeating-linear-gradient(45deg, #241C31 0 8px, #201A2C 8px 16px);
+  border-color: var(--line); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.cp-card-back-mark { color: rgba(255,198,110,.4); font-size: 26px; }
+.cp-card.dead { background: var(--night); opacity: .55; transform: rotate(-4deg); border-style: dashed; }
+.cp-card-emoji { font-size: 32px; }
+.cp-card-name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 11.5px; line-height: 1.15; padding: 0 6px; }
+.cp-card-dead { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--bad); font-weight: 700; }
+
+/* middle strip */
+.cp-middle { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.cp-deck { display: flex; flex-direction: column; align-items: center; }
+.cp-deckstack { font-size: 30px; filter: drop-shadow(2px 2px 0 #14101d) drop-shadow(4px 4px 0 #14101d); }
+.cp-deckcount { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); }
+.cp-event { flex: 1; text-align: center; font-size: 13px; line-height: 1.5; color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px; padding: 9px 14px; background: rgba(34,27,45,.75);
+  min-height: 40px; display: flex; align-items: center; justify-content: center; }
+.cp-logbtn { border: none; background: transparent; color: var(--dim); font-size: 11px; cursor: pointer;
+  text-decoration: underline; font-family: 'Inter', sans-serif; }
+.cp-log { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--dim); line-height: 1.55;
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--room);
+  max-height: 160px; overflow-y: auto; }
+
+/* private peek chip */
+.cp-peek { font-size: 12.5px; border: 1px solid rgba(127,168,255,.4); background: rgba(127,168,255,.08);
+  border-radius: 12px; padding: 8px 12px; text-align: center; }
+.cp-peek-note { display: block; font-size: 10.5px; color: var(--dim); margin-top: 2px; }
+
+/* prompt panels */
+.cp-panel { display: flex; flex-direction: column; align-items: center; gap: 12px;
+  border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: var(--room); }
+.cp-panel.hot { border-color: rgba(255,198,110,.55); box-shadow: 0 0 20px rgba(255,198,110,.08); }
+.cp-panel-title { font-size: 14px; text-align: center; line-height: 1.5; }
+.cp-panel-title b { color: var(--candle); }
+.cp-wait { text-align: center; font-size: 13px; color: var(--dim); font-style: italic; padding: 12px; }
+
+.cp-btnrow { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.cp-btnrow.wrap { max-width: 460px; }
+
+.cp-actiongrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+@media (max-width: 520px) { .cp-actiongrid { grid-template-columns: repeat(2, 1fr); } }
+.cp-actbtn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--room2); color: var(--text);
+  cursor: pointer; font-family: 'Inter', sans-serif; }
+.cp-actbtn:hover:not(:disabled) { border-color: var(--candle); }
+.cp-actbtn:disabled { opacity: .35; cursor: default; }
+.cp-actbtn.danger { border-color: rgba(255,138,138,.5); }
+.cp-act-emoji { font-size: 20px; }
+.cp-act-name { font-size: 12px; font-weight: 700; }
+.cp-act-sub { font-size: 9.5px; color: var(--dim); }
+
+.cp-rolegrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; max-width: 420px; }
+.cp-rolebtn { padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--room2);
+  color: var(--text); cursor: pointer; font-size: 13px; font-family: 'Inter', sans-serif; }
+.cp-rolebtn:hover { border-color: var(--candle); }
+
+.cp-poolbtn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 12px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--room2); color: var(--text);
+  cursor: pointer; font-size: 12.5px; font-family: 'Inter', sans-serif; }
+.cp-poolbtn.on { border-color: var(--candle); background: rgba(255,198,110,.12); }
+.cp-pool-tag { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+
+.cp-err { text-align: center; color: var(--bad); font-size: 12.5px; font-weight: 600; }
+
+.cp-status { text-align: center; color: var(--dim); padding: 20px; }
+
+@media (max-width: 480px) {
+  .cp-card { width: 74px; height: 102px; }
+}

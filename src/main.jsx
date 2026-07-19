@@ -25,6 +25,7 @@ import './styles/moles.css';
 import './styles/forbidden.css';
 import './styles/wordbomb.css';
 import './styles/uno.css';
+import './styles/coup.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

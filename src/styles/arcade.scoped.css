@@ -253,12 +253,12 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
   box-shadow:0 0 16px color-mix(in srgb, var(--candle) 18%, transparent);}
 .arcade-page .gv-rules{width:42px;height:42px;min-width:42px;}
 .arcade-page .gv-rules-icon{width:22px;height:22px;display:block;flex:none;}
-.arcade-page .gv-pause{height:42px;padding:0 12px;border-radius:12px;white-space:nowrap;max-width:148px;}
+.arcade-page .gv-pause{width:42px;height:42px;min-width:42px;padding:0;border-radius:12px;}
+.arcade-page .gv-pause-icon{width:20px;height:20px;display:block;flex:none;}
 .arcade-page .gv-rules-note{margin:0 0 12px;text-align:center;font-size:12px;line-height:1.45;color:var(--dim);width:100%;}
 @media (max-width:420px){
   .arcade-page .gv-back span{display:none;}
   .arcade-page .gv-back{padding:9px;border-radius:12px;}
-  .arcade-page .gv-pause{font-size:11px;padding:0 9px;max-width:110px;}
   .arcade-page .gv-tag{max-width:36vw;}
 }
 .arcade-page .gv-result{
