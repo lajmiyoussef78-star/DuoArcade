@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createSync } from '../lib/sync.js';
 import { ENGINES } from '../engines/index.js';
 import {
@@ -28,7 +28,32 @@ const requestedArenaPath = () => {
   return next?.startsWith('/arena') ? next : null;
 };
 
+/** Parse an invite URL or "CODE TOKEN" / "CODE/TOKEN" string. */
+export function parseInviteString(raw) {
+  const s = (raw || '').trim();
+  if (!s) return null;
+  try {
+    if (/^https?:\/\//i.test(s)) {
+      const url = new URL(s);
+      const code = url.searchParams.get('duo');
+      const token = url.searchParams.get('t');
+      if (code && token) return { code: code.toUpperCase(), token };
+    }
+  } catch { /* ignore */ }
+  if (s.includes('duo=') && s.includes('t=')) {
+    const q = new URLSearchParams(s.replace(/^[^?]*\?/, '').replace(/#.*$/, ''));
+    const code = q.get('duo');
+    const token = q.get('t');
+    if (code && token) return { code: code.toUpperCase(), token };
+  }
+  const parts = s.match(/^([A-Za-z0-9]{4,8})\s*[/:]\s*([A-Za-z0-9-]{8,})$/)
+    || s.match(/^([A-Za-z0-9]{4,8})\s+([A-Za-z0-9-]{8,})$/);
+  if (parts) return { code: parts[1].toUpperCase(), token: parts[2] };
+  return null;
+}
+
 export default function Arcade() {
+  const navigate = useNavigate();
   const syncRef = useRef(null);
   const initStarted = useRef(false);
   const presenceRef = useRef(null);
@@ -107,6 +132,7 @@ export default function Arcade() {
     try {
       const res = await syncRef.current.openDuo(c, loadSeats()[c] ?? null);
       setCtx({ duo: res.duo, code: c, myRole: res.role });
+      window.history.replaceState({}, '', '/app');
     } catch (e) { setLobbyStatus(e.message); }
   }, []);
 
@@ -117,9 +143,46 @@ export default function Arcade() {
       const res = await syncRef.current.openDuo(inv.code, inv.token);
       saveSeat(inv.code, inv.token);
       setCtx({ duo: res.duo, code: inv.code, myRole: res.role });
+      window.history.replaceState({}, '', '/app');
     } catch (e) {
       setAuthNotice(e.message);
-      setView('auth');
+      setLobbyStatus(e.message);
+      await enterLobby();
+    }
+  }, [enterLobby]);
+
+  /** After sign-in/boot: pending invite → join; else auto-open sole duo; else lobby. */
+  const enterAfterAuth = useCallback(async () => {
+    whoami();
+    await loadProfile();
+    if (pendingInvite.current) {
+      await joinPending();
+      return;
+    }
+    const duos = await syncRef.current.listMyDuos();
+    setMyDuos(duos);
+    if (duos.length >= 1) {
+      await openByAccount(duos[0].code);
+      return;
+    }
+    setView('lobby');
+  }, [whoami, loadProfile, joinPending, openByAccount]);
+
+  const joinFromInviteString = useCallback(async raw => {
+    const parsed = parseInviteString(raw);
+    if (!parsed) {
+      setLobbyStatus('Paste the full invite link (or CODE / token) from your partner.');
+      return;
+    }
+    setLobbyStatus('Joining…');
+    try {
+      const res = await syncRef.current.openDuo(parsed.code, parsed.token);
+      saveSeat(parsed.code, parsed.token);
+      setCtx({ duo: res.duo, code: parsed.code, myRole: res.role });
+      setLobbyStatus('');
+      window.history.replaceState({}, '', '/app');
+    } catch (e) {
+      setLobbyStatus(e.message);
     }
   }, []);
 
@@ -159,18 +222,19 @@ export default function Arcade() {
       if (arenaPath) {
         localStorage.removeItem('duoarcade-arena-next');
         window.location.assign(arenaPath);
-      } else if (pendingInvite.current) await joinPending();
-      else await enterLobby();
+      } else {
+        await enterAfterAuth();
+      }
       return '';
     } catch (e) { return e.message; }
-  }, [loadProfile, joinPending, enterLobby]);
+  }, [loadProfile, enterAfterAuth]);
 
   const signOut = useCallback(async () => {
     leaveDuoContext();
     await syncRef.current.auth.signOut();
     whoami();
-    setView('auth');
-  }, [leaveDuoContext, whoami]);
+    navigate('/', { replace: true });
+  }, [leaveDuoContext, whoami, navigate]);
 
   /* ---------- game session actions ---------- */
 
@@ -598,11 +662,12 @@ export default function Arcade() {
           localStorage.removeItem('duoarcade-arena-next');
           window.location.assign(arenaPath);
           return;
-        } else if (pendingInvite.current) await joinPending();
-        else if (reopenDuo) {
+        } else if (reopenDuo) {
           await openByAccount(reopenDuo);
           window.history.replaceState({}, '', '/app');
-        } else await enterLobby();
+        } else {
+          await enterAfterAuth();
+        }
       } else {
         if (pendingInvite.current) {
           setAuthNotice('You’ve been invited to a duo — sign in or create your account to join.');
@@ -660,7 +725,8 @@ export default function Arcade() {
       <LobbyScreen
         profile={profile} myDuos={myDuos} lobbyStatus={lobbyStatus}
         onSaveUsername={saveUsername} onOpenDuo={openByAccount}
-        onCreateDuo={createDuo} onDeleteDuo={deleteDuo} onSignOut={signOut}
+        onCreateDuo={createDuo} onJoinInvite={joinFromInviteString}
+        onDeleteDuo={deleteDuo} onSignOut={signOut}
         onToggleVisibility={toggleVisibility} onClearStuck={clearStuck}
         onSearch={searchUsers} onOpenProfile={openPublicProfile}
       />
@@ -674,7 +740,7 @@ export default function Arcade() {
   return (
     <div className="arcade-page">
       <div className="topbar">
-        <Link className="brand h1" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
+        <Link className="brand h1" to="/app"><span className="a">Duo</span><span className="b">Arcade</span></Link>
         <div className="topbar-right">
           <div className="who">
             <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}

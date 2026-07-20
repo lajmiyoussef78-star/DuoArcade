@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function AuthScreen({ notice, mode, onSubmit, defaultTab = 'in' }) {
   const [tab, setTab] = useState(defaultTab);
@@ -33,6 +34,7 @@ export default function AuthScreen({ notice, mode, onSubmit, defaultTab = 'in' }
           <button className="btn warm" onClick={submit} disabled={busy}>
             {tab === 'in' ? 'Sign in' : 'Create account'}
           </button>
+          <Link className="btn ghost small" to="/">Back</Link>
         </div>
         <div className="status">{status}</div>
         {mode && (

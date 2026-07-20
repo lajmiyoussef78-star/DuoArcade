@@ -1,13 +1,22 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import SettingsMenu from '../arcade/SettingsMenu.jsx';
+import { createSync } from '../lib/sync.js';
 
 const GAMES = [
-  { icon: '●▌', tint: 'p2', name: 'Duo Pong', desc: 'Real-time. First to 7. The ball speeds up — so do the arguments.', rec: 'live physics, no turns' },
-  { icon: '🍀🍀', tint: 'candle', name: 'Memory Match', desc: 'Half the game is remembering what your partner revealed.', rec: 'find a pair, go again' },
-  { icon: '⚫⚪', tint: 'p1', name: 'Reversi', desc: 'The deep one. Every disc you flip can flip back on you.', rec: 'for the quiet, scheming evenings' },
-  { icon: '×○', tint: 'p1', name: 'Tic-Tac-Toe', desc: 'The two-minute warm-up. Settle who picks the movie.', rec: 'best-of-five friendly' },
-  { icon: 'C4', tint: 'p2', name: 'Connect Four', desc: 'The flagship classic. Fast rounds, real depth, endless rematch energy.', rec: 'head-to-head record kept' },
-  { icon: '□·□', tint: 'candle', name: 'Dots & Boxes', desc: 'Looks innocent. Turns quietly ruthless. Complete a box, go again.', rec: 'the sneaky one' }
+  { tint: 'p1', name: 'Stickman Racing', desc: 'Split-screen neon parkour. First to the flag across ten tracks.', rec: 'real-time · turbo' },
+  { tint: 'candle', name: 'Thin Ice', desc: 'Step carefully — every tile you leave sinks forever.', rec: 'strategy · one round' },
+  { tint: 'p2', name: 'Minus One', desc: 'Rock-paper-scissors with a twist: keep one, drop one.', rec: 'quick duel' },
+  { tint: 'p1', name: 'Micro Soccer', desc: 'Tiny cars, big chaos. Ninety seconds on the pitch.', rec: 'real-time · cars' },
+  { tint: 'p2', name: 'Stickman Sword Duel', desc: 'Neon fighters. First to three rounds wins.', rec: 'real-time · combat' },
+  { tint: 'candle', name: 'Connect Four', desc: 'The flagship classic. Fast rounds, real depth.', rec: 'head-to-head record' }
+];
+
+const FEATURES = [
+  { title: 'Play shelf', body: 'Dozens of duo games — classics, parkour, bluffs, and co-op nights — with a shared win record.' },
+  { title: 'Favorites', body: 'Star the games you both love. They float to the top for both of you.' },
+  { title: 'Whiteboard & lists', body: 'Doodle for each other, keep a shared todo list, and plan the week together.' },
+  { title: 'Snaps & movie night', body: 'Send little moments, then pick something to watch and rate it side by side.' }
 ];
 
 const TINTS = {
@@ -17,6 +26,30 @@ const TINTS = {
 };
 
 export default function Landing() {
+  const [auth, setAuth] = useState('checking'); // checking | out | in
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sync = await createSync();
+        if (!cancelled) setAuth(sync.auth.user() ? 'in' : 'out');
+      } catch {
+        if (!cancelled) setAuth('out');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (auth === 'checking') {
+    return (
+      <div className="landing-page">
+        <div className="wrap" style={{ padding: '48px 22px', color: 'var(--dim)' }}>Loading…</div>
+      </div>
+    );
+  }
+  if (auth === 'in') return <Navigate to="/app" replace />;
+
   return (
     <div className="landing-page">
       <div className="wrap">
@@ -24,7 +57,8 @@ export default function Landing() {
           <Link className="logo" to="/"><span className="a">Duo</span><span className="b">Arcade</span></Link>
           <div className="nav-right">
             <SettingsMenu />
-            <Link className="btn warm" to="/app">Open the arcade</Link>
+            <Link className="btn ghost" to="/app">Sign in</Link>
+            <Link className="btn warm" to="/app">Create account</Link>
           </div>
         </nav>
 
@@ -37,7 +71,7 @@ export default function Landing() {
           <div className="half two">
             <div className="tag">Partner two</div>
             <h1>Your nights.<br />Your place.</h1>
-            <p>Joins with one link, on a phone, mid-call. No signup, no app store.</p>
+            <p>Create a duo or join with an invite — then open the shelf whenever you both show up.</p>
           </div>
           <div className="seam"></div>
           <div className="hero-connect" aria-hidden="true">
@@ -56,22 +90,33 @@ export default function Landing() {
             <span className="hc-float f5">{'✦'}</span>
           </div>
           <div className="hero-cta">
-            <Link className="btn warm" to="/app">Create your duo</Link>
-            <span className="note">Free · no ads, ever · works in any browser</span>
+            <Link className="btn warm" to="/app">Create account</Link>
+            <Link className="btn" to="/app">Sign in</Link>
+            <span className="note">Free · no ads · works in any browser</span>
           </div>
         </div>
 
         <div className="steps">
-          <div className="step"><div className="n">STEP 1</div><h3>Name your duo</h3><p>You and one person — a partner, a best friend, a sibling. Two names, one shared home.</p></div>
-          <div className="step"><div className="n">STEP 2</div><h3>Send one link</h3><p>They tap it and they're in. No account, no download. Works on any phone, mid-call.</p></div>
-          <div className="step"><div className="n">STEP 3</div><h3>Build your record</h3><p>Wins, draws, evenings together — your history saves itself and waits for the rematch.</p></div>
+          <div className="step"><div className="n">STEP 1</div><h3>Create an account</h3><p>Email and a password — that’s it. Your duo and records stay tied to you.</p></div>
+          <div className="step"><div className="n">STEP 2</div><h3>Create or join a duo</h3><p>Name your pair, or paste the invite link your partner sent. One duo per account.</p></div>
+          <div className="step"><div className="n">STEP 3</div><h3>Play together</h3><p>Open the shelf, challenge each other, and build a streak that only the two of you keep.</p></div>
         </div>
 
-        <div className="section-head"><h2>The shelf tonight</h2><span>eleven games · more join regularly</span></div>
+        <div className="section-head"><h2>What you get</h2><span>more than a game list</span></div>
+        <div className="features">
+          {FEATURES.map(f => (
+            <div className="feature" key={f.title}>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="section-head"><h2>On the shelf</h2><span>dozens of games · more join regularly</span></div>
         <div className="games">
           {GAMES.map(g => (
             <div className="game" key={g.name}>
-              <div className="thumb" style={TINTS[g.tint]}>{g.icon}</div>
+              <div className="thumb" style={TINTS[g.tint]} aria-hidden="true" />
               <h3>{g.name}</h3><p>{g.desc}</p>
               <div className="rec">{g.rec}</div>
             </div>

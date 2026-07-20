@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 
 export default function LobbyScreen({
   profile, myDuos, lobbyStatus,
-  onSaveUsername, onOpenDuo, onCreateDuo, onDeleteDuo, onSignOut,
+  onSaveUsername, onOpenDuo, onCreateDuo, onJoinInvite, onDeleteDuo, onSignOut,
   onToggleVisibility, onClearStuck, onSearch, onOpenProfile
 }) {
   const [showUname, setShowUname] = useState(!profile?.username);
@@ -10,6 +10,8 @@ export default function LobbyScreen({
   const [unameStatus, setUnameStatus] = useState('');
   const [nameA, setNameA] = useState('');
   const [nameB, setNameB] = useState('');
+  const [inviteStr, setInviteStr] = useState('');
+  const [joining, setJoining] = useState(false);
   const [results, setResults] = useState(null);
   const [deleting, setDeleting] = useState(null);   // duo code pending delete
   const [confirmText, setConfirmText] = useState('');
@@ -44,6 +46,13 @@ export default function LobbyScreen({
     }, 300);
   };
 
+  const doJoin = async () => {
+    if (!onJoinInvite || !inviteStr.trim()) return;
+    setJoining(true);
+    try { await onJoinInvite(inviteStr.trim()); }
+    finally { setJoining(false); }
+  };
+
   const totalGames = d =>
     Object.values(d.records || {}).reduce((n, r) => n + (r.a || 0) + (r.b || 0) + (r.d || 0), 0);
 
@@ -68,7 +77,7 @@ export default function LobbyScreen({
 
         <h3 style={{ margin: '14px 0 8px' }}>Your duo</h3>
         <div className="duo-list">
-          {!myDuos.length && <div className="status">No duo yet — make yours below.</div>}
+          {!myDuos.length && <div className="status">No duo yet — create one or join with an invite below.</div>}
           {myDuos.map(d => (
             <div key={d.code}>
               <div className="duo-item" onClick={() => onOpenDuo(d.code)}>
@@ -126,15 +135,35 @@ export default function LobbyScreen({
             you’ll lose all your streaks and history together.
           </div>
         ) : (
-          <div>
-            <label htmlFor="nameA">Your name</label>
-            <input type="text" id="nameA" maxLength={20} value={nameA} onChange={e => setNameA(e.target.value)} />
-            <label htmlFor="nameB">Their name</label>
-            <input type="text" id="nameB" maxLength={20} value={nameB} onChange={e => setNameB(e.target.value)} />
-            <div className="row">
-              <button className="btn warm" onClick={() => onCreateDuo(nameA.trim(), nameB.trim())}>Create duo</button>
+          <>
+            <div>
+              <h3 style={{ margin: '16px 0 8px' }}>Create a duo</h3>
+              <label htmlFor="nameA">Your name</label>
+              <input type="text" id="nameA" maxLength={20} value={nameA} onChange={e => setNameA(e.target.value)} />
+              <label htmlFor="nameB">Their name</label>
+              <input type="text" id="nameB" maxLength={20} value={nameB} onChange={e => setNameB(e.target.value)} />
+              <div className="row">
+                <button className="btn warm" onClick={() => onCreateDuo(nameA.trim(), nameB.trim())}>Create duo</button>
+              </div>
             </div>
-          </div>
+
+            <div>
+              <h3 style={{ margin: '18px 0 8px' }}>Join with an invite</h3>
+              <p className="status" style={{ marginBottom: 8 }}>
+                Paste the invite link your partner sent (or <code>CODE / token</code>).
+              </p>
+              <label htmlFor="inviteInput">Invite link or code</label>
+              <input type="text" id="inviteInput" value={inviteStr}
+                placeholder="https://…/app?duo=…&t=…"
+                onChange={e => setInviteStr(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') doJoin(); }} />
+              <div className="row">
+                <button className="btn warm" disabled={joining || !inviteStr.trim()} onClick={doJoin}>
+                  {joining ? 'Joining…' : 'Join duo'}
+                </button>
+              </div>
+            </div>
+          </>
         )}
         <div className="row" style={{ marginTop: hasDuo ? 10 : 0 }}>
           <button className="btn ghost small" onClick={onSignOut}>Sign out</button>
