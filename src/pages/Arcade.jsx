@@ -749,7 +749,7 @@ export default function Arcade() {
           <SettingsMenu />
         </div>
       </div>
-      <div className="sub">play · watch · remember</div>
+
 
       {screen}
 
