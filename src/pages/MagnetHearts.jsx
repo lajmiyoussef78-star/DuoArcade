@@ -139,23 +139,179 @@ export default function MagnetHearts({ myRole, names = {}, rt, code, onComplete 
     return () => clearInterval(iv);
   }, [me, rt, begin]);
 
-  const drawHeart = useCallback((g, x, y, size, fill, glow) => {
+  const drawHeart = useCallback((g, x, y, size, fill, glow, t = 0) => {
+    // Classic smooth heart (normalized to `size` height).
+    const s = size * 0.5;
     g.save();
-    g.translate(x, y);
-    if (glow) { g.shadowColor = fill; g.shadowBlur = 12; }
-    g.fillStyle = fill;
+    g.translate(x, y + s * 0.05);
+    if (glow) {
+      const pulse = 0.65 + 0.35 * Math.sin(t * 6);
+      g.shadowColor = fill;
+      g.shadowBlur = 22 + pulse * 18;
+      g.fillStyle = `rgba(255,198,110,${0.16 + pulse * 0.12})`;
+      g.beginPath();
+      g.arc(0, 0, s * (1.15 + pulse * 0.12), 0, 7);
+      g.fill();
+    }
     g.beginPath();
-    const s = size;
-    g.moveTo(0, s * 0.32);
-    g.bezierCurveTo(0, s * 0.02, -s * 0.52, -s * 0.18, -s * 0.5, -s * 0.14);
-    g.bezierCurveTo(-s * 0.5, -s * 0.48, -s * 0.06, -s * 0.48, 0, -s * 0.16);
-    g.bezierCurveTo(s * 0.06, -s * 0.48, s * 0.5, -s * 0.48, s * 0.5, -s * 0.14);
-    g.bezierCurveTo(s * 0.52, -s * 0.02, 0, s * 0.08, 0, s * 0.32);
+    g.moveTo(0, s * 0.35);
+    g.bezierCurveTo(0, s * 0.12, -s * 0.5, -s * 0.08, -s * 0.5, -s * 0.32);
+    g.bezierCurveTo(-s * 0.5, -s * 0.62, -s * 0.08, -s * 0.72, 0, -s * 0.42);
+    g.bezierCurveTo(s * 0.08, -s * 0.72, s * 0.5, -s * 0.62, s * 0.5, -s * 0.32);
+    g.bezierCurveTo(s * 0.5, -s * 0.08, 0, s * 0.12, 0, s * 0.35);
     g.closePath();
+    const sheen = g.createLinearGradient(-s * 0.4, -s * 0.5, s * 0.3, s * 0.4);
+    sheen.addColorStop(0, '#FFFFFF');
+    sheen.addColorStop(0.18, fill);
+    sheen.addColorStop(1, glow ? '#E8A84A' : fill);
+    g.fillStyle = sheen;
     g.fill();
     g.shadowBlur = 0;
-    g.fillStyle = 'rgba(255,255,255,.35)';
-    g.beginPath(); g.arc(-s * 0.2, -s * 0.22, s * 0.09, 0, 7); g.fill();
+    g.strokeStyle = glow ? 'rgba(255,245,200,.85)' : 'rgba(255,255,255,.55)';
+    g.lineWidth = Math.max(1.5, size * 0.04);
+    g.lineJoin = 'round';
+    g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.45)';
+    g.beginPath();
+    g.ellipse(-s * 0.18, -s * 0.22, s * 0.12, s * 0.08, -0.4, 0, 7);
+    g.fill();
+    if (glow) {
+      for (let i = 0; i < 5; i++) {
+        const ang = t * 2.8 + i * (Math.PI * 2 / 5);
+        const rr = s * (0.85 + 0.12 * Math.sin(t * 5 + i));
+        g.fillStyle = `rgba(255,245,200,${0.45 + 0.4 * Math.sin(t * 8 + i)})`;
+        g.beginPath();
+        g.arc(Math.cos(ang) * rr, Math.sin(ang) * rr * 0.85, 2.2, 0, 7);
+        g.fill();
+      }
+    }
+    g.restore();
+  }, []);
+
+  const drawMagneteer = useCallback((g, p, col, deep, t, side) => {
+    const speed = Math.hypot(p.vx || 0, p.vy || 0);
+    const facing = Math.atan2(p.fy, p.fx);
+    const flip = Math.cos(facing) >= 0 ? 1 : -1;
+    const bob = Math.sin(t * 5.2 + side * 1.7) * 2.2;
+    const wobble = Math.sin(t * 3.4 + side) * 0.04;
+    const squash = speed > 40 ? Math.min(0.08, speed * 0.0002) : 0;
+    const blink = Math.sin(t * 1.05 + side * 2.4) > 0.94;
+    const pulse = 0.55 + 0.45 * Math.sin(t * 7 + side);
+
+    g.save();
+    g.translate(p.x, p.y);
+    g.scale(3, 3);
+
+    // soft shadow
+    g.fillStyle = 'rgba(0,0,0,.28)';
+    g.beginPath();
+    g.ellipse(0, 18, 16 + Math.min(5, speed * 0.012), 5.5, 0, 0, 7);
+    g.fill();
+
+    g.translate(0, bob - 4);
+    g.rotate(wobble);
+    g.scale(1 + squash, 1 - squash);
+
+    // tiny stubby paws (creature, not legs)
+    g.fillStyle = deep;
+    g.beginPath(); g.ellipse(-9, 14, 5.5, 3.8, -0.2, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(9, 14, 5.5, 3.8, 0.2, 0, 7); g.fill();
+
+    // round marshmallow body
+    const body = g.createRadialGradient(-6, -8, 3, 0, 0, 22);
+    body.addColorStop(0, '#FFFFFF');
+    body.addColorStop(0.28, col);
+    body.addColorStop(1, deep);
+    g.fillStyle = body;
+    g.beginPath();
+    g.ellipse(0, 0, 20, 18, 0, 0, 7);
+    g.fill();
+
+    // soft belly
+    g.fillStyle = 'rgba(255,255,255,.28)';
+    g.beginPath();
+    g.ellipse(0, 4, 11, 9, 0, 0, 7);
+    g.fill();
+
+    // ear fluff / magnet nubs on top
+    g.fillStyle = col;
+    g.beginPath(); g.ellipse(-11, -14, 6, 7, -0.35, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(11, -14, 6, 7, 0.35, 0, 7); g.fill();
+    g.fillStyle = deep;
+    g.beginPath(); g.ellipse(-11, -15, 3.2, 3.8, -0.35, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(11, -15, 3.2, 3.8, 0.35, 0, 7); g.fill();
+
+    // face (cute creature — big eyes, no human features)
+    g.save();
+    g.scale(flip, 1);
+
+    // blush patches
+    g.fillStyle = 'rgba(255,140,180,.40)';
+    g.beginPath(); g.ellipse(-11, 2, 4, 2.6, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(11, 2, 4, 2.6, 0, 0, 7); g.fill();
+
+    if (!blink) {
+      // big shiny eyes
+      g.fillStyle = '#1E1A28';
+      g.beginPath(); g.ellipse(-6.5, -3, 5.2, 6.2, 0, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(6.5, -3, 5.2, 6.2, 0, 0, 7); g.fill();
+      g.fillStyle = '#fff';
+      g.beginPath(); g.arc(-4.6, -5.4, 2.1, 0, 7); g.fill();
+      g.beginPath(); g.arc(8.2, -5.4, 2.1, 0, 7); g.fill();
+      g.beginPath(); g.arc(-7.6, -1.2, 1.1, 0, 7); g.fill();
+      g.beginPath(); g.arc(5.2, -1.2, 1.1, 0, 7); g.fill();
+    } else {
+      g.strokeStyle = '#1E1A28'; g.lineWidth = 2.2; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-11, -3); g.quadraticCurveTo(-6.5, -1, -2, -3); g.stroke();
+      g.beginPath(); g.moveTo(2, -3); g.quadraticCurveTo(6.5, -1, 11, -3); g.stroke();
+      g.lineCap = 'butt';
+    }
+
+    // tiny cat-like smile
+    g.strokeStyle = '#1E1A28'; g.lineWidth = 1.6; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-3, 5); g.quadraticCurveTo(0, 8, 3, 5);
+    g.stroke();
+    // little fang nubs
+    g.fillStyle = '#fff';
+    g.beginPath(); g.moveTo(-1.6, 5.5); g.lineTo(-0.4, 8.2); g.lineTo(0.2, 5.8); g.fill();
+    g.beginPath(); g.moveTo(1.6, 5.5); g.lineTo(0.4, 8.2); g.lineTo(-0.2, 5.8); g.fill();
+    g.lineCap = 'butt';
+    g.restore();
+
+    // tiny arm stubs holding magnet
+    g.save();
+    g.rotate(facing);
+    g.fillStyle = col;
+    g.beginPath(); g.ellipse(12, 2, 5, 4, 0.2, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(14, 7, 4.5, 3.5, -0.1, 0, 7); g.fill();
+
+    // toy horseshoe magnet — opening faces outward so a catch can sit in it
+    g.translate(24, 4);
+    g.scale(-1, 1);
+    g.shadowColor = col;
+    g.shadowBlur = 5 + pulse * 7;
+    g.strokeStyle = '#D2D7E0';
+    g.lineWidth = 10; g.lineCap = 'round';
+    g.beginPath();
+    g.arc(0, 0, 10, -Math.PI * 0.7, Math.PI * 0.7);
+    g.stroke();
+    g.shadowBlur = 0;
+
+    g.fillStyle = '#E2554A';
+    g.beginPath();
+    g.moveTo(-5, -12); g.lineTo(5, -12); g.lineTo(5, -5); g.lineTo(-5, -5); g.closePath();
+    g.fill();
+    g.fillStyle = '#4A7BE0';
+    g.beginPath();
+    g.moveTo(-5, 5); g.lineTo(5, 5); g.lineTo(5, 12); g.lineTo(-5, 12); g.closePath();
+    g.fill();
+
+    g.fillStyle = `rgba(255,255,255,${0.4 + pulse * 0.45})`;
+    g.beginPath(); g.arc(3, -8, 1.6 + pulse * 0.5, 0, 7); g.fill();
+    g.beginPath(); g.arc(3, 8, 1.6 + pulse * 0.5, 0, 7); g.fill();
+    g.restore();
+
     g.restore();
   }, []);
 
@@ -169,71 +325,191 @@ export default function MagnetHearts({ myRole, names = {}, rt, code, onComplete 
     const P2 = css.getPropertyValue('--p2').trim() || '#FF7FA8';
     const CANC = css.getPropertyValue('--candle').trim() || '#FFC66E';
 
-    const bg = g.createLinearGradient(0, 0, 0, MH.H);
-    bg.addColorStop(0, '#1E1830'); bg.addColorStop(1, '#171226');
-    g.fillStyle = bg; g.fillRect(0, 0, MH.W, MH.H);
-    g.fillStyle = 'rgba(242,237,247,.025)';
-    for (let cx = 0; cx < MH.W; cx += 56) {
-      for (let cy = 0; cy < MH.H; cy += 56) {
-        if (((cx + cy) / 56) % 2 === 0) g.fillRect(cx, cy, 56, 56);
-      }
-    }
-    g.strokeStyle = 'rgba(61,52,80,.9)'; g.lineWidth = 4;
-    g.strokeRect(2, 2, MH.W - 4, MH.H - 4);
+    const t = st.t || 0;
 
+    // Arena floor — soft magnetic field, not a flat checkerboard
+    const floor = g.createRadialGradient(MH.W * 0.5, MH.H * 0.45, 40, MH.W * 0.5, MH.H * 0.5, MH.W * 0.72);
+    floor.addColorStop(0, '#2A2240');
+    floor.addColorStop(0.45, '#1C162C');
+    floor.addColorStop(1, '#100E18');
+    g.fillStyle = floor;
+    g.fillRect(0, 0, MH.W, MH.H);
+
+    // Side color washes from each bank
+    const washA = g.createRadialGradient(0, MH.H * 0.5, 20, 220, MH.H * 0.5, 520);
+    washA.addColorStop(0, 'rgba(127,168,255,.16)');
+    washA.addColorStop(1, 'rgba(127,168,255,0)');
+    g.fillStyle = washA;
+    g.fillRect(0, 0, MH.W * 0.55, MH.H);
+    const washB = g.createRadialGradient(MH.W, MH.H * 0.5, 20, MH.W - 220, MH.H * 0.5, 520);
+    washB.addColorStop(0, 'rgba(255,127,168,.14)');
+    washB.addColorStop(1, 'rgba(255,127,168,0)');
+    g.fillStyle = washB;
+    g.fillRect(MH.W * 0.45, 0, MH.W * 0.55, MH.H);
+
+    // Subtle field lines across the middle
+    g.save();
+    g.strokeStyle = 'rgba(242,237,247,.045)';
+    g.lineWidth = 1.5;
+    for (let i = 0; i < 7; i++) {
+      const yy = 90 + i * ((MH.H - 180) / 6);
+      g.beginPath();
+      g.moveTo(160, yy);
+      g.bezierCurveTo(MH.W * 0.35, yy - 28 + (i % 2) * 16, MH.W * 0.65, yy + 28 - (i % 2) * 16, MH.W - 160, yy);
+      g.stroke();
+    }
+    g.restore();
+
+    // Soft vignette + rim
+    const vig = g.createRadialGradient(MH.W / 2, MH.H / 2, MH.H * 0.25, MH.W / 2, MH.H / 2, MH.W * 0.62);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,.45)');
+    g.fillStyle = vig;
+    g.fillRect(0, 0, MH.W, MH.H);
+
+    g.strokeStyle = 'rgba(255,198,110,.22)';
+    g.lineWidth = 3;
+    g.strokeRect(6, 6, MH.W - 12, MH.H - 12);
+    g.strokeStyle = 'rgba(242,237,247,.12)';
+    g.lineWidth = 2;
+    g.strokeRect(14, 14, MH.W - 28, MH.H - 28);
+
+    // Bank zones — solid magnet shine in player color
     for (const r of ['A', 'B']) {
       const z = ZONES[r];
       const col = r === 'A' ? P1 : P2;
-      const grad = g.createRadialGradient(z.x, z.y, 8, z.x, z.y, MH.ZONE_R);
-      grad.addColorStop(0, r === 'A' ? 'rgba(127,168,255,.20)' : 'rgba(255,127,168,.20)');
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = grad;
-      g.beginPath(); g.arc(z.x, z.y, MH.ZONE_R, 0, 7); g.fill();
-      g.strokeStyle = col; g.lineWidth = 2; g.setLineDash([10, 8]);
-      g.beginPath(); g.arc(z.x, z.y, MH.ZONE_R, 0, 7); g.stroke();
-      g.setLineDash([]);
+      const pulse = 0.72 + 0.28 * Math.sin(t * 2.4 + (r === 'A' ? 0 : 1.7));
+
+      g.save();
+      g.translate(z.x, z.y);
+
+      // Outer bloom
+      g.shadowColor = col;
+      g.shadowBlur = 28 + pulse * 18;
+      const core = g.createRadialGradient(0, 0, 4, 0, 0, MH.ZONE_R);
+      core.addColorStop(0, r === 'A' ? 'rgba(200,220,255,.95)' : 'rgba(255,210,230,.95)');
+      core.addColorStop(0.28, col);
+      core.addColorStop(0.7, r === 'A' ? 'rgba(127,168,255,.55)' : 'rgba(255,127,168,.55)');
+      core.addColorStop(1, r === 'A' ? 'rgba(127,168,255,.08)' : 'rgba(255,127,168,.08)');
+      g.fillStyle = core;
+      g.beginPath();
+      g.arc(0, 0, MH.ZONE_R, 0, 7);
+      g.fill();
+      g.shadowBlur = 0;
+
+      // Magnetic ring bands
+      g.strokeStyle = `rgba(255,255,255,${0.2 + pulse * 0.15})`;
+      g.lineWidth = 2;
+      for (let ring = 0.35; ring < 1; ring += 0.22) {
+        g.beginPath();
+        g.arc(0, 0, MH.ZONE_R * ring, 0, 7);
+        g.stroke();
+      }
+
+      // Horseshoe field hint
+      g.strokeStyle = `rgba(255,255,255,${0.28 + pulse * 0.2})`;
+      g.lineWidth = 5;
+      g.lineCap = 'round';
+      g.beginPath();
+      g.arc(0, 0, MH.ZONE_R * 0.42, -Math.PI * 0.75, Math.PI * 0.75);
+      g.stroke();
+      g.lineCap = 'butt';
+
+      // Crisp rim
+      g.strokeStyle = col;
+      g.lineWidth = 3.5;
+      g.beginPath();
+      g.arc(0, 0, MH.ZONE_R, 0, 7);
+      g.stroke();
+      g.strokeStyle = `rgba(255,255,255,${0.35 + pulse * 0.25})`;
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.arc(0, 0, MH.ZONE_R - 5, 0, 7);
+      g.stroke();
+
+      g.restore();
     }
 
-    for (const it of st.items) {
-      if (it.type === 'bomb') {
-        g.fillStyle = '#14141C';
-        g.beginPath(); g.arc(it.x, it.y, 13, 0, 7); g.fill();
-        g.strokeStyle = '#34343F'; g.lineWidth = 2;
-        g.beginPath(); g.arc(it.x, it.y, 13, 0, 7); g.stroke();
-        g.fillStyle = 'rgba(255,255,255,.22)';
-        g.beginPath(); g.arc(it.x - 4, it.y - 5, 3.4, 0, 7); g.fill();
-        g.strokeStyle = '#6B5A44'; g.lineWidth = 2;
-        g.beginPath(); g.moveTo(it.x + 6, it.y - 10); g.quadraticCurveTo(it.x + 12, it.y - 16, it.x + 15, it.y - 13); g.stroke();
-        g.fillStyle = CANC;
-        const tw = 1 + Math.sin(st.t * 14 + it.id) * 0.8;
-        g.beginPath(); g.arc(it.x + 15, it.y - 13, 2 + tw, 0, 7); g.fill();
-      } else {
-        drawHeart(g, it.x, it.y, 15, it.type === 'gold' ? CANC : P2, it.type === 'gold');
+    const drawItem = (it) => {
+      const age = Math.max(0, st.t - (it.born ?? st.t));
+      const pop = age < 0.55 ? (() => {
+        const k = age / 0.55;
+        return 0.35 + 0.65 * (1 - Math.pow(1 - k, 3));
+      })() : 1;
+
+      // Spawn burst rings
+      if (age < 0.7) {
+        const k = age / 0.7;
+        const col = it.type === 'bomb' ? '#FF8A8A' : it.type === 'gold' ? CANC : P2;
+        g.save();
+        g.globalAlpha = (1 - k) * 0.85;
+        g.strokeStyle = col;
+        g.lineWidth = 3;
+        g.beginPath();
+        g.arc(it.x, it.y, 18 + k * 52, 0, 7);
+        g.stroke();
+        g.lineWidth = 2;
+        g.beginPath();
+        g.arc(it.x, it.y, 8 + k * 34, 0, 7);
+        g.stroke();
+        for (let i = 0; i < 8; i++) {
+          const ang = (i / 8) * Math.PI * 2 + age * 4;
+          const rr = 12 + k * 40;
+          g.fillStyle = col;
+          g.globalAlpha = (1 - k) * 0.9;
+          g.beginPath();
+          g.arc(it.x + Math.cos(ang) * rr, it.y + Math.sin(ang) * rr, 2.8 * (1 - k * 0.5), 0, 7);
+          g.fill();
+        }
+        g.restore();
       }
+
+      g.save();
+      g.translate(it.x, it.y);
+      g.scale(pop, pop);
+      g.translate(-it.x, -it.y);
+
+      if (it.type === 'bomb') {
+        const br = MH.ITEM_R;
+        g.fillStyle = '#14141C';
+        g.beginPath(); g.arc(it.x, it.y, br, 0, 7); g.fill();
+        g.strokeStyle = '#34343F'; g.lineWidth = 2.5;
+        g.beginPath(); g.arc(it.x, it.y, br, 0, 7); g.stroke();
+        g.fillStyle = 'rgba(255,255,255,.22)';
+        g.beginPath(); g.arc(it.x - 9, it.y - 11, 7, 0, 7); g.fill();
+        g.strokeStyle = '#6B5A44'; g.lineWidth = 2.5;
+        g.beginPath(); g.moveTo(it.x + 14, it.y - 22); g.quadraticCurveTo(it.x + 26, it.y - 34, it.x + 34, it.y - 28); g.stroke();
+        g.fillStyle = CANC;
+        const tw = 1.4 + Math.sin(st.t * 14 + it.id) * 1.1;
+        g.beginPath(); g.arc(it.x + 34, it.y - 28, 4 + tw, 0, 7); g.fill();
+      } else {
+        drawHeart(
+          g, it.x, it.y, MH.HEART_SIZE,
+          it.type === 'gold' ? CANC : P2,
+          it.type === 'gold',
+          st.t
+        );
+      }
+      g.restore();
+    };
+
+    for (const it of st.items) {
+      if (!it.held) drawItem(it);
     }
 
     for (const r of ['A', 'B']) {
       const p = st.pods[r];
       const col = r === 'A' ? P1 : P2;
+      const deep = r === 'A' ? '#3A5CA8' : '#B04A72';
       g.strokeStyle = r === 'A' ? 'rgba(127,168,255,.10)' : 'rgba(255,127,168,.10)';
       g.lineWidth = 1.5;
       g.beginPath(); g.arc(p.x, p.y, MH.MAG_R, 0, 7); g.stroke();
+      drawMagneteer(g, p, col, deep, st.t, r === 'A' ? 0 : 1);
+    }
 
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(Math.atan2(p.fy, p.fx));
-      const grad = g.createRadialGradient(-5, -6, 3, 0, 0, MH.POD_R);
-      grad.addColorStop(0, 'rgba(255,255,255,.85)');
-      grad.addColorStop(0.25, col);
-      grad.addColorStop(1, r === 'A' ? '#3A5CA8' : '#B04A72');
-      g.fillStyle = grad;
-      g.beginPath(); g.arc(0, 0, MH.POD_R, 0, 7); g.fill();
-      g.strokeStyle = '#E8E2F0'; g.lineWidth = 6; g.lineCap = 'round';
-      g.beginPath(); g.arc(MH.POD_R - 2, 0, 11, -Math.PI / 2.6, Math.PI / 2.6); g.stroke();
-      g.strokeStyle = '#C8412B'; g.lineWidth = 6;
-      g.beginPath(); g.arc(MH.POD_R - 2, 0, 11, -Math.PI / 2.6, -Math.PI / 5); g.stroke();
-      g.lineCap = 'butt';
-      g.restore();
+    // Held catch sits in the magnet mouth (drawn on top).
+    for (const it of st.items) {
+      if (it.held) drawItem(it);
     }
 
     for (const fx of fxRef.current) {
@@ -244,7 +520,7 @@ export default function MagnetHearts({ myRole, names = {}, rt, code, onComplete 
       g.fillText(fx.text, fx.x, fx.y);
       g.globalAlpha = 1;
     }
-  }, [drawHeart]);
+  }, [drawHeart, drawMagneteer]);
 
   useEffect(() => {
     if (phase !== 'play') return undefined;

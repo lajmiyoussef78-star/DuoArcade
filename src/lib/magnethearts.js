@@ -41,26 +41,33 @@ export async function recordMagnetHearts(code, winner) {
 /* ================= PURE ENGINE ================= */
 
 export const MH = {
-  W: 900, H: 560,
+  W: 1440, H: 900,
   MATCH_SECONDS: 90,
-  POD_R: 20,
+  POD_R: 60,
+  ITEM_R: 30,
   ACC: 620, FRICTION: 3.2, MAXV: 300,
-  MAG_R: 105,
+  MAG_R: 170,
   MAG_PULL: 480,
-  PICK_R: 30,
-  CARRY_MAX: 3,
-  ORBIT_R: 34,
+  PICK_R: 110,
+  CARRY_MAX: 1,
+  // Held item sits in the magnet mouth (matches drawMagneteer attach).
+  MAG_HOLD: 90,
+  MAG_HOLD_SIDE: 12,
   THROW_V: 470,
   ITEM_FRICTION: 1.9,
-  ZONE_R: 74,
+  BUMP: 0.65,
+  POD_RECOIL: 0.18,
+  ZONE_R: 90,
   SPAWN_EVERY: 1.05,
-  FIELD_CAP: 9,
+  FIELD_CAP: 5,
+  SPAWN_MIN_DIST: 200,
+  HEART_SIZE: 78,
   PTS: { heart: 1, gold: 2, bomb: -2 }
 };
 
 export const ZONES = {
-  A: { x: 92, y: MH.H / 2 },
-  B: { x: MH.W - 92, y: MH.H / 2 }
+  A: { x: 130, y: MH.H / 2 },
+  B: { x: MH.W - 130, y: MH.H / 2 }
 };
 
 export function mulberry32(seed) {
@@ -73,12 +80,23 @@ export function mulberry32(seed) {
   };
 }
 
-export function spawnFor(seed, n) {
+export function spawnFor(seed, n, avoid = []) {
   const rnd = mulberry32((seed ^ (n * 2654435761)) >>> 0);
   const roll = rnd();
-  const type = roll < 0.58 ? 'heart' : roll < 0.8 ? 'gold' : 'bomb';
-  const x = 220 + rnd() * (MH.W - 440);
-  const y = 70 + rnd() * (MH.H - 140);
+  // Mostly hearts (pink + gold), few bombs
+  const type = roll < 0.72 ? 'heart' : roll < 0.90 ? 'gold' : 'bomb';
+
+  let x = MH.W / 2, y = MH.H / 2;
+  for (let tries = 0; tries < 28; tries++) {
+    const tx = 300 + rnd() * (MH.W - 600);
+    const ty = 120 + rnd() * (MH.H - 240);
+    const farItems = avoid.every(p => Math.hypot(p.x - tx, p.y - ty) >= MH.SPAWN_MIN_DIST);
+    const farZones =
+      Math.hypot(tx - ZONES.A.x, ty - ZONES.A.y) > MH.ZONE_R + 100 &&
+      Math.hypot(tx - ZONES.B.x, ty - ZONES.B.y) > MH.ZONE_R + 100;
+    if (farItems && farZones) { x = tx; y = ty; break; }
+    if (tries === 27) { x = tx; y = ty; }
+  }
   return { type, x, y };
 }
 
@@ -109,10 +127,14 @@ export function mhStep(st, inputs, dt) {
   s.left = Math.max(0, MH.MATCH_SECONDS - s.t);
 
   while (s.spawned * MH.SPAWN_EVERY <= s.t) {
-    const free = s.items.filter(i => !i.held).length;
-    if (free < MH.FIELD_CAP) {
-      const sp = spawnFor(s.seed, s.spawned);
-      s.items.push({ id: s.nextId++, type: sp.type, x: sp.x, y: sp.y, vx: 0, vy: 0, held: null });
+    const free = s.items.filter(i => !i.held);
+    if (free.length < MH.FIELD_CAP) {
+      const sp = spawnFor(s.seed, s.spawned, free.map(i => ({ x: i.x, y: i.y })));
+      s.items.push({
+        id: s.nextId++, type: sp.type, x: sp.x, y: sp.y,
+        vx: 0, vy: 0, held: null, born: s.t
+      });
+      s.events.push({ kind: 'spawn', type: sp.type, x: sp.x, y: sp.y });
     }
     s.spawned += 1;
   }
@@ -180,25 +202,80 @@ export function mhStep(st, inputs, dt) {
       }
     }
     if (it.held) continue;
+
+    // Soft body bumps: pods shove free items (and get a light shove back).
+    const touch = MH.POD_R + MH.ITEM_R;
+    for (const r of ['A', 'B']) {
+      const p = s.pods[r];
+      const dx = it.x - p.x, dy = it.y - p.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= 0.001 || d >= touch) continue;
+      const nx = dx / d, ny = dy / d;
+      const overlap = touch - d;
+      it.x += nx * overlap * 0.88;
+      it.y += ny * overlap * 0.88;
+      p.x -= nx * overlap * 0.12;
+      p.y -= ny * overlap * 0.12;
+      const rel = (p.vx - it.vx) * nx + (p.vy - it.vy) * ny;
+      if (rel > 0) {
+        it.vx += nx * rel * MH.BUMP;
+        it.vy += ny * rel * MH.BUMP;
+        p.vx -= nx * rel * MH.POD_RECOIL;
+        p.vy -= ny * rel * MH.POD_RECOIL;
+      }
+    }
+
     it.vx -= it.vx * MH.ITEM_FRICTION * dt;
     it.vy -= it.vy * MH.ITEM_FRICTION * dt;
     it.x += it.vx * dt;
     it.y += it.vy * dt;
-    if (it.x < 12) { it.x = 12; it.vx = Math.abs(it.vx) * 0.5; }
-    if (it.x > MH.W - 12) { it.x = MH.W - 12; it.vx = -Math.abs(it.vx) * 0.5; }
-    if (it.y < 12) { it.y = 12; it.vy = Math.abs(it.vy) * 0.5; }
-    if (it.y > MH.H - 12) { it.y = MH.H - 12; it.vy = -Math.abs(it.vy) * 0.5; }
+    const edge = MH.ITEM_R;
+    if (it.x < edge) { it.x = edge; it.vx = Math.abs(it.vx) * 0.5; }
+    if (it.x > MH.W - edge) { it.x = MH.W - edge; it.vx = -Math.abs(it.vx) * 0.5; }
+    if (it.y < edge) { it.y = edge; it.vy = Math.abs(it.vy) * 0.5; }
+    if (it.y > MH.H - edge) { it.y = MH.H - edge; it.vy = -Math.abs(it.vy) * 0.5; }
+  }
+
+  // Item–item bumps so hearts/bombs knock each other slightly.
+  {
+    const free = s.items.filter(i => !i.held);
+    const min = MH.ITEM_R * 2;
+    for (let i = 0; i < free.length; i++) {
+      for (let j = i + 1; j < free.length; j++) {
+        const a = free[i], b = free[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.hypot(dx, dy);
+        if (d <= 0.001 || d >= min) continue;
+        const nx = dx / d, ny = dy / d;
+        const push = (min - d) / 2;
+        a.x -= nx * push; a.y -= ny * push;
+        b.x += nx * push; b.y += ny * push;
+        const rel = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+        if (rel > 0) {
+          a.vx -= nx * rel * 0.45; a.vy -= ny * rel * 0.45;
+          b.vx += nx * rel * 0.45; b.vy += ny * rel * 0.45;
+        }
+      }
+    }
+  }
+
+  for (const r of ['A', 'B']) {
+    const p = s.pods[r];
+    p.x = Math.max(MH.POD_R, Math.min(MH.W - MH.POD_R, p.x));
+    p.y = Math.max(MH.POD_R, Math.min(MH.H - MH.POD_R, p.y));
   }
 
   for (const r of ['A', 'B']) {
     const p = s.pods[r];
     const held = s.items.filter(i => i.held === r);
-    held.forEach((it, k) => {
-      const ang = s.t * 2.6 + (k * Math.PI * 2) / Math.max(1, held.length);
-      it.x = p.x + Math.cos(ang) * MH.ORBIT_R;
-      it.y = p.y + Math.sin(ang) * MH.ORBIT_R;
+    const ang = Math.atan2(p.fy, p.fx);
+    const c = Math.cos(ang), sn = Math.sin(ang);
+    for (const it of held) {
+      // Seat the single catch in the magnet mouth (opening faces outward).
+      it.x = p.x + c * MH.MAG_HOLD - sn * MH.MAG_HOLD_SIDE;
+      it.y = p.y + sn * MH.MAG_HOLD + c * MH.MAG_HOLD_SIDE;
       it.vx = 0; it.vy = 0;
-    });
+    }
   }
 
   const remaining = [];

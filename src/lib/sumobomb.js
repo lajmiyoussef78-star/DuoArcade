@@ -44,7 +44,8 @@ export const SB = {
   N_SUMOS: 8,
   SUMO_R: 30,
   HIT_R: 38,
-  AIM_VEL: 2.5,
+  AIM_VEL: 2.4,         // rad/s — reverses at left/right sweep ends
+  SWEEP_AMP: 1.15,      // ±radians from center (~66°)
   FLY_V: 720,
   MISS_DUR: 0.75,
   SPIN_T: 1.6,
@@ -59,6 +60,18 @@ export function sumoPos(i) {
 }
 
 export function ownerOf(i) { return i % 2 === 0 ? 'A' : 'B'; }
+
+/** Aim center for a sumo: facing the middle of the ring. */
+export function aimTowardCenter(i) {
+  const p = sumoPos(i);
+  return Math.atan2(SB.CY - p.y, SB.CX - p.x);
+}
+
+function setHolderAim(st, idx) {
+  st.aimCenter = aimTowardCenter(idx);
+  st.aim = st.aimCenter;
+  st.aimVel = SB.AIM_VEL;
+}
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -105,6 +118,8 @@ export function sbInitial(seed) {
     bombAt: null,
     transit: null,
     aim: 0,
+    aimCenter: 0,
+    aimVel: SB.AIM_VEL,
     fuse: 0,
     fuseT: 0,
     boomIdx: null,
@@ -120,6 +135,8 @@ function applyRoundSetup(st) {
   st.fuse = su.fuse;
   st.fuseT = 0;
   st.aim = su.aim0;
+  st.aimCenter = su.aim0;
+  st.aimVel = SB.AIM_VEL;
   st.bombAt = null;
   st.transit = null;
   st.boomIdx = null;
@@ -127,6 +144,24 @@ function applyRoundSetup(st) {
   st.phase = 'spin';
   st.phaseT = 0;
   st.target0 = su.target0;
+}
+
+function sweepAim(s, dt) {
+  const center = s.aimCenter ?? s.aim;
+  const vel = s.aimVel || SB.AIM_VEL;
+  let aim = s.aim + vel * dt;
+  let nextVel = vel;
+  const hi = center + SB.SWEEP_AMP;
+  const lo = center - SB.SWEEP_AMP;
+  if (aim >= hi) {
+    aim = hi;
+    nextVel = -Math.abs(SB.AIM_VEL);
+  } else if (aim <= lo) {
+    aim = lo;
+    nextVel = Math.abs(SB.AIM_VEL);
+  }
+  s.aim = aim;
+  s.aimVel = nextVel;
 }
 
 function beginTransit(st, x0, y0, toIdx, miss, angle) {
@@ -171,6 +206,7 @@ export function sbStep(st, throws, dt) {
         s.transit = null;
         s.phase = 'live';
         s.phaseT = 0;
+        setHolderAim(s, s.bombAt);
       }
       break;
     }
@@ -183,12 +219,10 @@ export function sbStep(st, throws, dt) {
           s.transit = null;
           s.bombAt = arrived;
           if (s.pendingBoom || s.fuseT >= s.fuse) return explode(s, arrived);
-          if (!wasMiss) {
-            s.aim = mulberry32((s.seed ^ (arrived * 7919) ^ Math.floor(s.fuseT * 1000)) >>> 0)() * Math.PI * 2;
-          }
+          if (!wasMiss) setHolderAim(s, arrived);
         }
       } else {
-        s.aim = (s.aim + SB.AIM_VEL * dt) % (Math.PI * 2);
+        sweepAim(s, dt);
         if (s.fuseT >= s.fuse) return explode(s, s.bombAt);
         for (const th of throws || []) {
           if (s.bombAt == null) break;

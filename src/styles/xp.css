@@ -1,0 +1,236 @@
+/* Duo XP bar + leaderboard — night theme variables. */
+
+.arcade-page .xp-bar {
+  width: 100%;
+  margin: 14px 0 4px;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--room2), var(--room));
+}
+
+.arcade-page .xp-bar-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.arcade-page .xp-badge {
+  flex: none;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 18px;
+  color: #2a1e05;
+  background: var(--candle);
+  border: 2px solid color-mix(in srgb, var(--candle) 70%, #2a1e05);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--candle) 35%, transparent);
+}
+
+.arcade-page .xp-bar-copy { flex: 1; min-width: 0; }
+
+.arcade-page .xp-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.arcade-page .xp-meta {
+  margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.arcade-page .xp-sep { opacity: .5; }
+
+.arcade-page .xp-board-link {
+  color: var(--candle);
+  text-decoration: none;
+  font-weight: 600;
+}
+.arcade-page .xp-board-link:hover { text-decoration: underline; }
+
+.arcade-page .xp-track {
+  margin-top: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--night);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  position: relative;
+}
+
+.arcade-page .xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--p1), var(--p2));
+  position: relative;
+  overflow: hidden;
+  transition: width .45s ease;
+  min-width: 0;
+}
+
+.arcade-page .xp-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, .35) 48%,
+    transparent 62%
+  );
+  transform: translateX(-120%);
+  animation: xp-shine 2.8s ease-in-out infinite;
+}
+
+@keyframes xp-shine {
+  0%, 35% { transform: translateX(-120%); }
+  70%, 100% { transform: translateX(120%); }
+}
+
+.arcade-page .xp-sub {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* —— Leaderboard page —— */
+
+.arcade-page .xp-lb {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+  width: 100%;
+}
+
+.arcade-page .xp-lb-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.arcade-page .xp-lb-head h1 {
+  flex: 1;
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 26px;
+}
+
+.arcade-page .xp-lb-you {
+  border: 1px solid var(--candle);
+  background: color-mix(in srgb, var(--candle) 12%, var(--room));
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--candle);
+}
+
+.arcade-page .xp-lb-you strong {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--text);
+  display: block;
+  margin-top: 2px;
+}
+
+.arcade-page .xp-lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.arcade-page .xp-lb-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--room);
+}
+
+.arcade-page .xp-lb-row.mine {
+  border-color: var(--candle);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--candle) 40%, transparent);
+  background: color-mix(in srgb, var(--candle) 8%, var(--room));
+}
+
+.arcade-page .xp-lb-row.rank-1 {
+  border-color: #E8C35A;
+  background: color-mix(in srgb, #E8C35A 10%, var(--room));
+}
+.arcade-page .xp-lb-row.rank-2 {
+  border-color: #C0C6D4;
+  background: color-mix(in srgb, #C0C6D4 10%, var(--room));
+}
+.arcade-page .xp-lb-row.rank-3 {
+  border-color: #C47A4A;
+  background: color-mix(in srgb, #C47A4A 10%, var(--room));
+}
+
+.arcade-page .xp-lb-rank {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--dim);
+}
+
+.arcade-page .xp-lb-row.rank-1 .xp-lb-rank { color: #E8C35A; }
+.arcade-page .xp-lb-row.rank-2 .xp-lb-rank { color: #C0C6D4; }
+.arcade-page .xp-lb-row.rank-3 .xp-lb-rank { color: #C47A4A; }
+
+.arcade-page .xp-lb-names {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.arcade-page .xp-lb-title {
+  font-size: 12px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+.arcade-page .xp-lb-stats {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.arcade-page .xp-lb-stats b {
+  display: block;
+  font-size: 15px;
+  color: var(--candle);
+  font-weight: 700;
+}
+
+.arcade-page .xp-lb-status {
+  text-align: center;
+  color: var(--dim);
+  padding: 28px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arcade-page .xp-shine { animation: none; }
+}

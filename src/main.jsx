@@ -9,6 +9,7 @@ import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
 import Week from './pages/Week.jsx';
+import Leaderboard from './pages/Leaderboard.jsx';
 import { initAppearance } from './lib/appearance.js';
 import './styles/base.css';
 
@@ -26,6 +27,7 @@ import './styles/forbidden.css';
 import './styles/wordbomb.css';
 import './styles/uno.css';
 import './styles/coup.css';
+import './styles/xp.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -33,6 +35,7 @@ createRoot(document.getElementById('root')).render(
     <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<Arcade />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/arena" element={<Arena />} />
         <Route path="/arena/:matchCode" element={<ArenaMatch />} />
         <Route path="/whiteboard/:code" element={<Whiteboard />} />

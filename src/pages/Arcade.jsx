@@ -7,6 +7,7 @@ import {
 } from '../lib/util.js';
 import { watchGeo } from '../lib/location.js';
 import { chatConfigured, sendGameEvent } from '../lib/chat.js';
+import { awardXp } from '../lib/xp.js';
 import AuthScreen from '../arcade/AuthScreen.jsx';
 import LobbyScreen from '../arcade/LobbyScreen.jsx';
 import PublicProfileScreen from '../arcade/PublicProfileScreen.jsx';
@@ -357,6 +358,8 @@ export default function Arcade() {
       if (w === 'draw') rec.d++; else if (w === 'A') rec.a++; else rec.b++;
       patch.records = records;
       finishPatch(duo, patch);
+      // One award per finished match (this client is the only one writing the finish).
+      awardXp(code, s.game).catch(() => {});
     }
     const prev = duo;
     patchLocal(patch);
@@ -396,6 +399,8 @@ export default function Arcade() {
     finishPatch(duo, patch);
     patchLocal(patch);
     await upd(code, patch, { force: true });
+    // Realtime engines only call onFinish from the host — one award per match.
+    awardXp(code, gameId).catch(() => {});
   }, [patchLocal, upd]);
 
   const requestPause = useCallback(async onStatus => {

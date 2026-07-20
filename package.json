@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:engines": "node src/engines/test.mjs",
-    "test:arena": "node src/lib/arenaLogic.test.mjs"
+    "test:arena": "node src/lib/arenaLogic.test.mjs",
+    "test:xp": "node scripts/test-xp-pure.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

@@ -1363,24 +1363,35 @@ export const ART = {
       </g>
     </g>
 
-    <!-- center cannon -->
+    <!-- center launcher (static) -->
     <g class="sb-cannon" transform="translate(120 66)">
       <circle r="11" fill="#14141C" stroke="#3A3A46" stroke-width="2"/>
       <rect x="0" y="-3" width="16" height="6" rx="1.5" fill="#3A3A46"/>
     </g>
 
-    <!-- fused bomb -->
-    <g class="sb-bomb" transform="translate(120 30)">
-      <circle cy="-16" r="7" fill="url(#sb-bomb)" stroke="#34343F" stroke-width="1.5" filter="url(#sb-glow)"/>
-      <path d="M3 -21 Q7 -26 10 -23" stroke="#6B5A44" stroke-width="1.6" fill="none"/>
-      <circle class="sb-spark" cx="10" cy="-23" r="2.2" fill="var(--candle)" filter="url(#sb-glow2)"/>
+    <!-- bomb tossed from sumo to sumo -->
+    <g class="sb-bomb">
+      <circle r="7" fill="url(#sb-bomb)" stroke="#34343F" stroke-width="1.5" filter="url(#sb-glow)"/>
+      <circle cx="-2.2" cy="-2.4" r="1.8" fill="#FFFFFF" opacity=".22"/>
+      <path d="M3 -5 Q7 -10 10 -7" stroke="#6B5A44" stroke-width="1.6" fill="none"/>
+      <circle class="sb-spark" cx="10" cy="-7" r="2.2" fill="var(--candle)" filter="url(#sb-glow2)"/>
     </g>
 
     ${sparks('sb', [[48, 28, 1.5, 'var(--candle)'], [198, 40, 1.4, 'var(--p1)'], [210, 96, 1.3, 'var(--p2)'], [36, 100, 1.4, 'var(--candle)']])}`,
-    `.sb-cannon { animation: sb-spin 2.8s linear infinite; transform-box: fill-box; transform-origin: center; }
-     @keyframes sb-spin { to { transform: rotate(360deg) } }
-     .sb-bomb { animation: sb-bob 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-     @keyframes sb-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+    `.sb-bomb { animation: sb-pass 5.6s ease-in-out infinite; }
+     @keyframes sb-pass {
+       0%, 6%   { transform: translate(120px, 16px); }
+       12.5%    { transform: translate(138px, 6px); }
+       18%, 24% { transform: translate(152px, 30px); }
+       31%      { transform: translate(164px, 42px); }
+       37%, 43% { transform: translate(164px, 58px); }
+       50%      { transform: translate(148px, 72px); }
+       56%, 62% { transform: translate(120px, 90px); }
+       68%      { transform: translate(92px, 72px); }
+       74%, 80% { transform: translate(76px, 58px); }
+       87%      { transform: translate(82px, 28px); }
+       93%, 100%{ transform: translate(120px, 16px); }
+     }
      .sb-spark { animation: sb-flicker .45s ease-in-out infinite alternate; }
      @keyframes sb-flicker { from { opacity: .55 } to { opacity: 1 } }
      .sb-s0,.sb-s2,.sb-s4,.sb-s6 { animation: sb-pulseA 2.4s ease-in-out infinite; }
@@ -1389,71 +1400,166 @@ export const ART = {
      @keyframes sb-pulseB { 0%,100% { opacity: .8 } 50% { opacity: 1 } }
      ${sparkAnim('sb', 4)}`),
 
-  /* ─── Magnet Hearts: two zones + raining hearts + magnet pods ─── */
+  /* ─── Magnet Hearts: shining banks + cute magneteers + hearts ─── */
   magnethearts: scene('mh', `
+    <radialGradient id="mh-floor" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#2A2240"/>
+      <stop offset="55%" stop-color="#1C162C"/>
+      <stop offset="100%" stop-color="#100E18"/>
+    </radialGradient>
     <radialGradient id="mh-zoneA" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="var(--p1)" stop-opacity=".35"/>
-      <stop offset="100%" stop-color="var(--p1)" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".9"/>
+      <stop offset="28%" stop-color="var(--p1)" stop-opacity="1"/>
+      <stop offset="75%" stop-color="var(--p1)" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="var(--p1)" stop-opacity=".1"/>
     </radialGradient>
     <radialGradient id="mh-zoneB" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="var(--p2)" stop-opacity=".35"/>
-      <stop offset="100%" stop-color="var(--p2)" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".9"/>
+      <stop offset="28%" stop-color="var(--p2)" stop-opacity="1"/>
+      <stop offset="75%" stop-color="var(--p2)" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="var(--p2)" stop-opacity=".1"/>
     </radialGradient>
-    <radialGradient id="mh-podA" cx="32%" cy="28%" r="72%">
+    <radialGradient id="mh-bodyA" cx="35%" cy="30%" r="70%">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="30%" stop-color="var(--p1)"/>
+      <stop offset="35%" stop-color="var(--p1)"/>
       <stop offset="100%" stop-color="#3A5CA8"/>
     </radialGradient>
-    <radialGradient id="mh-podB" cx="32%" cy="28%" r="72%">
+    <radialGradient id="mh-bodyB" cx="35%" cy="30%" r="70%">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="30%" stop-color="var(--p2)"/>
+      <stop offset="35%" stop-color="var(--p2)"/>
       <stop offset="100%" stop-color="#B04A72"/>
-    </radialGradient>`, `
-    <ellipse cx="120" cy="114" rx="78" ry="8" fill="#191420" opacity=".45"/>
-    <rect x="28" y="18" width="184" height="90" rx="14" fill="#171226" stroke="var(--line)" stroke-width="2"/>
+    </radialGradient>
+    <linearGradient id="mh-heartFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="35%" stop-color="var(--p2)"/>
+      <stop offset="100%" stop-color="var(--p2)"/>
+    </linearGradient>
+    <linearGradient id="mh-goldFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="var(--candle)"/>
+      <stop offset="100%" stop-color="#E8A84A"/>
+    </linearGradient>`, `
+    <!-- full-bleed arena (no inner frame) -->
+    <rect width="240" height="130" fill="url(#mh-floor)"/>
+    <path d="M8 36 C80 22 160 50 232 34" fill="none" stroke="var(--text)" stroke-width="1" opacity=".06"/>
+    <path d="M8 68 C80 54 160 82 232 66" fill="none" stroke="var(--text)" stroke-width="1" opacity=".05"/>
+    <path d="M8 100 C80 86 160 114 232 98" fill="none" stroke="var(--text)" stroke-width="1" opacity=".04"/>
+    <ellipse cx="40" cy="68" rx="48" ry="56" fill="var(--p1)" opacity=".1"/>
+    <ellipse cx="200" cy="68" rx="48" ry="56" fill="var(--p2)" opacity=".1"/>
 
-    <circle cx="52" cy="63" r="22" fill="url(#mh-zoneA)"/>
-    <circle cx="52" cy="63" r="20" fill="none" stroke="var(--p1)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
-    <circle cx="188" cy="63" r="22" fill="url(#mh-zoneB)"/>
-    <circle cx="188" cy="63" r="20" fill="none" stroke="var(--p2)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
+    <!-- shining bank zones -->
+    <g class="mh-zoneA" filter="url(#mh-glow)">
+      <circle cx="48" cy="64" r="26" fill="url(#mh-zoneA)"/>
+    </g>
+    <circle cx="48" cy="64" r="26" fill="none" stroke="var(--p1)" stroke-width="2"/>
+    <circle cx="48" cy="64" r="18" fill="none" stroke="#FFFFFF" stroke-width="1" opacity=".35"/>
+    <path d="M40 52 A12 12 0 0 1 40 76" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" opacity=".4"/>
 
-    <!-- raining hearts -->
-    <g class="mh-hearts" fill="var(--p2)">
-      <path class="mh-h0" d="M78 28 C78 22 72 20 70 26 C68 20 62 22 62 28 C62 36 70 42 70 42 C70 42 78 36 78 28Z" opacity=".9"/>
-      <path class="mh-h1" d="M128 24 C128 18 122 16 120 22 C118 16 112 18 112 24 C112 32 120 38 120 38 C120 38 128 32 128 24Z" fill="var(--candle)" filter="url(#mh-glow)"/>
-      <path class="mh-h2" d="M168 34 C168 28 162 26 160 32 C158 26 152 28 152 34 C152 42 160 48 160 48 C160 48 168 42 168 34Z" opacity=".85"/>
+    <g class="mh-zoneB" filter="url(#mh-glow)">
+      <circle cx="192" cy="64" r="26" fill="url(#mh-zoneB)"/>
+    </g>
+    <circle cx="192" cy="64" r="26" fill="none" stroke="var(--p2)" stroke-width="2"/>
+    <circle cx="192" cy="64" r="18" fill="none" stroke="#FFFFFF" stroke-width="1" opacity=".35"/>
+    <path d="M200 52 A12 12 0 0 0 200 76" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" opacity=".4"/>
+
+    <!-- smooth hearts -->
+    <g class="mh-h0">
+      <path d="M120 38
+        C120 30 112 26 106 32
+        C100 26 92 30 92 38
+        C92 50 106 60 106 60
+        C106 60 120 50 120 38Z" fill="url(#mh-heartFill)" stroke="#FFFFFF" stroke-width="1" opacity=".95"/>
+    </g>
+    <g class="mh-h1" filter="url(#mh-glow)">
+      <path d="M148 28
+        C148 20 140 16 134 22
+        C128 16 120 20 120 28
+        C120 40 134 50 134 50
+        C134 50 148 40 148 28Z" fill="url(#mh-goldFill)" stroke="#FFF5C8" stroke-width="1.2"/>
+      <circle class="mh-g0" cx="128" cy="22" r="1.6" fill="#FFF5C8"/>
+      <circle class="mh-g1" cx="142" cy="34" r="1.4" fill="#FFF5C8"/>
+    </g>
+    <g class="mh-h2">
+      <path d="M168 52
+        C168 46 162 43 158 47
+        C154 43 148 46 148 52
+        C148 60 158 67 158 67
+        C158 67 168 60 168 52Z" fill="url(#mh-heartFill)" stroke="#FFFFFF" stroke-width=".9" opacity=".9"/>
     </g>
 
     <!-- bomb -->
-    <g class="mh-bomb" transform="translate(100 78)">
-      <circle r="7" fill="#14141C" stroke="#34343F" stroke-width="1.4"/>
-      <circle cx="-2" cy="-2.5" r="1.8" fill="#FFFFFF" opacity=".25"/>
-      <path d="M3 -5 Q7 -10 9 -7" stroke="#6B5A44" stroke-width="1.4" fill="none"/>
-      <circle class="mh-spark" cx="9" cy="-7" r="2" fill="var(--candle)" filter="url(#mh-glow2)"/>
+    <g class="mh-bomb" transform="translate(110 88)">
+      <circle r="8" fill="#14141C" stroke="#34343F" stroke-width="1.4"/>
+      <circle cx="-2.5" cy="-2.8" r="2" fill="#FFFFFF" opacity=".22"/>
+      <path d="M3.5 -5.5 Q8 -11 10.5 -8" stroke="#6B5A44" stroke-width="1.5" fill="none"/>
+      <circle class="mh-spark" cx="10.5" cy="-8" r="2.2" fill="var(--candle)" filter="url(#mh-glow2)"/>
     </g>
 
-    <!-- pods -->
-    <g class="mh-podA">
-      <circle cx="52" cy="63" r="16" fill="none" stroke="var(--p1)" stroke-width="1" opacity=".2"/>
-      <circle cx="52" cy="63" r="10" fill="url(#mh-podA)" filter="url(#mh-glow)"/>
-    </g>
-    <g class="mh-podB">
-      <circle cx="188" cy="63" r="16" fill="none" stroke="var(--p2)" stroke-width="1" opacity=".2"/>
-      <circle cx="188" cy="63" r="10" fill="url(#mh-podB)" filter="url(#mh-glow)"/>
+    <!-- cute magneteer A -->
+    <g class="mh-critA">
+      <ellipse cx="48" cy="86" rx="12" ry="3.5" fill="#000" opacity=".25"/>
+      <ellipse cx="42" cy="78" rx="4" ry="3" fill="#3A5CA8"/>
+      <ellipse cx="54" cy="78" rx="4" ry="3" fill="#3A5CA8"/>
+      <ellipse cx="48" cy="68" rx="14" ry="13" fill="url(#mh-bodyA)" filter="url(#mh-glow)"/>
+      <ellipse cx="48" cy="72" rx="7" ry="5.5" fill="#FFFFFF" opacity=".28"/>
+      <ellipse cx="40" cy="58" rx="4.2" ry="5" fill="var(--p1)"/>
+      <ellipse cx="56" cy="58" rx="4.2" ry="5" fill="var(--p1)"/>
+      <ellipse cx="40" cy="57" rx="2" ry="2.4" fill="#3A5CA8"/>
+      <ellipse cx="56" cy="57" rx="2" ry="2.4" fill="#3A5CA8"/>
+      <ellipse cx="42" cy="70" rx="2.6" ry="1.6" fill="#FF8CB4" opacity=".45"/>
+      <ellipse cx="54" cy="70" rx="2.6" ry="1.6" fill="#FF8CB4" opacity=".45"/>
+      <ellipse cx="43.5" cy="66" rx="3.2" ry="3.8" fill="#1E1A28"/>
+      <ellipse cx="52.5" cy="66" rx="3.2" ry="3.8" fill="#1E1A28"/>
+      <circle cx="44.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
+      <circle cx="53.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
+      <!-- magnet opening outward (right) -->
+      <g transform="translate(66 70)">
+        <path d="M0 -8 A8 8 0 0 1 0 8" fill="none" stroke="#D2D7E0" stroke-width="5" stroke-linecap="round" filter="url(#mh-glow)"/>
+        <rect x="-1" y="-10" width="5" height="5" rx="1" fill="#E2554A"/>
+        <rect x="-1" y="5" width="5" height="5" rx="1" fill="#4A7BE0"/>
+      </g>
     </g>
 
-    ${sparks('mh', [[40, 30, 1.4, 'var(--p1)'], [200, 36, 1.5, 'var(--p2)'], [120, 100, 1.3, 'var(--candle)'], [86, 92, 1.2, 'var(--p2)']])}`,
-    `.mh-h0 { animation: mh-fall 2.4s ease-in infinite; }
-     .mh-h1 { animation: mh-fall 2.8s ease-in .4s infinite; }
-     .mh-h2 { animation: mh-fall 2.2s ease-in .8s infinite; }
-     @keyframes mh-fall {
-       0% { transform: translateY(-6px); opacity: 0 }
-       20% { opacity: 1 }
-       100% { transform: translateY(18px); opacity: .15 }
-     }
-     .mh-podA { animation: mh-bob 2.2s ease-in-out infinite; }
-     .mh-podB { animation: mh-bob 2.2s ease-in-out .5s infinite; }
+    <!-- cute magneteer B -->
+    <g class="mh-critB">
+      <ellipse cx="192" cy="86" rx="12" ry="3.5" fill="#000" opacity=".25"/>
+      <ellipse cx="186" cy="78" rx="4" ry="3" fill="#B04A72"/>
+      <ellipse cx="198" cy="78" rx="4" ry="3" fill="#B04A72"/>
+      <ellipse cx="192" cy="68" rx="14" ry="13" fill="url(#mh-bodyB)" filter="url(#mh-glow)"/>
+      <ellipse cx="192" cy="72" rx="7" ry="5.5" fill="#FFFFFF" opacity=".28"/>
+      <ellipse cx="184" cy="58" rx="4.2" ry="5" fill="var(--p2)"/>
+      <ellipse cx="200" cy="58" rx="4.2" ry="5" fill="var(--p2)"/>
+      <ellipse cx="184" cy="57" rx="2" ry="2.4" fill="#B04A72"/>
+      <ellipse cx="200" cy="57" rx="2" ry="2.4" fill="#B04A72"/>
+      <ellipse cx="186" cy="70" rx="2.6" ry="1.6" fill="#FF8CB4" opacity=".45"/>
+      <ellipse cx="198" cy="70" rx="2.6" ry="1.6" fill="#FF8CB4" opacity=".45"/>
+      <ellipse cx="187.5" cy="66" rx="3.2" ry="3.8" fill="#1E1A28"/>
+      <ellipse cx="196.5" cy="66" rx="3.2" ry="3.8" fill="#1E1A28"/>
+      <circle cx="188.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
+      <circle cx="197.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
+      <!-- magnet opening outward (left) -->
+      <g transform="translate(174 70) scale(-1,1)">
+        <path d="M0 -8 A8 8 0 0 1 0 8" fill="none" stroke="#D2D7E0" stroke-width="5" stroke-linecap="round" filter="url(#mh-glow)"/>
+        <rect x="-1" y="-10" width="5" height="5" rx="1" fill="#E2554A"/>
+        <rect x="-1" y="5" width="5" height="5" rx="1" fill="#4A7BE0"/>
+      </g>
+    </g>
+
+    ${sparks('mh', [[36, 24, 1.4, 'var(--p1)'], [204, 28, 1.5, 'var(--p2)'], [122, 108, 1.3, 'var(--candle)'], [96, 22, 1.2, 'var(--candle)']])}`,
+    `.mh-zoneA, .mh-zoneB { animation: mh-shine 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+     @keyframes mh-shine { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
+     .mh-critA { animation: mh-bob 2.2s ease-in-out infinite; }
+     .mh-critB { animation: mh-bob 2.2s ease-in-out .45s infinite; }
      @keyframes mh-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+     .mh-h0 { animation: mh-float 2.6s ease-in-out infinite; }
+     .mh-h1 { animation: mh-float 2.8s ease-in-out .35s infinite; }
+     .mh-h2 { animation: mh-float 2.3s ease-in-out .7s infinite; }
+     @keyframes mh-float {
+       0%,100% { transform: translateY(0); opacity: .95 }
+       50% { transform: translateY(-5px); opacity: 1 }
+     }
+     .mh-g0, .mh-g1 { animation: mh-twinkle .7s ease-in-out infinite alternate; }
+     @keyframes mh-twinkle { from { opacity: .35 } to { opacity: 1 } }
      .mh-spark { animation: mh-flick .4s ease-in-out infinite alternate; }
      @keyframes mh-flick { from { opacity: .5 } to { opacity: 1 } }
      .mh-bomb { animation: mh-bob 1.8s ease-in-out .2s infinite; }

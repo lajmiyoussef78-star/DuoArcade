@@ -230,18 +230,18 @@ export const RULES = {
     how: [
       'Eight sumos on a ring: four yours, four your partner\u2019s, alternating colors.',
       'The center cannon spins, then fires the bomb at a random sumo. Fuse length is secret (5\u201320s).',
-      'When YOUR sumo holds it, a gold aim arrow sweeps \u2014 tap anywhere (or SPACE) to throw along the arrow.',
+      'When YOUR sumo holds it, the aim arrow sweeps left and right inside the ring \u2014 tap (or SPACE) to throw.',
       'The bomb lands on whoever the throw-line hits. Miss everyone and it loops straight back to you.',
       'If it explodes on one of YOUR sumos, your partner scores. First to 3 wins the basho.'
     ],
-    tip: 'Don\u2019t panic-throw into empty air \u2014 a miss wastes fuse and the bomb comes right back.'
+    tip: 'Wait for the arrow to line up with a sumo \u2014 don\u2019t fling into empty air.'
   },
 
   magnethearts: {
     goal: 'Bank the most hearts in 90 seconds \u2014 gold is +2, bombs are -2.',
     how: [
-      'Your pod is a magnet. Free items inside your ring pull toward you and snap into orbit (max 3).',
-      'THROW (SPACE or the big button) flings your whole orbit the way you last moved.',
+      'Your critter holds a magnet. Up to 5 items appear on the field (mostly hearts, few bombs) — spaced apart, one catch at a time.',
+      'THROW (SPACE or the big button) flings your catch the way you last moved.',
       'Land hearts in YOUR glowing zone to bank them. Hurl bombs into your partner\u2019s zone.',
       'Carried items never convert. Catch a bomb near your pod and send it back.',
       'Highest bank when the clock hits zero wins. Ties are draws.'

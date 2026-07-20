@@ -9,6 +9,7 @@ import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
 import FeatureRail from './FeatureRail.jsx';
+import XpBar from './XpBar.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
 
@@ -164,6 +165,8 @@ export default function HomeScreen({
           )}
           <button className="btn small ghost" onClick={onBack}>Profile</button>
         </div>
+
+        <XpBar code={code} />
 
         <div className="home-stats">
           <div className="hstat"><div className="n">{t.games}</div><div className="l">games together</div></div>
