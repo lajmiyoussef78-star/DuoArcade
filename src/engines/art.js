@@ -1212,35 +1212,7 @@ export const ART = {
      @keyframes ti-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
      .ti-gone { animation: ti-fade 3.2s ease-in-out infinite; }
      @keyframes ti-fade { 0%,100% { opacity: .55 } 50% { opacity: .9 } }
-     ${sparkAnim('ti', 3)}`),
-
-  /* ─── Loop Duel: stadium circuit + two cars ─── */
-  loopduel: scene('ld', `
-    <linearGradient id="ld-grass" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#16211A"/>
-      <stop offset="100%" stop-color="#101A14"/>
-    </linearGradient>`, `
-    <rect width="240" height="130" fill="url(#ld-grass)"/>
-    <ellipse cx="120" cy="66" rx="78" ry="42" fill="none" stroke="#2E3038" stroke-width="18"/>
-    <ellipse cx="120" cy="66" rx="78" ry="42" fill="none" stroke="var(--candle)" stroke-width="2.5" stroke-dasharray="8 7" opacity=".7"/>
-    <rect x="116" y="20" width="8" height="18" fill="#EDE8F2" opacity=".9"/>
-    <rect x="116" y="20" width="4" height="9" fill="#1A1420"/>
-    <rect x="120" y="29" width="4" height="9" fill="#1A1420"/>
-    <g class="ld-carA">
-      <rect x="88" y="28" width="16" height="9" rx="3" fill="var(--p1)"/>
-      <rect x="96" y="30" width="5" height="5" rx="1" fill="rgba(10,10,18,.5)"/>
-    </g>
-    <g class="ld-carB">
-      <rect x="136" y="94" width="16" height="9" rx="3" fill="var(--p2)"/>
-      <rect x="144" y="96" width="5" height="5" rx="1" fill="rgba(10,10,18,.5)"/>
-    </g>
-    <path d="M148 34 L156 40 L148 46 L151 40 Z" fill="rgba(111,220,168,.8)"/>
-    <path d="M158 34 L166 40 L158 46 L161 40 Z" fill="rgba(111,220,168,.8)"/>
-    ${sparks('ld', [[44, 36, 1.5, 'var(--p1)'], [196, 96, 1.5, 'var(--p2)'], [120, 66, 1.3, 'var(--candle)']])}`,
-    `.ld-carA { animation: ld-drive 2.8s ease-in-out infinite; }
-     .ld-carB { animation: ld-drive 2.8s ease-in-out .5s infinite reverse; }
-     @keyframes ld-drive { 0%,100% { transform: translate(0,0) } 50% { transform: translate(10px,4px) } }
-     ${sparkAnim('ld', 3)}`)
+     ${sparkAnim('ti', 3)}`)
 };
 
 export const artFor = id => ART[id] || null;

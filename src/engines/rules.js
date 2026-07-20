@@ -225,17 +225,6 @@ export const RULES = {
     tip: 'Central position early = options later. Your trail is a knife \u2014 wall them off.'
   },
 
-  loopduel: {
-    goal: 'First to 5 laps on the night circuit wins.',
-    how: [
-      'Your car drives itself. Turn the on-screen wheel (clockwise) to carve into corners; release to run straight. SPACE or arrows also turn.',
-      'Yellow curbs are hard walls — hit them and you bounce with scrubbed speed. Green chevrons on the top straight boost you.',
-      'Bumpers are legal \u2014 trading paint swaps momentum.',
-      'Laps only count if you pass the bottom-center checkpoint before the finish line. First to 5 takes the race.'
-    ],
-    tip: 'Master the release points \u2014 holding too long slams you into the curb.'
-  },
-
   chkobba: {
     goal: 'Score Carta, Diamonds, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
     how: [
