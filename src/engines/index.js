@@ -28,6 +28,7 @@ import * as CB from './codebreak.js';
 import * as SS from './sparksplash.js';
 import * as RSC from './readysetcook.js';
 import * as SSD from './stickmanswordduel.js';
+import * as SR from './stickmanracing.js';
 import * as MSC from './microsoccer.js';
 import * as MD from './moleduel.js';
 import * as FW from './forbiddenwords.js';
@@ -43,6 +44,6 @@ import * as THINICE from './thinice.js';
 import * as LOOPDUEL from './loopduel.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, MINUSONE, THINICE, LOOPDUEL]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, MINUSONE, THINICE, LOOPDUEL]
     .map(e => [e.meta.id, e])
 );

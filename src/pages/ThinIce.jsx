@@ -1,7 +1,7 @@
 // src/pages/ThinIce.jsx — Thin Ice (mounted by the thinice engine).
 //
 // Isolation on a melting lake. Lockstep moves over shell RT.
-// First to WIN_ROUNDS round wins takes the match.
+// One round decides the match — whoever falls loses.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -160,15 +160,7 @@ export default function ThinIce({ myRole, names = {}, rt, code, onComplete }) {
             <div className="ti-brand">Thin Ice</div>
             <div className="ti-scorebar">
               <span className="ti-pname pA">{nm.A}</span>
-              <div className="ti-pips">
-                {Array.from({ length: WIN_ROUNDS }).map((_, i) => (
-                  <span key={'a' + i} className={'ti-pip A' + (wins.A > i ? ' on' : '')} />
-                ))}
-                <span className="ti-roundno">round {roundNo + 1}</span>
-                {Array.from({ length: WIN_ROUNDS }).map((_, i) => (
-                  <span key={'b' + i} className={'ti-pip B' + (wins.B > i ? ' on' : '')} />
-                ))}
-              </div>
+              <span className="ti-roundno">one round</span>
               <span className="ti-pname pB">{nm.B}</span>
             </div>
           </div>
@@ -211,7 +203,7 @@ export default function ThinIce({ myRole, names = {}, rt, code, onComplete }) {
                         'ti-tile' +
                         (brokenTile ? ' broken' : '') +
                         (justBroke ? ' cracking' : '') +
-                        (target ? ' target' : '')
+                        (target ? ' target seat' + me : '')
                       }
                       onClick={() => tapTile(r, c)}
                       disabled={!target}
@@ -225,7 +217,6 @@ export default function ThinIce({ myRole, names = {}, rt, code, onComplete }) {
                           (round.loser === (isA ? 'A' : 'B') ? ' fallen' : '')
                         } />
                       )}
-                      {target && <span className="ti-ring" />}
                     </button>
                   );
                 })
@@ -239,7 +230,7 @@ export default function ThinIce({ myRole, names = {}, rt, code, onComplete }) {
             </div>
           )}
           {phase === 'over' && (
-            <p className="ti-note">Use Rematch in the shell for another first-to-{WIN_ROUNDS}.</p>
+            <p className="ti-note">Use Rematch in the shell for another round.</p>
           )}
         </div>
       </div>

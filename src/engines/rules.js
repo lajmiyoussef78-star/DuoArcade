@@ -112,6 +112,17 @@ export const RULES = {
     tip: 'Don\u2019t spam heavies \u2014 a parry beats everything, including a charged swing.'
   },
 
+  stickmanracing: {
+    goal: 'Reach the finish flag first on a long neon parkour track.',
+    how: [
+      'Host picks one of 10 tracks. Split view: blue (A) on top, pink (B) on bottom \u2014 each of you controls your own racer online.',
+      'Both use WASD + F: A/D run, W jump / wall-jump / rope release, S slide, F turbo.',
+      'Jump hurdles, slide under bars, clear spikes, swing ropes, use springs. Fall? You respawn at the last checkpoint.',
+      'First to the checkered flag wins the race.'
+    ],
+    tip: 'Pace your turbo \u2014 it needs at least 35% to fire and recharges slowly.'
+  },
+
   microsoccer: {
     goal: 'Score more goals than your partner in 90 seconds.',
     how: [
@@ -204,12 +215,12 @@ export const RULES = {
   },
 
   thinice: {
-    goal: 'Trap your partner on the melting lake \u2014 first to 3 rounds wins.',
+    goal: 'Trap your partner on the melting lake \u2014 one round decides the winner.',
     how: [
-      '6\u00d76 ice grid. You are the blue orb, your partner the pink (mid-left vs mid-right). Starting player alternates each round.',
-      'On your turn, tap any of the 8 neighbouring intact tiles (diagonals count). Gold rings mark legal moves.',
+      '6\u00d76 ice grid. You are the blue orb, your partner the pink (mid-left vs mid-right).',
+      'On your turn, tap any of the 8 neighbouring intact tiles (diagonals count). Legal tiles tint in your color.',
       'The tile you leave cracks and sinks forever \u2014 for both of you. You cannot land on your partner.',
-      'No legal move on your turn and you fall through; your partner takes the round. First to 3 round wins takes the match.'
+      'No legal move on your turn and you fall through; your partner wins the match.'
     ],
     tip: 'Central position early = options later. Your trail is a knife \u2014 wall them off.'
   },
@@ -217,12 +228,12 @@ export const RULES = {
   loopduel: {
     goal: 'First to 5 laps on the night circuit wins.',
     how: [
-      'Your car drives itself. HOLD (anywhere on the track on phones; SPACE or arrows on desktop) to carve into corners; release to run straight.',
-      'Green chevrons on the top straight boost you. The oil slick on the bottom kills grip. Tire stacks bounce you and scrub speed. Grass off the asphalt crawls.',
-      'Bumpers are legal \u2014 trading paint swaps momentum. Shove them into the oil.',
+      'Your car drives itself. Turn the on-screen wheel (clockwise) to carve into corners; release to run straight. SPACE or arrows also turn.',
+      'Yellow curbs are hard walls — hit them and you bounce with scrubbed speed. Green chevrons on the top straight boost you.',
+      'Bumpers are legal \u2014 trading paint swaps momentum.',
       'Laps only count if you pass the bottom-center checkpoint before the finish line. First to 5 takes the race.'
     ],
-    tip: 'Master the release points \u2014 holding too long spins you into the grass.'
+    tip: 'Master the release points \u2014 holding too long slams you into the curb.'
   },
 
   chkobba: {

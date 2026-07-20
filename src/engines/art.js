@@ -587,6 +587,27 @@ export const ART = {
      @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
      ${sparkAnim('ssd', 3)}`),
 
+  /* ─── Stickman Racing: parkour runners ─── */
+  stickmanracing: scene('sr', '', `
+    <rect x="24" y="88" width="192" height="10" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
+    <g class="sr-p1">
+      <circle cx="70" cy="52" r="7" fill="var(--p1)"/>
+      <path d="M70 59 V82 M60 68 H80 M70 82 L62 98 M70 82 L78 98" stroke="var(--p1)" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="sr-p2">
+      <circle cx="150" cy="48" r="7" fill="var(--p2)"/>
+      <path d="M150 55 V78 M140 64 H160 M150 78 L142 94 M150 78 L158 94" stroke="var(--p2)" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    </g>
+    <rect x="188" y="56" width="14" height="32" fill="#EDE8F2" opacity=".9"/>
+    <rect x="188" y="56" width="7" height="16" fill="#1A1420"/>
+    <rect x="195" y="72" width="7" height="16" fill="#1A1420"/>
+    <text x="195" y="50" text-anchor="middle" font-size="12">\uD83C\uDFC1</text>
+    ${sparks('sr', [[40, 30, 1.5, 'var(--p1)'], [200, 40, 1.5, 'var(--p2)'], [120, 24, 1.3, 'var(--candle)']])}`,
+    `.sr-p1 { animation: sr-run 1.2s ease-in-out infinite; }
+     .sr-p2 { animation: sr-run 1.2s ease-in-out .2s infinite; }
+     @keyframes sr-run { 0%,100% { transform: translateX(0) } 50% { transform: translateX(10px) } }
+     ${sparkAnim('sr', 3)}`),
+
   /* ─── Micro Soccer: cars + ball ─── */
   microsoccer: scene('msc', '', `
     <rect x="28" y="28" width="184" height="86" rx="8" fill="#15291B" stroke="var(--line)" stroke-width="2"/>
@@ -1085,9 +1106,9 @@ export const ART = {
   /* ─── Thin Ice: melting lake + two orbs ─── */
   thinice: scene('ti', `
     <linearGradient id="ti-ice" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#DCEBF5"/>
-      <stop offset="55%" stop-color="#AFC9DC"/>
-      <stop offset="100%" stop-color="#7E9DB8"/>
+      <stop offset="0%" stop-color="#F0F2F4"/>
+      <stop offset="55%" stop-color="#C8CDD3"/>
+      <stop offset="100%" stop-color="#8B929A"/>
     </linearGradient>
     <linearGradient id="ti-water" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#131C2C"/>
@@ -1143,7 +1164,6 @@ export const ART = {
     </g>
     <path d="M148 34 L156 40 L148 46 L151 40 Z" fill="rgba(111,220,168,.8)"/>
     <path d="M158 34 L166 40 L158 46 L161 40 Z" fill="rgba(111,220,168,.8)"/>
-    <ellipse cx="92" cy="96" rx="14" ry="7" fill="rgba(70,60,110,.55)"/>
     ${sparks('ld', [[44, 36, 1.5, 'var(--p1)'], [196, 96, 1.5, 'var(--p2)'], [120, 66, 1.3, 'var(--candle)']])}`,
     `.ld-carA { animation: ld-drive 2.8s ease-in-out infinite; }
      .ld-carB { animation: ld-drive 2.8s ease-in-out .5s infinite reverse; }

@@ -4,7 +4,7 @@
 // The tile you leave breaks forever. No legal move on your turn → you fall.
 
 export const N = 6;
-export const WIN_ROUNDS = 3;
+export const WIN_ROUNDS = 1;
 
 // Rotationally symmetric starts: A mid-left, B mid-right.
 export const START = { A: [2, 0], B: [3, 5] };

@@ -1,16 +1,18 @@
-// Thin Ice — melting-lake isolation for the duo game shell.
+// Stickman Racing — neon parkour duel, host-authoritative over duo realtime.
+// No dedicated SQL schema — match wins go through the shell onFinish tally.
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
-import ThinIce from '../pages/ThinIce.jsx';
+import StickmanRacing from '../stickman/StickmanRacing.jsx';
 
 let root = null;
+let pausedRef = { current: false };
 let finished = false;
 
 export const meta = {
-  id: 'thinice',
-  name: 'Thin Ice',
-  tag: 'strategy · melting lake · one round',
+  id: 'stickmanracing',
+  name: 'Stickman Racing',
+  tag: 'real-time · parkour · first to the flag',
   accent: 'p1',
   realtime: true
 };
@@ -18,9 +20,10 @@ export const meta = {
 export function mount(el, ctx) {
   unmount();
   finished = false;
+  pausedRef = { current: false };
   el.innerHTML = '';
   const wrap = document.createElement('div');
-  wrap.className = 'thinice-wrap';
+  wrap.className = 'sr-wrap';
   el.appendChild(wrap);
 
   const isHost = ctx.myRole === 'A';
@@ -31,19 +34,19 @@ export function mount(el, ctx) {
   };
 
   root = createRoot(wrap);
-  root.render(createElement(ThinIce, {
+  root.render(createElement(StickmanRacing, {
     myRole: ctx.myRole,
     names: ctx.names,
     rt: ctx.rt,
-    code: ctx.code,
+    pausedRef,
     onComplete: w => {
       if (isHost) finish(w);
     }
   }));
 }
 
-export function setPaused(_p) {
-  /* turn-based board — no clock */
+export function setPaused(p) {
+  pausedRef.current = !!p;
 }
 
 export function unmount() {
