@@ -105,6 +105,15 @@ export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme
               </button>
             </section>
           )}
+
+          {!canSetTheme && !onSignOut && (
+            <section className="set-block">
+              <div className="set-block-head">
+                <h3>Your place</h3>
+                <p>Sign in and open your duo to change themes and account options here.</p>
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>,
