@@ -1175,44 +1175,136 @@ export const ART = {
      @keyframes rsc-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
      ${sparkAnim('rsc', 3)}`),
 
-  /* ─── Thin Ice: melting lake + two orbs ─── */
+  /* ─── Thin Ice: living lake, glowing orbs, a tile cracking open ─── */
   thinice: scene('ti', `
     <linearGradient id="ti-ice" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#F0F2F4"/>
-      <stop offset="55%" stop-color="#C8CDD3"/>
-      <stop offset="100%" stop-color="#8B929A"/>
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#E8EEF4"/>
+      <stop offset="100%" stop-color="#A8B4C4"/>
+    </linearGradient>
+    <linearGradient id="ti-iceHot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D6E8FF"/>
+      <stop offset="55%" stop-color="var(--p1)"/>
+      <stop offset="100%" stop-color="#3A5CA8"/>
     </linearGradient>
     <linearGradient id="ti-water" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#131C2C"/>
-      <stop offset="100%" stop-color="#0C1524"/>
+      <stop offset="0%" stop-color="#1A2A44"/>
+      <stop offset="100%" stop-color="#0A1220"/>
     </linearGradient>
-    <radialGradient id="ti-orbA" cx="34%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#D6E4FF"/>
-      <stop offset="45%" stop-color="var(--p1)"/>
-      <stop offset="100%" stop-color="#3A5CA8"/>
+    <radialGradient id="ti-orbA" cx="32%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="22%" stop-color="#D6E4FF"/>
+      <stop offset="55%" stop-color="var(--p1)"/>
+      <stop offset="100%" stop-color="#2A4A98"/>
     </radialGradient>
-    <radialGradient id="ti-orbB" cx="34%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#FFDCE8"/>
-      <stop offset="45%" stop-color="var(--p2)"/>
-      <stop offset="100%" stop-color="#B04A72"/>
+    <radialGradient id="ti-orbB" cx="32%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="22%" stop-color="#FFDCE8"/>
+      <stop offset="55%" stop-color="var(--p2)"/>
+      <stop offset="100%" stop-color="#A03868"/>
+    </radialGradient>
+    <radialGradient id="ti-ripple" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="var(--p1)" stop-opacity="0"/>
+      <stop offset="70%" stop-color="var(--p1)" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="var(--p1)" stop-opacity="0"/>
     </radialGradient>`, `
-    <ellipse cx="120" cy="116" rx="78" ry="10" fill="#191420" opacity=".45"/>
-    <rect x="48" y="22" width="144" height="92" rx="14" fill="url(#ti-water)" stroke="var(--line)" stroke-width="2"/>
-    <g transform="translate(58 32)">
-      ${[0,1,2,3].map(r => [0,1,2,3].map(c => {
-        const gone = (r === 1 && c === 1) || (r === 2 && c === 2) || (r === 0 && c === 3);
-        return `<rect class="${gone ? 'ti-gone' : 'ti-tile'}" x="${c * 32}" y="${r * 20}" width="28" height="16" rx="4" fill="${gone ? '#0C1524' : 'url(#ti-ice)'}" opacity="${gone ? '.85' : '1'}"/>`;
-      }).join('')).join('')}
-      <g class="ti-orbA"><circle cx="14" cy="28" r="7" fill="url(#ti-orbA)" filter="url(#ti-glow)"/></g>
-      <g class="ti-orbB"><circle cx="110" cy="68" r="7" fill="url(#ti-orbB)" filter="url(#ti-glow)"/></g>
+    <ellipse cx="128" cy="118" rx="72" ry="9" fill="#191420" opacity=".5"/>
+    <rect x="56" y="18" width="148" height="96" rx="14" fill="url(#ti-water)" stroke="var(--line)" stroke-width="2"/>
+
+    <!-- soft lake glow -->
+    <ellipse cx="130" cy="66" rx="58" ry="34" fill="var(--p1)" opacity=".08" filter="url(#ti-glow2)"/>
+
+    <g transform="translate(66 28)">
+      <!-- row 0 -->
+      <rect class="ti-t0" x="0" y="0" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-t1" x="34" y="0" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-t2" x="68" y="0" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-gone" x="102" y="0" width="30" height="18" rx="5" fill="#0A1220"/>
+      <!-- row 1 -->
+      <rect class="ti-t3" x="0" y="22" width="30" height="18" rx="5" fill="url(#ti-iceHot)"/>
+      <rect class="ti-gone" x="34" y="22" width="30" height="18" rx="5" fill="#0A1220"/>
+      <rect class="ti-t4" x="68" y="22" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-t5" x="102" y="22" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <!-- row 2 -->
+      <rect class="ti-t6" x="0" y="44" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-t7" x="34" y="44" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <g class="ti-crack">
+        <rect x="68" y="44" width="30" height="18" rx="5" fill="url(#ti-ice)" opacity=".55"/>
+        <path d="M74 48 L82 55 L78 60 M88 47 L92 56 L98 52" stroke="#4A5A72" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".9"/>
+      </g>
+      <rect class="ti-t8" x="102" y="44" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <!-- row 3 -->
+      <rect class="ti-t9" x="0" y="66" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-t10" x="34" y="66" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+      <rect class="ti-gone" x="68" y="66" width="30" height="18" rx="5" fill="#0A1220"/>
+      <rect class="ti-t11" x="102" y="66" width="30" height="18" rx="5" fill="url(#ti-ice)"/>
+
+      <!-- frost sheen on intact tiles -->
+      <g fill="#FFFFFF" opacity=".35">
+        <rect x="3" y="3" width="12" height="2.5" rx="1"/><rect x="37" y="3" width="10" height="2.5" rx="1"/>
+        <rect x="71" y="3" width="11" height="2.5" rx="1"/><rect x="105" y="25" width="12" height="2.5" rx="1"/>
+        <rect x="3" y="47" width="10" height="2.5" rx="1"/><rect x="105" y="47" width="11" height="2.5" rx="1"/>
+        <rect x="37" y="69" width="12" height="2.5" rx="1"/>
+      </g>
+
+      <!-- splash ripples in sunk holes -->
+      <g class="ti-rip">
+        <circle cx="49" cy="31" r="7" fill="none" stroke="var(--p1)" stroke-width="1.4" opacity=".5"/>
+        <circle cx="117" cy="9" r="6" fill="none" stroke="var(--p2)" stroke-width="1.3" opacity=".45"/>
+        <circle cx="83" cy="75" r="7" fill="none" stroke="#7EC8FF" stroke-width="1.2" opacity=".4"/>
+      </g>
+
+      <!-- blue orb (A) on lit legal tile -->
+      <g class="ti-orbA">
+        <circle cx="15" cy="31" r="11" fill="var(--p1)" filter="url(#ti-glow2)" opacity=".45"/>
+        <circle cx="15" cy="31" r="8" fill="url(#ti-orbA)" filter="url(#ti-glow)"/>
+        <circle cx="12" cy="28" r="2.2" fill="#FFFFFF" opacity=".85"/>
+      </g>
+      <!-- pink orb (B) -->
+      <g class="ti-orbB">
+        <circle cx="117" cy="53" r="11" fill="var(--p2)" filter="url(#ti-glow2)" opacity=".45"/>
+        <circle cx="117" cy="53" r="8" fill="url(#ti-orbB)" filter="url(#ti-glow)"/>
+        <circle cx="114" cy="50" r="2.2" fill="#FFFFFF" opacity=".85"/>
+      </g>
     </g>
-    ${sparks('ti', [[42, 28, 1.5, 'var(--p1)'], [198, 40, 1.5, 'var(--p2)'], [120, 108, 1.3, 'var(--candle)']])}`,
-    `.ti-orbA { animation: ti-bob 2.4s ease-in-out infinite; }
-     .ti-orbB { animation: ti-bob 2.4s ease-in-out .35s infinite; }
-     @keyframes ti-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
-     .ti-gone { animation: ti-fade 3.2s ease-in-out infinite; }
-     @keyframes ti-fade { 0%,100% { opacity: .55 } 50% { opacity: .9 } }
-     ${sparkAnim('ti', 3)}`)
+
+    ${sparks('ti', [[48, 24, 1.6, 'var(--p1)'], [210, 36, 1.6, 'var(--p2)'], [124, 108, 1.4, '#B8D4FF'], [198, 96, 1.3, 'var(--candle)']])}`,
+    `.ti-orbA { animation: ti-bob 2.2s ease-in-out infinite; }
+     .ti-orbB { animation: ti-bob 2.2s ease-in-out .4s infinite; }
+     @keyframes ti-bob {
+       0%,100% { transform: translateY(0) }
+       50% { transform: translateY(-5px) }
+     }
+     .ti-t0,.ti-t1,.ti-t2,.ti-t3,.ti-t4,.ti-t5,.ti-t6,.ti-t7,.ti-t8,.ti-t9,.ti-t10,.ti-t11 {
+       animation: ti-breathe 3.8s ease-in-out infinite;
+       transform-box: fill-box; transform-origin: center;
+     }
+     .ti-t1 { animation-delay: .3s } .ti-t2 { animation-delay: .6s }
+     .ti-t3 { animation-delay: .15s } .ti-t4 { animation-delay: .9s }
+     .ti-t5 { animation-delay: .45s } .ti-t6 { animation-delay: 1.1s }
+     .ti-t7 { animation-delay: .75s } .ti-t8 { animation-delay: 1.3s }
+     .ti-t9 { animation-delay: .2s } .ti-t10 { animation-delay: 1s }
+     .ti-t11 { animation-delay: .55s }
+     @keyframes ti-breathe {
+       0%,100% { opacity: .88 }
+       50% { opacity: 1 }
+     }
+     .ti-crack { animation: ti-snap 2.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes ti-snap {
+       0%,100% { transform: translateY(0); opacity: 1 }
+       45% { transform: translateY(0); opacity: .85 }
+       55% { transform: translateY(3px); opacity: .45 }
+       70% { transform: translateY(0); opacity: .9 }
+     }
+     .ti-rip { animation: ti-wave 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes ti-wave {
+       0% { opacity: .15; transform: scale(.7) }
+       70% { opacity: .7; transform: scale(1.15) }
+       100% { opacity: 0; transform: scale(1.35) }
+     }
+     .ti-gone { animation: ti-hole 3s ease-in-out infinite; }
+     @keyframes ti-hole { 0%,100% { opacity: .75 } 50% { opacity: 1 } }
+     ${sparkAnim('ti', 4)}`)
 };
 
 export const artFor = id => ART[id] || null;
