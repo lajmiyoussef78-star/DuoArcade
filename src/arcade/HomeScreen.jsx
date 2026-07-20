@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ENGINES } from '../engines/index.js';
 import { artFor } from '../engines/art.js';
-import { other, today, yesterday, totalsOf, loadSeats, SEAT_KEY, THEMES, downloadKeepsake, videoIdFrom } from '../lib/util.js';
+import { other, today, yesterday, totalsOf, loadSeats, SEAT_KEY, downloadKeepsake, videoIdFrom } from '../lib/util.js';
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
@@ -32,7 +32,7 @@ function closestGameId(duo) {
 
 export default function HomeScreen({
   duo, code, myRole, isAway, presence, geoStatus, homeStatus, setHomeStatus,
-  onStartGame, onStartWatch, onBack, onSetTheme, onSetAnniversary, onSetFavoriteGames, onRedeem
+  onStartGame, onStartWatch, onBack, onSetAnniversary, onSetFavoriteGames, onRedeem
 }) {
   const [mins, setMins] = useState(null);
   const [ytUrl, setYtUrl] = useState('');
@@ -339,7 +339,7 @@ export default function HomeScreen({
         {!hasPass && (
           <div className="pass-card" id="sect-pass">
             <h3>{'✦'} Duo Pass</h3>
-            <p>One Pass covers both of you: duo themes, keepsake cards, and everything we ship next. Founding duos keep it for life.</p>
+            <p>One Pass covers both of you: keepsake cards, and everything we ship next. Founding duos keep it for life.</p>
             <div className="price-row">
               <div className="price-opt"><div className="amt">{'€'}3.99</div><div className="per">per month</div></div>
               <div className="price-opt"><div className="amt">{'€'}29</div><div className="per">per year</div><div className="tagl">2 months free</div></div>
@@ -367,16 +367,7 @@ export default function HomeScreen({
         {hasPass && (
           <div className="pass-card" id="sect-pass">
             <h3>{'✦'} Your Duo Pass</h3>
-            <p>Duo theme — changes the colors of your whole place, for both of you:</p>
-            <div className="theme-row">
-              {Object.entries(THEMES).map(([name, th]) => (
-                <button key={name}
-                  className={'theme-dot' + ((duo.theme || 'night') === name ? ' on' : '')}
-                  title={th.label}
-                  style={{ background: `linear-gradient(135deg, ${th.p1} 50%, ${th.p2} 50%)` }}
-                  onClick={() => onSetTheme(name)} />
-              ))}
-            </div>
+            <p>Thank you for supporting DuoArcade. Download a keepsake of your shared record anytime.</p>
             <div className="row">
               <button className="btn small" onClick={() => downloadKeepsake(duo)}>Download keepsake card</button>
             </div>

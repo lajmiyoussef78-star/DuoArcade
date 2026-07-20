@@ -101,6 +101,38 @@ html[data-appearance="light"] .set-panel {
   border-top: 1px solid var(--line);
 }
 
+.set-panel-wide {
+  width: min(320px, calc(100vw - 28px));
+}
+
+.set-themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.set-themes .theme-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color .15s, transform .12s;
+}
+.set-themes .theme-dot:hover { transform: scale(1.06); }
+.set-themes .theme-dot.on {
+  border-color: var(--candle);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--candle) 35%, transparent);
+}
+
+.set-theme-name {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--candle);
+}
+
 .set-signout {
   width: 100%;
   margin-top: 10px;

@@ -17,10 +17,22 @@ export const removeSeat = code => {
 };
 
 export const THEMES = {
-  night:  { label: 'Night',  p1: '#7FA8FF', p2: '#FF7FA8', candle: '#FFC66E' },
-  ocean:  { label: 'Ocean',  p1: '#6FE0D0', p2: '#7FA8FF', candle: '#9FE870' },
-  ember:  { label: 'Ember',  p1: '#FFB36B', p2: '#FF6B8A', candle: '#FFD36B' },
-  orchid: { label: 'Orchid', p1: '#C89BFF', p2: '#FF8AD1', candle: '#FFC66E' }
+  night:   { label: 'Night',   p1: '#7FA8FF', p2: '#FF7FA8', candle: '#FFC66E' },
+  ocean:   { label: 'Ocean',   p1: '#6FE0D0', p2: '#7FA8FF', candle: '#9FE870' },
+  ember:   { label: 'Ember',   p1: '#FFB36B', p2: '#FF6B8A', candle: '#FFD36B' },
+  orchid:  { label: 'Orchid',  p1: '#C89BFF', p2: '#FF8AD1', candle: '#FFC66E' },
+  forest:  { label: 'Forest',  p1: '#6BCB8A', p2: '#4A9B7A', candle: '#E8C96A' },
+  sunset:  { label: 'Sunset',  p1: '#FF8E6B', p2: '#FF5C8A', candle: '#FFD27A' },
+  aurora:  { label: 'Aurora',  p1: '#5CE1C5', p2: '#A78BFA', candle: '#F0E68C' },
+  rose:    { label: 'Rose',    p1: '#F2A0B8', p2: '#E06B8A', candle: '#F5D0A9' },
+  citrus:  { label: 'Citrus',  p1: '#F5D76E', p2: '#7ED957', candle: '#FF9F43' },
+  arctic:  { label: 'Arctic',  p1: '#8EC5FF', p2: '#B8E0FF', candle: '#E8F4FF' },
+  velvet:  { label: 'Velvet',  p1: '#9B6BFF', p2: '#FF4F8B', candle: '#FFB86B' },
+  magma:   { label: 'Magma',   p1: '#FF6B3D', p2: '#C23B22', candle: '#FFC14A' },
+  mint:    { label: 'Mint',    p1: '#7DDFC3', p2: '#5BB8E8', candle: '#F4E07A' },
+  grape:   { label: 'Grape',   p1: '#A855F7', p2: '#6366F1', candle: '#FBBF24' },
+  honey:   { label: 'Honey',   p1: '#E8B84A', p2: '#D4783A', candle: '#FFE8A3' },
+  neon:    { label: 'Neon',    p1: '#39FF14', p2: '#FF00E5', candle: '#00F0FF' }
 };
 
 export function applyTheme(name) {

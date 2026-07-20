@@ -107,7 +107,7 @@ const ITEMS = [
   { id: 'sect-watch', icon: 'watch', label: 'Movie night', accent: 'candle',
     desc: 'Paste a YouTube link — playback syncs live on both screens.' },
   { id: 'sect-pass', icon: 'pass', label: 'Duo Pass', accent: 'candle',
-    desc: 'Unlock duo themes, keepsake cards, and everything we ship next.' },
+    desc: 'Unlock keepsake cards and everything we ship next.' },
   { id: 'chat', icon: 'chat', label: 'Chat', accent: 'good', openChat: true,
     desc: 'Message your partner — typing, online, and seen receipts.' }
 ];

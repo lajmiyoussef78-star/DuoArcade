@@ -1,11 +1,13 @@
 // SettingsMenu.jsx — site-wide settings (gear in the top bar).
 
 import { useEffect, useRef, useState } from 'react';
+import { THEMES } from '../lib/util.js';
 import '../styles/settings.css';
 
-export default function SettingsMenu({ onSignOut }) {
+export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const active = theme && THEMES[theme] ? theme : 'night';
 
   useEffect(() => {
     if (!open) return undefined;
@@ -38,11 +40,33 @@ export default function SettingsMenu({ onSignOut }) {
       </button>
 
       {open && (
-        <div className="set-panel" role="dialog" aria-label="Settings">
+        <div className="set-panel set-panel-wide" role="dialog" aria-label="Settings">
           <div className="set-head">Settings</div>
-          <p className="set-note" style={{ borderTop: 'none', paddingTop: 0 }}>
-            Account
-          </p>
+
+          {canSetTheme && onSetTheme && (
+            <div className="set-section">
+              <div className="set-label">Duo theme</div>
+              <p className="set-note" style={{ borderTop: 'none', paddingTop: 0, marginBottom: 10 }}>
+                Colors for your shared place — free for every duo.
+              </p>
+              <div className="set-themes">
+                {Object.entries(THEMES).map(([name, th]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={'theme-dot' + (active === name ? ' on' : '')}
+                    title={th.label}
+                    aria-label={th.label}
+                    aria-pressed={active === name}
+                    style={{ background: `linear-gradient(135deg, ${th.p1} 50%, ${th.p2} 50%)` }}
+                    onClick={() => onSetTheme(name)}
+                  />
+                ))}
+              </div>
+              <div className="set-theme-name">{THEMES[active]?.label}</div>
+            </div>
+          )}
+
           {onSignOut && (
             <button
               type="button"

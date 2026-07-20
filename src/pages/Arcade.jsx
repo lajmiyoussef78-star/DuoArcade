@@ -465,10 +465,13 @@ export default function Arcade() {
   /* ---------- duo pass ---------- */
 
   const setTheme = useCallback(async name => {
-    const { code } = ctxRef.current;
-    patchLocal({ theme: name });
+    const code = ctxRef.current.code || (myDuos[0] && myDuos[0].code);
+    if (!code) return;
+    applyTheme(name);
+    if (ctxRef.current.code === code) patchLocal({ theme: name });
+    setMyDuos(list => list.map(d => (d.code === code ? { ...d, theme: name } : d)));
     await upd(code, { theme: name }, { force: true });
-  }, [patchLocal, upd]);
+  }, [patchLocal, upd, myDuos]);
 
   const setAnniversary = useCallback(async iso => {
     const { code } = ctxRef.current;
@@ -575,14 +578,13 @@ export default function Arcade() {
     };
   }, [ctx.code, ctx.myRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ---------- theme follows the open duo ---------- */
+  /* ---------- theme follows the duo (free for everyone) ---------- */
 
   useEffect(() => {
-    const duo = ctx.duo;
+    const duo = ctx.duo || myDuos[0];
     if (!duo) { applyTheme('night'); return; }
-    const hasPass = duo.passTier && duo.passTier !== 'free';
-    applyTheme(hasPass ? duo.theme : 'night');
-  }, [ctx.duo?.theme, ctx.duo?.passTier]); // eslint-disable-line react-hooks/exhaustive-deps
+    applyTheme(duo.theme || 'night');
+  }, [ctx.duo?.theme, myDuos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- boot ---------- */
 
@@ -715,7 +717,7 @@ export default function Arcade() {
           homeStatus={homeStatus} setHomeStatus={setHomeStatus}
           onStartGame={startGame} onStartWatch={startWatch}
           onBack={() => { leaveDuoContext(); enterLobby(); }}
-          onSetTheme={setTheme} onSetAnniversary={setAnniversary}
+          onSetAnniversary={setAnniversary}
           onSetFavoriteGames={setFavoriteGames} onRedeem={redeemCode}
         />
       );
@@ -746,7 +748,12 @@ export default function Arcade() {
             <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
               onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
           </div>
-          <SettingsMenu onSignOut={signOut} />
+          <SettingsMenu
+            onSignOut={signOut}
+            canSetTheme={!!(ctx.duo || myDuos[0])}
+            theme={(ctx.duo || myDuos[0])?.theme || 'night'}
+            onSetTheme={setTheme}
+          />
         </div>
       </div>
 
