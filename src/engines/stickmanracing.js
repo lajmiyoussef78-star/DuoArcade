@@ -12,7 +12,7 @@ let finished = false;
 export const meta = {
   id: 'stickmanracing',
   name: 'Stickman Racing',
-  tag: 'parkour race · first to the flag',
+  tag: 'neon city · first to the flag',
   accent: 'p1',
   realtime: true
 };

@@ -587,70 +587,101 @@ export const ART = {
      @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
      ${sparkAnim('ssd', 3)}`),
 
-  /* ─── Stickman Racing: parkour dash to the flag (right-weighted for card veil) ─── */
+  /* ─── Stickman Racing: Neon City rooftop race (matches in-game look) ─── */
   stickmanracing: scene('sr', `
-    <linearGradient id="sr-track" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="var(--room2)" stop-opacity="0"/>
-      <stop offset="35%" stop-color="var(--room2)" stop-opacity=".85"/>
-      <stop offset="100%" stop-color="#2A2436"/>
+    <linearGradient id="sr-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#070b1e"/>
+      <stop offset="100%" stop-color="#182448"/>
     </linearGradient>
-    <linearGradient id="sr-trailA" x1="1" y1="0" x2="0" y2="0">
-      <stop offset="0%" stop-color="var(--p1)" stop-opacity=".55"/>
-      <stop offset="100%" stop-color="var(--p1)" stop-opacity="0"/>
+    <linearGradient id="sr-glowA" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#7cc8ff" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#3aa0ff" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="sr-trailB" x1="1" y1="0" x2="0" y2="0">
-      <stop offset="0%" stop-color="var(--p2)" stop-opacity=".55"/>
-      <stop offset="100%" stop-color="var(--p2)" stop-opacity="0"/>
-    </linearGradient>`, `
-    <!-- parkour course hugs the right so title/tag stay readable -->
-    <rect x="108" y="102" width="120" height="10" rx="3" fill="url(#sr-track)" stroke="var(--line)" stroke-width="1.2"/>
-    <rect x="118" y="78" width="36" height="7" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1"/>
-    <rect x="168" y="58" width="28" height="7" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1"/>
-    <rect x="152" y="34" width="22" height="6" rx="2" fill="var(--room2)" stroke="var(--candle)" stroke-width="1" opacity=".9"/>
+    <linearGradient id="sr-glowB" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ff8090" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#ff3b4d" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="sr-neon" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>`, `
+    <rect width="240" height="130" fill="url(#sr-sky)"/>
 
-    <!-- finish: checkered banner on a pole -->
+    <!-- stars -->
+    <g fill="#dcecff" opacity=".85">
+      <circle cx="118" cy="18" r="1.1"/>
+      <circle cx="148" cy="12" r="0.9"/>
+      <circle cx="178" cy="22" r="1.2"/>
+      <circle cx="206" cy="14" r="0.8"/>
+      <circle cx="132" cy="34" r="0.7"/>
+      <circle cx="196" cy="38" r="1"/>
+    </g>
+
+    <!-- far skyline (right-weighted so title/tag stay readable) -->
+    <g fill="#0c1330">
+      <rect x="110" y="52" width="18" height="50"/>
+      <rect x="132" y="40" width="22" height="62"/>
+      <rect x="158" y="48" width="16" height="54"/>
+      <rect x="178" y="34" width="28" height="68"/>
+      <rect x="210" y="44" width="20" height="58"/>
+    </g>
+    <g fill="#111a3e">
+      <rect x="124" y="58" width="14" height="44"/>
+      <rect x="168" y="56" width="12" height="46"/>
+      <rect x="198" y="50" width="18" height="52"/>
+    </g>
+    <!-- window lights -->
+    <g fill="rgba(255,220,130,.55)">
+      <rect x="136" y="48" width="3" height="3"/><rect x="144" y="48" width="3" height="3"/>
+      <rect x="136" y="56" width="3" height="3"/><rect x="144" y="64" width="3" height="3"/>
+      <rect x="186" y="42" width="3" height="3"/><rect x="194" y="42" width="3" height="3"/>
+      <rect x="186" y="52" width="3" height="3"/><rect x="194" y="60" width="3" height="3"/>
+      <rect x="216" y="52" width="3" height="3"/><rect x="222" y="60" width="3" height="3"/>
+    </g>
+
+    <!-- rooftop platform -->
+    <rect x="100" y="100" width="132" height="14" fill="#232c47"/>
+    <rect x="100" y="100" width="132" height="3" fill="#5aa9ff" opacity=".35"/>
+
+    <!-- red neon finish flag (in-game style) -->
     <g class="sr-flag">
-      <line x1="212" y1="28" x2="212" y2="102" stroke="var(--dim)" stroke-width="2.5" stroke-linecap="round"/>
-      <g transform="translate(214 30)">
-        <rect width="18" height="14" fill="#EDE8F2"/>
-        <rect x="0" y="0" width="9" height="7" fill="#1A1420"/>
-        <rect x="9" y="7" width="9" height="7" fill="#1A1420"/>
-      </g>
+      <line x1="214" y1="46" x2="214" y2="100" stroke="#3a4a6a" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M214 48 L236 54 L214 62 Z" fill="#ff3b4d" filter="url(#sr-neon)" opacity=".85"/>
+      <path d="M214 48 L234 54 L214 60 Z" fill="#ff3b4d"/>
     </g>
 
-    <!-- pink runner on the ground, mid-stride -->
-    <path d="M128 98 H148" stroke="url(#sr-trailB)" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+    <!-- P2 pink: mid-stride on the roof -->
+    <ellipse cx="148" cy="100" rx="10" ry="2.2" fill="#070b1e" opacity=".45"/>
     <g class="sr-p2">
-      <circle cx="158" cy="78" r="5.5" fill="var(--p2)"/>
-      <path d="M158 84 L158 96 M150 88 L166 90 M158 96 L152 108 M158 96 L166 106"
-        stroke="var(--p2)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="148" cy="72" r="7" fill="#ff3b4d" filter="url(#sr-neon)" opacity=".55"/>
+      <circle cx="148" cy="72" r="5" fill="#ff3b4d"/>
+      <circle cx="148" cy="72" r="5" fill="none" stroke="#ff8090" stroke-width="1.4"/>
+      <path d="M148 78 V94 M140 84 H156 M148 94 L142 106 M148 94 L156 104"
+        stroke="#E8EEF5" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
 
-    <!-- blue runner leaping the gap toward the flag -->
-    <path d="M132 62 H152" stroke="url(#sr-trailA)" stroke-width="3.5" stroke-linecap="round" opacity=".85"/>
+    <!-- P1 blue: sprinting ahead toward the flag -->
+    <ellipse cx="186" cy="100" rx="10" ry="2.2" fill="#070b1e" opacity=".45"/>
     <g class="sr-p1">
-      <circle cx="176" cy="42" r="5.5" fill="var(--p1)"/>
-      <path d="M176 48 L180 62 M168 52 L186 50 M180 62 L174 72 M180 62 L190 68"
-        stroke="var(--p1)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="186" cy="68" r="7" fill="#3aa0ff" filter="url(#sr-neon)" opacity=".55"/>
+      <circle cx="186" cy="68" r="5" fill="#3aa0ff"/>
+      <circle cx="186" cy="68" r="5" fill="none" stroke="#7cc8ff" stroke-width="1.4"/>
+      <path d="M186 74 V90 M178 80 H194 M186 90 L178 102 M186 90 L196 100"
+        stroke="#E8EEF5" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
 
-    ${sparks('sr', [[200, 22, 1.5, 'var(--candle)'], [140, 48, 1.3, 'var(--p1)'], [170, 88, 1.3, 'var(--p2)']])}`,
-    `.sr-p1 { animation: sr-leap 1.35s ease-in-out infinite; }
-     .sr-p2 { animation: sr-dash 0.9s ease-in-out infinite; }
-     .sr-flag { animation: sr-wave 1.8s ease-in-out infinite; transform-origin: 212px 30px; }
-     @keyframes sr-leap {
-       0%,100% { transform: translate(0,2px) }
-       50% { transform: translate(8px,-6px) }
-     }
+    ${sparks('sr', [[160, 20, 1.2, '#7cc8ff'], [210, 28, 1.1, '#ff8090'], [128, 28, 1, '#dcecff']])}`,
+    `.sr-p1 { animation: sr-dash 1s ease-in-out infinite; }
+     .sr-p2 { animation: sr-dash 1s ease-in-out .18s infinite; }
+     .sr-flag { animation: sr-wave 1.6s ease-in-out infinite; transform-origin: 214px 48px; }
      @keyframes sr-dash {
        0%,100% { transform: translateX(0) }
-       50% { transform: translateX(7px) }
+       50% { transform: translateX(6px) }
      }
      @keyframes sr-wave {
-       0%,100% { transform: rotate(0deg) }
-       50% { transform: rotate(4deg) }
+       0%,100% { transform: translateX(0) }
+       50% { transform: translateX(2px) }
      }
-     ${sparkAnim('sr', 3)}`),
+     ${sparkAnim('sr', 3)}`)
 
   /* ─── Micro Soccer: cars + ball ─── */
   microsoccer: scene('msc', '', `
