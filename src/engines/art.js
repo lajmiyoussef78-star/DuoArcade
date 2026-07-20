@@ -587,25 +587,69 @@ export const ART = {
      @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
      ${sparkAnim('ssd', 3)}`),
 
-  /* ─── Stickman Racing: parkour runners ─── */
-  stickmanracing: scene('sr', '', `
-    <rect x="24" y="88" width="192" height="10" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
-    <g class="sr-p1">
-      <circle cx="70" cy="52" r="7" fill="var(--p1)"/>
-      <path d="M70 59 V82 M60 68 H80 M70 82 L62 98 M70 82 L78 98" stroke="var(--p1)" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  /* ─── Stickman Racing: parkour dash to the flag (right-weighted for card veil) ─── */
+  stickmanracing: scene('sr', `
+    <linearGradient id="sr-track" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--room2)" stop-opacity="0"/>
+      <stop offset="35%" stop-color="var(--room2)" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#2A2436"/>
+    </linearGradient>
+    <linearGradient id="sr-trailA" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="var(--p1)" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="var(--p1)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sr-trailB" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="var(--p2)" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="var(--p2)" stop-opacity="0"/>
+    </linearGradient>`, `
+    <!-- parkour course hugs the right so title/tag stay readable -->
+    <rect x="108" y="102" width="120" height="10" rx="3" fill="url(#sr-track)" stroke="var(--line)" stroke-width="1.2"/>
+    <rect x="118" y="78" width="36" height="7" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1"/>
+    <rect x="168" y="58" width="28" height="7" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1"/>
+    <rect x="152" y="34" width="22" height="6" rx="2" fill="var(--room2)" stroke="var(--candle)" stroke-width="1" opacity=".9"/>
+
+    <!-- finish: checkered banner on a pole -->
+    <g class="sr-flag">
+      <line x1="212" y1="28" x2="212" y2="102" stroke="var(--dim)" stroke-width="2.5" stroke-linecap="round"/>
+      <g transform="translate(214 30)">
+        <rect width="18" height="14" fill="#EDE8F2"/>
+        <rect x="0" y="0" width="9" height="7" fill="#1A1420"/>
+        <rect x="9" y="7" width="9" height="7" fill="#1A1420"/>
+      </g>
     </g>
+
+    <!-- pink runner on the ground, mid-stride -->
+    <path d="M128 98 H148" stroke="url(#sr-trailB)" stroke-width="4" stroke-linecap="round" opacity=".9"/>
     <g class="sr-p2">
-      <circle cx="150" cy="48" r="7" fill="var(--p2)"/>
-      <path d="M150 55 V78 M140 64 H160 M150 78 L142 94 M150 78 L158 94" stroke="var(--p2)" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <circle cx="158" cy="78" r="5.5" fill="var(--p2)"/>
+      <path d="M158 84 L158 96 M150 88 L166 90 M158 96 L152 108 M158 96 L166 106"
+        stroke="var(--p2)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
-    <rect x="188" y="56" width="14" height="32" fill="#EDE8F2" opacity=".9"/>
-    <rect x="188" y="56" width="7" height="16" fill="#1A1420"/>
-    <rect x="195" y="72" width="7" height="16" fill="#1A1420"/>
-    <text x="195" y="50" text-anchor="middle" font-size="12">\uD83C\uDFC1</text>
-    ${sparks('sr', [[40, 30, 1.5, 'var(--p1)'], [200, 40, 1.5, 'var(--p2)'], [120, 24, 1.3, 'var(--candle)']])}`,
-    `.sr-p1 { animation: sr-run 1.2s ease-in-out infinite; }
-     .sr-p2 { animation: sr-run 1.2s ease-in-out .2s infinite; }
-     @keyframes sr-run { 0%,100% { transform: translateX(0) } 50% { transform: translateX(10px) } }
+
+    <!-- blue runner leaping the gap toward the flag -->
+    <path d="M132 62 H152" stroke="url(#sr-trailA)" stroke-width="3.5" stroke-linecap="round" opacity=".85"/>
+    <g class="sr-p1">
+      <circle cx="176" cy="42" r="5.5" fill="var(--p1)"/>
+      <path d="M176 48 L180 62 M168 52 L186 50 M180 62 L174 72 M180 62 L190 68"
+        stroke="var(--p1)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    ${sparks('sr', [[200, 22, 1.5, 'var(--candle)'], [140, 48, 1.3, 'var(--p1)'], [170, 88, 1.3, 'var(--p2)']])}`,
+    `.sr-p1 { animation: sr-leap 1.35s ease-in-out infinite; }
+     .sr-p2 { animation: sr-dash 0.9s ease-in-out infinite; }
+     .sr-flag { animation: sr-wave 1.8s ease-in-out infinite; transform-origin: 212px 30px; }
+     @keyframes sr-leap {
+       0%,100% { transform: translate(0,2px) }
+       50% { transform: translate(8px,-6px) }
+     }
+     @keyframes sr-dash {
+       0%,100% { transform: translateX(0) }
+       50% { transform: translateX(7px) }
+     }
+     @keyframes sr-wave {
+       0%,100% { transform: rotate(0deg) }
+       50% { transform: rotate(4deg) }
+     }
      ${sparkAnim('sr', 3)}`),
 
   /* ─── Micro Soccer: cars + ball ─── */
