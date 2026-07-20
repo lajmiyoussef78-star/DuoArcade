@@ -2,14 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { THEMES } from '../lib/util.js';
+import { THEMES, parseTheme, formatTheme, themeColors } from '../lib/util.js';
 import '../styles/settings.css';
 
-export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme }) {
+export default function SettingsMenu({
+  onSignOut, theme, onSetTheme, canSetTheme,
+  nameA = 'Partner one', nameB = 'Partner two'
+}) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
-  const active = theme && THEMES[theme] ? theme : 'night';
-  const activeTh = THEMES[active];
+  const { name: activeName, flip } = parseTheme(theme);
+  const colors = themeColors(theme);
+  const activeTh = THEMES[activeName] || THEMES.night;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -24,6 +28,16 @@ export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme
   }, [open]);
 
   const close = () => setOpen(false);
+
+  const pickTheme = (name) => {
+    onSetTheme?.(formatTheme(name, flip));
+  };
+
+  const assignColorToA = (which) => {
+    // which: 'baseP1' | 'baseP2' — which palette color Partner A (nameA) should get
+    const wantFlip = which === 'baseP2';
+    onSetTheme?.(formatTheme(activeName, wantFlip));
+  };
 
   const modal = open && createPortal(
     <div
@@ -55,17 +69,7 @@ export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme
             <section className="set-block">
               <div className="set-block-head">
                 <h3>Duo theme</h3>
-                <p>Pick the colors for your shared place. Free for every duo — both of you see the same look.</p>
-              </div>
-
-              <div className="set-preview" aria-hidden="true">
-                <div className="set-preview-swatch" style={{ background: activeTh.p1 }} />
-                <div className="set-preview-swatch" style={{ background: activeTh.p2 }} />
-                <div className="set-preview-swatch" style={{ background: activeTh.candle }} />
-                <div className="set-preview-meta">
-                  <span className="set-preview-label">{activeTh.label}</span>
-                  <span className="set-preview-hint">Partner one · Partner two · Accent</span>
-                </div>
+                <p>Pick a palette, then choose who gets which color. Both of you see the same look.</p>
               </div>
 
               <div className="set-theme-grid">
@@ -73,19 +77,90 @@ export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme
                   <button
                     key={name}
                     type="button"
-                    className={'set-theme-card' + (active === name ? ' on' : '')}
+                    className={'set-theme-card' + (activeName === name ? ' on' : '')}
                     aria-label={th.label}
-                    aria-pressed={active === name}
-                    onClick={() => onSetTheme(name)}
+                    aria-pressed={activeName === name}
+                    onClick={() => pickTheme(name)}
                   >
                     <span className="set-theme-chip" aria-hidden="true">
                       <span className="set-theme-half a" style={{ background: th.p1 }} />
                       <span className="set-theme-half b" style={{ background: th.p2 }} />
                     </span>
                     <span className="set-theme-card-name">{th.label}</span>
-                    {active === name && <span className="set-theme-check" aria-hidden="true">✓</span>}
+                    {activeName === name && <span className="set-theme-check" aria-hidden="true">✓</span>}
                   </button>
                 ))}
+              </div>
+
+              <div className="set-assign">
+                <div className="set-assign-head">
+                  <h4>Who gets which color?</h4>
+                  <p>Tap a color under each name — or swap.</p>
+                </div>
+
+                <div className="set-assign-row">
+                  <div className="set-assign-seat">
+                    <div className="set-assign-name" style={{ color: colors.p1 }}>{nameA}</div>
+                    <div className="set-assign-picks">
+                      <button
+                        type="button"
+                        className={'set-assign-swatch' + (!flip ? ' on' : '')}
+                        style={{ background: activeTh.p1 }}
+                        aria-label={`Give ${nameA} the first color`}
+                        aria-pressed={!flip}
+                        onClick={() => assignColorToA('baseP1')}
+                      />
+                      <button
+                        type="button"
+                        className={'set-assign-swatch' + (flip ? ' on' : '')}
+                        style={{ background: activeTh.p2 }}
+                        aria-label={`Give ${nameA} the second color`}
+                        aria-pressed={flip}
+                        onClick={() => assignColorToA('baseP2')}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="set-assign-swap"
+                    onClick={() => onSetTheme(formatTheme(activeName, !flip))}
+                    aria-label="Swap colors"
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 7h11l-3-3M17 17H6l3 3" />
+                    </svg>
+                    Swap
+                  </button>
+
+                  <div className="set-assign-seat">
+                    <div className="set-assign-name" style={{ color: colors.p2 }}>{nameB}</div>
+                    <div className="set-assign-picks">
+                      <button
+                        type="button"
+                        className={'set-assign-swatch' + (flip ? ' on' : '')}
+                        style={{ background: activeTh.p1 }}
+                        aria-label={`Give ${nameB} the first color`}
+                        aria-pressed={flip}
+                        onClick={() => assignColorToA('baseP2')}
+                      />
+                      <button
+                        type="button"
+                        className={'set-assign-swatch' + (!flip ? ' on' : '')}
+                        style={{ background: activeTh.p2 }}
+                        aria-label={`Give ${nameB} the second color`}
+                        aria-pressed={!flip}
+                        onClick={() => assignColorToA('baseP1')}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="set-assign-live" aria-hidden="true">
+                  <span className="set-assign-live-pill" style={{ background: colors.p1 }}>{nameA}</span>
+                  <span className="set-assign-live-amp">&</span>
+                  <span className="set-assign-live-pill" style={{ background: colors.p2 }}>{nameB}</span>
+                </div>
               </div>
             </section>
           )}

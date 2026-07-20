@@ -236,6 +236,115 @@
   z-index: 1;
 }
 
+.set-assign {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--night) 30%, var(--room2));
+}
+.set-assign-head h4 {
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: 16px;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+.set-assign-head p {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+.set-assign-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.set-assign-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.set-assign-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-assign-picks {
+  display: flex;
+  gap: 8px;
+}
+.set-assign-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .28);
+  transition: transform .12s, box-shadow .15s, border-color .15s;
+}
+.set-assign-swatch:hover { transform: scale(1.06); }
+.set-assign-swatch.on {
+  border-color: var(--candle);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--candle) 40%, transparent),
+    0 4px 12px rgba(0, 0, 0, .28);
+}
+.set-assign-swap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: var(--room);
+  color: var(--dim);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.set-assign-swap:hover {
+  border-color: var(--candle);
+  color: var(--candle);
+  background: color-mix(in srgb, var(--candle) 8%, var(--room));
+}
+.set-assign-live {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.set-assign-live-pill {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1420;
+  padding: 6px 12px;
+  border-radius: 999px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-assign-live-amp {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  color: var(--candle);
+}
+
 .set-block-account .set-signout {
   margin-top: 14px;
   width: 100%;
@@ -271,4 +380,9 @@ html[data-appearance="light"] .set-modal {
     max-height: 92vh;
     border-radius: 20px 20px 16px 16px;
   }
+  .set-assign-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .set-assign-swap { flex-direction: row; justify-content: center; width: 100%; }
 }

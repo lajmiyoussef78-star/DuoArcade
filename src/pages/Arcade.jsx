@@ -753,6 +753,8 @@ export default function Arcade() {
             canSetTheme={!!(ctx.duo || myDuos[0])}
             theme={(ctx.duo || myDuos[0])?.theme || 'night'}
             onSetTheme={setTheme}
+            nameA={(ctx.duo || myDuos[0])?.nameA || 'Partner one'}
+            nameB={(ctx.duo || myDuos[0])?.nameB || 'Partner two'}
           />
         </div>
       </div>

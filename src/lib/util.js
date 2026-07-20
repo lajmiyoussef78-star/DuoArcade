@@ -35,12 +35,40 @@ export const THEMES = {
   neon:    { label: 'Neon',    p1: '#39FF14', p2: '#FF00E5', candle: '#00F0FF' }
 };
 
-export function applyTheme(name) {
+/** theme field: "night" or "night:flip" (swap partner colors). */
+export function parseTheme(raw) {
+  const s = String(raw || 'night');
+  const flip = s.endsWith(':flip');
+  const name = flip ? s.slice(0, -5) : s;
+  return { name: THEMES[name] ? name : 'night', flip };
+}
+
+export function formatTheme(name, flip = false) {
+  const n = THEMES[name] ? name : 'night';
+  return flip ? `${n}:flip` : n;
+}
+
+export function themeColors(raw) {
+  const { name, flip } = parseTheme(raw);
   const t = THEMES[name] || THEMES.night;
+  return {
+    name,
+    flip,
+    label: t.label,
+    p1: flip ? t.p2 : t.p1,
+    p2: flip ? t.p1 : t.p2,
+    candle: t.candle,
+    baseP1: t.p1,
+    baseP2: t.p2
+  };
+}
+
+export function applyTheme(raw) {
+  const c = themeColors(raw);
   const rootStyle = document.documentElement.style;
-  rootStyle.setProperty('--p1', t.p1);
-  rootStyle.setProperty('--p2', t.p2);
-  rootStyle.setProperty('--candle', t.candle);
+  rootStyle.setProperty('--p1', c.p1);
+  rootStyle.setProperty('--p2', c.p2);
+  rootStyle.setProperty('--candle', c.candle);
 }
 
 export function totalsOf(duo) {
@@ -66,7 +94,7 @@ export function finishPatch(duo, patch) {
 
 export function downloadKeepsake(duo) {
   const t = totalsOf(duo);
-  const th = THEMES[duo.theme] || THEMES.night;
+  const th = themeColors(duo.theme);
   const cv = document.createElement('canvas');
   cv.width = 1080; cv.height = 1080;
   const x = cv.getContext('2d');
