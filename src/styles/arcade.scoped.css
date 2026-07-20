@@ -162,14 +162,142 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 .arcade-page .duo-item .dn{font-weight:600;font-size:14px;}
 .arcade-page .duo-item .dm{font-size:11px;color:var(--dim);}
 .arcade-page .vis-btn{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;
-           padding:5px 10px;border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;}
+           padding:5px 10px;border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;
+           transition:border-color .15s,color .15s,background .15s;}
+.arcade-page .vis-btn:hover{border-color:var(--candle);color:var(--candle);}
 .arcade-page .vis-btn.pub{color:var(--good);border-color:var(--good);}
+.arcade-page .vis-btn.danger:hover{border-color:var(--p2);color:var(--p2);}
 .arcade-page .uname{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--candle);}
 .arcade-page .search-results{width:100%;}
 .arcade-page .sr-item{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);
-           border-radius:12px;padding:10px 14px;margin-top:8px;cursor:pointer;background:var(--room2);font-size:14px;}
+           border-radius:12px;padding:10px 14px;margin-top:8px;cursor:pointer;background:var(--room2);font-size:14px;
+           width:100%;color:inherit;font-family:inherit;text-align:left;}
 .arcade-page .sr-item:hover{border-color:var(--candle);}
 .arcade-page .sr-item .c{font-size:11px;color:var(--dim);}
+
+/* ---------- lobby (account / duo gate) ---------- */
+.arcade-page section.lobby{max-width:640px;}
+.arcade-page .lobby-card{
+  max-width:640px;padding:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse 80% 50% at 0% 0%, color-mix(in srgb, var(--p1) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, color-mix(in srgb, var(--p2) 12%, transparent), transparent 50%),
+    var(--room);
+  box-shadow:0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.arcade-page .lobby-id{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:20px 22px;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb, var(--night) 35%, transparent);
+}
+.arcade-page .lobby-id-main{display:flex;align-items:center;gap:12px;min-width:0;}
+.arcade-page .lobby-mono{
+  width:44px;height:44px;border-radius:14px;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:900;font-size:20px;
+  color:var(--candle);
+  background:linear-gradient(145deg, color-mix(in srgb, var(--candle) 22%, var(--room2)), var(--room2));
+  border:1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
+  box-shadow:0 0 20px color-mix(in srgb, var(--candle) 18%, transparent);
+}
+.arcade-page .lobby-id-label{
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--dim);
+}
+.arcade-page .lobby-id-name{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:2px;}
+.arcade-page .lobby-id-name .uname{font-size:15px;}
+.arcade-page .lobby-member{font-size:12px;color:var(--dim);}
+.arcade-page .lobby-id-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.arcade-page .lobby-section{padding:22px;}
+.arcade-page .lobby-section + .lobby-section,
+.arcade-page .lobby-find{border-top:1px solid var(--line);}
+.arcade-page .lobby-section-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;
+}
+.arcade-page .lobby-section-head h3{font-size:22px;margin:0;}
+.arcade-page .lobby-section-head span{font-size:12px;color:var(--dim);}
+.arcade-page .lobby-lead{font-size:13.5px;color:var(--dim);margin:0 0 16px;line-height:1.45;}
+.arcade-page .lobby-note{font-size:12px;color:var(--dim);margin:12px 0 0;line-height:1.45;}
+.arcade-page .lobby-status{padding:0 22px 8px;}
+
+.arcade-page .lobby-duo{display:flex;flex-direction:column;gap:10px;}
+.arcade-page .lobby-duo-hero{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
+  border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  border-radius:16px;padding:16px 16px 16px 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--p1) 10%, var(--room2)), color-mix(in srgb, var(--p2) 10%, var(--room2)));
+  color:inherit;font-family:inherit;
+  transition:border-color .15s, transform .12s, box-shadow .15s;
+  box-shadow:0 10px 28px rgba(0,0,0,.18);
+}
+.arcade-page .lobby-duo-hero:hover{
+  border-color:var(--candle);
+  box-shadow:0 12px 32px rgba(0,0,0,.24), 0 0 0 1px color-mix(in srgb, var(--candle) 25%, transparent);
+  transform:translateY(-1px);
+}
+.arcade-page .lobby-duo-hero:active{transform:scale(.99);}
+.arcade-page .lobby-duo-copy{flex:1;min-width:0;}
+.arcade-page .lobby-duo-hero .duo-title{font-size:18px;line-height:1.15;}
+.arcade-page .lobby-duo-hero .duo-title .pA{color:var(--p1);}
+.arcade-page .lobby-duo-hero .duo-title .pB{color:var(--p2);}
+.arcade-page .lobby-duo-stats{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-top:6px;font-size:12px;color:var(--dim);
+}
+.arcade-page .lobby-duo-stats b{color:var(--text);font-weight:700;}
+.arcade-page .lobby-duo-stats .dot{opacity:.5;}
+.arcade-page .lobby-code{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;
+  color:var(--candle);
+}
+.arcade-page .lobby-enter{
+  flex:none;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:#2a1e05;background:var(--candle);border-radius:999px;padding:8px 14px;
+}
+.arcade-page .lobby-duo-tools{display:flex;gap:8px;flex-wrap:wrap;padding:0 2px;}
+
+.arcade-page .lobby-danger{
+  border:1px solid color-mix(in srgb, var(--p2) 55%, var(--line));
+  border-radius:14px;padding:14px 14px 12px;
+  background:color-mix(in srgb, var(--p2) 8%, var(--room2));
+}
+.arcade-page .lobby-danger p{font-size:13px;color:var(--dim);margin:0 0 10px;line-height:1.45;}
+
+.arcade-page .lobby-setup{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;
+}
+.arcade-page .lobby-panel{
+  border:1px solid var(--line);border-radius:16px;padding:16px;
+  background:var(--room2);
+}
+.arcade-page .lobby-panel h4{font-family:'Fraunces',serif;font-size:17px;margin:6px 0 6px;}
+.arcade-page .lobby-panel > p{font-size:12.5px;color:var(--dim);margin:0 0 4px;line-height:1.4;}
+.arcade-page .lobby-panel code{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--candle);
+}
+.arcade-page .lobby-panel-tag{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--p1);border:1px solid color-mix(in srgb, var(--p1) 45%, var(--line));
+  border-radius:999px;padding:3px 9px;
+  background:color-mix(in srgb, var(--p1) 12%, transparent);
+}
+.arcade-page .lobby-panel-tag.join{
+  color:var(--p2);border-color:color-mix(in srgb, var(--p2) 45%, var(--line));
+  background:color-mix(in srgb, var(--p2) 12%, transparent);
+}
+.arcade-page .lobby-uname{margin:0 22px 18px;}
+.arcade-page .lobby-search{margin-top:2px;}
+
+html[data-appearance="light"] .arcade-page .lobby-card{
+  box-shadow:0 16px 44px rgba(28,30,42,.08),0 1px 0 rgba(255,255,255,.95) inset;
+}
+html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
+
+@media (max-width:560px){
+  .arcade-page .lobby-setup{grid-template-columns:1fr;}
+  .arcade-page .lobby-duo-hero{flex-wrap:wrap;}
+  .arcade-page .lobby-enter{width:100%;text-align:center;}
+}
 .arcade-page .pub-duo{border:1px solid var(--line);border-radius:14px;background:var(--room2);padding:14px;margin-top:10px;width:100%;}
 .arcade-page .pub-duo .dn{font-weight:700;font-size:15px;font-family:'Fraunces',serif;}
 .arcade-page .pub-duo .dm{font-size:12px;color:var(--dim);margin-top:4px;}
