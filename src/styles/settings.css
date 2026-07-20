@@ -100,3 +100,22 @@ html[data-appearance="light"] .set-panel {
   padding-top: 4px;
   border-top: 1px solid var(--line);
 }
+
+.set-signout {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dim);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.set-signout:hover {
+  border-color: var(--p2);
+  color: var(--p2);
+}

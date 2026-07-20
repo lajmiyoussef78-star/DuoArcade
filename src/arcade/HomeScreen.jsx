@@ -162,7 +162,7 @@ export default function HomeScreen({
               <span className="ember e3" aria-hidden="true" />
             </div>
           )}
-          <button className="btn small ghost" onClick={onBack}>My duos</button>
+          <button className="btn small ghost" onClick={onBack}>Profile</button>
         </div>
 
         <div className="home-stats">

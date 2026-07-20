@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import '../styles/settings.css';
 
-export default function SettingsMenu() {
+export default function SettingsMenu({ onSignOut }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -41,8 +41,17 @@ export default function SettingsMenu() {
         <div className="set-panel" role="dialog" aria-label="Settings">
           <div className="set-head">Settings</div>
           <p className="set-note" style={{ borderTop: 'none', paddingTop: 0 }}>
-            More site options will land here soon.
+            Account
           </p>
+          {onSignOut && (
+            <button
+              type="button"
+              className="set-signout"
+              onClick={() => { setOpen(false); onSignOut(); }}
+            >
+              Sign out
+            </button>
+          )}
         </div>
       )}
     </div>

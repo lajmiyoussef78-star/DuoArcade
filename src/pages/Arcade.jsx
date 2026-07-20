@@ -723,11 +723,11 @@ export default function Arcade() {
   } else if (view === 'lobby') {
     screen = (
       <LobbyScreen
-        profile={profile} myDuos={myDuos} lobbyStatus={lobbyStatus}
-        onSaveUsername={saveUsername} onOpenDuo={openByAccount}
+        myDuos={myDuos} lobbyStatus={lobbyStatus}
+        onOpenDuo={openByAccount}
         onCreateDuo={createDuo} onJoinInvite={joinFromInviteString}
-        onDeleteDuo={deleteDuo} onSignOut={signOut}
-        onToggleVisibility={toggleVisibility} onClearStuck={clearStuck}
+        onDeleteDuo={deleteDuo}
+        onToggleVisibility={toggleVisibility}
       />
     );
   } else if (view === 'pubProfile') {
@@ -746,7 +746,7 @@ export default function Arcade() {
             <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
               onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
           </div>
-          <SettingsMenu />
+          <SettingsMenu onSignOut={signOut} />
         </div>
       </div>
 

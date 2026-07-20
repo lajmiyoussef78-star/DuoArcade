@@ -285,6 +285,97 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 }
 .arcade-page .lobby-uname{margin:0 22px 18px;}
 
+/* ---------- duo profile ---------- */
+.arcade-page .profile-card{padding-bottom:8px;}
+.arcade-page .profile-hero{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:24px 22px 20px;
+  border-bottom:1px solid var(--line);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--p1) 12%, transparent), transparent 42%),
+    linear-gradient(225deg, color-mix(in srgb, var(--p2) 12%, transparent), transparent 42%);
+}
+.arcade-page .profile-avs .av{width:52px;height:52px;font-size:20px;}
+.arcade-page .profile-hero-copy{flex:1;min-width:0;}
+.arcade-page .profile-kicker{
+  font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--candle);
+  margin-bottom:4px;
+}
+.arcade-page .profile-title{font-size:26px;line-height:1.1;margin:0;}
+.arcade-page .profile-title .pA{color:var(--p1);}
+.arcade-page .profile-title .pB{color:var(--p2);}
+.arcade-page .profile-sub{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:8px;font-size:12px;color:var(--dim);
+}
+.arcade-page .profile-sub .dot{opacity:.45;}
+.arcade-page .profile-enter{flex:none;}
+.arcade-page .profile-stats{margin-top:0;}
+.arcade-page .profile-split{
+  display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch;
+  margin-top:14px;
+}
+.arcade-page .profile-split-card{
+  border:1px solid var(--line);border-radius:14px;padding:14px 12px;text-align:center;
+  background:var(--room2);
+}
+.arcade-page .profile-split-card.A{
+  border-color:color-mix(in srgb, var(--p1) 40%, var(--line));
+  background:color-mix(in srgb, var(--p1) 10%, var(--room2));
+}
+.arcade-page .profile-split-card.B{
+  border-color:color-mix(in srgb, var(--p2) 40%, var(--line));
+  background:color-mix(in srgb, var(--p2) 10%, var(--room2));
+}
+.arcade-page .profile-split-name{font-size:12px;font-weight:600;color:var(--dim);margin-bottom:4px;}
+.arcade-page .profile-split-card.A .profile-split-name{color:var(--p1);}
+.arcade-page .profile-split-card.B .profile-split-name{color:var(--p2);}
+.arcade-page .profile-split-n{font-family:'Fraunces',serif;font-weight:900;font-size:28px;line-height:1;}
+.arcade-page .profile-split-l{font-size:11px;color:var(--dim);margin-top:2px;}
+.arcade-page .profile-split-mid{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:72px;padding:0 4px;text-align:center;
+}
+.arcade-page .profile-split-score{
+  font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--candle);
+}
+.arcade-page .profile-split-lead{font-size:12px;font-weight:600;margin-top:4px;}
+.arcade-page .profile-split-draws{font-size:11px;color:var(--dim);margin-top:2px;}
+.arcade-page .profile-taste{
+  margin-top:14px;padding:14px;border-radius:14px;border:1px solid var(--line);
+  background:var(--room2);display:flex;flex-direction:column;gap:10px;
+}
+.arcade-page .profile-taste-n{font-family:'Fraunces',serif;font-weight:900;font-size:22px;}
+.arcade-page .profile-taste-l{font-size:12px;color:var(--dim);}
+.arcade-page .profile-taste-meter{margin:0;height:6px;}
+.arcade-page .profile-records{border-top:1px solid var(--line);}
+.arcade-page .profile-rec-list{display:flex;flex-direction:column;gap:8px;}
+.arcade-page .profile-rec{
+  display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;
+  column-gap:12px;row-gap:2px;align-items:center;
+  padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--room2);
+}
+.arcade-page .profile-rec-name{font-weight:600;font-size:14px;}
+.arcade-page .profile-rec-meta{font-size:11px;color:var(--dim);grid-column:1;}
+.arcade-page .profile-rec-score{
+  grid-row:1 / span 2;align-self:center;
+  font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
+}
+.arcade-page .profile-rec-score .pA{color:var(--p1);}
+.arcade-page .profile-rec-score .pB{color:var(--p2);}
+.arcade-page .profile-rec-score .amp{color:var(--dim);margin:0 2px;}
+.arcade-page .profile-foot{
+  display:flex;gap:8px;flex-wrap:wrap;padding:4px 22px 18px;
+}
+.arcade-page .profile-danger{margin:0 22px 18px;}
+
+@media (max-width:560px){
+  .arcade-page .profile-hero{flex-direction:column;align-items:flex-start;}
+  .arcade-page .profile-enter{width:100%;}
+  .arcade-page .profile-stats{grid-template-columns:repeat(2,1fr);}
+  .arcade-page .profile-stats .hstat:nth-child(2){border-right:none;}
+}
+
 html[data-appearance="light"] .arcade-page .lobby-card{
   box-shadow:0 16px 44px rgba(28,30,42,.08),0 1px 0 rgba(255,255,255,.95) inset;
 }
