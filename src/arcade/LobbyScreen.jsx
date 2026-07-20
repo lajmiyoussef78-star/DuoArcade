@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 function initial(name) {
   const s = (name || '?').trim();
@@ -8,7 +8,7 @@ function initial(name) {
 export default function LobbyScreen({
   profile, myDuos, lobbyStatus,
   onSaveUsername, onOpenDuo, onCreateDuo, onJoinInvite, onDeleteDuo, onSignOut,
-  onToggleVisibility, onClearStuck, onSearch, onOpenProfile
+  onToggleVisibility, onClearStuck
 }) {
   const [showUname, setShowUname] = useState(!profile?.username);
   const [uname, setUname] = useState('');
@@ -17,11 +17,9 @@ export default function LobbyScreen({
   const [nameB, setNameB] = useState('');
   const [inviteStr, setInviteStr] = useState('');
   const [joining, setJoining] = useState(false);
-  const [results, setResults] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const searchTimer = useRef(null);
   const hasDuo = myDuos.length > 0;
 
   const confirmDelete = async d => {
@@ -42,15 +40,6 @@ export default function LobbyScreen({
     } catch (e) { setUnameStatus(e.message); }
   };
 
-  const doSearch = q => {
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(async () => {
-      if (q.trim().length < 2) { setResults(null); return; }
-      try { setResults(await onSearch(q.trim())); }
-      catch (e) { setResults({ error: e.message }); }
-    }, 300);
-  };
-
   const doJoin = async () => {
     if (!onJoinInvite || !inviteStr.trim()) return;
     setJoining(true);
@@ -64,7 +53,6 @@ export default function LobbyScreen({
   return (
     <section className="on lobby">
       <div className="card lobby-card">
-        {/* identity */}
         <header className="lobby-id">
           <div className="lobby-id-main">
             <div className="lobby-mono" aria-hidden="true">
@@ -103,7 +91,6 @@ export default function LobbyScreen({
           </div>
         )}
 
-        {/* duo */}
         <div className="lobby-section">
           <div className="lobby-section-head">
             <h3>Your duo</h3>
@@ -242,30 +229,6 @@ export default function LobbyScreen({
         </div>
 
         {lobbyStatus ? <div className="status lobby-status">{lobbyStatus}</div> : null}
-
-        {/* find people */}
-        <div className="lobby-section lobby-find">
-          <div className="lobby-section-head">
-            <h3>Find people</h3>
-            <span>Public profiles</span>
-          </div>
-          <input type="text" className="lobby-search" placeholder="Search by username…"
-            onChange={e => doSearch(e.target.value)} />
-          <div className="search-results">
-            {results?.error && <div className="status">{results.error}</div>}
-            {Array.isArray(results) && !results.length && <div className="status">No one found.</div>}
-            {Array.isArray(results) && results.map(r => (
-              <button type="button" className="sr-item" key={r.username}
-                onClick={() => onOpenProfile(r.username)}>
-                <div>
-                  <span className="uname">@{r.username}</span>
-                  <span className="c"> #{r.user_no ?? '?'}</span>
-                </div>
-                <div className="c">{r.public_duos} public duo{r.public_duos === 1 ? '' : 's'}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );

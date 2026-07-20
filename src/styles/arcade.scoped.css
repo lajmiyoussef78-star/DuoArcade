@@ -208,8 +208,6 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 .arcade-page .lobby-member{font-size:12px;color:var(--dim);}
 .arcade-page .lobby-id-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .arcade-page .lobby-section{padding:22px;}
-.arcade-page .lobby-section + .lobby-section,
-.arcade-page .lobby-find{border-top:1px solid var(--line);}
 .arcade-page .lobby-section-head{
   display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;
 }
@@ -286,7 +284,6 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
   background:color-mix(in srgb, var(--p2) 12%, transparent);
 }
 .arcade-page .lobby-uname{margin:0 22px 18px;}
-.arcade-page .lobby-search{margin-top:2px;}
 
 html[data-appearance="light"] .arcade-page .lobby-card{
   box-shadow:0 16px 44px rgba(28,30,42,.08),0 1px 0 rgba(255,255,255,.95) inset;

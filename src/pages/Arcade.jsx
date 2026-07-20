@@ -728,7 +728,6 @@ export default function Arcade() {
         onCreateDuo={createDuo} onJoinInvite={joinFromInviteString}
         onDeleteDuo={deleteDuo} onSignOut={signOut}
         onToggleVisibility={toggleVisibility} onClearStuck={clearStuck}
-        onSearch={searchUsers} onOpenProfile={openPublicProfile}
       />
     );
   } else if (view === 'pubProfile') {
