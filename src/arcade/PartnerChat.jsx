@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   chatConfigured, getChatClient, listChatMessages, sendChatMessage,
-  uploadChatImage, markChatSeen, parseCallEvent, sendCallEvent
+  uploadChatImage, markChatSeen, parseCallEvent, sendCallEvent, parseGameEvent
 } from '../lib/chat.js';
 import { startRingtone, stopRingtone } from '../lib/ringtone.js';
 import '../styles/chat.css';
@@ -784,9 +784,67 @@ export default function PartnerChat({ code, userId, partnerName = 'Partner' }) {
                 </div>
               );
             }
+            const gameEvt = parseGameEvent(m.content);
+            if (gameEvt) {
+              const started = gameEvt.kind === 'started';
+              const rounds = gameEvt.rounds || 0;
+              const a = gameEvt.recordA || 0;
+              const b = gameEvt.recordB || 0;
+              const hasScore = !started && (rounds > 0 || a > 0 || b > 0);
+              let who = null;
+              if (hasScore) {
+                if (a === b) who = 'Draw';
+                else {
+                  const lead = a > b
+                    ? (gameEvt.nameA || gameEvt.winnerName || 'A')
+                    : (gameEvt.nameB || gameEvt.winnerName || 'B');
+                  who = `${lead} won`;
+                }
+              }
+              const themeStyle = { color: 'var(--candle)' };
+
+              return (
+                <div key={m.id} className="pc-row pc-system">
+                  <div className="pc-sys-stack">
+                    <div
+                      className={`pc-sys pc-sys-game${started ? '' : ' pc-sys-game-ended'}`}
+                      style={themeStyle}
+                    >
+                      <span className="pc-sys-icon" aria-hidden="true" style={themeStyle}>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="6" width="20" height="12" rx="2" />
+                          <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                        </svg>
+                      </span>
+                      <span>{gameEvt.name}</span>
+                      <span className="pc-sys-dot" aria-hidden="true">·</span>
+                      <span>{started ? 'Started' : 'Ended'}</span>
+                      <span className="pc-sys-time">{fmtTime(m.created_at)}</span>
+                    </div>
+                    {hasScore && (
+                      <div className="pc-sys pc-sys-game-end">
+                        <span className="pc-sys-icon" aria-hidden="true" style={themeStyle}>
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z" />
+                            <path d="M17 4h2a2 2 0 0 1 2 2c0 2.5-2 4-4 4M7 4H5a2 2 0 0 0-2 2c0 2.5 2 4 4 4" />
+                          </svg>
+                        </span>
+                        <span>{who}</span>
+                        <span className="pc-sys-dot" aria-hidden="true">·</span>
+                        <span>{a}–{b}</span>
+                        <span className="pc-sys-dot" aria-hidden="true">·</span>
+                        <span>{rounds || a + b + (gameEvt.draws || 0)} played</span>
+                        <span className="pc-sys-time">{fmtTime(m.created_at)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
             const mine = m.sender_id === userId;
             const prev = messages[i - 1];
-            const grouped = prev && !parseCallEvent(prev.content) && prev.sender_id === m.sender_id &&
+            const prevSystem = prev && (parseCallEvent(prev.content) || parseGameEvent(prev.content));
+            const grouped = prev && !prevSystem && prev.sender_id === m.sender_id &&
               (new Date(m.created_at) - new Date(prev.created_at) < 90000);
             return (
               <div

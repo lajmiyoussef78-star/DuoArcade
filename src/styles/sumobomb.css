@@ -1,0 +1,97 @@
+/* Sumo Bomb — scoped for the duo game shell. Canvas arena; no emoji. */
+
+.arcade-page .sb-shell {
+  width: 100%;
+  color: var(--text);
+  padding: 0 0 8px;
+}
+
+.arcade-page .sb-status {
+  text-align: center;
+  color: var(--dim);
+  padding: 28px 16px;
+  margin: 0;
+}
+
+.arcade-page .sb-gamewrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.arcade-page .sb-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  gap: 10px;
+}
+
+.arcade-page .sb-hud b { font-size: 19px; }
+.arcade-page .sb-hud .pA { color: var(--p1); }
+.arcade-page .sb-hud .pB { color: var(--p2); }
+
+.arcade-page .sb-holdmsg {
+  font-size: 11.5px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.arcade-page .sb-holdmsg.mine {
+  color: var(--candle);
+  font-weight: 700;
+  animation: sb-blink 0.9s ease-in-out infinite;
+}
+
+@keyframes sb-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+
+.arcade-page .sb-canvaswrap {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  user-select: none;
+  cursor: pointer;
+}
+
+.arcade-page .sb-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+.arcade-page .sb-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.arcade-page .sb-winline {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--candle);
+}
+
+.arcade-page .sb-final {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: var(--dim);
+}
+
+.arcade-page .sumobomb-wrap {
+  width: 100%;
+}

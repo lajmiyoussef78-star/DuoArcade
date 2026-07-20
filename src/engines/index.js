@@ -41,8 +41,10 @@ import * as CARROT from './carrot.js';
 import * as CHKOBBA from './chkobba.js';
 import * as MINUSONE from './minusone.js';
 import * as THINICE from './thinice.js';
+import * as SUMOBOMB from './sumobomb.js';
+import * as MAGNETHEARTS from './magnethearts.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, MINUSONE, THINICE]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, MINUSONE, THINICE, SUMOBOMB, MAGNETHEARTS]
     .map(e => [e.meta.id, e])
 );

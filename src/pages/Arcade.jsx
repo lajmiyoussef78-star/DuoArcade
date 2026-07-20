@@ -6,6 +6,7 @@ import {
   other, today, loadSeats, saveSeat, removeSeat, applyTheme, finishPatch
 } from '../lib/util.js';
 import { watchGeo } from '../lib/location.js';
+import { chatConfigured, sendGameEvent } from '../lib/chat.js';
 import AuthScreen from '../arcade/AuthScreen.jsx';
 import LobbyScreen from '../arcade/LobbyScreen.jsx';
 import PublicProfileScreen from '../arcade/PublicProfileScreen.jsx';
@@ -238,13 +239,46 @@ export default function Arcade() {
 
   /* ---------- game session actions ---------- */
 
+  // Post "Ended" + score when leaving the shelf (covers the rematch series).
+  const flushSessionRecap = useCallback((s) => {
+    if (!s?.game || !chatConfigured()) return;
+    const series = s.series || s.streak; // streak = legacy field name
+    const a = series?.a || 0, b = series?.b || 0, d = series?.d || 0;
+    const rounds = a + b + d;
+    if (!rounds) return;
+    const { duo, code } = ctxRef.current;
+    const uid = syncRef.current?.auth.user()?.id;
+    if (!uid || !code) return;
+    // Only one side posts — prefer the player who is clearing (caller).
+    if (s.chatEndedPosted) return;
+    const winner = a === b ? 'draw' : (a > b ? 'A' : 'B');
+    sendGameEvent(code, uid, {
+      kind: 'ended',
+      gameId: s.game,
+      name: ENGINES[s.game]?.meta?.name || 'a game',
+      winner,
+      winnerName: winner === 'A' ? (duo?.nameA || 'A') : winner === 'B' ? (duo?.nameB || 'B') : null,
+      nameA: duo?.nameA || 'A',
+      nameB: duo?.nameB || 'B',
+      rounds,
+      recordA: a,
+      recordB: b,
+      draws: d
+    }).catch(() => {});
+  }, []);
+
   const startGame = useCallback(async gameId => {
-    const { code, myRole } = ctxRef.current;
+    const { duo, code, myRole } = ctxRef.current;
+    // Leaving a rematch series for a new title → post Ended first.
+    if (duo?.session) flushSessionRecap(duo.session);
     const eng = ENGINES[gameId];
     const session = {
       game: gameId, gs: eng.meta.realtime ? {} : eng.initialState(),
       turn: eng.meta.realtime ? '-' : 'A', starter: 'A', winner: null,
-      phase: 'invite', by: myRole, startedAt: Date.now()
+      phase: 'invite', by: myRole, startedAt: Date.now(),
+      series: { a: 0, b: 0, d: 0 },
+      chatPostedStart: false,
+      chatEndedPosted: false
     };
     const patch = { session, turn: 'A' };
     patchLocal(patch);
@@ -255,17 +289,21 @@ export default function Arcade() {
       patchLocal({ session: null });
       setHomeStatus('Couldn’t send the invitation: ' + e.message);
     }
-  }, [patchLocal, upd]);
+  }, [patchLocal, upd, flushSessionRecap]);
 
   const rematch = useCallback(async () => {
     const { duo, code, myRole } = ctxRef.current;
     const s = duo.session;
     const eng = ENGINES[s.game];
     const starter = s.winner && s.winner !== 'draw' ? other(s.winner) : other(s.starter);
+    const series = s.series || s.streak || { a: 0, b: 0, d: 0 };
     const session = {
       game: s.game, gs: eng.meta.realtime ? {} : eng.initialState(),
       turn: eng.meta.realtime ? '-' : starter, starter, winner: null,
-      phase: 'invite', by: myRole, startedAt: Date.now()
+      phase: 'invite', by: myRole, startedAt: Date.now(),
+      series,
+      chatPostedStart: true, // already announced this shelf visit
+      chatEndedPosted: false
     };
     const patch = { session, turn: eng.meta.realtime ? '-' : starter };
     patchLocal(patch);
@@ -273,11 +311,27 @@ export default function Arcade() {
   }, [patchLocal, upd]);
 
   const backToHome = useCallback(async () => {
-    const { code } = ctxRef.current;
+    const { duo, code } = ctxRef.current;
+    if (duo?.session) {
+      flushSessionRecap(duo.session);
+      // mark so a racing clear can't double-post
+      if (duo.session.series || duo.session.streak) {
+        patchLocal({ session: { ...duo.session, chatEndedPosted: true } });
+      }
+    }
     const patch = { session: null, turn: '-' };
     patchLocal(patch);
     await upd(code, patch, { force: true });
-  }, [patchLocal, upd]);
+  }, [patchLocal, upd, flushSessionRecap]);
+
+  const bumpSeries = (s, w) => {
+    const prev = s.series || s.streak || { a: 0, b: 0, d: 0 };
+    const series = { a: prev.a || 0, b: prev.b || 0, d: prev.d || 0 };
+    if (w === 'draw') series.d++;
+    else if (w === 'A') series.a++;
+    else if (w === 'B') series.b++;
+    return series;
+  };
 
   const move = useCallback(async m => {
     const { duo, code, myRole } = ctxRef.current;
@@ -290,7 +344,12 @@ export default function Arcade() {
     const res = eng.applyMove(s.gs, m, myRole);
     if (!res) return;
     const w = eng.winner(res.gs);
-    const session = { ...s, gs: res.gs, winner: w, turn: w ? s.turn : (res.again ? myRole : other(myRole)) };
+    const series = w ? bumpSeries(s, w) : (s.series || s.streak);
+    const session = {
+      ...s, gs: res.gs, winner: w,
+      turn: w ? s.turn : (res.again ? myRole : other(myRole)),
+      ...(series ? { series } : {})
+    };
     const patch = { session, turn: w ? '-' : session.turn };
     if (w) {
       const records = structuredClone(duo.records || {});
@@ -326,7 +385,8 @@ export default function Arcade() {
     const matchScore = scores && typeof scores.a === 'number' && typeof scores.b === 'number'
       ? { a: scores.a, b: scores.b }
       : null;
-    const session = { ...s, winner: w, ...(matchScore ? { matchScore } : {}) };
+    const series = bumpSeries(s, w);
+    const session = { ...s, winner: w, series, ...(matchScore ? { matchScore } : {}) };
     const patch = { session, turn: '-' };
     const records = structuredClone(duo.records || {});
     const rec = records[gameId] ?? (records[gameId] = { a: 0, b: 0, d: 0 });
@@ -371,12 +431,14 @@ export default function Arcade() {
 
   const forceClearSession = useCallback(async (targetCode, onStatus) => {
     try {
+      const { duo, code } = ctxRef.current;
+      if (targetCode === code && duo?.session) flushSessionRecap(duo.session);
       const ok = await upd(targetCode, { session: null, turn: '-' }, { force: true });
       if (!ok) throw new Error('server refused (are you a member of this duo?)');
       if (targetCode === ctxRef.current.code) patchLocal({ session: null });
       onStatus?.('Session cleared for both of you.');
     } catch (e) { onStatus?.('Clear failed: ' + e.message); }
-  }, [patchLocal, upd]);
+  }, [patchLocal, upd, flushSessionRecap]);
 
   /* ---------- invitations (receiving side) ---------- */
 
@@ -386,15 +448,29 @@ export default function Arcade() {
     if (!s || s.phase !== 'invite') return;
     try {
       // Every game goes through the ready lobby before a fixed 3s countdown.
+      const alreadyPosted = !!s.chatPostedStart;
       const session = {
         ...s,
         phase: 'lobby',
         ready: { A: false, B: false },
-        liveAt: null
+        liveAt: null,
+        chatPostedStart: true,
+        series: s.series || s.streak || { a: 0, b: 0, d: 0 }
       };
       patchLocal({ session });
       const ok = await upd(code, { session }, { force: true });
       if (!ok) throw new Error('server refused the update');
+      // One "Started" when the invite is accepted — not again on rematch.
+      if (!alreadyPosted && chatConfigured()) {
+        const uid = syncRef.current?.auth.user()?.id;
+        if (uid) {
+          sendGameEvent(code, uid, {
+            kind: 'started',
+            gameId: s.game,
+            name: ENGINES[s.game]?.meta?.name || 'a game'
+          }).catch(() => {});
+        }
+      }
     } catch (e) { onError('Accept failed: ' + e.message); }
   }, [patchLocal, upd]);
 
@@ -421,10 +497,11 @@ export default function Arcade() {
     const s = duo?.session;
     if (!s || !s.game || s.phase !== 'invite' || s.by === myRole || s.winner) return;
     if (!s.startedAt || Date.now() - s.startedAt > 120000) {
+      flushSessionRecap(s);
       patchLocal({ session: null });
       upd(code, { session: null, turn: '-' }, { force: true }).catch(() => {});
     }
-  }, [ctx, patchLocal, upd]);
+  }, [ctx, patchLocal, upd, flushSessionRecap]);
 
   /* ---------- watch party ---------- */
 

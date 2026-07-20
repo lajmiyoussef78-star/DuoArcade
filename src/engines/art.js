@@ -1304,7 +1304,160 @@ export const ART = {
      }
      .ti-gone { animation: ti-hole 3s ease-in-out infinite; }
      @keyframes ti-hole { 0%,100% { opacity: .75 } 50% { opacity: 1 } }
-     ${sparkAnim('ti', 4)}`)
+     ${sparkAnim('ti', 4)}`),
+
+  /* ─── Sumo Bomb: ring of alternating sumos + fused bomb ─── */
+  sumobomb: scene('sb', `
+    <radialGradient id="sb-ring" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#241C36" stop-opacity="0"/>
+      <stop offset="92%" stop-color="var(--candle)" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="var(--candle)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sb-bomb" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#3A3A46"/>
+      <stop offset="55%" stop-color="#14141C"/>
+      <stop offset="100%" stop-color="#0A0A10"/>
+    </radialGradient>
+    <radialGradient id="sb-skin" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFE0C0"/>
+      <stop offset="100%" stop-color="#F2C9A0"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="112" rx="70" ry="8" fill="#191420" opacity=".45"/>
+    <circle cx="120" cy="66" r="48" fill="url(#sb-ring)"/>
+    <circle cx="120" cy="66" r="44" fill="none" stroke="rgba(242,237,247,.12)" stroke-width="2"/>
+    <circle cx="120" cy="66" r="36" fill="none" stroke="var(--candle)" stroke-width="3" opacity=".22"/>
+
+    <!-- alternating sumos around the ring -->
+    <g class="sb-sumos">
+      <g class="sb-s0" transform="translate(120 30)">
+        <circle r="9" fill="var(--p1)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s1" transform="translate(152 44)">
+        <circle r="9" fill="var(--p2)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s2" transform="translate(164 72)">
+        <circle r="9" fill="var(--p1)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s3" transform="translate(148 96)">
+        <circle r="9" fill="var(--p2)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s4" transform="translate(120 104)">
+        <circle r="9" fill="var(--p1)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s5" transform="translate(92 96)">
+        <circle r="9" fill="var(--p2)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s6" transform="translate(76 72)">
+        <circle r="9" fill="var(--p1)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+      <g class="sb-s7" transform="translate(88 44)">
+        <circle r="9" fill="var(--p2)"/><circle r="6.5" fill="url(#sb-skin)"/>
+        <circle cx="0" cy="-5" r="2.2" fill="#2A2333"/>
+      </g>
+    </g>
+
+    <!-- center cannon -->
+    <g class="sb-cannon" transform="translate(120 66)">
+      <circle r="11" fill="#14141C" stroke="#3A3A46" stroke-width="2"/>
+      <rect x="0" y="-3" width="16" height="6" rx="1.5" fill="#3A3A46"/>
+    </g>
+
+    <!-- fused bomb -->
+    <g class="sb-bomb" transform="translate(120 30)">
+      <circle cy="-16" r="7" fill="url(#sb-bomb)" stroke="#34343F" stroke-width="1.5" filter="url(#sb-glow)"/>
+      <path d="M3 -21 Q7 -26 10 -23" stroke="#6B5A44" stroke-width="1.6" fill="none"/>
+      <circle class="sb-spark" cx="10" cy="-23" r="2.2" fill="var(--candle)" filter="url(#sb-glow2)"/>
+    </g>
+
+    ${sparks('sb', [[48, 28, 1.5, 'var(--candle)'], [198, 40, 1.4, 'var(--p1)'], [210, 96, 1.3, 'var(--p2)'], [36, 100, 1.4, 'var(--candle)']])}`,
+    `.sb-cannon { animation: sb-spin 2.8s linear infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes sb-spin { to { transform: rotate(360deg) } }
+     .sb-bomb { animation: sb-bob 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes sb-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     .sb-spark { animation: sb-flicker .45s ease-in-out infinite alternate; }
+     @keyframes sb-flicker { from { opacity: .55 } to { opacity: 1 } }
+     .sb-s0,.sb-s2,.sb-s4,.sb-s6 { animation: sb-pulseA 2.4s ease-in-out infinite; }
+     .sb-s1,.sb-s3,.sb-s5,.sb-s7 { animation: sb-pulseB 2.4s ease-in-out .4s infinite; }
+     @keyframes sb-pulseA { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
+     @keyframes sb-pulseB { 0%,100% { opacity: .8 } 50% { opacity: 1 } }
+     ${sparkAnim('sb', 4)}`),
+
+  /* ─── Magnet Hearts: two zones + raining hearts + magnet pods ─── */
+  magnethearts: scene('mh', `
+    <radialGradient id="mh-zoneA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="var(--p1)" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="var(--p1)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mh-zoneB" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="var(--p2)" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="var(--p2)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mh-podA" cx="32%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="var(--p1)"/>
+      <stop offset="100%" stop-color="#3A5CA8"/>
+    </radialGradient>
+    <radialGradient id="mh-podB" cx="32%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="var(--p2)"/>
+      <stop offset="100%" stop-color="#B04A72"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="114" rx="78" ry="8" fill="#191420" opacity=".45"/>
+    <rect x="28" y="18" width="184" height="90" rx="14" fill="#171226" stroke="var(--line)" stroke-width="2"/>
+
+    <circle cx="52" cy="63" r="22" fill="url(#mh-zoneA)"/>
+    <circle cx="52" cy="63" r="20" fill="none" stroke="var(--p1)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
+    <circle cx="188" cy="63" r="22" fill="url(#mh-zoneB)"/>
+    <circle cx="188" cy="63" r="20" fill="none" stroke="var(--p2)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
+
+    <!-- raining hearts -->
+    <g class="mh-hearts" fill="var(--p2)">
+      <path class="mh-h0" d="M78 28 C78 22 72 20 70 26 C68 20 62 22 62 28 C62 36 70 42 70 42 C70 42 78 36 78 28Z" opacity=".9"/>
+      <path class="mh-h1" d="M128 24 C128 18 122 16 120 22 C118 16 112 18 112 24 C112 32 120 38 120 38 C120 38 128 32 128 24Z" fill="var(--candle)" filter="url(#mh-glow)"/>
+      <path class="mh-h2" d="M168 34 C168 28 162 26 160 32 C158 26 152 28 152 34 C152 42 160 48 160 48 C160 48 168 42 168 34Z" opacity=".85"/>
+    </g>
+
+    <!-- bomb -->
+    <g class="mh-bomb" transform="translate(100 78)">
+      <circle r="7" fill="#14141C" stroke="#34343F" stroke-width="1.4"/>
+      <circle cx="-2" cy="-2.5" r="1.8" fill="#FFFFFF" opacity=".25"/>
+      <path d="M3 -5 Q7 -10 9 -7" stroke="#6B5A44" stroke-width="1.4" fill="none"/>
+      <circle class="mh-spark" cx="9" cy="-7" r="2" fill="var(--candle)" filter="url(#mh-glow2)"/>
+    </g>
+
+    <!-- pods -->
+    <g class="mh-podA">
+      <circle cx="52" cy="63" r="16" fill="none" stroke="var(--p1)" stroke-width="1" opacity=".2"/>
+      <circle cx="52" cy="63" r="10" fill="url(#mh-podA)" filter="url(#mh-glow)"/>
+    </g>
+    <g class="mh-podB">
+      <circle cx="188" cy="63" r="16" fill="none" stroke="var(--p2)" stroke-width="1" opacity=".2"/>
+      <circle cx="188" cy="63" r="10" fill="url(#mh-podB)" filter="url(#mh-glow)"/>
+    </g>
+
+    ${sparks('mh', [[40, 30, 1.4, 'var(--p1)'], [200, 36, 1.5, 'var(--p2)'], [120, 100, 1.3, 'var(--candle)'], [86, 92, 1.2, 'var(--p2)']])}`,
+    `.mh-h0 { animation: mh-fall 2.4s ease-in infinite; }
+     .mh-h1 { animation: mh-fall 2.8s ease-in .4s infinite; }
+     .mh-h2 { animation: mh-fall 2.2s ease-in .8s infinite; }
+     @keyframes mh-fall {
+       0% { transform: translateY(-6px); opacity: 0 }
+       20% { opacity: 1 }
+       100% { transform: translateY(18px); opacity: .15 }
+     }
+     .mh-podA { animation: mh-bob 2.2s ease-in-out infinite; }
+     .mh-podB { animation: mh-bob 2.2s ease-in-out .5s infinite; }
+     @keyframes mh-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+     .mh-spark { animation: mh-flick .4s ease-in-out infinite alternate; }
+     @keyframes mh-flick { from { opacity: .5 } to { opacity: 1 } }
+     .mh-bomb { animation: mh-bob 1.8s ease-in-out .2s infinite; }
+     ${sparkAnim('mh', 4)}`)
 };
 
 export const artFor = id => ART[id] || null;

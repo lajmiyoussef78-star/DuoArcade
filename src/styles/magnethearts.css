@@ -1,0 +1,146 @@
+/* Magnet Hearts — scoped for the duo game shell. */
+
+.arcade-page .mh-shell {
+  width: 100%;
+  color: var(--text);
+  padding: 0 0 8px;
+}
+
+.arcade-page .mh-status {
+  text-align: center;
+  color: var(--dim);
+  padding: 28px 16px;
+  margin: 0;
+}
+
+.arcade-page .mh-gamewrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.arcade-page .mh-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+}
+
+.arcade-page .mh-hud b { font-size: 19px; }
+.arcade-page .mh-hud .pA { color: var(--p1); }
+.arcade-page .mh-hud .pB { color: var(--p2); }
+.arcade-page .mh-clock { color: var(--candle); font-weight: 700; }
+
+.arcade-page .mh-canvaswrap {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  user-select: none;
+}
+
+.arcade-page .mh-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+.arcade-page .mh-touch {
+  display: none;
+  width: 100%;
+  max-width: 900px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (pointer: coarse) {
+  .arcade-page .mh-touch { display: flex; }
+}
+
+.arcade-page .mh-pad {
+  display: grid;
+  grid-template-columns: 54px 54px 54px;
+  grid-template-rows: 54px 54px 54px;
+  grid-template-areas: ". up ." "left . right" ". down .";
+  gap: 4px;
+}
+
+.arcade-page .mh-padbtn {
+  border: 1px solid var(--line);
+  background: var(--room2);
+  color: var(--dim);
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arcade-page .mh-padbtn:active {
+  background: var(--room);
+  color: var(--candle);
+  border-color: var(--candle);
+}
+
+.arcade-page .mh-padbtn.up { grid-area: up; }
+.arcade-page .mh-padbtn.left { grid-area: left; }
+.arcade-page .mh-padbtn.right { grid-area: right; }
+.arcade-page .mh-padbtn.down { grid-area: down; }
+
+.arcade-page .mh-throw {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  border: 2px solid var(--candle);
+  background: color-mix(in srgb, var(--candle) 14%, transparent);
+  color: var(--candle);
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--candle) 18%, transparent);
+}
+
+.arcade-page .mh-throw:active {
+  background: var(--candle);
+  color: #2a1e05;
+}
+
+.arcade-page .mh-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.arcade-page .mh-winline {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--candle);
+}
+
+.arcade-page .mh-final {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: var(--dim);
+}
+
+.arcade-page .magnethearts-wrap {
+  width: 100%;
+}

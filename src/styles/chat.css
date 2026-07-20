@@ -156,6 +156,28 @@ html[data-appearance="light"] .arcade-page .pc-panel {
 .arcade-page .pc-sys-missed .pc-sys-icon { color: #ff6b6b; }
 .arcade-page .pc-sys-ended { color: var(--good); }
 .arcade-page .pc-sys-ended .pc-sys-icon { color: var(--good); }
+.arcade-page .pc-sys-stack {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.arcade-page .pc-sys.pc-sys-game,
+.arcade-page .pc-sys.pc-sys-game .pc-sys-icon {
+  color: var(--candle) !important;
+}
+.arcade-page .pc-sys.pc-sys-game-ended {
+  opacity: .92;
+}
+.arcade-page .pc-sys.pc-sys-game-end {
+  color: var(--dim);
+  font-size: 11px; font-weight: 600;
+  padding: 5px 10px;
+  background: transparent;
+  border-color: transparent;
+}
+.arcade-page .pc-sys.pc-sys-game-end .pc-sys-icon {
+  color: var(--candle) !important;
+  opacity: .9;
+}
+.arcade-page .pc-sys-dot { opacity: .55; }
 .arcade-page .pc-sys-time {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 500; font-size: 10.5px;

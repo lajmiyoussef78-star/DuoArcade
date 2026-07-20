@@ -225,6 +225,30 @@ export const RULES = {
     tip: 'Central position early = options later. Your trail is a knife \u2014 wall them off.'
   },
 
+  sumobomb: {
+    goal: 'Pass the fused bomb before it blows on YOUR sumo \u2014 first to 3 points (best of 5).',
+    how: [
+      'Eight sumos on a ring: four yours, four your partner\u2019s, alternating colors.',
+      'The center cannon spins, then fires the bomb at a random sumo. Fuse length is secret (5\u201320s).',
+      'When YOUR sumo holds it, a gold aim arrow sweeps \u2014 tap anywhere (or SPACE) to throw along the arrow.',
+      'The bomb lands on whoever the throw-line hits. Miss everyone and it loops straight back to you.',
+      'If it explodes on one of YOUR sumos, your partner scores. First to 3 wins the basho.'
+    ],
+    tip: 'Don\u2019t panic-throw into empty air \u2014 a miss wastes fuse and the bomb comes right back.'
+  },
+
+  magnethearts: {
+    goal: 'Bank the most hearts in 90 seconds \u2014 gold is +2, bombs are -2.',
+    how: [
+      'Your pod is a magnet. Free items inside your ring pull toward you and snap into orbit (max 3).',
+      'THROW (SPACE or the big button) flings your whole orbit the way you last moved.',
+      'Land hearts in YOUR glowing zone to bank them. Hurl bombs into your partner\u2019s zone.',
+      'Carried items never convert. Catch a bomb near your pod and send it back.',
+      'Highest bank when the clock hits zero wins. Ties are draws.'
+    ],
+    tip: 'Camping your zone vacuums hearts \u2014 and bombs. Catch bombs; don\u2019t bank them.'
+  },
+
   chkobba: {
     goal: 'Score Carta, Diamonds, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
     how: [

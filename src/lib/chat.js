@@ -96,3 +96,68 @@ export function parseCallEvent(content) {
 export async function sendCallEvent(duoCode, senderId, { kind, video, seconds }) {
   return sendChatMessage(duoCode, senderId, encodeCallEvent({ kind, video, seconds }));
 }
+
+/* Game chat events: started (once per shelf visit) + ended (on quit, with score). */
+const GAME_PREFIX = '⟦duo:game⟧';
+
+export function encodeGameEvent(payload) {
+  let kind = payload?.kind;
+  if (kind === 'session' || kind === 'finished') kind = 'ended';
+  if (kind !== 'started' && kind !== 'ended') kind = 'ended';
+  const body = {
+    kind,
+    gameId: payload?.gameId || null,
+    name: (typeof payload?.name === 'string' && payload.name.trim()) ? payload.name.trim() : 'a game'
+  };
+  if (kind === 'ended') {
+    body.winner = payload?.winner === 'A' || payload?.winner === 'B' || payload?.winner === 'draw'
+      ? payload.winner
+      : 'draw';
+    body.winnerName = typeof payload?.winnerName === 'string' ? payload.winnerName : null;
+    body.nameA = typeof payload?.nameA === 'string' ? payload.nameA : null;
+    body.nameB = typeof payload?.nameB === 'string' ? payload.nameB : null;
+    body.rounds = Number.isFinite(payload?.rounds)
+      ? Math.max(0, Math.floor(payload.rounds))
+      : (Number.isFinite(payload?.played) ? Math.max(0, Math.floor(payload.played)) : 0);
+    body.recordA = Number.isFinite(payload?.recordA) ? Math.max(0, Math.floor(payload.recordA)) : 0;
+    body.recordB = Number.isFinite(payload?.recordB) ? Math.max(0, Math.floor(payload.recordB)) : 0;
+    body.draws = Number.isFinite(payload?.draws) ? Math.max(0, Math.floor(payload.draws)) : 0;
+  }
+  return GAME_PREFIX + JSON.stringify(body);
+}
+
+export function parseGameEvent(content) {
+  if (typeof content !== 'string' || !content.startsWith(GAME_PREFIX)) return null;
+  try {
+    const data = JSON.parse(content.slice(GAME_PREFIX.length));
+    if (!data) return null;
+    let kind = data.kind;
+    if (kind === 'session' || kind === 'finished') kind = 'ended';
+    if (kind !== 'started' && kind !== 'ended') return null;
+    const base = {
+      kind,
+      gameId: typeof data.gameId === 'string' ? data.gameId : null,
+      name: typeof data.name === 'string' && data.name.trim() ? data.name.trim() : 'a game'
+    };
+    if (kind === 'started') return base;
+    return {
+      ...base,
+      winner: data.winner === 'A' || data.winner === 'B' || data.winner === 'draw' ? data.winner : 'draw',
+      winnerName: typeof data.winnerName === 'string' && data.winnerName.trim() ? data.winnerName.trim() : null,
+      nameA: typeof data.nameA === 'string' && data.nameA.trim() ? data.nameA.trim() : null,
+      nameB: typeof data.nameB === 'string' && data.nameB.trim() ? data.nameB.trim() : null,
+      rounds: Number.isFinite(data.rounds)
+        ? Math.max(0, Math.floor(data.rounds))
+        : (Number.isFinite(data.played) ? Math.max(0, Math.floor(data.played)) : 0),
+      recordA: Number.isFinite(data.recordA) ? Math.max(0, Math.floor(data.recordA)) : 0,
+      recordB: Number.isFinite(data.recordB) ? Math.max(0, Math.floor(data.recordB)) : 0,
+      draws: Number.isFinite(data.draws) ? Math.max(0, Math.floor(data.draws)) : 0
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function sendGameEvent(duoCode, senderId, payload) {
+  return sendChatMessage(duoCode, senderId, encodeGameEvent(payload));
+}
