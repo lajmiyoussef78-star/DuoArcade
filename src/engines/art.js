@@ -587,101 +587,98 @@ export const ART = {
      @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
      ${sparkAnim('ssd', 3)}`),
 
-  /* ─── Stickman Racing: Neon City rooftop race (matches in-game look) ─── */
+  /* ─── Stickman Racing: split-screen Neon City race ─── */
   stickmanracing: scene('sr', `
     <linearGradient id="sr-sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#070b1e"/>
       <stop offset="100%" stop-color="#182448"/>
     </linearGradient>
-    <linearGradient id="sr-glowA" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0%" stop-color="#7cc8ff" stop-opacity=".9"/>
-      <stop offset="100%" stop-color="#3aa0ff" stop-opacity="0"/>
+    <linearGradient id="sr-plat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c3a5e"/>
+      <stop offset="100%" stop-color="#1a243f"/>
     </linearGradient>
-    <linearGradient id="sr-glowB" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0%" stop-color="#ff8090" stop-opacity=".9"/>
-      <stop offset="100%" stop-color="#ff3b4d" stop-opacity="0"/>
-    </linearGradient>
-    <filter id="sr-neon" x="-80%" y="-80%" width="260%" height="260%">
-      <feGaussianBlur stdDeviation="2.4"/>
-    </filter>`, `
-    <rect width="240" height="130" fill="url(#sr-sky)"/>
+    <clipPath id="sr-clip"><rect x="42" y="16" width="164" height="98" rx="12"/></clipPath>
+    <clipPath id="sr-top"><rect x="42" y="16" width="164" height="44"/></clipPath>
+    <clipPath id="sr-bot"><rect x="42" y="70" width="164" height="44"/></clipPath>`, `
+    <!-- framed mini split-screen, like the real race UI -->
+    <rect x="42" y="16" width="164" height="98" rx="12" fill="url(#sr-sky)" stroke="var(--line)" stroke-width="2"/>
+    <g clip-path="url(#sr-clip)">
+      <!-- shared skyline (both lanes) -->
+      <g fill="#0c1330" opacity=".95">
+        <rect x="52" y="28" width="10" height="28"/>
+        <rect x="64" y="22" width="14" height="34"/>
+        <rect x="80" y="30" width="9" height="26"/>
+        <rect x="52" y="82" width="10" height="28"/>
+        <rect x="64" y="76" width="14" height="34"/>
+        <rect x="80" y="84" width="9" height="26"/>
+      </g>
+      <g fill="#111a3e">
+        <rect x="96" y="26" width="12" height="30"/>
+        <rect x="110" y="20" width="16" height="36"/>
+        <rect x="96" y="80" width="12" height="30"/>
+        <rect x="110" y="74" width="16" height="36"/>
+      </g>
+      <g fill="rgba(255,220,130,.5)">
+        <rect x="68" y="28" width="2.5" height="2.5"/><rect x="74" y="34" width="2.5" height="2.5"/>
+        <rect x="114" y="26" width="2.5" height="2.5"/><rect x="120" y="32" width="2.5" height="2.5"/>
+        <rect x="68" y="82" width="2.5" height="2.5"/><rect x="74" y="88" width="2.5" height="2.5"/>
+        <rect x="114" y="80" width="2.5" height="2.5"/><rect x="120" y="86" width="2.5" height="2.5"/>
+      </g>
 
-    <!-- stars -->
-    <g fill="#dcecff" opacity=".85">
-      <circle cx="118" cy="18" r="1.1"/>
-      <circle cx="148" cy="12" r="0.9"/>
-      <circle cx="178" cy="22" r="1.2"/>
-      <circle cx="206" cy="14" r="0.8"/>
-      <circle cx="132" cy="34" r="0.7"/>
-      <circle cx="196" cy="38" r="1"/>
-    </g>
+      <!-- top lane: blue racer -->
+      <g clip-path="url(#sr-top)">
+        <rect x="48" y="50" width="152" height="10" fill="url(#sr-plat)"/>
+        <rect x="48" y="50" width="152" height="2" fill="#5aa9ff" opacity=".45"/>
+        <!-- checkered finish -->
+        <line x1="178" y1="22" x2="178" y2="50" stroke="#e8eef5" stroke-width="2"/>
+        <g transform="translate(180 22)">
+          <rect width="20" height="8" fill="#e8eef5"/><rect width="10" height="4" fill="#10141d"/>
+          <rect x="10" y="4" width="10" height="4" fill="#10141d"/>
+          <rect y="8" width="20" height="8" fill="#e8eef5"/><rect y="8" width="10" height="4" fill="#10141d"/>
+          <rect x="10" y="12" width="10" height="4" fill="#10141d"/>
+        </g>
+        <g class="sr-p1">
+          <circle cx="128" cy="34" r="5.5" fill="#3aa0ff" filter="url(#sr-glow)" opacity=".7"/>
+          <circle cx="128" cy="34" r="4.2" fill="#3aa0ff"/>
+          <path d="M128 39 V50 M121 43 H135 M128 50 L122 58 M128 50 L136 56"
+            stroke="#E8EEF5" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        </g>
+      </g>
 
-    <!-- far skyline (right-weighted so title/tag stay readable) -->
-    <g fill="#0c1330">
-      <rect x="110" y="52" width="18" height="50"/>
-      <rect x="132" y="40" width="22" height="62"/>
-      <rect x="158" y="48" width="16" height="54"/>
-      <rect x="178" y="34" width="28" height="68"/>
-      <rect x="210" y="44" width="20" height="58"/>
-    </g>
-    <g fill="#111a3e">
-      <rect x="124" y="58" width="14" height="44"/>
-      <rect x="168" y="56" width="12" height="46"/>
-      <rect x="198" y="50" width="18" height="52"/>
-    </g>
-    <!-- window lights -->
-    <g fill="rgba(255,220,130,.55)">
-      <rect x="136" y="48" width="3" height="3"/><rect x="144" y="48" width="3" height="3"/>
-      <rect x="136" y="56" width="3" height="3"/><rect x="144" y="64" width="3" height="3"/>
-      <rect x="186" y="42" width="3" height="3"/><rect x="194" y="42" width="3" height="3"/>
-      <rect x="186" y="52" width="3" height="3"/><rect x="194" y="60" width="3" height="3"/>
-      <rect x="216" y="52" width="3" height="3"/><rect x="222" y="60" width="3" height="3"/>
-    </g>
+      <!-- progress strip (matches in-game middle bar) -->
+      <rect x="42" y="60" width="164" height="10" fill="#0a0e1a"/>
+      <line x1="54" y1="65" x2="190" y2="65" stroke="rgba(255,255,255,.18)" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="118" cy="65" r="3.2" fill="#3aa0ff" filter="url(#sr-glow)"/>
+      <circle cx="148" cy="65" r="3.2" fill="#ff3b4d" filter="url(#sr-glow)"/>
 
-    <!-- rooftop platform -->
-    <rect x="100" y="100" width="132" height="14" fill="#232c47"/>
-    <rect x="100" y="100" width="132" height="3" fill="#5aa9ff" opacity=".35"/>
-
-    <!-- red neon finish flag (in-game style) -->
-    <g class="sr-flag">
-      <line x1="214" y1="46" x2="214" y2="100" stroke="#3a4a6a" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M214 48 L236 54 L214 62 Z" fill="#ff3b4d" filter="url(#sr-neon)" opacity=".85"/>
-      <path d="M214 48 L234 54 L214 60 Z" fill="#ff3b4d"/>
+      <!-- bottom lane: pink racer -->
+      <g clip-path="url(#sr-bot)">
+        <rect x="48" y="104" width="152" height="10" fill="url(#sr-plat)"/>
+        <rect x="48" y="104" width="152" height="2" fill="#ff3b4d" opacity=".35"/>
+        <line x1="178" y1="76" x2="178" y2="104" stroke="#e8eef5" stroke-width="2"/>
+        <g transform="translate(180 76)">
+          <rect width="20" height="8" fill="#e8eef5"/><rect width="10" height="4" fill="#10141d"/>
+          <rect x="10" y="4" width="10" height="4" fill="#10141d"/>
+          <rect y="8" width="20" height="8" fill="#e8eef5"/><rect y="8" width="10" height="4" fill="#10141d"/>
+          <rect x="10" y="12" width="10" height="4" fill="#10141d"/>
+        </g>
+        <g class="sr-p2">
+          <circle cx="108" cy="88" r="5.5" fill="#ff3b4d" filter="url(#sr-glow)" opacity=".7"/>
+          <circle cx="108" cy="88" r="4.2" fill="#ff3b4d"/>
+          <path d="M108 93 V104 M101 97 H115 M108 104 L102 112 M108 104 L116 110"
+            stroke="#E8EEF5" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        </g>
+      </g>
     </g>
-
-    <!-- P2 pink: mid-stride on the roof -->
-    <ellipse cx="148" cy="100" rx="10" ry="2.2" fill="#070b1e" opacity=".45"/>
-    <g class="sr-p2">
-      <circle cx="148" cy="72" r="7" fill="#ff3b4d" filter="url(#sr-neon)" opacity=".55"/>
-      <circle cx="148" cy="72" r="5" fill="#ff3b4d"/>
-      <circle cx="148" cy="72" r="5" fill="none" stroke="#ff8090" stroke-width="1.4"/>
-      <path d="M148 78 V94 M140 84 H156 M148 94 L142 106 M148 94 L156 104"
-        stroke="#E8EEF5" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-
-    <!-- P1 blue: sprinting ahead toward the flag -->
-    <ellipse cx="186" cy="100" rx="10" ry="2.2" fill="#070b1e" opacity=".45"/>
-    <g class="sr-p1">
-      <circle cx="186" cy="68" r="7" fill="#3aa0ff" filter="url(#sr-neon)" opacity=".55"/>
-      <circle cx="186" cy="68" r="5" fill="#3aa0ff"/>
-      <circle cx="186" cy="68" r="5" fill="none" stroke="#7cc8ff" stroke-width="1.4"/>
-      <path d="M186 74 V90 M178 80 H194 M186 90 L178 102 M186 90 L196 100"
-        stroke="#E8EEF5" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
-
-    ${sparks('sr', [[160, 20, 1.2, '#7cc8ff'], [210, 28, 1.1, '#ff8090'], [128, 28, 1, '#dcecff']])}`,
-    `.sr-p1 { animation: sr-dash 1s ease-in-out infinite; }
-     .sr-p2 { animation: sr-dash 1s ease-in-out .18s infinite; }
-     .sr-flag { animation: sr-wave 1.6s ease-in-out infinite; transform-origin: 214px 48px; }
-     @keyframes sr-dash {
+    <rect x="42" y="16" width="164" height="98" rx="12" fill="none" stroke="var(--line)" stroke-width="2"/>
+    ${sparks('sr', [[28, 28, 1.5, '#3aa0ff'], [220, 40, 1.5, '#ff3b4d'], [214, 100, 1.3, '#ffe97a']])}`,
+    `.sr-p1 { animation: sr-run 1.15s ease-in-out infinite; }
+     .sr-p2 { animation: sr-run 1.15s ease-in-out .22s infinite; }
+     @keyframes sr-run {
        0%,100% { transform: translateX(0) }
-       50% { transform: translateX(6px) }
+       50% { transform: translateX(10px) }
      }
-     @keyframes sr-wave {
-       0%,100% { transform: translateX(0) }
-       50% { transform: translateX(2px) }
-     }
-     ${sparkAnim('sr', 3)}`)
+     ${sparkAnim('sr', 3)}`),
 
   /* ─── Micro Soccer: cars + ball ─── */
   microsoccer: scene('msc', '', `
