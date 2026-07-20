@@ -78,10 +78,10 @@ export default function SettingsMenu({ onSignOut, theme, onSetTheme, canSetTheme
                     aria-pressed={active === name}
                     onClick={() => onSetTheme(name)}
                   >
-                    <span
-                      className="set-theme-chip"
-                      style={{ background: `linear-gradient(135deg, ${th.p1} 0 50%, ${th.p2} 50% 100%)` }}
-                    />
+                    <span className="set-theme-chip" aria-hidden="true">
+                      <span className="set-theme-half a" style={{ background: th.p1 }} />
+                      <span className="set-theme-half b" style={{ background: th.p2 }} />
+                    </span>
                     <span className="set-theme-card-name">{th.label}</span>
                     {active === name && <span className="set-theme-check" aria-hidden="true">✓</span>}
                   </button>
