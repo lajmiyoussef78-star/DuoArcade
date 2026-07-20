@@ -1080,7 +1080,75 @@ export const ART = {
      @keyframes rsc-sizzle { 0%,100% { transform: rotate(0deg) } 50% { transform: rotate(-3deg) } }
      .rsc-chef { animation: rsc-bob 3s ease-in-out infinite; }
      @keyframes rsc-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
-     ${sparkAnim('rsc', 3)}`)
+     ${sparkAnim('rsc', 3)}`),
+
+  /* ─── Thin Ice: melting lake + two orbs ─── */
+  thinice: scene('ti', `
+    <linearGradient id="ti-ice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#DCEBF5"/>
+      <stop offset="55%" stop-color="#AFC9DC"/>
+      <stop offset="100%" stop-color="#7E9DB8"/>
+    </linearGradient>
+    <linearGradient id="ti-water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#131C2C"/>
+      <stop offset="100%" stop-color="#0C1524"/>
+    </linearGradient>
+    <radialGradient id="ti-orbA" cx="34%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#D6E4FF"/>
+      <stop offset="45%" stop-color="var(--p1)"/>
+      <stop offset="100%" stop-color="#3A5CA8"/>
+    </radialGradient>
+    <radialGradient id="ti-orbB" cx="34%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFDCE8"/>
+      <stop offset="45%" stop-color="var(--p2)"/>
+      <stop offset="100%" stop-color="#B04A72"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="116" rx="78" ry="10" fill="#191420" opacity=".45"/>
+    <rect x="48" y="22" width="144" height="92" rx="14" fill="url(#ti-water)" stroke="var(--line)" stroke-width="2"/>
+    <g transform="translate(58 32)">
+      ${[0,1,2,3].map(r => [0,1,2,3].map(c => {
+        const gone = (r === 1 && c === 1) || (r === 2 && c === 2) || (r === 0 && c === 3);
+        return `<rect class="${gone ? 'ti-gone' : 'ti-tile'}" x="${c * 32}" y="${r * 20}" width="28" height="16" rx="4" fill="${gone ? '#0C1524' : 'url(#ti-ice)'}" opacity="${gone ? '.85' : '1'}"/>`;
+      }).join('')).join('')}
+      <g class="ti-orbA"><circle cx="14" cy="28" r="7" fill="url(#ti-orbA)" filter="url(#ti-glow)"/></g>
+      <g class="ti-orbB"><circle cx="110" cy="68" r="7" fill="url(#ti-orbB)" filter="url(#ti-glow)"/></g>
+    </g>
+    ${sparks('ti', [[42, 28, 1.5, 'var(--p1)'], [198, 40, 1.5, 'var(--p2)'], [120, 108, 1.3, 'var(--candle)']])}`,
+    `.ti-orbA { animation: ti-bob 2.4s ease-in-out infinite; }
+     .ti-orbB { animation: ti-bob 2.4s ease-in-out .35s infinite; }
+     @keyframes ti-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     .ti-gone { animation: ti-fade 3.2s ease-in-out infinite; }
+     @keyframes ti-fade { 0%,100% { opacity: .55 } 50% { opacity: .9 } }
+     ${sparkAnim('ti', 3)}`),
+
+  /* ─── Loop Duel: stadium circuit + two cars ─── */
+  loopduel: scene('ld', `
+    <linearGradient id="ld-grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16211A"/>
+      <stop offset="100%" stop-color="#101A14"/>
+    </linearGradient>`, `
+    <rect width="240" height="130" fill="url(#ld-grass)"/>
+    <ellipse cx="120" cy="66" rx="78" ry="42" fill="none" stroke="#2E3038" stroke-width="18"/>
+    <ellipse cx="120" cy="66" rx="78" ry="42" fill="none" stroke="var(--candle)" stroke-width="2.5" stroke-dasharray="8 7" opacity=".7"/>
+    <rect x="116" y="20" width="8" height="18" fill="#EDE8F2" opacity=".9"/>
+    <rect x="116" y="20" width="4" height="9" fill="#1A1420"/>
+    <rect x="120" y="29" width="4" height="9" fill="#1A1420"/>
+    <g class="ld-carA">
+      <rect x="88" y="28" width="16" height="9" rx="3" fill="var(--p1)"/>
+      <rect x="96" y="30" width="5" height="5" rx="1" fill="rgba(10,10,18,.5)"/>
+    </g>
+    <g class="ld-carB">
+      <rect x="136" y="94" width="16" height="9" rx="3" fill="var(--p2)"/>
+      <rect x="144" y="96" width="5" height="5" rx="1" fill="rgba(10,10,18,.5)"/>
+    </g>
+    <path d="M148 34 L156 40 L148 46 L151 40 Z" fill="rgba(111,220,168,.8)"/>
+    <path d="M158 34 L166 40 L158 46 L161 40 Z" fill="rgba(111,220,168,.8)"/>
+    <ellipse cx="92" cy="96" rx="14" ry="7" fill="rgba(70,60,110,.55)"/>
+    ${sparks('ld', [[44, 36, 1.5, 'var(--p1)'], [196, 96, 1.5, 'var(--p2)'], [120, 66, 1.3, 'var(--candle)']])}`,
+    `.ld-carA { animation: ld-drive 2.8s ease-in-out infinite; }
+     .ld-carB { animation: ld-drive 2.8s ease-in-out .5s infinite reverse; }
+     @keyframes ld-drive { 0%,100% { transform: translate(0,0) } 50% { transform: translate(10px,4px) } }
+     ${sparkAnim('ld', 3)}`)
 };
 
 export const artFor = id => ART[id] || null;

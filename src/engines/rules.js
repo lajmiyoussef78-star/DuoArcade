@@ -203,6 +203,28 @@ export const RULES = {
     tip: 'The mind-game is the keep \u2014 you can see both of their throws before you choose.'
   },
 
+  thinice: {
+    goal: 'Trap your partner on the melting lake \u2014 first to 3 rounds wins.',
+    how: [
+      '6\u00d76 ice grid. You are the blue orb, your partner the pink (mid-left vs mid-right). Starting player alternates each round.',
+      'On your turn, tap any of the 8 neighbouring intact tiles (diagonals count). Gold rings mark legal moves.',
+      'The tile you leave cracks and sinks forever \u2014 for both of you. You cannot land on your partner.',
+      'No legal move on your turn and you fall through; your partner takes the round. First to 3 round wins takes the match.'
+    ],
+    tip: 'Central position early = options later. Your trail is a knife \u2014 wall them off.'
+  },
+
+  loopduel: {
+    goal: 'First to 5 laps on the night circuit wins.',
+    how: [
+      'Your car drives itself. HOLD (anywhere on the track on phones; SPACE or arrows on desktop) to carve into corners; release to run straight.',
+      'Green chevrons on the top straight boost you. The oil slick on the bottom kills grip. Tire stacks bounce you and scrub speed. Grass off the asphalt crawls.',
+      'Bumpers are legal \u2014 trading paint swaps momentum. Shove them into the oil.',
+      'Laps only count if you pass the bottom-center checkpoint before the finish line. First to 5 takes the race.'
+    ],
+    tip: 'Master the release points \u2014 holding too long spins you into the grass.'
+  },
+
   chkobba: {
     goal: 'Score Carta, Diamonds, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
     how: [

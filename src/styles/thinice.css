@@ -1,0 +1,180 @@
+/* src/styles/thinice.css — Thin Ice lake table (Veilcourt language). */
+/* Beat arcade-page * { padding:0 } reset */
+
+.arcade-page .thinice-wrap,
+.thinice-wrap { width: 100%; }
+
+.arcade-page .ti-shell,
+.arcade-page .ti-table,
+.arcade-page .ti-game,
+.arcade-page .ti-lake,
+.arcade-page .ti-board,
+.arcade-page .ti-tile,
+.arcade-page .ti-dock,
+.arcade-page .ti-toolbar { box-sizing: border-box; }
+
+.arcade-page .ti-shell { padding: 4px 0 8px; }
+.arcade-page .ti-table { padding: 14px 12px 16px; }
+.arcade-page .ti-lake { padding: 14px; }
+.arcade-page .ti-tile { padding: 0; }
+.arcade-page .ti-dock { padding: 12px 10px 4px; }
+.arcade-page .ti-status { padding: 20px; }
+.arcade-page .ti-toolbar { padding: 0 0 4px; }
+.arcade-page .ti-dock .btn { padding: 10px 16px; }
+
+.ti-shell {
+  width: 100%; max-width: 560px; margin: 0 auto;
+  color: var(--text); font-family: 'Inter', sans-serif;
+  position: relative;
+}
+.pA { color: var(--p1); } .pB { color: var(--p2); }
+
+.ti-table {
+  position: relative;
+  border-radius: 28px;
+  padding: 14px 12px 16px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--p1) 28%, var(--line));
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, color-mix(in srgb, var(--p1) 12%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 20% 80%, color-mix(in srgb, var(--candle) 10%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 60% at 80% 80%, color-mix(in srgb, var(--p2) 10%, transparent), transparent 50%),
+    linear-gradient(165deg, var(--room2), var(--room) 45%, var(--night));
+  box-shadow:
+    0 22px 48px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  overflow: hidden;
+}
+
+.ti-game { display: flex; flex-direction: column; align-items: center; gap: 14px; position: relative; z-index: 1; }
+
+.ti-toolbar {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%;
+}
+.ti-brand {
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 13px;
+  letter-spacing: .14em; text-align: center; text-transform: uppercase; color: var(--dim);
+}
+
+.ti-scorebar { display: flex; align-items: center; gap: 12px; }
+.ti-pname { font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px; }
+.ti-pips { display: flex; align-items: center; gap: 5px; }
+.ti-pip { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line); background: var(--room2); }
+.ti-pip.A.on { background: var(--p1); border-color: var(--p1); }
+.ti-pip.B.on { background: var(--p2); border-color: var(--p2); }
+.ti-roundno { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--dim); margin: 0 8px; }
+
+.ti-statusline { min-height: 22px; font-size: 13.5px; color: var(--dim); text-align: center; }
+.ti-yourturn { color: var(--candle); font-weight: 700; }
+.ti-roundmsg { font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; color: var(--candle); }
+
+/* ---------- player orbs ---------- */
+.ti-orb {
+  width: 26px; height: 26px; border-radius: 50%; display: inline-block; position: relative; z-index: 2;
+}
+.ti-orb.A {
+  background: radial-gradient(circle at 34% 30%, #D6E4FF 0 18%, var(--p1) 45%, #3A5CA8 100%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--p1) 50%, transparent), 0 0 14px color-mix(in srgb, var(--p1) 25%, transparent);
+}
+.ti-orb.B {
+  background: radial-gradient(circle at 34% 30%, #FFDCE8 0 18%, var(--p2) 45%, #B04A72 100%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--p2) 50%, transparent), 0 0 14px color-mix(in srgb, var(--p2) 25%, transparent);
+}
+.ti-orb.active { animation: ti-pulse 1.6s ease-in-out infinite; }
+@keyframes ti-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+.ti-orb.fallen { animation: ti-fall .8s ease-in forwards; }
+@keyframes ti-fall { to { transform: scale(.3) translateY(14px); opacity: 0; } }
+
+/* ---------- the lake ---------- */
+.ti-lake {
+  padding: 14px; border-radius: 22px; width: 100%;
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 30%, color-mix(in srgb, var(--p1) 8%, transparent), transparent 65%),
+    linear-gradient(180deg, #131C2C, #0C1524 80%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 40px rgba(0,0,0,.55);
+}
+.ti-board { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 6px; width: 100%; }
+
+.ti-tile {
+  position: relative; aspect-ratio: 1 / 1; border: none; padding: 0; cursor: default;
+  border-radius: 10px; overflow: hidden;
+  background: linear-gradient(150deg, #DCEBF5 0%, #AFC9DC 46%, #7E9DB8 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.55),
+    inset 0 -3px 5px rgba(30,60,90,.35),
+    0 2px 5px rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  transition: filter .2s ease, box-shadow .2s ease;
+  color: inherit; font: inherit;
+}
+
+.ti-tile::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 42%, rgba(255,255,255,.28) 43%, transparent 45%),
+    linear-gradient(28deg, transparent 68%, rgba(255,255,255,.18) 69%, transparent 71%);
+  opacity: .6;
+}
+
+.ti-crack { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.ti-crack.a {
+  background: rgba(12,21,36,.9);
+  clip-path: polygon(48% 0, 55% 18%, 44% 34%, 58% 52%, 47% 71%, 56% 88%, 50% 100%, 46% 100%, 52% 86%, 42% 70%, 53% 51%, 40% 33%, 51% 17%, 44% 0);
+}
+.ti-crack.b {
+  background: rgba(12,21,36,.85);
+  clip-path: polygon(0 46%, 22% 52%, 38% 43%, 57% 55%, 74% 47%, 100% 53%, 100% 57%, 73% 51%, 57% 60%, 38% 48%, 21% 57%, 0 51%);
+}
+
+.ti-tile.cracking .ti-crack { opacity: 1; transition: opacity .12s ease; }
+.ti-tile.cracking { animation: ti-sink .8s ease-in .25s forwards; }
+.ti-tile.broken {
+  background: #0C1524; box-shadow: inset 0 3px 10px rgba(0,0,0,.7); cursor: default;
+}
+.ti-tile.broken::before { background: none; }
+.ti-tile.broken::after {
+  content: ''; position: absolute; inset: 26%; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--p1) 14%, transparent);
+}
+@keyframes ti-sink {
+  40% { filter: brightness(.75); transform: translateY(1px); }
+  100% {
+    background: #0C1524; filter: brightness(1); transform: none;
+    box-shadow: inset 0 3px 10px rgba(0,0,0,.7);
+  }
+}
+
+.ti-tile.target { cursor: pointer; }
+.ti-tile.target:hover { filter: brightness(1.08); }
+.ti-tile:disabled { opacity: 1; }
+.ti-ring {
+  position: absolute; inset: 16%; border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--candle) 85%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--candle) 25%, transparent);
+  animation: ti-ring 2.2s linear infinite;
+}
+@keyframes ti-ring { to { transform: rotate(360deg); } }
+
+.ti-dock { display: flex; justify-content: center; gap: 10px; width: 100%; }
+.ti-status { text-align: center; color: var(--dim); padding: 20px; }
+.ti-note { text-align: center; font-size: 11.5px; color: var(--dim); margin: 0; }
+
+.ti-shell .btn {
+  font-weight: 600; font-size: 14px; padding: 10px 16px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--room2); color: var(--text); cursor: pointer;
+  font-family: 'Inter', sans-serif; display: inline-block;
+}
+.ti-shell .btn.warm {
+  background: var(--candle); border-color: var(--candle); color: #2a1e05;
+}
+
+@media (max-width: 440px) {
+  .ti-board { gap: 4px; }
+  .ti-orb { width: 20px; height: 20px; }
+  .arcade-page .ti-table { padding: 12px 10px 14px; }
+  .arcade-page .ti-lake { padding: 10px; }
+}
