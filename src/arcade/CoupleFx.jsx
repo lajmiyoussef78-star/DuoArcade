@@ -147,16 +147,6 @@ const CM_LAND = [
 const cmX = lng => lng + 180;
 const cmY = lat => 90 - lat;
 
-const CM_FULL = { x: 0, y: 0, w: 360, h: 150 };
-
-function cmClampView(x, y, w) {
-  w = Math.min(Math.max(w, 24), CM_FULL.w);
-  const h = w * (CM_FULL.h / CM_FULL.w);
-  x = Math.min(Math.max(x, 0), CM_FULL.w - w);
-  y = Math.min(Math.max(y, 0), CM_FULL.h - h);
-  return { x, y, w, h };
-}
-
 function cmCentroid(poly) {
   let sx = 0, sy = 0;
   for (const [lat, lng] of poly) { sx += cmX(lng); sy += cmY(lat); }
@@ -166,52 +156,10 @@ function cmCentroid(poly) {
 function ChWorldMap({ a, b }) {
   const A = a?.lat != null && a?.lng != null ? { x: cmX(a.lng), y: cmY(a.lat) } : null;
   const B = b?.lat != null && b?.lng != null ? { x: cmX(b.lng), y: cmY(b.lat) } : null;
-  const [v, setV] = useState(CM_FULL);
-  const svgRef = useRef(null);
-  const dragRef = useRef(null);
-
-  /* wheel zoom anchored on the cursor (non-passive so the page doesn't scroll) */
-  useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return undefined;
-    const onWheel = e => {
-      e.preventDefault();
-      setV(prev => {
-        const rect = el.getBoundingClientRect();
-        const px = prev.x + ((e.clientX - rect.left) / rect.width) * prev.w;
-        const py = prev.y + ((e.clientY - rect.top) / rect.height) * prev.h;
-        const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18;
-        const w = prev.w * factor;
-        const scale = Math.min(Math.max(w, 24), CM_FULL.w) / prev.w;
-        return cmClampView(px - (px - prev.x) * scale, py - (py - prev.y) * scale, w);
-      });
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-
-  const onPointerDown = e => {
-    if (e.button != null && e.button !== 0) return;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    dragRef.current = { px: e.clientX, py: e.clientY, moved: false };
-  };
-  const onPointerMove = e => {
-    const d = dragRef.current;
-    if (!d) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const dx = ((e.clientX - d.px) / rect.width) * v.w;
-    const dy = ((e.clientY - d.py) / rect.height) * v.h;
-    if (Math.abs(e.clientX - d.px) + Math.abs(e.clientY - d.py) > 2) d.moved = true;
-    d.px = e.clientX; d.py = e.clientY;
-    setV(prev => cmClampView(prev.x - dx, prev.y - dy, prev.w));
-  };
-  const endDrag = () => { dragRef.current = null; };
-  const onDoubleClick = () => setV(CM_FULL);
-
-  const u = v.w / 360; /* keeps stroke/pin sizes constant on screen while zoomed */
+  const u = 1;
   let arc = null;
   if (A && B) {
-    const lift = Math.max(5 * u, Math.hypot(B.x - A.x, B.y - A.y) * 0.22);
+    const lift = Math.max(5, Math.hypot(B.x - A.x, B.y - A.y) * 0.22);
     arc = `M ${A.x} ${A.y} Q ${(A.x + B.x) / 2} ${Math.min(A.y, B.y) - lift} ${B.x} ${B.y}`;
   }
   const pin = (P, cls) => (
@@ -221,12 +169,10 @@ function ChWorldMap({ a, b }) {
       <circle className="cm-core" cx={P.x} cy={P.y} r={1.5 * u} />
     </g>
   );
+  /* Whole world, stretched to fill the hero (lat 85..-57 band, Antarctica cropped) */
   return (
-    <svg ref={svgRef} className="ch-map" viewBox={`${v.x} ${v.y} ${v.w} ${v.h}`}
-      preserveAspectRatio="xMidYMid slice" aria-hidden="true"
-      onPointerDown={onPointerDown} onPointerMove={onPointerMove}
-      onPointerUp={endDrag} onPointerCancel={endDrag} onPointerLeave={endDrag}
-      onDoubleClick={onDoubleClick}>
+    <svg className="ch-map" viewBox="0 5 360 142"
+      preserveAspectRatio="none" aria-hidden="true">
       {CM_LAND.map((poly, i) => {
         const pts = poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]);
         const [gx, gy] = cmCentroid(poly);

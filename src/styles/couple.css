@@ -158,11 +158,9 @@
 .ch-stars{position:absolute;inset:0;pointer-events:none;}
 .ch-stars .st{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--text);opacity:.18;}
 
-/* world map backdrop — approximate positions of the two partners.
-   Interactive: wheel to zoom, drag to pan, double-click to reset. */
-.ch-map{position:absolute;inset:0;width:100%;height:100%;
-  pointer-events:auto;cursor:grab;touch-action:none;user-select:none;}
-.ch-map:active{cursor:grabbing;}
+/* world map backdrop — the whole world fills the hero,
+   with approximate pins for the two partners */
+.ch-map{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 .ch-map .cm-land{
   fill:color-mix(in srgb, var(--text) 5%, transparent);
   stroke:color-mix(in srgb, var(--text) 26%, transparent);
