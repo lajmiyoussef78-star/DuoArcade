@@ -1,9 +1,8 @@
-// FeatureRail.jsx — Supabase-style icon rail: one icon per feature of your
-// place. Click -> smooth-scroll to that section (Arena goes to its page).
-// Desktop: fixed on the left edge. Small screens: docked to the bottom.
+// FeatureRail.jsx — icon rail: each feature opens on its own page.
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FEATURE_RAIL_ITEMS } from './featureRailItems.js';
 
 const S = {
   fill: 'none', stroke: 'currentColor', strokeWidth: 1.7,
@@ -85,65 +84,57 @@ const I = {
   )
 };
 
-const ITEMS = [
-  { id: 'sect-together', icon: 'together', label: 'Together', accent: 'p2',
-    desc: 'How long you’ve been together, where you both are, and your anniversary countdown.' },
-  { id: 'sect-favorites', icon: 'star', label: 'Favorites', accent: 'candle',
-    desc: 'Games you both starred — quick access above the full Play shelf.' },
-  { id: 'sect-play', icon: 'play', label: 'Games', accent: 'p1',
-    desc: 'Pick a game and invite your partner — Connect 4, Tic-Tac-Toe, quizzes, and more.' },
-  { id: 'sect-tonight', icon: 'tonight', label: 'Tonight Engine', accent: 'p1',
-    desc: 'Tell us how much time you have — we’ll suggest a game and a movie for the evening.' },
-  { id: 'arena', icon: 'arena', label: '2v2 Arena', route: '/arena', accent: 'candle',
-    desc: 'Take on another duo in public matchmaking or a direct challenge.' },
-  { id: 'sect-wall', icon: 'wall', label: 'Our wall', accent: 'p2',
-    desc: 'A shared whiteboard you both draw on in real time.' },
-  { id: 'sect-list', icon: 'list', label: 'Our list', accent: 'good',
-    desc: 'A todo list you build together — movies to watch, places to go, anything.' },
-  { id: 'sect-week', icon: 'week', label: 'Our week', accent: 'p1',
-    desc: 'A shared weekly timetable — plans, calls, and free evenings, live for both of you.' },
-  { id: 'sect-snap', icon: 'snap', label: 'Duo Snap', accent: 'candle',
-    desc: 'Timed paired photos — both of you snap, then reveal together. Streaks, pause, history.' },
-  { id: 'sect-watch', icon: 'watch', label: 'Movie night', accent: 'candle',
-    desc: 'Paste a YouTube link — playback syncs live on both screens.' },
-  { id: 'sect-pass', icon: 'pass', label: 'Duo Pass', accent: 'candle',
-    desc: 'Unlock keepsake cards and everything we ship next.' },
-  { id: 'chat', icon: 'chat', label: 'Chat', accent: 'good', openChat: true,
-    desc: 'Message your partner — typing, online, and seen receipts.' }
-];
-
-export default function FeatureRail() {
-  const [active, setActive] = useState(null);
+export default function FeatureRail({ activeFeature = null }) {
   const [hovered, setHovered] = useState(null);
+  const [scrollActive, setScrollActive] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const onHome = location.pathname === '/app' || location.pathname === '/app/';
 
   useEffect(() => {
+    if (!onHome) {
+      setScrollActive(null);
+      return undefined;
+    }
+    const ids = FEATURE_RAIL_ITEMS.filter(it => it.scrollOnPage).map(it => it.id);
+    const els = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (!els.length) return undefined;
     const obs = new IntersectionObserver(entries => {
-      // highlight the section closest to the top of the viewport
       const vis = entries.filter(e => e.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-      if (vis.length) setActive(vis[0].target.id);
+      if (vis.length) setScrollActive(vis[0].target.id);
+      else setScrollActive(null);
     }, { rootMargin: '-15% 0px -55% 0px' });
-    for (const it of ITEMS) {
-      if (it.route || it.openChat) continue;
-      const el = document.getElementById(it.id);
-      if (el) obs.observe(el);
-    }
+    els.forEach(el => obs.observe(el));
     return () => obs.disconnect();
-  }, []);
+  }, [onHome]);
+
+  const active = activeFeature || scrollActive;
 
   const go = it => {
     if (it.openChat) {
       window.dispatchEvent(new CustomEvent('duoarcade-open-chat'));
       return;
     }
-    if (it.route) { navigate(it.route); return; }
-    document.getElementById(it.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (it.route) {
+      navigate(it.route);
+      return;
+    }
+    if (it.scrollOnPage) {
+      const scroll = () => document.getElementById(it.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (onHome) scroll();
+      else {
+        navigate('/app');
+        setTimeout(scroll, 80);
+      }
+      return;
+    }
+    navigate(`/app/place/${it.id}`);
   };
 
   return (
     <nav className="frail" aria-label="Your place">
-      {ITEMS.map(it => (
+      {FEATURE_RAIL_ITEMS.map(it => (
         <button key={it.id} type="button"
           className={'frail-btn' + (active === it.id ? ' on' : '') + (hovered === it.id ? ' hover' : '')}
           aria-label={it.label}

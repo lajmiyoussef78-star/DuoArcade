@@ -94,6 +94,7 @@ export default function GameScreen({
 }) {
   const s = duo.session;
   const eng = ENGINES[s.game];
+  const inChallenge = !!s.challengeId;
   const [bannerStatus, setBannerStatus] = useState('');
   const [showRules, setShowRules] = useState(false);
   useEffect(() => { setShowRules(false); }, [s.game]);
@@ -186,7 +187,7 @@ export default function GameScreen({
       );
       banner = paused ? 'Game paused' : '';
     } else {
-      showRematch = true;
+      showRematch = !inChallenge;
     }
   } else {
     board = <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} paused={paused} />;
@@ -196,7 +197,7 @@ export default function GameScreen({
       : !s.winner
         ? (s.turn === myRole ? 'Your move' : `${s.turn === 'A' ? duo.nameA : duo.nameB}’s move…`)
         : '';
-    showRematch = !!s.winner;
+    showRematch = !inChallenge && !!s.winner;
   }
 
   const winnerName = s.winner === 'A' ? duo.nameA

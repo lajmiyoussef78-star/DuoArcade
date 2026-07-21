@@ -114,7 +114,7 @@ function formatLongDate(when) {
 
 const annivKey = code => 'duoarcade-anniv-' + code;
 
-export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus, onSetAnniversary }) {
+export function TogetherHero({ duo, code, myRole, presence, geoStatus, onSetAnniversary }) {
   // the shared date lives on the duo row now — same for both partners
   const anniv = duo.anniversary || '';
   const [editing, setEditing] = useState(false);
@@ -175,13 +175,6 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus, o
     }
     return '\u2194 calculating distance\u2026';
   })();
-
-  const tl = [
-    { done: totals.games >= 1, text: 'first game' },
-    { done: (duo.tasteTotal || 0) >= 1, text: 'first movie night' },
-    { done: totals.games >= 25, text: '25 games' },
-    { done: totals.games >= 100, text: '100 games' }
-  ];
 
   return (
     <div className="ch-hero">
@@ -252,13 +245,6 @@ export function TogetherHero({ duo, code, totals, myRole, presence, geoStatus, o
             together since <b>{formatLongDate(relStart)}</b>
           </div>
         )}
-        <div className="ch-timeline">
-          {tl.map((t, i) => (
-            <span key={i} className={'ch-tl-item' + (t.done ? ' done' : '')}>
-              <span className="hh">{t.done ? '❤' : '○'}</span>{t.text}
-            </span>
-          ))}
-        </div>
       </div>
 
       {ringDays !== null && !editing ? (

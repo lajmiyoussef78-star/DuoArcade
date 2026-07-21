@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Routes, Route } from 'react-router-dom';
 import { createSync } from '../lib/sync.js';
 import { ENGINES } from '../engines/index.js';
 import {
@@ -8,10 +8,14 @@ import {
 import { watchGeo } from '../lib/location.js';
 import { chatConfigured, sendGameEvent } from '../lib/chat.js';
 import { awardXp } from '../lib/xp.js';
+import {
+  challengeChannel, challengeNextSlot, gameForChallengeSlot, setChallengeResult,
+} from '../lib/challenges.js';
 import AuthScreen from '../arcade/AuthScreen.jsx';
 import LobbyScreen from '../arcade/LobbyScreen.jsx';
 import PublicProfileScreen from '../arcade/PublicProfileScreen.jsx';
 import HomeScreen from '../arcade/HomeScreen.jsx';
+import PlaceScreen from '../arcade/PlaceScreen.jsx';
 import GameScreen from '../arcade/GameScreen.jsx';
 import WatchScreen from '../arcade/WatchScreen.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
@@ -62,6 +66,7 @@ export default function Arcade() {
   const pendingInvite = useRef(null);
   const suppressInviteUntil = useRef(0);
   const lastLocalWrite = useRef(0);
+  const challengeBusyRef = useRef(false);
 
   const [booted, setBooted] = useState(false);
   const [mode, setMode] = useState(null);
@@ -269,18 +274,22 @@ export default function Arcade() {
     }).catch(() => {});
   }, []);
 
-  const startGame = useCallback(async gameId => {
+  const startGame = useCallback(async (gameId, challengeCtx = null) => {
     const { duo, code, myRole } = ctxRef.current;
     // Leaving a rematch series for a new title → post Ended first.
     if (duo?.session) flushSessionRecap(duo.session);
     const eng = ENGINES[gameId];
+    const isChallenge = !!challengeCtx;
     const session = {
       game: gameId, gs: eng.meta.realtime ? {} : eng.initialState(),
       turn: eng.meta.realtime ? '-' : 'A', starter: 'A', winner: null,
-      phase: 'invite', by: myRole, startedAt: Date.now(),
+      phase: isChallenge ? 'lobby' : 'invite',
+      by: myRole, startedAt: Date.now(),
       series: { a: 0, b: 0, d: 0 },
-      chatPostedStart: false,
-      chatEndedPosted: false
+      chatPostedStart: isChallenge,
+      chatEndedPosted: false,
+      ...(isChallenge ? { ready: { A: false, B: false } } : {}),
+      ...(challengeCtx ? { challengeId: challengeCtx.id, challengeSlot: challengeCtx.slot } : {}),
     };
     const patch = { session, turn: 'A' };
     patchLocal(patch);
@@ -292,6 +301,47 @@ export default function Arcade() {
       setHomeStatus('Couldn’t send the invitation: ' + e.message);
     }
   }, [patchLocal, upd, flushSessionRecap]);
+
+  const pingChallenge = useCallback(async duoCode => {
+    try {
+      const ch = await challengeChannel(duoCode);
+      await ch.send({ k: 'chal' });
+      setTimeout(() => ch.close(), 300);
+    } catch (_) { /* ignore */ }
+  }, []);
+
+  const afterChallengeWin = useCallback(async (challengeId, slot, winner) => {
+    if (challengeBusyRef.current) return;
+    challengeBusyRef.current = true;
+    const { code } = ctxRef.current;
+    try {
+      const updated = await setChallengeResult(challengeId, slot, winner);
+      await pingChallenge(code);
+      window.dispatchEvent(new CustomEvent('duoarcade-challenge-update', { detail: updated }));
+      if (updated.status === 'done') {
+        const patch = { session: null, turn: '-' };
+        patchLocal(patch);
+        await upd(code, patch, { force: true });
+        window.dispatchEvent(new CustomEvent('duoarcade-challenge-done', { detail: updated }));
+        return;
+      }
+      const next = challengeNextSlot(updated);
+      if (next) {
+        const gameId = gameForChallengeSlot(updated, next);
+        if (gameId) await startGame(gameId, { id: updated.id, slot: next });
+      }
+    } catch (e) {
+      setHomeStatus('Challenge score: ' + e.message);
+    } finally {
+      challengeBusyRef.current = false;
+    }
+  }, [patchLocal, upd, pingChallenge, startGame]);
+
+  const startChallengeGame = useCallback(async (challenge, slot) => {
+    const gameId = gameForChallengeSlot(challenge, slot ?? challengeNextSlot(challenge) ?? 1);
+    if (!gameId || !challenge?.id) return;
+    await startGame(gameId, { id: challenge.id, slot: slot ?? challengeNextSlot(challenge) ?? 1 });
+  }, [startGame]);
 
   const rematch = useCallback(async () => {
     const { duo, code, myRole } = ctxRef.current;
@@ -366,7 +416,12 @@ export default function Arcade() {
     patchLocal(patch);
     const ok = await upd(code, patch, { guardTurn: myRole });
     if (!ok) setCtx(st => ({ ...st, duo: prev }));
-  }, [patchLocal, upd]);
+    else if (w && w !== 'draw' && s.challengeId && s.challengeSlot) {
+      await afterChallengeWin(s.challengeId, s.challengeSlot, w);
+    } else if (w === 'draw' && s.challengeId && s.challengeSlot) {
+      await startGame(s.game, { id: s.challengeId, slot: s.challengeSlot });
+    }
+  }, [patchLocal, upd, afterChallengeWin, startGame]);
 
   const pressReady = useCallback(async () => {
     const { duo, code, myRole } = ctxRef.current;
@@ -402,7 +457,12 @@ export default function Arcade() {
     await upd(code, patch, { force: true });
     // Realtime engines only call onFinish from the host — one award per match.
     awardXp(code, gameId).catch(() => {});
-  }, [patchLocal, upd]);
+    if (w && w !== 'draw' && s.challengeId && s.challengeSlot) {
+      await afterChallengeWin(s.challengeId, s.challengeSlot, w);
+    } else if (w === 'draw' && s.challengeId && s.challengeSlot) {
+      await startGame(s.game, { id: s.challengeId, slot: s.challengeSlot });
+    }
+  }, [patchLocal, upd, afterChallengeWin, startGame]);
 
   const requestPause = useCallback(async onStatus => {
     const { duo, code, myRole } = ctxRef.current;
@@ -793,17 +853,20 @@ export default function Arcade() {
         />
       );
     } else {
+      const placeProps = {
+        duo, code, myRole, isAway, presence: presenceState, geoStatus,
+        homeStatus, setHomeStatus,
+        onStartGame: startGame, onStartWatch: startWatch, onStartChallengeGame: startChallengeGame,
+        onBack: () => { leaveDuoContext(); enterLobby(); },
+        onSetAnniversary: setAnniversary,
+        onSetFavoriteGames: setFavoriteGames, onRedeem: redeemCode,
+        avatarTick,
+      };
       screen = (
-        <HomeScreen
-          duo={duo} code={code} myRole={myRole} isAway={isAway}
-          presence={presenceState} geoStatus={geoStatus}
-          homeStatus={homeStatus} setHomeStatus={setHomeStatus}
-          onStartGame={startGame} onStartWatch={startWatch}
-          onBack={() => { leaveDuoContext(); enterLobby(); }}
-          onSetAnniversary={setAnniversary}
-          onSetFavoriteGames={setFavoriteGames} onRedeem={redeemCode}
-          avatarTick={avatarTick}
-        />
+        <Routes>
+          <Route index element={<HomeScreen {...placeProps} />} />
+          <Route path="place/:featureId" element={<PlaceScreen {...placeProps} />} />
+        </Routes>
       );
     }
   } else if (view === 'lobby') {

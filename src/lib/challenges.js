@@ -158,6 +158,22 @@ export function scoreOf(c) {
   return { a, b };
 }
 
+/** Next unplayed slot (1–3), or null if the challenge is decided / inactive. */
+export function challengeNextSlot(c) {
+  if (!c || c.status !== 'active') return null;
+  const sc = scoreOf(c);
+  if (sc.a >= 2 || sc.b >= 2) return null;
+  if (!c.win1) return 1;
+  if (!c.win2) return 2;
+  if (!c.win3) return 3;
+  return null;
+}
+
+export function gameForChallengeSlot(c, slot) {
+  if (!c || slot < 1 || slot > 3) return null;
+  return slot === 1 ? c.game1 : slot === 2 ? c.game2 : c.game3;
+}
+
 /** Celebration line: winner name + stake with Loser/Winner filled in. */
 export function celebrationLine(stake, winnerName, loserName) {
   const filled = String(stake || '')

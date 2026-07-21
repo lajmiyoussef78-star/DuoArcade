@@ -192,22 +192,59 @@
   width: 100%;
   margin: 40px 0 16px;
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: stretch;
+  gap: 0;
   text-decoration: none;
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
   border: 1px solid color-mix(in srgb, var(--candle) 50%, var(--line));
   border-radius: 16px;
-  padding: 15px 16px;
+  padding: 0;
   background:
     radial-gradient(ellipse 70% 120% at 0% 50%, color-mix(in srgb, var(--p1) 16%, transparent), transparent 55%),
     radial-gradient(ellipse 70% 120% at 100% 50%, color-mix(in srgb, var(--p2) 14%, transparent), transparent 55%),
     linear-gradient(180deg, color-mix(in srgb, var(--candle) 10%, var(--room)), var(--room));
   box-shadow: 0 1px 0 color-mix(in srgb, var(--candle) 12%, transparent);
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  overflow: hidden;
+}
+.arcade-page .chal-entry-hit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.arcade-page .chal-entry-hit:hover { background: transparent; }
+.arcade-page .chal-entry-cancel {
+  flex: none;
+  align-self: center;
+  margin-right: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--candle) 45%, var(--line));
+  background: color-mix(in srgb, var(--candle) 10%, var(--room2));
+  color: var(--candle);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, opacity .12s ease;
+}
+.arcade-page .chal-entry-cancel:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--candle) 18%, var(--room2));
+  border-color: var(--candle);
+}
+.arcade-page .chal-entry-cancel:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .arcade-page .chal-entry:hover {
   transform: translateY(-2px);
@@ -261,7 +298,9 @@
 
 @media (max-width: 420px) {
   .chal-games { grid-template-columns: 1fr; }
-  .arcade-page .chal-entry { gap: 12px; padding: 14px; margin-top: 36px; }
+  .arcade-page .chal-entry { margin-top: 36px; }
+  .arcade-page .chal-entry-hit { gap: 12px; padding: 14px; }
+  .arcade-page .chal-entry-cancel { margin-right: 10px; padding: 7px 12px; font-size: 11px; }
   .arcade-page .chal-entry-copy h3 { font-size: 16px; }
 }
 
@@ -647,6 +686,268 @@
   font-size: 12.5px;
   color: var(--bad, #FF8A8A);
   line-height: 1.35;
+}
+
+.chal-pop-compact {
+  width: min(400px, 100%);
+}
+.chal-pop-mini-note {
+  font-size: 12.5px;
+  color: var(--dim, #A99FBC);
+  margin: 0 0 14px;
+  text-align: center;
+}
+.chal-pop-gcard.off {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.chal-fate-pop {
+  text-align: center;
+}
+/* Challenge lineup — shelf-style game cards inside modals */
+.chal-lineup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.chal-lineup-scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line, #3D3450);
+  background: var(--room, #221B2D);
+}
+.chal-lineup-player {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dim, #A99FBC);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chal-lineup-player.a { text-align: right; color: var(--p1, #7EB8FF); }
+.chal-lineup-player.b { text-align: left; color: var(--p2, #FF8FA8); }
+.chal-lineup-tally {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text, #F2EDF7);
+  flex-shrink: 0;
+}
+.chal-lineup-tally em {
+  font-style: normal;
+  font-size: 14px;
+  color: var(--dim, #A99FBC);
+  font-weight: 400;
+}
+.chal-lineup-winner {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--candle, #FFC66E);
+}
+.chal-lineup-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+.chal-lineup-midscore {
+  display: flex;
+  justify-content: center;
+  margin: -4px 0;
+}
+.chal-lineup-g3 {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 220px;
+  margin: 0 auto;
+  width: 100%;
+}
+.chal-lineup-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  padding: 4px 0;
+}
+.chal-lineup-div-dash {
+  font-size: 18px;
+  color: var(--dim, #A99FBC);
+  opacity: 0.5;
+}
+.chal-lineup-divider.won small {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim, #A99FBC);
+  max-width: 52px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chal-lineup-div-av {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--line, #3D3450);
+  background: var(--room2, #2B2338);
+}
+.chal-lineup-div-av.a { color: var(--p1, #7EB8FF); border-color: color-mix(in srgb, var(--p1) 40%, var(--line)); }
+.chal-lineup-div-av.b { color: var(--p2, #FF8FA8); border-color: color-mix(in srgb, var(--p2) 40%, var(--line)); }
+.chal-gcard {
+  position: relative;
+  border: 1px solid var(--line, #3D3450);
+  border-radius: 14px;
+  background: var(--room, #221B2D);
+  padding: 12px;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.chal-gcard.next {
+  border-color: color-mix(in srgb, var(--candle) 55%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--candle) 25%, transparent);
+}
+.chal-gcard.done {
+  opacity: 0.92;
+}
+.chal-gcard-slot {
+  position: relative;
+  z-index: 1;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim, #A99FBC);
+  font-weight: 700;
+}
+.chal-gcard-art {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --night: #191420;
+  --room: #221B2D;
+  --room2: #2B2338;
+  --line: #3D3450;
+  --text: #F2EDF7;
+  --dim: #A99FBC;
+}
+.chal-gcard-art svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.chal-gcard-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(20, 15, 26, 0.82) 0%, rgba(20, 15, 26, 0.45) 55%, rgba(20, 15, 26, 0.12) 100%);
+}
+.chal-gcard-name {
+  position: relative;
+  z-index: 1;
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.15;
+  color: var(--text, #F2EDF7);
+  margin-top: auto;
+}
+.chal-gcard-tag {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  color: var(--dim, #A99FBC);
+  line-height: 1.2;
+}
+.chal-gcard-result {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim, #A99FBC);
+  margin-top: 2px;
+}
+.chal-gcard-result.next {
+  color: var(--candle, #FFC66E);
+}
+.chal-lineup-fate-note,
+.chal-lineup-next,
+.chal-lineup-rolling {
+  margin: 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--dim, #A99FBC);
+  line-height: 1.45;
+}
+.chal-lineup-fate-note strong,
+.chal-lineup-next strong {
+  color: var(--text, #F2EDF7);
+}
+.chal-fate-lineup {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.chal-fate-lineup span {
+  flex: 1;
+  max-width: 140px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #3D3450);
+  background: var(--room2, #2B2338);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chal-fate-lineup small {
+  font-size: 10px;
+  color: var(--dim, #A99FBC);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.chal-fate-reveal {
+  padding: 18px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--candle) 35%, var(--line));
+  background: color-mix(in srgb, var(--candle) 8%, var(--room2));
+  margin-bottom: 8px;
+}
+.chal-fate-reveal.rolling .chal-fate-pick {
+  opacity: 0.7;
+}
+.chal-fate-pick {
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--candle, #FFC66E);
+  margin-top: 6px;
+}
+.chal-fate-reveal .spin {
+  font-size: 12px;
+  color: var(--dim, #A99FBC);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 520px) {

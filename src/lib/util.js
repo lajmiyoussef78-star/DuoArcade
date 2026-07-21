@@ -79,6 +79,32 @@ export function totalsOf(duo) {
   return { a, b, d, games: a + b + d };
 }
 
+const GAME_MILESTONES = [10, 25, 50, 100, 250];
+const WATCH_MILESTONES = [1, 10, 25];
+
+function watchMilestoneLabel(m, lit) {
+  if (m === 1) return lit ? '🎬 First movie night' : 'First movie night';
+  return lit ? `🎬 ${m} movie nights` : `${m} movie nights`;
+}
+
+/** Latest completed milestone + next in progress, for the duo profile. */
+export function profileMilestones(duo, totals) {
+  const out = [];
+  const games = totals.games;
+  const latestGame = GAME_MILESTONES.filter(m => games >= m).at(-1);
+  const nextGame = GAME_MILESTONES.find(m => games < m);
+  if (latestGame) out.push({ lit: true, text: `🏆 ${latestGame} games together` });
+  if (nextGame) out.push({ lit: false, text: `${nextGame} games · ${nextGame - games} to go` });
+
+  const w = duo.tasteTotal || 0;
+  const latestWatch = WATCH_MILESTONES.filter(m => w >= m).at(-1);
+  const nextWatch = WATCH_MILESTONES.find(m => w < m);
+  if (latestWatch) out.push({ lit: true, text: watchMilestoneLabel(latestWatch, true) });
+  if (nextWatch) out.push({ lit: false, text: `${watchMilestoneLabel(nextWatch, false)} · ${nextWatch - w} to go` });
+
+  return out;
+}
+
 // Applied to any patch that finishes a game or movie night:
 // count the evening once per day and keep the streak honest.
 export function finishPatch(duo, patch) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ENGINES } from '../engines/index.js';
-import { totalsOf } from '../lib/util.js';
+import { totalsOf, profileMilestones } from '../lib/util.js';
 
 function initial(name) {
   const s = (name || '?').trim();
@@ -110,6 +110,7 @@ export default function LobbyScreen({
   const tastePct = duo.tasteTotal > 0
     ? Math.round(100 * duo.tasteAgree / duo.tasteTotal) : null;
   const lead = t.a === t.b ? 'Tied' : (t.a > t.b ? duo.nameA : duo.nameB);
+  const milestones = profileMilestones(duo, t);
 
   return (
     <section className="on lobby">
@@ -188,6 +189,14 @@ export default function LobbyScreen({
               <div className="taste-meter profile-taste-meter">
                 <div className="taste-fill" style={{ width: (tastePct || 0) + '%' }} />
               </div>
+            </div>
+          )}
+
+          {milestones.length > 0 && (
+            <div className="milestones profile-milestones">
+              {milestones.map((m, i) => (
+                <div className={'ms' + (m.lit ? ' lit' : '')} key={i}>{m.text}</div>
+              ))}
             </div>
           )}
         </div>

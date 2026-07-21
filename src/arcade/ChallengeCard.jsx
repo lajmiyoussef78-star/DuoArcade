@@ -1,11 +1,18 @@
 // ChallengeCard.jsx — home-screen challenge CTA (arena-entry style).
 
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  challengeChannel, duoNames, getChallenges, scoreOf,
+  cancelChallenge, challengeChannel, challengeNextSlot, duoNames, getChallenges, scoreOf,
 } from '../lib/challenges.js';
 import ChallengeCreateModal from './ChallengeCreateModal.jsx';
+import {
+  ChallengeCompleteModal,
+  ChallengeLineupModal,
+  ChallengeInviteModal,
+  ChallengePickGameModal,
+  useChallengeFateReveal,
+  useChallengeRespondFlow,
+} from './ChallengeRespondModals.jsx';
 import '../styles/challenges.css';
 
 function live(list) {
@@ -30,11 +37,13 @@ function DuelMark() {
   );
 }
 
-export default function ChallengeCard({ code, myRole }) {
-  const navigate = useNavigate();
+export default function ChallengeCard({ code, myRole, onStartChallengeGame }) {
   const [cur, setCur] = useState(null);
   const [names, setNames] = useState({ A: 'A', B: 'B' });
   const [createOpen, setCreateOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -46,6 +55,9 @@ export default function ChallengeCard({ code, myRole }) {
   }, [code]);
 
   const closeCreate = useCallback(() => setCreateOpen(false), []);
+
+  const respond = useChallengeRespondFlow({ code, challenge: cur, myRole, onRefresh: refresh });
+  const creatorFate = useChallengeFateReveal({ challenge: cur });
 
   useEffect(() => {
     if (!code) return undefined;
@@ -77,7 +89,28 @@ export default function ChallengeCard({ code, myRole }) {
     };
   }, [code]);
 
+  useEffect(() => {
+    const onUpdate = e => { if (e.detail) setCur(e.detail.status === 'done' ? null : e.detail); };
+    const onDone = e => {
+      if (e.detail) {
+        setCur(null);
+        setBoardOpen(false);
+        setCompleteOpen(e.detail);
+      }
+    };
+    window.addEventListener('duoarcade-challenge-update', onUpdate);
+    window.addEventListener('duoarcade-challenge-done', onDone);
+    return () => {
+      window.removeEventListener('duoarcade-challenge-update', onUpdate);
+      window.removeEventListener('duoarcade-challenge-done', onDone);
+    };
+  }, []);
+
   if (!code) return null;
+
+  const fromName = cur ? names[cur.created_by] : '';
+  const iAmReceiver = cur?.status === 'pending' && cur.created_by !== myRole;
+  const iAmCreatorWaiting = cur?.status === 'pending' && cur.created_by === myRole;
 
   let title = 'Challenge your partner';
   let sub = 'Best of three games. Winner picks the stake.';
@@ -99,9 +132,42 @@ export default function ChallengeCard({ code, myRole }) {
     sub = cur.stake;
   }
 
+  const beginChallenge = slot => {
+    if (!cur || cur.status !== 'active') return;
+    creatorFate.close();
+    respond.closeFate();
+    setBoardOpen(false);
+    onStartChallengeGame?.(cur, slot || 1);
+  };
+
+  const endEarly = async challenge => {
+    if (!challenge?.id) return;
+    if (!window.confirm('End this challenge now? No winner will be recorded.')) return;
+    try {
+      await cancelChallenge(challenge.id);
+      setBoardOpen(false);
+      await refresh();
+    } catch (_) { /* ignore */ }
+  };
+
+  const cancelPending = async () => {
+    if (!cur?.id || cancelling) return;
+    if (!window.confirm('Cancel this challenge invite?')) return;
+    setCancelling(true);
+    try {
+      await cancelChallenge(cur.id);
+      await refresh();
+    } catch (_) { /* ignore */ }
+    finally { setCancelling(false); }
+  };
+
   const onClick = () => {
+    if (cur?.status === 'active') {
+      setBoardOpen(true);
+      return;
+    }
     if (liveOn) {
-      navigate(`/challenges/${encodeURIComponent(code)}`);
+      if (iAmReceiver) respond.openInvite();
       return;
     }
     setCreateOpen(true);
@@ -109,25 +175,92 @@ export default function ChallengeCard({ code, myRole }) {
 
   return (
     <>
-      <button
-        type="button"
+      <div
         className={'chal-entry' + (liveOn ? ' live' : '')}
         id="sect-challenges"
-        onClick={onClick}
       >
-        <DuelMark />
-        <div className="chal-entry-copy">
-          <h3>{title}</h3>
-          <p>{sub}</p>
-        </div>
-        <strong className="chal-entry-arrow" aria-hidden="true">→</strong>
-      </button>
+        <button type="button" className="chal-entry-hit" onClick={onClick}>
+          <DuelMark />
+          <div className="chal-entry-copy">
+            <h3>{title}</h3>
+            <p>{sub}</p>
+          </div>
+          {!iAmCreatorWaiting ? (
+            <strong className="chal-entry-arrow" aria-hidden="true">→</strong>
+          ) : null}
+        </button>
+        {iAmCreatorWaiting ? (
+          <button
+            type="button"
+            className="chal-entry-cancel"
+            disabled={cancelling}
+            onClick={cancelPending}
+          >
+            {cancelling ? '…' : 'Cancel'}
+          </button>
+        ) : null}
+      </div>
 
       <ChallengeCreateModal
         code={code}
         open={createOpen}
         onClose={closeCreate}
         onCreated={refresh}
+      />
+
+      <ChallengeInviteModal
+        open={respond.step === 'invite'}
+        challenge={cur}
+        fromName={fromName}
+        onAccept={respond.acceptInvite}
+        onDecline={respond.decline}
+        onClose={respond.dismiss}
+        busy={respond.busy}
+        err={respond.err}
+      />
+
+      <ChallengePickGameModal
+        open={respond.step === 'pick'}
+        challenge={cur}
+        onPick={respond.pickGame}
+        onBack={respond.backToInvite}
+        busy={respond.busy}
+        err={respond.err}
+      />
+
+      <ChallengeLineupModal
+        open={respond.step === 'fate'}
+        challenge={cur}
+        names={names}
+        game2Override={respond.game2Pick}
+        game3Override={respond.fateGame || cur?.game3}
+        rolling={respond.rolling}
+        onClose={respond.closeFate}
+        onPlay={beginChallenge}
+      />
+
+      <ChallengeLineupModal
+        open={creatorFate.open && respond.step !== 'fate'}
+        challenge={cur}
+        names={names}
+        onClose={creatorFate.close}
+        onPlay={beginChallenge}
+      />
+
+      <ChallengeLineupModal
+        open={boardOpen && cur?.status === 'active'}
+        challenge={cur}
+        names={names}
+        onClose={() => setBoardOpen(false)}
+        onPlay={slot => beginChallenge(slot || challengeNextSlot(cur))}
+        onEndEarly={endEarly}
+      />
+
+      <ChallengeCompleteModal
+        open={!!completeOpen}
+        challenge={completeOpen}
+        names={names}
+        onClose={() => setCompleteOpen(null)}
       />
     </>
   );

@@ -377,7 +377,7 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 }
 .arcade-page .profile-taste-n{font-family:'Fraunces',serif;font-weight:900;font-size:22px;}
 .arcade-page .profile-taste-l{font-size:12px;color:var(--dim);}
-.arcade-page .profile-taste-meter{margin:0;height:6px;}
+.arcade-page .profile-milestones{margin-top:14px;}
 .arcade-page .profile-records{border-top:1px solid var(--line);}
 .arcade-page .profile-rec-list{display:flex;flex-direction:column;gap:8px;}
 .arcade-page .profile-rec{
@@ -622,6 +622,9 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .frail-pop-desc{font-size:12px;line-height:1.5;color:var(--dim);}
 @keyframes frail-in{from{opacity:0;transform:translateY(-50%) translateX(-8px);}
   to{opacity:1;transform:translateY(-50%) translateX(0);}}
+
+.arcade-page .place-back{width:100%;margin-bottom:4px;}
+
 .arcade-page #sect-together,.arcade-page #sect-tonight,.arcade-page #sect-play,
 .arcade-page #sect-favorites,.arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
 .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena{scroll-margin-top:16px;}
