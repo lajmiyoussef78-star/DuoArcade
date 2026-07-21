@@ -2,7 +2,7 @@
 // the "together" hero (duration + anniversary ring), and confetti bursts.
 // All colors come from the theme CSS variables so duo themes restyle them.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { other } from '../lib/util.js';
 import { formatDistance, haversineKm } from '../lib/location.js';
 
@@ -147,37 +147,56 @@ const CM_LAND = [
 const cmX = lng => lng + 180;
 const cmY = lat => 90 - lat;
 
-/* Halftone dot-grid world: dots sit on a regular grid wherever there is land.
-   The coarse polygons above are only used as a land mask, so the coastlines
-   read soft and intentional instead of hand-drawn. Computed once. */
-const CM_DOTS = (() => {
-  const polys = CM_LAND.map(poly => poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]));
-  const onLand = (x, y) => polys.some(pts => {
+/* Land mask in equirectangular space (x = lng+180, y = 90-lat) */
+const CM_POLYS = CM_LAND.map(poly => poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]));
+function cmOnLand(x, yE) {
+  return CM_POLYS.some(pts => {
     let c = false;
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
       const [xi, yi] = pts[i], [xj, yj] = pts[j];
-      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+      if ((yi > yE) !== (yj > yE) && x < ((xj - xi) * (yE - yi)) / (yj - yi) + xi) c = !c;
     }
     return c;
   });
-  const dots = [];
-  for (let y = 8; y <= 144; y += 3) {
-    for (let x = 2; x <= 358; x += 3) {
-      if (onLand(x, y)) dots.push([x, y]);
-    }
-  }
-  return dots;
-})();
+}
 
 const CM_NEAR = 8; /* dots this close to a pin take that partner's color */
+const CM_LAT_TOP = 85, CM_LAT_BOT = -57; /* Antarctica trimmed */
 
 function ChWorldMap({ a, b }) {
-  const A = a?.lat != null && a?.lng != null ? { x: cmX(a.lng), y: cmY(a.lat) } : null;
-  const B = b?.lat != null && b?.lng != null ? { x: cmX(b.lng), y: cmY(b.lat) } : null;
+  /* The map height follows the hero's real shape, so the whole world
+     (Cape Town, Patagonia, Australia included) always fits — and the
+     dot grid is generated in final coordinates, keeping dots round. */
+  const [H, setH] = useState(96);
+  const svgRef = useRef(null);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(entries => {
+      const r = entries[0]?.contentRect;
+      if (r?.width > 0 && r?.height > 0) {
+        setH(Math.max(48, Math.round((360 * r.height / r.width) / 4) * 4));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  /* Proportional map, full width; the crop band follows the pins' latitude */
-  const cy = A && B ? (A.y + B.y) / 2 : (A || B) ? (A || B).y : 52;
-  const band = cy < 60 ? 'xMidYMin' : cy < 96 ? 'xMidYMid' : 'xMidYMax';
+  const py = lat => ((CM_LAT_TOP - lat) / (CM_LAT_TOP - CM_LAT_BOT)) * H;
+  const A = a?.lat != null && a?.lng != null ? { x: cmX(a.lng), y: py(a.lat) } : null;
+  const B = b?.lat != null && b?.lng != null ? { x: cmX(b.lng), y: py(b.lat) } : null;
+
+  const dots = useMemo(() => {
+    const out = [];
+    for (let y = 1.6; y < H; y += 3.2) {
+      const lat = CM_LAT_TOP - (y / H) * (CM_LAT_TOP - CM_LAT_BOT);
+      const yE = 90 - lat;
+      for (let x = 2; x <= 358; x += 3.2) {
+        if (cmOnLand(x, yE)) out.push([x, y]);
+      }
+    }
+    return out;
+  }, [H]);
 
   let arc = null, heart = null;
   if (A && B) {
@@ -203,9 +222,9 @@ function ChWorldMap({ a, b }) {
   );
 
   return (
-    <svg className="ch-map" viewBox="0 5 360 142"
-      preserveAspectRatio={band + ' slice'} aria-hidden="true">
-      {CM_DOTS.map(([x, y], i) => (
+    <svg ref={svgRef} className="ch-map" viewBox={`0 0 360 ${H}`}
+      preserveAspectRatio="none" aria-hidden="true">
+      {dots.map(([x, y], i) => (
         <circle key={i} className={dotClass(x, y)} cx={x} cy={y} r="0.85" />
       ))}
       {arc && <path className="cm-arc" d={arc} strokeWidth="0.9" strokeDasharray="2.5 2.5" />}
