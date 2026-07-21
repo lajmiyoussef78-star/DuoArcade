@@ -435,36 +435,8 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
 /* The sign-in gate stays a compact centered card at any width */
 .arcade-page section.auth-gate{max-width:640px;}
 .arcade-page section.auth-gate > .card{max-width:560px;margin-left:auto;margin-right:auto;}
-@media (min-width:1240px){
-  /* Two-column dashboard only when the games column can fit 4+ cards per row */
-  .arcade-page .home-card{
-    max-width:none;
-    display:grid;
-    grid-template-columns:minmax(330px,380px) minmax(0,1fr);
-    column-gap:30px;
-    align-items:start;align-content:start;
-    grid-template-areas:
-      "head   head"
-      "xp     xp"
-      "stats  stats"
-      "hero   games"
-      "chal   games"
-      "chist  games"
-      "invite games"
-      "status games";
-    padding:24px 28px 28px;
-  }
-  /* Anything unmapped (modals, extras) spans the full card width */
-  .arcade-page .home-card > *{grid-column:1 / -1;}
-  .arcade-page .home-card > .duo-head{grid-area:head;}
-  .arcade-page .home-card > .xp-bar{grid-area:xp;}
-  .arcade-page .home-card > .home-stats{grid-area:stats;}
-  .arcade-page .home-card > #sect-together{grid-area:hero;}
-  .arcade-page .home-card > .games-browse{grid-area:games;margin-top:16px;}
-  .arcade-page .home-card > .chal-entry{grid-area:chal;}
-  .arcade-page .home-card > .chal-history-link{grid-area:chist;}
-  .arcade-page .home-card > .invite-box{grid-area:invite;}
-  .arcade-page .home-card > .status{grid-area:status;}
+@media (min-width:1000px){
+  .arcade-page .home-card{padding:24px 28px 28px;}
 }
 .arcade-page .gname{
   font-size:14px;font-weight:600;line-height:1.25;
