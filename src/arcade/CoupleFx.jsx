@@ -2,7 +2,7 @@
 // the "together" hero (duration + anniversary ring), and confetti bursts.
 // All colors come from the theme CSS variables so duo themes restyle them.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { other } from '../lib/util.js';
 import { formatDistance, haversineKm } from '../lib/location.js';
 
@@ -147,56 +147,72 @@ const CM_LAND = [
 const cmX = lng => lng + 180;
 const cmY = lat => 90 - lat;
 
-function cmCentroid(poly) {
-  let sx = 0, sy = 0;
-  for (const [lat, lng] of poly) { sx += cmX(lng); sy += cmY(lat); }
-  return [sx / poly.length, sy / poly.length];
-}
+/* Halftone dot-grid world: dots sit on a regular grid wherever there is land.
+   The coarse polygons above are only used as a land mask, so the coastlines
+   read soft and intentional instead of hand-drawn. Computed once. */
+const CM_DOTS = (() => {
+  const polys = CM_LAND.map(poly => poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]));
+  const onLand = (x, y) => polys.some(pts => {
+    let c = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i], [xj, yj] = pts[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  });
+  const dots = [];
+  for (let y = 8; y <= 144; y += 3) {
+    for (let x = 2; x <= 358; x += 3) {
+      if (onLand(x, y)) dots.push([x, y]);
+    }
+  }
+  return dots;
+})();
+
+const CM_NEAR = 8; /* dots this close to a pin take that partner's color */
 
 function ChWorldMap({ a, b }) {
   const A = a?.lat != null && a?.lng != null ? { x: cmX(a.lng), y: cmY(a.lat) } : null;
   const B = b?.lat != null && b?.lng != null ? { x: cmX(b.lng), y: cmY(b.lat) } : null;
-  const u = 1;
-  let arc = null;
+
+  /* Proportional map, full width; the crop band follows the pins' latitude */
+  const cy = A && B ? (A.y + B.y) / 2 : (A || B) ? (A || B).y : 52;
+  const band = cy < 60 ? 'xMidYMin' : cy < 96 ? 'xMidYMid' : 'xMidYMax';
+
+  let arc = null, heart = null;
   if (A && B) {
-    const lift = Math.max(5, Math.hypot(B.x - A.x, B.y - A.y) * 0.22);
-    arc = `M ${A.x} ${A.y} Q ${(A.x + B.x) / 2} ${Math.min(A.y, B.y) - lift} ${B.x} ${B.y}`;
+    const lift = Math.max(6, Math.hypot(B.x - A.x, B.y - A.y) * 0.24);
+    const C = { x: (A.x + B.x) / 2, y: Math.min(A.y, B.y) - lift };
+    arc = `M ${A.x} ${A.y} Q ${C.x} ${C.y} ${B.x} ${B.y}`;
+    heart = { x: (A.x + 2 * C.x + B.x) / 4, y: (A.y + 2 * C.y + B.y) / 4 };
   }
+
+  const dotClass = (x, y) => {
+    const dA = A ? Math.hypot(x - A.x, y - A.y) : Infinity;
+    const dB = B ? Math.hypot(x - B.x, y - B.y) : Infinity;
+    if (Math.min(dA, dB) > CM_NEAR) return 'cm-dot';
+    return dA <= dB ? 'cm-dot cm-dot-a' : 'cm-dot cm-dot-b';
+  };
+
   const pin = (P, cls) => (
     <g className={'cm-pin ' + cls}>
-      <circle className="cm-halo" cx={P.x} cy={P.y} r={4 * u} />
-      <circle className="cm-ring" cx={P.x} cy={P.y} r={3 * u} strokeWidth={0.7 * u} />
-      <circle className="cm-core" cx={P.x} cy={P.y} r={1.5 * u} />
+      <circle className="cm-halo" cx={P.x} cy={P.y} r="4.2" />
+      <circle className="cm-ring" cx={P.x} cy={P.y} r="2.9" strokeWidth="0.7" />
+      <circle className="cm-core" cx={P.x} cy={P.y} r="1.4" />
     </g>
   );
-  /* Whole world, stretched to fill the hero (lat 85..-57 band, Antarctica cropped) */
+
   return (
     <svg className="ch-map" viewBox="0 5 360 142"
-      preserveAspectRatio="none" aria-hidden="true">
-      {CM_LAND.map((poly, i) => {
-        const pts = poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]);
-        const [gx, gy] = cmCentroid(poly);
-        const mesh = [];
-        for (let j = 0; j < pts.length; j++) {
-          mesh.push(`M ${pts[j][0]} ${pts[j][1]} L ${gx} ${gy}`);
-          const k = (j + 2) % pts.length;
-          mesh.push(`M ${pts[j][0]} ${pts[j][1]} L ${pts[k][0]} ${pts[k][1]}`);
-        }
-        return (
-          <g key={i}>
-            <polygon className="cm-land" strokeWidth={0.5 * u}
-              points={pts.map(p => p.join(',')).join(' ')} />
-            <path className="cm-mesh" strokeWidth={0.3 * u} d={mesh.join(' ')} />
-            {pts.map((p, j) => (
-              <circle key={j} className="cm-dot" cx={p[0]} cy={p[1]} r={0.8 * u} />
-            ))}
-            <circle className="cm-dot" cx={gx} cy={gy} r={0.8 * u} />
-          </g>
-        );
-      })}
-      {arc && (
-        <path className="cm-arc" d={arc} strokeWidth={0.9 * u}
-          strokeDasharray={`${2.5 * u} ${2.5 * u}`} />
+      preserveAspectRatio={band + ' slice'} aria-hidden="true">
+      {CM_DOTS.map(([x, y], i) => (
+        <circle key={i} className={dotClass(x, y)} cx={x} cy={y} r="0.85" />
+      ))}
+      {arc && <path className="cm-arc" d={arc} strokeWidth="0.9" strokeDasharray="2.5 2.5" />}
+      {heart && (
+        <g className="cm-heart" transform={`translate(${heart.x} ${heart.y - 2.4}) scale(0.42)`}>
+          <path d="M0 3.4 C-3.4 0.4 -4.6 -2 -2.9 -3.7 C-1.5 -5 0 -3.9 0 -2.4 C0 -3.9 1.5 -5 2.9 -3.7 C4.6 -2 3.4 0.4 0 3.4 Z" />
+        </g>
       )}
       {A && pin(A, 'cm-pin-a')}
       {B && pin(B, 'cm-pin-b')}

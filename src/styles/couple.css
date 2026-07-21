@@ -158,20 +158,17 @@
 .ch-stars{position:absolute;inset:0;pointer-events:none;}
 .ch-stars .st{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--text);opacity:.18;}
 
-/* world map backdrop — the whole world fills the hero,
-   with approximate pins for the two partners */
+/* world map backdrop — proportional halftone world with partner pins */
 .ch-map{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-.ch-map .cm-land{
-  fill:color-mix(in srgb, var(--text) 5%, transparent);
-  stroke:color-mix(in srgb, var(--text) 26%, transparent);
-  stroke-linejoin:round;}
-.ch-map .cm-mesh{
-  fill:none;stroke:color-mix(in srgb, var(--text) 14%, transparent);
-  stroke-linecap:round;}
-.ch-map .cm-dot{fill:color-mix(in srgb, var(--text) 34%, transparent);}
+.ch-map .cm-dot{fill:color-mix(in srgb, var(--text) 26%, transparent);}
+.ch-map .cm-dot-a{fill:var(--p1);opacity:.8;}
+.ch-map .cm-dot-b{fill:var(--p2);opacity:.8;}
 .ch-map .cm-arc{
-  fill:none;stroke:var(--candle);
-  opacity:.75;filter:drop-shadow(0 0 3px color-mix(in srgb, var(--candle) 60%, transparent));}
+  fill:none;stroke:var(--candle);stroke-linecap:round;
+  opacity:.8;filter:drop-shadow(0 0 3px color-mix(in srgb, var(--candle) 60%, transparent));}
+.ch-map .cm-heart{
+  fill:var(--candle);
+  filter:drop-shadow(0 0 4px color-mix(in srgb, var(--candle) 75%, transparent));}
 .ch-map .cm-pin .cm-halo{opacity:.28;}
 .ch-map .cm-pin .cm-ring{fill:none;}
 .ch-map .cm-pin-a .cm-halo,.ch-map .cm-pin-a .cm-core{fill:var(--p1);}
@@ -183,11 +180,9 @@
   0%,100%{opacity:.14;transform:scale(1);}
   50%{opacity:.4;transform:scale(1.5);}
 }
-html[data-appearance="light"] .ch-map .cm-land{
-  fill:color-mix(in srgb, var(--dim) 8%, transparent);
-  stroke:color-mix(in srgb, var(--dim) 34%, transparent);}
-html[data-appearance="light"] .ch-map .cm-mesh{stroke:color-mix(in srgb, var(--dim) 18%, transparent);}
-html[data-appearance="light"] .ch-map .cm-dot{fill:color-mix(in srgb, var(--dim) 42%, transparent);}
+html[data-appearance="light"] .ch-map .cm-dot{fill:color-mix(in srgb, var(--dim) 34%, transparent);}
+html[data-appearance="light"] .ch-map .cm-dot-a{fill:var(--p1);opacity:.7;}
+html[data-appearance="light"] .ch-map .cm-dot-b{fill:var(--p2);opacity:.7;}
 
 .ch-avs{display:flex;align-items:center;gap:6px;position:relative;}
 .ch-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
