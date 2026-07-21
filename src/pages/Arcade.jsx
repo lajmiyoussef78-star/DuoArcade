@@ -8,6 +8,7 @@ import {
 import { watchGeo } from '../lib/location.js';
 import { chatConfigured, sendGameEvent } from '../lib/chat.js';
 import { awardXp } from '../lib/xp.js';
+import { pushRecentGame } from '../lib/gameCatalog.js';
 import {
   challengeNextSlot, gameForChallengeSlot, setChallengeResult,
 } from '../lib/challenges.js';
@@ -279,6 +280,8 @@ export default function Arcade() {
     const { duo, code, myRole } = ctxRef.current;
     // Leaving a rematch series for a new title → post Ended first.
     if (duo?.session) flushSessionRecap(duo.session);
+    pushRecentGame(code, gameId);
+    try { window.dispatchEvent(new Event('duoarcade-recent-games')); } catch { /* ignore */ }
     const eng = ENGINES[gameId];
     const isChallenge = !!challengeCtx;
     const session = {

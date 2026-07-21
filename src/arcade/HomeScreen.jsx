@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ENGINES } from '../engines/index.js';
-import { artFor } from '../engines/art.js';
 import { other, today, yesterday, totalsOf, loadSeats, SEAT_KEY } from '../lib/util.js';
 import { Celebration, TogetherHero } from './CoupleFx.jsx';
 import FeatureRail from './FeatureRail.jsx';
 import XpBar, { XpTitlePill } from './XpBar.jsx';
 import ChallengeCard from './ChallengeCard.jsx';
+import GamesBrowse from './GamesBrowse.jsx';
 import { Avatar } from './avatars.jsx';
 import { getDuoAvatars } from '../lib/avatars.js';
 
@@ -153,80 +152,12 @@ export default function HomeScreen({
             geoStatus={geoStatus} onSetAnniversary={onSetAnniversary} />
         </div>
 
-        <div className="shelf-title" id="sect-favorites">Favorites</div>
-        {(Array.isArray(duo.favoriteGames) ? duo.favoriteGames : []).filter(id => ENGINES[id]).length > 0 ? (
-          <div className="shelf shelf-favs">
-            {(duo.favoriteGames || []).filter(id => ENGINES[id]).map(id => {
-              const eng = ENGINES[id];
-              const rec = (duo.records || {})[id] || { a: 0, b: 0, d: 0 };
-              return (
-                <div className="gcard gcard-fav-active" key={'fav-' + id}
-                  onClick={() => onStartGame(id)}
-                  style={{ position: 'relative', overflow: 'hidden', minHeight: 104 }}>
-                  {artFor(id) && (
-                    <>
-                      <div className="gcard-art" aria-hidden="true"
-                        dangerouslySetInnerHTML={{ __html: artFor(id) }} />
-                      <div className="gcard-veil" aria-hidden="true" />
-                    </>
-                  )}
-                  <div className="gname" style={{ position: 'relative' }}>{eng.meta.name}</div>
-                  <div className="gtag" style={{ position: 'relative' }}>{eng.meta.tag}</div>
-                  <div className="grec" style={{ position: 'relative' }}>{rec.a}–{rec.b}{rec.d ? ' · ' + rec.d + ' draws' : ''}</div>
-                  <button
-                    type="button"
-                    className="gcard-fav on"
-                    aria-label="Remove from favorites"
-                    title="Remove from favorites"
-                    onClick={e => {
-                      e.stopPropagation();
-                      const next = (duo.favoriteGames || []).filter(x => x !== id);
-                      onSetFavoriteGames?.(next);
-                    }}
-                  >★</button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="shelf-favs-empty">Tap ★ on a game below to move it here — shared for both of you.</p>
-        )}
-
-        <div className="shelf-title" id="sect-play">Play</div>
-        <div className="shelf">
-          {Object.values(ENGINES)
-            .filter(eng => !(duo.favoriteGames || []).includes(eng.meta.id))
-            .map(eng => {
-              const rec = (duo.records || {})[eng.meta.id] || { a: 0, b: 0, d: 0 };
-              return (
-                <div className="gcard" key={eng.meta.id}
-                  onClick={() => onStartGame(eng.meta.id)}
-                  style={{ position: 'relative', overflow: 'hidden', minHeight: 104 }}>
-                  {artFor(eng.meta.id) && (
-                    <>
-                      <div className="gcard-art" aria-hidden="true"
-                        dangerouslySetInnerHTML={{ __html: artFor(eng.meta.id) }} />
-                      <div className="gcard-veil" aria-hidden="true" />
-                    </>
-                  )}
-                  <div className="gname" style={{ position: 'relative' }}>{eng.meta.name}</div>
-                  <div className="gtag" style={{ position: 'relative' }}>{eng.meta.tag}</div>
-                  <div className="grec" style={{ position: 'relative' }}>{rec.a}–{rec.b}{rec.d ? ' · ' + rec.d + ' draws' : ''}</div>
-                  <button
-                    type="button"
-                    className="gcard-fav"
-                    aria-label="Add to favorites"
-                    title="Add to favorites"
-                    onClick={e => {
-                      e.stopPropagation();
-                      const cur = Array.isArray(duo.favoriteGames) ? duo.favoriteGames : [];
-                      onSetFavoriteGames?.([...cur, eng.meta.id]);
-                    }}
-                  >☆</button>
-                </div>
-              );
-            })}
-        </div>
+        <GamesBrowse
+          duo={duo}
+          code={code}
+          onStartGame={onStartGame}
+          onSetFavoriteGames={onSetFavoriteGames}
+        />
 
         <ChallengeCard />
 

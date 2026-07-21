@@ -65,10 +65,10 @@
 .arcade-page .home-stats .hstat:nth-child(4) .n{color:var(--candle);
   text-shadow:0 0 14px color-mix(in srgb, var(--candle) 55%, transparent);}
 
-/* game cards feel alive on hover */
-.arcade-page .gcard{transition:border-color .15s ease, transform .18s ease, box-shadow .18s ease;}
-.arcade-page .gcard:hover{transform:translateY(-3px);
-  box-shadow:0 10px 24px color-mix(in srgb, var(--p1) 16%, transparent);}
+/* game cards — equal size; no lift transform (keeps row alignment) */
+.arcade-page .gcard{transition:border-color .15s ease, box-shadow .18s ease;}
+.arcade-page .gcard:hover{
+  box-shadow:0 8px 20px color-mix(in srgb, var(--p1) 14%, transparent);}
 
 /* ============================================================
    D — MILESTONE CELEBRATION overlay
