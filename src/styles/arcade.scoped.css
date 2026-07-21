@@ -6,7 +6,8 @@
   radial-gradient(ellipse 50% 40% at 50% 100%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 55%),
   var(--night);
   color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;
-  min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:0 0 24px;}
+  min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:0 0 24px;
+  --arcade-topbar-h: 58px;}
 html[data-appearance="light"] .arcade-page{
   background:
     radial-gradient(ellipse 90% 55% at 8% -8%, color-mix(in srgb, var(--p1) 14%, transparent), transparent 58%),
@@ -863,9 +864,13 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 
 /* ---------- feature rail — side dock (bottom pill when narrow) ---------- */
 .arcade-page .frail{
-  position:fixed;left:14px;top:50%;transform:translateY(-50%);
+  position:fixed;left:14px;
+  top:calc((100vh + var(--arcade-topbar-h)) / 2);
+  transform:translateY(-50%);
   display:flex;flex-direction:column;align-items:center;gap:5px;
-  padding:10px 8px;overflow:visible;isolation:isolate;
+  padding:10px 8px;overflow-x:visible;overflow-y:auto;isolation:isolate;
+  max-height:calc(100vh - var(--arcade-topbar-h) - 28px);
+  scrollbar-width:none;-ms-overflow-style:none;
   background:
     linear-gradient(165deg,
       color-mix(in srgb, var(--p1) 10%, var(--room)) 0%,
@@ -881,8 +886,9 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
     0 0 28px color-mix(in srgb, var(--candle) 10%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--candle) 14%, transparent);
 }
+.arcade-page .frail::-webkit-scrollbar{display:none;}
 .arcade-page .frail::before{
-  content:'';position:absolute;left:0;top:12px;bottom:12px;width:2px;pointer-events:none;z-index:1;
+  content:'';position:absolute;left:0;top:10px;bottom:10px;width:2px;pointer-events:none;z-index:1;
   border-radius:2px;
   background:linear-gradient(180deg,
     transparent 0%,
