@@ -77,6 +77,7 @@ export default function Arcade() {
   const [presenceState, setPresenceState] = useState(DEFAULT_PRESENCE);
   const [geoStatus, setGeoStatus] = useState('');
   const [showDiag, setShowDiag] = useState(false);
+  const [avatarTick, setAvatarTick] = useState(0);
 
   const ctxRef = useRef(ctx);
   useEffect(() => { ctxRef.current = ctx; }, [ctx]);
@@ -801,6 +802,7 @@ export default function Arcade() {
           onBack={() => { leaveDuoContext(); enterLobby(); }}
           onSetAnniversary={setAnniversary}
           onSetFavoriteGames={setFavoriteGames} onRedeem={redeemCode}
+          avatarTick={avatarTick}
         />
       );
     }
@@ -837,6 +839,12 @@ export default function Arcade() {
             onSetTheme={setTheme}
             nameA={(ctx.duo || myDuos[0])?.nameA || 'Partner one'}
             nameB={(ctx.duo || myDuos[0])?.nameB || 'Partner two'}
+            code={ctx.code || myDuos[0]?.code || null}
+            myRole={ctx.myRole || (myDuos[0] && syncRef.current?.auth.user()?.id
+              ? (myDuos[0].memberA === syncRef.current.auth.user().id ? 'A'
+                : myDuos[0].memberB === syncRef.current.auth.user().id ? 'B' : null)
+              : null)}
+            onAvatarChange={() => setAvatarTick(t => t + 1)}
           />
         </div>
       </div>

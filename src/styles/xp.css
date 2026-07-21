@@ -2,7 +2,7 @@
 
 .arcade-page .xp-bar {
   width: 100%;
-  margin: 14px 0 4px;
+  margin: 16px 0 4px;
   padding: 14px 14px 12px;
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -21,15 +21,51 @@
   height: 42px;
   border-radius: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 18px;
   color: #2a1e05;
   background: var(--candle);
   border: 2px solid color-mix(in srgb, var(--candle) 70%, #2a1e05);
   box-shadow: 0 0 16px color-mix(in srgb, var(--candle) 35%, transparent);
+  line-height: 1;
+  padding: 4px 6px 3px;
+}
+
+.arcade-page .xp-badge-spark {
+  width: 13px;
+  height: 13px;
+  display: block;
+  margin-bottom: -1px;
+}
+
+.arcade-page .xp-badge-lvl {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.arcade-page .xp-title-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--candles);
+  border: 1px solid var(--candle);
+  color: var(--candle);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.arcade-page .xp-title-pill-ico {
+  width: 12px;
+  height: 12px;
+  flex: none;
 }
 
 .arcade-page .xp-bar-copy { flex: 1; min-width: 0; }

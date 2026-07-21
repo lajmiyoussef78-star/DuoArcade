@@ -625,10 +625,10 @@ export const ART = {
         <rect x="114" y="80" width="2.5" height="2.5"/><rect x="120" y="86" width="2.5" height="2.5"/>
       </g>
 
-      <!-- top lane: blue racer -->
+      <!-- top lane: p1 racer -->
       <g clip-path="url(#sr-top)">
         <rect x="48" y="50" width="152" height="10" fill="url(#sr-plat)"/>
-        <rect x="48" y="50" width="152" height="2" fill="#5aa9ff" opacity=".45"/>
+        <rect x="48" y="50" width="152" height="2" fill="var(--p1)" opacity=".45"/>
         <!-- checkered finish -->
         <line x1="178" y1="22" x2="178" y2="50" stroke="#e8eef5" stroke-width="2"/>
         <g transform="translate(180 22)">
@@ -638,8 +638,8 @@ export const ART = {
           <rect x="10" y="12" width="10" height="4" fill="#10141d"/>
         </g>
         <g class="sr-p1">
-          <circle cx="128" cy="34" r="5.5" fill="#3aa0ff" filter="url(#sr-glow)" opacity=".7"/>
-          <circle cx="128" cy="34" r="4.2" fill="#3aa0ff"/>
+          <circle cx="128" cy="34" r="5.5" fill="var(--p1)" filter="url(#sr-glow)" opacity=".7"/>
+          <circle cx="128" cy="34" r="4.2" fill="var(--p1)"/>
           <path d="M128 39 V50 M121 43 H135 M128 50 L122 58 M128 50 L136 56"
             stroke="#E8EEF5" stroke-width="2.2" fill="none" stroke-linecap="round"/>
         </g>
@@ -648,13 +648,13 @@ export const ART = {
       <!-- progress strip (matches in-game middle bar) -->
       <rect x="42" y="60" width="164" height="10" fill="#0a0e1a"/>
       <line x1="54" y1="65" x2="190" y2="65" stroke="rgba(255,255,255,.18)" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="118" cy="65" r="3.2" fill="#3aa0ff" filter="url(#sr-glow)"/>
-      <circle cx="148" cy="65" r="3.2" fill="#ff3b4d" filter="url(#sr-glow)"/>
+      <circle cx="118" cy="65" r="3.2" fill="var(--p1)" filter="url(#sr-glow)"/>
+      <circle cx="148" cy="65" r="3.2" fill="var(--p2)" filter="url(#sr-glow)"/>
 
-      <!-- bottom lane: pink racer -->
+      <!-- bottom lane: p2 racer -->
       <g clip-path="url(#sr-bot)">
         <rect x="48" y="104" width="152" height="10" fill="url(#sr-plat)"/>
-        <rect x="48" y="104" width="152" height="2" fill="#ff3b4d" opacity=".35"/>
+        <rect x="48" y="104" width="152" height="2" fill="var(--p2)" opacity=".45"/>
         <line x1="178" y1="76" x2="178" y2="104" stroke="#e8eef5" stroke-width="2"/>
         <g transform="translate(180 76)">
           <rect width="20" height="8" fill="#e8eef5"/><rect width="10" height="4" fill="#10141d"/>
@@ -663,15 +663,15 @@ export const ART = {
           <rect x="10" y="12" width="10" height="4" fill="#10141d"/>
         </g>
         <g class="sr-p2">
-          <circle cx="108" cy="88" r="5.5" fill="#ff3b4d" filter="url(#sr-glow)" opacity=".7"/>
-          <circle cx="108" cy="88" r="4.2" fill="#ff3b4d"/>
+          <circle cx="108" cy="88" r="5.5" fill="var(--p2)" filter="url(#sr-glow)" opacity=".7"/>
+          <circle cx="108" cy="88" r="4.2" fill="var(--p2)"/>
           <path d="M108 93 V104 M101 97 H115 M108 104 L102 112 M108 104 L116 110"
             stroke="#E8EEF5" stroke-width="2.2" fill="none" stroke-linecap="round"/>
         </g>
       </g>
     </g>
     <rect x="42" y="16" width="164" height="98" rx="12" fill="none" stroke="var(--line)" stroke-width="2"/>
-    ${sparks('sr', [[28, 28, 1.5, '#3aa0ff'], [220, 40, 1.5, '#ff3b4d'], [214, 100, 1.3, '#ffe97a']])}`,
+    ${sparks('sr', [[28, 28, 1.5, 'var(--p1)'], [220, 40, 1.5, 'var(--p2)'], [214, 100, 1.3, 'var(--candle)']])}`,
     `.sr-p1 { animation: sr-run 1.15s ease-in-out infinite; }
      .sr-p2 { animation: sr-run 1.15s ease-in-out .22s infinite; }
      @keyframes sr-run {
@@ -1462,37 +1462,40 @@ export const ART = {
     <circle cx="192" cy="64" r="18" fill="none" stroke="#FFFFFF" stroke-width="1" opacity=".35"/>
     <path d="M200 52 A12 12 0 0 0 200 76" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" opacity=".4"/>
 
-    <!-- smooth hearts -->
-    <g class="mh-h0">
-      <path d="M120 38
-        C120 30 112 26 106 32
-        C100 26 92 30 92 38
-        C92 50 106 60 106 60
-        C106 60 120 50 120 38Z" fill="url(#mh-heartFill)" stroke="#FFFFFF" stroke-width="1" opacity=".95"/>
-    </g>
+    <!-- ambient hearts -->
     <g class="mh-h1" filter="url(#mh-glow)">
-      <path d="M148 28
-        C148 20 140 16 134 22
-        C128 16 120 20 120 28
-        C120 40 134 50 134 50
-        C134 50 148 40 148 28Z" fill="url(#mh-goldFill)" stroke="#FFF5C8" stroke-width="1.2"/>
-      <circle class="mh-g0" cx="128" cy="22" r="1.6" fill="#FFF5C8"/>
-      <circle class="mh-g1" cx="142" cy="34" r="1.4" fill="#FFF5C8"/>
+      <path d="M96 30
+        C96 22 88 18 82 24
+        C76 18 68 22 68 30
+        C68 42 82 52 82 52
+        C82 52 96 42 96 30Z" fill="url(#mh-goldFill)" stroke="#FFF5C8" stroke-width="1.2"/>
     </g>
-    <g class="mh-h2">
-      <path d="M168 52
-        C168 46 162 43 158 47
-        C154 43 148 46 148 52
-        C148 60 158 67 158 67
-        C158 67 168 60 168 52Z" fill="url(#mh-heartFill)" stroke="#FFFFFF" stroke-width=".9" opacity=".9"/>
+
+    <!-- heart that gets pulled in, then thrown back -->
+    <g class="mh-tossHeart">
+      <path d="M0 -10
+        C0 -16 -7 -19 -12 -14
+        C-17 -19 -24 -16 -24 -10
+        C-24 0 -12 10 -12 10
+        C-12 10 0 0 0 -10Z" fill="url(#mh-heartFill)" stroke="#FFFFFF" stroke-width="1.1"/>
     </g>
 
     <!-- bomb -->
-    <g class="mh-bomb" transform="translate(110 88)">
-      <circle r="8" fill="#14141C" stroke="#34343F" stroke-width="1.4"/>
-      <circle cx="-2.5" cy="-2.8" r="2" fill="#FFFFFF" opacity=".22"/>
-      <path d="M3.5 -5.5 Q8 -11 10.5 -8" stroke="#6B5A44" stroke-width="1.5" fill="none"/>
-      <circle class="mh-spark" cx="10.5" cy="-8" r="2.2" fill="var(--candle)" filter="url(#mh-glow2)"/>
+    <g class="mh-bomb" transform="translate(108 100)">
+      <circle r="7" fill="#14141C" stroke="#34343F" stroke-width="1.4"/>
+      <circle cx="-2.2" cy="-2.4" r="1.8" fill="#FFFFFF" opacity=".22"/>
+      <path d="M3 -5 Q7 -9 9.5 -7" stroke="#6B5A44" stroke-width="1.4" fill="none"/>
+      <circle class="mh-spark" cx="9.5" cy="-7" r="2" fill="var(--candle)" filter="url(#mh-glow2)"/>
+    </g>
+
+    <!-- hero magnet (pulls / throws) -->
+    <g class="mh-heroMag">
+      <path d="M-2 -16 A14 14 0 0 1 -2 16" fill="none" stroke="#E8ECF2" stroke-width="9" stroke-linecap="round"/>
+      <path d="M-2 -16 A14 14 0 0 1 -2 16" fill="none" stroke="#B8C0CC" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+      <rect x="-8" y="-20" width="10" height="9" rx="2" fill="#E2554A"/>
+      <rect x="-8" y="11" width="10" height="9" rx="2" fill="#4A7BE0"/>
+      <circle class="mh-magSpark" cx="4" cy="-16" r="2.4" fill="#FFFFFF" opacity=".85"/>
+      <circle class="mh-magSpark" cx="4" cy="16" r="2.4" fill="#FFFFFF" opacity=".85"/>
     </g>
 
     <!-- cute magneteer A -->
@@ -1512,11 +1515,11 @@ export const ART = {
       <ellipse cx="52.5" cy="66" rx="3.2" ry="3.8" fill="#1E1A28"/>
       <circle cx="44.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
       <circle cx="53.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
-      <!-- magnet opening outward (right) -->
-      <g transform="translate(66 70)">
-        <path d="M0 -8 A8 8 0 0 1 0 8" fill="none" stroke="#D2D7E0" stroke-width="5" stroke-linecap="round" filter="url(#mh-glow)"/>
-        <rect x="-1" y="-10" width="5" height="5" rx="1" fill="#E2554A"/>
-        <rect x="-1" y="5" width="5" height="5" rx="1" fill="#4A7BE0"/>
+      <!-- magnet opening outward (right) — larger -->
+      <g transform="translate(68 72)">
+        <path d="M0 -10 A10 10 0 0 1 0 10" fill="none" stroke="#E8ECF2" stroke-width="6.5" stroke-linecap="round"/>
+        <rect x="-2" y="-13" width="7" height="7" rx="1.5" fill="#E2554A"/>
+        <rect x="-2" y="6" width="7" height="7" rx="1.5" fill="#4A7BE0"/>
       </g>
     </g>
 
@@ -1537,28 +1540,36 @@ export const ART = {
       <ellipse cx="196.5" cy="66" rx="3.2" ry="3.8" fill="#1E1A28"/>
       <circle cx="188.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
       <circle cx="197.5" cy="64.5" r="1.2" fill="#FFFFFF"/>
-      <!-- magnet opening outward (left) -->
-      <g transform="translate(174 70) scale(-1,1)">
-        <path d="M0 -8 A8 8 0 0 1 0 8" fill="none" stroke="#D2D7E0" stroke-width="5" stroke-linecap="round" filter="url(#mh-glow)"/>
-        <rect x="-1" y="-10" width="5" height="5" rx="1" fill="#E2554A"/>
-        <rect x="-1" y="5" width="5" height="5" rx="1" fill="#4A7BE0"/>
-      </g>
     </g>
 
     ${sparks('mh', [[36, 24, 1.4, 'var(--p1)'], [204, 28, 1.5, 'var(--p2)'], [122, 108, 1.3, 'var(--candle)'], [96, 22, 1.2, 'var(--candle)']])}`,
     `.mh-zoneA, .mh-zoneB { animation: mh-shine 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
      @keyframes mh-shine { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
+     .mh-heroMag { animation: mh-magAct 3.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+     @keyframes mh-magAct {
+       0%, 28% { transform: translate(128px, 78px) rotate(-18deg) scale(1); }
+       42%, 50% { transform: translate(128px, 78px) rotate(-6deg) scale(1.08); }
+       58% { transform: translate(128px, 78px) rotate(-38deg) scale(1.02); }
+       72%, 100% { transform: translate(128px, 78px) rotate(-18deg) scale(1); }
+     }
+     .mh-tossHeart { animation: mh-pullThrow 3.4s ease-in-out infinite; }
+     @keyframes mh-pullThrow {
+       0%, 10% { transform: translate(176px, 34px) scale(1) rotate(0deg); opacity: 1; }
+       28% { transform: translate(152px, 54px) scale(.9) rotate(-8deg); opacity: 1; }
+       42%, 50% { transform: translate(124px, 76px) scale(.72) rotate(-12deg); opacity: 1; }
+       58% { transform: translate(148px, 42px) scale(1.12) rotate(18deg); opacity: 1; }
+       72% { transform: translate(188px, 22px) scale(1) rotate(8deg); opacity: .95; }
+       88%, 100% { transform: translate(176px, 34px) scale(1) rotate(0deg); opacity: 1; }
+     }
+     .mh-magSpark { animation: mh-twinkle .65s ease-in-out infinite alternate; }
      .mh-critA { animation: mh-bob 2.2s ease-in-out infinite; }
      .mh-critB { animation: mh-bob 2.2s ease-in-out .45s infinite; }
      @keyframes mh-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
-     .mh-h0 { animation: mh-float 2.6s ease-in-out infinite; }
-     .mh-h1 { animation: mh-float 2.8s ease-in-out .35s infinite; }
-     .mh-h2 { animation: mh-float 2.3s ease-in-out .7s infinite; }
+     .mh-h1 { animation: mh-float 2.8s ease-in-out infinite; }
      @keyframes mh-float {
-       0%,100% { transform: translateY(0); opacity: .95 }
-       50% { transform: translateY(-5px); opacity: 1 }
+       0%,100% { transform: translateY(0); opacity: .9 }
+       50% { transform: translateY(-4px); opacity: 1 }
      }
-     .mh-g0, .mh-g1 { animation: mh-twinkle .7s ease-in-out infinite alternate; }
      @keyframes mh-twinkle { from { opacity: .35 } to { opacity: 1 } }
      .mh-spark { animation: mh-flick .4s ease-in-out infinite alternate; }
      @keyframes mh-flick { from { opacity: .5 } to { opacity: 1 } }

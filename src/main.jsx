@@ -10,6 +10,7 @@ import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
 import Week from './pages/Week.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
+import Challenges from './pages/Challenges.jsx';
 import { initAppearance } from './lib/appearance.js';
 import './styles/base.css';
 
@@ -28,6 +29,7 @@ import './styles/wordbomb.css';
 import './styles/uno.css';
 import './styles/coup.css';
 import './styles/xp.css';
+import './styles/challenges.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -36,6 +38,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<Landing />} />
         <Route path="/app" element={<Arcade />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/challenges/:code" element={<Challenges />} />
         <Route path="/arena" element={<Arena />} />
         <Route path="/arena/:matchCode" element={<ArenaMatch />} />
         <Route path="/whiteboard/:code" element={<Whiteboard />} />

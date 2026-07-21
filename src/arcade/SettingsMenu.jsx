@@ -3,17 +3,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { THEMES, parseTheme, formatTheme, themeColors } from '../lib/util.js';
+import { getDuoAvatars, setMyAvatar } from '../lib/avatars.js';
+import { Avatar, AvatarPicker } from './avatars.jsx';
 import '../styles/settings.css';
+import '../styles/avatars.css';
 
 export default function SettingsMenu({
   onSignOut, theme, onSetTheme, canSetTheme,
-  nameA = 'Partner one', nameB = 'Partner two'
+  nameA = 'Partner one', nameB = 'Partner two',
+  code = null, myRole = null, onAvatarChange,
 }) {
   const [open, setOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [avs, setAvs] = useState({ avatar_a: null, avatar_b: null });
+  const [avErr, setAvErr] = useState('');
   const panelRef = useRef(null);
   const { name: activeName, flip } = parseTheme(theme);
   const colors = themeColors(theme);
   const activeTh = THEMES[activeName] || THEMES.night;
+
+  const canSetAvatar = !!(code && myRole);
+  const myAvatar = myRole === 'A' ? avs.avatar_a : myRole === 'B' ? avs.avatar_b : null;
+  const partnerAvatar = myRole === 'A' ? avs.avatar_b : myRole === 'B' ? avs.avatar_a : null;
+  const myName = myRole === 'A' ? nameA : myRole === 'B' ? nameB : nameA;
+  const partnerName = myRole === 'A' ? nameB : myRole === 'B' ? nameA : nameB;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -27,16 +40,41 @@ export default function SettingsMenu({
     };
   }, [open]);
 
-  const close = () => setOpen(false);
+  useEffect(() => {
+    if (!open || !code || !myRole) return undefined;
+    let alive = true;
+    setAvErr('');
+    getDuoAvatars(code)
+      .then(data => { if (alive) setAvs(data || { avatar_a: null, avatar_b: null }); })
+      .catch(() => { if (alive) setAvs({ avatar_a: null, avatar_b: null }); });
+    return () => { alive = false; };
+  }, [open, code, myRole]);
+
+  const close = () => {
+    setPickerOpen(false);
+    setOpen(false);
+  };
 
   const pickTheme = (name) => {
     onSetTheme?.(formatTheme(name, flip));
   };
 
   const assignColorToA = (which) => {
-    // which: 'baseP1' | 'baseP2' — which palette color Partner A (nameA) should get
     const wantFlip = which === 'baseP2';
     onSetTheme?.(formatTheme(activeName, wantFlip));
+  };
+
+  const pickAvatar = async (id) => {
+    if (!code) return;
+    setAvErr('');
+    try {
+      const r = await setMyAvatar(code, id);
+      setAvs(r || { avatar_a: null, avatar_b: null });
+      onAvatarChange?.(r);
+      setPickerOpen(false);
+    } catch (e) {
+      setAvErr(e?.message || 'Could not save avatar — run schema-v27-avatars.sql in Supabase.');
+    }
   };
 
   const modal = open && createPortal(
@@ -65,6 +103,33 @@ export default function SettingsMenu({
         </header>
 
         <div className="set-modal-body">
+          {canSetAvatar && (
+            <section className="set-block">
+              <div className="set-block-head">
+                <h3>Profile icon</h3>
+                <p>Pick your character. Your partner picks theirs on their device.</p>
+              </div>
+
+              <div className="set-av-row">
+                <button
+                  type="button"
+                  className="set-av-mine"
+                  onClick={() => setPickerOpen(true)}
+                  title="Change my character"
+                >
+                  <Avatar id={myAvatar} fallback={myName} size={44} />
+                  <span>You · {myName}</span>
+                </button>
+                <div className="set-av-partner" title="Partner picks on their device">
+                  <Avatar id={partnerAvatar} fallback={partnerName} size={44} />
+                  <span>{partnerName}</span>
+                </div>
+              </div>
+              <p className="set-av-hint">Tap your icon to choose from girls, boys, pets, and fun characters.</p>
+              {avErr && <p className="set-av-err">{avErr}</p>}
+            </section>
+          )}
+
           {canSetTheme && onSetTheme && (
             <section className="set-block">
               <div className="set-block-head">
@@ -181,16 +246,25 @@ export default function SettingsMenu({
             </section>
           )}
 
-          {!canSetTheme && !onSignOut && (
+          {!canSetTheme && !canSetAvatar && !onSignOut && (
             <section className="set-block">
               <div className="set-block-head">
                 <h3>Your place</h3>
-                <p>Sign in and open your duo to change themes and account options here.</p>
+                <p>Sign in and open your duo to change icons, themes, and account options here.</p>
               </div>
             </section>
           )}
         </div>
       </div>
+
+      {pickerOpen && (
+        <AvatarPicker
+          value={myAvatar}
+          fallback={myName}
+          onSelect={pickAvatar}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>,
     document.body
   );

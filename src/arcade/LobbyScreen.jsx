@@ -133,7 +133,7 @@ export default function LobbyScreen({
             </div>
           </div>
           <button type="button" className="btn warm profile-enter" onClick={() => onOpenDuo(duo.code)}>
-            Open arcade
+            Back to arcade
           </button>
         </header>
 

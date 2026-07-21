@@ -9,7 +9,10 @@ import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
 import FeatureRail from './FeatureRail.jsx';
-import XpBar from './XpBar.jsx';
+import XpBar, { XpTitlePill } from './XpBar.jsx';
+import ChallengeCard from './ChallengeCard.jsx';
+import { Avatar } from './avatars.jsx';
+import { getDuoAvatars } from '../lib/avatars.js';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
 
@@ -33,7 +36,8 @@ function closestGameId(duo) {
 
 export default function HomeScreen({
   duo, code, myRole, isAway, presence, geoStatus, homeStatus, setHomeStatus,
-  onStartGame, onStartWatch, onBack, onSetAnniversary, onSetFavoriteGames, onRedeem
+  onStartGame, onStartWatch, onBack, onSetAnniversary, onSetFavoriteGames, onRedeem,
+  avatarTick = 0,
 }) {
   const [mins, setMins] = useState(null);
   const [ytUrl, setYtUrl] = useState('');
@@ -42,6 +46,16 @@ export default function HomeScreen({
   const [passStatus, setPassStatus] = useState('');
   const [copied, setCopied] = useState(false);
   const [celebrate, setCelebrate] = useState(null);
+  const [avs, setAvs] = useState({ avatar_a: null, avatar_b: null });
+
+  useEffect(() => {
+    if (!code) return undefined;
+    let alive = true;
+    getDuoAvatars(code)
+      .then(data => { if (alive) setAvs(data || { avatar_a: null, avatar_b: null }); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [code, avatarTick]);
 
   const t = totalsOf(duo);
   const partnerRole = other(myRole);
@@ -141,29 +155,53 @@ export default function HomeScreen({
       )}
       <div className="card">
         <div className="duo-head">
-          <div className="avatars">
-            <div className={'av A' + (isAway('A') ? ' away' : '')}>{(duo.nameA || '?')[0].toUpperCase()}</div>
-            <div className={'av B' + (isAway('B') ? ' away' : '')}>{(duo.nameB || '?')[0].toUpperCase()}</div>
-            {!isAway('A') && !isAway('B') && <span className="av-spark" aria-hidden="true">{'❤'}</span>}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="duo-title h3">{duo.nameA} <span className="amp">&</span> {duo.nameB}</div>
-            <div className="duo-meta">{duo.evenings || 0} evenings together</div>
-          </div>
-          {hasPass && (
-            <div className="pass-badge">
-              {'✦ '}{duo.passTier === 'founding' ? 'Founding Duo' : 'Duo Pass'}
+          <div className="duo-head-top">
+            <div className="avatars">
+              <div className={'av A' + (isAway('A') ? ' away' : '') + (avs.avatar_a ? ' av-char' : '')}>
+                {avs.avatar_a
+                  ? <Avatar id={avs.avatar_a} size={44} />
+                  : (duo.nameA || '?')[0].toUpperCase()}
+              </div>
+              <div className={'av B' + (isAway('B') ? ' away' : '') + (avs.avatar_b ? ' av-char' : '')}>
+                {avs.avatar_b
+                  ? <Avatar id={avs.avatar_b} size={44} />
+                  : (duo.nameB || '?')[0].toUpperCase()}
+              </div>
+              {!isAway('A') && !isAway('B') && <span className="av-spark" aria-hidden="true">{'❤'}</span>}
             </div>
-          )}
-          {cur > 1 && (
-            <div className="streak-pill" style={{ display: 'inline-block', position: 'relative' }}>
-              {'🔥 '}{cur}-evening streak{(duo.bestStreak || 0) > cur ? ` · best ${duo.bestStreak}` : ''}
-              <span className="ember e1" aria-hidden="true" />
-              <span className="ember e2" aria-hidden="true" />
-              <span className="ember e3" aria-hidden="true" />
+            <div className="duo-title h3">
+              <span className="pA">{duo.nameA}</span>
+              {' '}<span className="amp">&</span>{' '}
+              <span className="pB">{duo.nameB}</span>
             </div>
-          )}
-          <button className="btn small ghost" onClick={onBack}>Profile</button>
+            <button className="btn small ghost" onClick={onBack}>Profile</button>
+          </div>
+          <div className="duo-badges">
+            {hasPass && (
+              <div className="pass-badge">
+                {'✦ '}{duo.passTier === 'founding' ? 'Founding Duo' : 'Duo Pass'}
+              </div>
+            )}
+            <XpTitlePill code={code} />
+            {cur > 1 && (
+              <div
+                className="streak-pill streak-pill-compact"
+                style={{ display: 'inline-flex', position: 'relative' }}
+                title={`${cur}-evening streak${(duo.bestStreak || 0) > cur ? ` · best ${duo.bestStreak}` : ''}`}
+              >
+                <svg className="streak-flame" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 2c1.2 3.2-.2 5.2-1.6 6.6C8.8 10.2 8 11.4 8 13.2 8 16.1 10.1 18 12.6 18c2.3 0 4.4-1.7 4.4-4.2 0-1.7-.7-2.9-1.6-4 .9 2 .6 3.4.6 3.4C18.2 10.5 19 8.2 16.5 5.4 15.2 4 13.6 2.8 12 2zm-1.1 16.8c-2.6-.4-4.4-2.5-4.4-5 0-1.5.6-2.7 1.5-3.8-.2 2.2.6 3.3 1.5 3.9.8.5 1.4 1.2 1.4 2.2 0 1.1-.7 2.1-2 2.7z"
+                  />
+                </svg>
+                <span className="streak-n">{cur}</span>
+                <span className="ember e1" aria-hidden="true" />
+                <span className="ember e2" aria-hidden="true" />
+                <span className="ember e3" aria-hidden="true" />
+              </div>
+            )}
+          </div>
         </div>
 
         <XpBar code={code} />
@@ -313,6 +351,8 @@ export default function HomeScreen({
             );
           })}
         </div>
+
+        <ChallengeCard code={code} myRole={myRole} />
 
         <div id="sect-wall" className="shelf-anchor">
           <WhiteboardCard code={code} />
