@@ -69,13 +69,13 @@ export default function HomeScreen({
   };
 
   return (
-    <section className="on">
+    <section className="on home-wide">
       <FeatureRail activeFeature={null} />
       {celebrate && (
         <Celebration title={celebrate.title} sub={celebrate.sub}
           icon={celebrate.icon || '🏆'} onClose={() => setCelebrate(null)} />
       )}
-      <div className="card">
+      <div className="card home-card">
         <div className="duo-head">
           <div className="duo-head-top">
             <div className="avatars">

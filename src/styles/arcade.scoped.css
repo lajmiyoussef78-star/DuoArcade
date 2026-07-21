@@ -411,6 +411,61 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
   .arcade-page .games-sort{width:118px;}
   .arcade-page .games-smart-item{flex-basis:154px;}
 }
+
+/* ---------- wide layout: every feature fills the viewport (desktop) ---------- */
+.arcade-page .shelf.shelf-browse{grid-template-columns:repeat(auto-fill,minmax(158px,1fr));}
+@media (min-width:769px) and (max-width:999px){
+  /* mid-size: widen the column while clearing the side rail */
+  .arcade-page section{max-width:min(720px,calc(100vw - 170px));}
+  .arcade-page section > .card{max-width:none;}
+  .arcade-page section.lobby{max-width:min(720px,calc(100vw - 170px));}
+  .arcade-page section.lobby .lobby-card{max-width:none;}
+}
+@media (min-width:1000px){
+  /* Clear the fixed side rail and use the viewport instead of a narrow column */
+  .arcade-page section,
+  .arcade-page > .gv-screen,
+  .arcade-page section.gv-screen{max-width:min(1280px,calc(100vw - 176px));}
+  .arcade-page section > .card{max-width:none;}
+  .arcade-page .topbar-inner{max-width:min(1280px,calc(100vw - 176px));padding:12px 24px;}
+  /* Profile / duo pages read better slightly narrower than the arcade */
+  .arcade-page section.lobby{max-width:min(960px,calc(100vw - 176px));}
+  .arcade-page section.lobby .lobby-card{max-width:none;}
+}
+/* The sign-in gate stays a compact centered card at any width */
+.arcade-page section.auth-gate{max-width:640px;}
+.arcade-page section.auth-gate > .card{max-width:560px;margin-left:auto;margin-right:auto;}
+@media (min-width:1240px){
+  /* Two-column dashboard only when the games column can fit 4+ cards per row */
+  .arcade-page .home-card{
+    max-width:none;
+    display:grid;
+    grid-template-columns:minmax(330px,380px) minmax(0,1fr);
+    column-gap:30px;
+    align-items:start;align-content:start;
+    grid-template-areas:
+      "head   head"
+      "xp     xp"
+      "stats  stats"
+      "hero   games"
+      "chal   games"
+      "chist  games"
+      "invite games"
+      "status games";
+    padding:24px 28px 28px;
+  }
+  /* Anything unmapped (modals, extras) spans the full card width */
+  .arcade-page .home-card > *{grid-column:1 / -1;}
+  .arcade-page .home-card > .duo-head{grid-area:head;}
+  .arcade-page .home-card > .xp-bar{grid-area:xp;}
+  .arcade-page .home-card > .home-stats{grid-area:stats;}
+  .arcade-page .home-card > #sect-together{grid-area:hero;}
+  .arcade-page .home-card > .games-browse{grid-area:games;margin-top:16px;}
+  .arcade-page .home-card > .chal-entry{grid-area:chal;}
+  .arcade-page .home-card > .chal-history-link{grid-area:chist;}
+  .arcade-page .home-card > .invite-box{grid-area:invite;}
+  .arcade-page .home-card > .status{grid-area:status;}
+}
 .arcade-page .gname{
   font-size:14px;font-weight:600;line-height:1.25;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;

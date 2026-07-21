@@ -17,7 +17,7 @@ export default function AuthScreen({ notice, mode, onSubmit, defaultTab = 'in' }
   };
 
   return (
-    <section className="on">
+    <section className="on auth-gate">
       <div className="card">
         <div className="tabs">
           <div className={'tab' + (tab === 'in' ? ' on' : '')} onClick={() => setTab('in')}>Sign in</div>

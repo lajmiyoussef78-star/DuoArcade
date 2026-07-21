@@ -2,7 +2,7 @@
 // the "together" hero (duration + anniversary ring), and confetti bursts.
 // All colors come from the theme CSS variables so duo themes restyle them.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { other } from '../lib/util.js';
 import { formatDistance, haversineKm } from '../lib/location.js';
 
@@ -114,6 +114,150 @@ function formatLongDate(when) {
 
 const annivKey = code => 'duoarcade-anniv-' + code;
 
+/* ---------- approximate low-poly world map (equirectangular) ----------
+   Vertices are [lat, lng]; x = lng + 180, y = 90 - lat (viewBox 360x150,
+   Antarctica cropped). Pins use the same projection so they always line up. */
+const CM_LAND = [
+  // North America
+  [[71, -156], [70, -125], [73, -95], [66, -82], [62, -64], [47, -52], [44, -66], [35, -75], [25, -80], [29, -90], [18, -96], [15, -92], [8, -77], [16, -100], [23, -110], [32, -117], [46, -124], [59, -140], [64, -166]],
+  // Greenland
+  [[83, -35], [70, -22], [60, -43], [75, -58], [80, -60]],
+  // South America
+  [[8, -77], [12, -72], [10, -61], [0, -50], [-8, -35], [-23, -42], [-35, -57], [-51, -69], [-55, -68], [-42, -73], [-18, -70], [-5, -81]],
+  // Africa
+  [[35, -6], [37, 10], [31, 32], [15, 39], [11, 51], [-2, 41], [-16, 40], [-26, 33], [-34, 20], [-23, 14], [-6, 12], [4, -8], [12, -16], [21, -17], [28, -12]],
+  // Eurasia
+  [[36, -9], [43, -9], [48, -5], [51, 2], [56, 8], [71, 26], [73, 70], [77, 105], [71, 140], [66, 178], [60, 162], [52, 143], [43, 132], [37, 122], [30, 121], [21, 108], [8, 105], [13, 100], [1, 103], [14, 98], [21, 89], [8, 77], [19, 72], [25, 62], [13, 45], [29, 33], [36, 28], [40, 26], [36, 22], [43, 7], [36, -5]],
+  // British Isles
+  [[59, -4], [53, 1], [50, -5], [54, -8]],
+  // Japan
+  [[45, 142], [36, 140], [31, 131], [40, 139]],
+  // Sumatra / Borneo / New Guinea
+  [[5, 95], [-6, 106], [0, 101]],
+  [[6, 114], [-3, 116], [0, 109]],
+  [[-2, 131], [-9, 147], [-6, 135]],
+  // Australia
+  [[-11, 132], [-12, 142], [-19, 148], [-28, 154], [-38, 150], [-38, 141], [-34, 116], [-22, 114], [-14, 126]],
+  // Madagascar
+  [[-12, 49], [-25, 47], [-20, 44]],
+  // New Zealand
+  [[-36, 174], [-46, 168], [-41, 172]],
+];
+
+const cmX = lng => lng + 180;
+const cmY = lat => 90 - lat;
+
+const CM_FULL = { x: 0, y: 0, w: 360, h: 150 };
+
+function cmClampView(x, y, w) {
+  w = Math.min(Math.max(w, 24), CM_FULL.w);
+  const h = w * (CM_FULL.h / CM_FULL.w);
+  x = Math.min(Math.max(x, 0), CM_FULL.w - w);
+  y = Math.min(Math.max(y, 0), CM_FULL.h - h);
+  return { x, y, w, h };
+}
+
+function cmCentroid(poly) {
+  let sx = 0, sy = 0;
+  for (const [lat, lng] of poly) { sx += cmX(lng); sy += cmY(lat); }
+  return [sx / poly.length, sy / poly.length];
+}
+
+function ChWorldMap({ a, b }) {
+  const A = a?.lat != null && a?.lng != null ? { x: cmX(a.lng), y: cmY(a.lat) } : null;
+  const B = b?.lat != null && b?.lng != null ? { x: cmX(b.lng), y: cmY(b.lat) } : null;
+  const [v, setV] = useState(CM_FULL);
+  const svgRef = useRef(null);
+  const dragRef = useRef(null);
+
+  /* wheel zoom anchored on the cursor (non-passive so the page doesn't scroll) */
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return undefined;
+    const onWheel = e => {
+      e.preventDefault();
+      setV(prev => {
+        const rect = el.getBoundingClientRect();
+        const px = prev.x + ((e.clientX - rect.left) / rect.width) * prev.w;
+        const py = prev.y + ((e.clientY - rect.top) / rect.height) * prev.h;
+        const factor = e.deltaY > 0 ? 1.18 : 1 / 1.18;
+        const w = prev.w * factor;
+        const scale = Math.min(Math.max(w, 24), CM_FULL.w) / prev.w;
+        return cmClampView(px - (px - prev.x) * scale, py - (py - prev.y) * scale, w);
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const onPointerDown = e => {
+    if (e.button != null && e.button !== 0) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    dragRef.current = { px: e.clientX, py: e.clientY, moved: false };
+  };
+  const onPointerMove = e => {
+    const d = dragRef.current;
+    if (!d) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dx = ((e.clientX - d.px) / rect.width) * v.w;
+    const dy = ((e.clientY - d.py) / rect.height) * v.h;
+    if (Math.abs(e.clientX - d.px) + Math.abs(e.clientY - d.py) > 2) d.moved = true;
+    d.px = e.clientX; d.py = e.clientY;
+    setV(prev => cmClampView(prev.x - dx, prev.y - dy, prev.w));
+  };
+  const endDrag = () => { dragRef.current = null; };
+  const onDoubleClick = () => setV(CM_FULL);
+
+  const u = v.w / 360; /* keeps stroke/pin sizes constant on screen while zoomed */
+  let arc = null;
+  if (A && B) {
+    const lift = Math.max(5 * u, Math.hypot(B.x - A.x, B.y - A.y) * 0.22);
+    arc = `M ${A.x} ${A.y} Q ${(A.x + B.x) / 2} ${Math.min(A.y, B.y) - lift} ${B.x} ${B.y}`;
+  }
+  const pin = (P, cls) => (
+    <g className={'cm-pin ' + cls}>
+      <circle className="cm-halo" cx={P.x} cy={P.y} r={4 * u} />
+      <circle className="cm-ring" cx={P.x} cy={P.y} r={3 * u} strokeWidth={0.7 * u} />
+      <circle className="cm-core" cx={P.x} cy={P.y} r={1.5 * u} />
+    </g>
+  );
+  return (
+    <svg ref={svgRef} className="ch-map" viewBox={`${v.x} ${v.y} ${v.w} ${v.h}`}
+      preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={endDrag} onPointerCancel={endDrag} onPointerLeave={endDrag}
+      onDoubleClick={onDoubleClick}>
+      {CM_LAND.map((poly, i) => {
+        const pts = poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]);
+        const [gx, gy] = cmCentroid(poly);
+        const mesh = [];
+        for (let j = 0; j < pts.length; j++) {
+          mesh.push(`M ${pts[j][0]} ${pts[j][1]} L ${gx} ${gy}`);
+          const k = (j + 2) % pts.length;
+          mesh.push(`M ${pts[j][0]} ${pts[j][1]} L ${pts[k][0]} ${pts[k][1]}`);
+        }
+        return (
+          <g key={i}>
+            <polygon className="cm-land" strokeWidth={0.5 * u}
+              points={pts.map(p => p.join(',')).join(' ')} />
+            <path className="cm-mesh" strokeWidth={0.3 * u} d={mesh.join(' ')} />
+            {pts.map((p, j) => (
+              <circle key={j} className="cm-dot" cx={p[0]} cy={p[1]} r={0.8 * u} />
+            ))}
+            <circle className="cm-dot" cx={gx} cy={gy} r={0.8 * u} />
+          </g>
+        );
+      })}
+      {arc && (
+        <path className="cm-arc" d={arc} strokeWidth={0.9 * u}
+          strokeDasharray={`${2.5 * u} ${2.5 * u}`} />
+      )}
+      {A && pin(A, 'cm-pin-a')}
+      {B && pin(B, 'cm-pin-b')}
+    </svg>
+  );
+}
+
 export function TogetherHero({ duo, code, myRole, presence, geoStatus, onSetAnniversary }) {
   // the shared date lives on the duo row now — same for both partners
   const anniv = duo.anniversary || '';
@@ -178,6 +322,7 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus, onSetAnni
 
   return (
     <div className="ch-hero">
+      <ChWorldMap a={presence?.A} b={presence?.B} />
       <div className="ch-stars">
         {stars.map(s => (
           <span key={s.id} className="st"
