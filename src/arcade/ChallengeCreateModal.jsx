@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  GAME_LIST, STAKE_GROUPS, createChallenge, challengeChannel,
+  GAME_LIST, STAKE_GROUPS, createChallenge,
 } from '../lib/challenges.js';
 import { artFor } from '../engines/art.js';
 import { ENGINES } from '../engines/index.js';
@@ -97,11 +97,6 @@ export default function ChallengeCreateModal({ code, open, onClose, onCreated })
     setErr('');
     try {
       await createChallenge(code, stake.trim(), game1);
-      try {
-        const ch = await challengeChannel(code);
-        await ch.send({ k: 'chal' });
-        setTimeout(() => ch.close(), 300);
-      } catch (_) { /* ignore */ }
       onCreated?.();
       onClose?.();
     } catch (e) {

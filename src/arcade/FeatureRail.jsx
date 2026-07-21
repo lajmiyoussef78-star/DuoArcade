@@ -40,6 +40,13 @@ const I = {
       <path d="M17 5.5v3M15.5 7h3" />
     </svg>
   ),
+  history: (
+    <svg viewBox="0 0 24 24" {...S}>
+      <path d="M8 4H4v3c0 2 1.8 4 4 4M16 4h4v3c0 2-1.8 4-4 4" />
+      <path d="M8 4h8v6a4 4 0 0 1-8 0V4Z" />
+      <path d="M12 14v3M9 20h6M10 17h4" />
+    </svg>
+  ),
   wall: (
     <svg viewBox="0 0 24 24" {...S}>
       <path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1Z" />

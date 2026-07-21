@@ -7,6 +7,7 @@ import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
+import ChallengeHistory from './ChallengeHistory.jsx';
 import FeatureRail from './FeatureRail.jsx';
 import { featureRailItem } from './featureRailItems.js';
 
@@ -116,6 +117,12 @@ export default function PlaceScreen({
         <div className="place-back">
           <button type="button" className="btn small ghost" onClick={() => navigate('/app')}>← Back to arcade</button>
         </div>
+
+        {featureId === 'sect-challenge-history' && (
+          <div id="sect-challenge-history" className="shelf-anchor">
+            <ChallengeHistory code={code} myRole={myRole} />
+          </div>
+        )}
 
         {featureId === 'sect-tonight' && (
           <div className="tonight" id="sect-tonight">

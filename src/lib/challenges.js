@@ -31,13 +31,96 @@ export async function duoNames(code) {
   return d ? { A: d.name_a, B: d.name_b } : { A: 'A', B: 'B' };
 }
 
-async function ping(code) {
+async function ping(code, challenge, type = 'sync') {
+  await broadcastChallenge(code, challenge, type);
+}
+
+/** Persistent per-duo broadcast hub — one subscription, instant payload sync. */
+const syncHubs = new Map();
+
+async function ensureSyncHub(code) {
+  let hub = syncHubs.get(code);
+  if (hub?.ready) {
+    await hub.ready;
+    return hub;
+  }
+
+  hub = { listeners: new Set(), send: null, teardown: null, ready: null };
+  syncHubs.set(code, hub);
+
+  hub.ready = (async () => {
+    const supabase = await getClient();
+    let subscribed = false;
+    const ch = supabase
+      .channel('chal-' + code, { config: { broadcast: { ack: true, self: false } } })
+      .on('broadcast', { event: 'm' }, p => {
+        const payload = p.payload;
+        if (payload?.k !== 'chal') return;
+        for (const fn of hub.listeners) {
+          try { fn(payload); } catch (_) { /* ignore */ }
+        }
+      })
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') subscribed = true;
+      });
+
+    const deadline = Date.now() + 5000;
+    while (!subscribed && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 40));
+    }
+
+    hub.send = payload => ch.send({ type: 'broadcast', event: 'm', payload });
+    hub.teardown = () => supabase.removeChannel(ch);
+  })();
+
+  await hub.ready;
+  return hub;
+}
+
+/** Subscribe to challenge updates for a duo. Returns unsubscribe. */
+export function subscribeChallengeSync(code, fn) {
+  if (!code) return () => {};
+  ensureSyncHub(code).then(hub => hub.listeners.add(fn)).catch(() => {});
+  return () => syncHubs.get(code)?.listeners.delete(fn);
+}
+
+/** Push full challenge row to both partners immediately. */
+export async function broadcastChallenge(code, challenge, type = 'sync') {
+  if (!code) return;
+  const payload = { k: 'chal', c: challenge ?? null, t: type, at: Date.now() };
   try {
-    const ch = await challengeChannel(code);
-    await ch.send({ k: 'chal' });
-    // leave channel open briefly then close — callers also hold their own
-    setTimeout(() => ch.close(), 400);
+    const hub = await ensureSyncHub(code);
+    await hub.send(payload);
   } catch (_) { /* ignore */ }
+  const hub = syncHubs.get(code);
+  if (hub) {
+    for (const fn of hub.listeners) {
+      try { fn(payload); } catch (_) { /* ignore */ }
+    }
+  }
+}
+
+export async function closeChallengeSync(code) {
+  const hub = syncHubs.get(code);
+  if (!hub) return;
+  try {
+    await hub.ready;
+    hub.teardown?.();
+  } catch (_) { /* ignore */ }
+  syncHubs.delete(code);
+}
+
+/** @deprecated use subscribeChallengeSync / broadcastChallenge */
+export async function challengeChannel(code) {
+  await ensureSyncHub(code);
+  const hub = syncHubs.get(code);
+  let cb = () => {};
+  hub.listeners.add(cb);
+  return {
+    send: payload => broadcastChallenge(code, payload?.c, payload?.t || 'sync'),
+    on: fn => { cb = fn; },
+    close: () => hub.listeners.delete(cb),
+  };
 }
 
 export async function createChallenge(duoCode, stake, game1) {
@@ -46,7 +129,7 @@ export async function createChallenge(duoCode, stake, game1) {
     p_duo_code: duoCode, p_stake: stake, p_game1: game1
   });
   if (error) throw new Error(error.message);
-  await ping(duoCode);
+  await ping(duoCode, data, 'created');
   return data;
 }
 
@@ -56,7 +139,9 @@ export async function respondChallenge(id, accept, game2 = null, game3 = null) {
     p_id: id, p_accept: accept, p_game2: game2, p_game3: game3
   });
   if (error) throw new Error(error.message);
-  if (data?.duo_code) await ping(data.duo_code);
+  if (data?.duo_code) {
+    await ping(data.duo_code, data, accept ? 'accepted' : 'declined');
+  }
   return data;
 }
 
@@ -66,7 +151,9 @@ export async function setChallengeResult(id, slot, winner) {
     p_id: id, p_slot: slot, p_winner: winner
   });
   if (error) throw new Error(error.message);
-  if (data?.duo_code) await ping(data.duo_code);
+  if (data?.duo_code) {
+    await ping(data.duo_code, data, data.status === 'done' ? 'done' : 'round');
+  }
   return data;
 }
 
@@ -74,7 +161,7 @@ export async function cancelChallenge(id) {
   const supabase = await getClient();
   const { data, error } = await supabase.rpc('cancel_challenge', { p_id: id });
   if (error) throw new Error(error.message);
-  if (data?.duo_code) await ping(data.duo_code);
+  if (data?.duo_code) await ping(data.duo_code, data, 'cancelled');
   return data;
 }
 
@@ -85,18 +172,23 @@ export async function getChallenges(duoCode) {
   return Array.isArray(data) ? data : [];
 }
 
-export async function challengeChannel(code) {
+export async function setStakeFulfilled(id, fulfilled) {
   const supabase = await getClient();
-  let cb = () => {};
-  const ch = supabase
-    .channel('chal-' + code, { config: { broadcast: { self: false } } })
-    .on('broadcast', { event: 'm' }, p => cb(p.payload))
-    .subscribe();
-  return {
-    send: payload => ch.send({ type: 'broadcast', event: 'm', payload }),
-    on: fn => { cb = fn; },
-    close: () => supabase.removeChannel(ch)
-  };
+  const { data, error } = await supabase.rpc('set_stake_fulfilled', {
+    p_id: id, p_fulfilled: fulfilled,
+  });
+  if (error) throw new Error(error.message);
+  if (data?.duo_code) await ping(data.duo_code, data, 'stake');
+  return data;
+}
+
+/** Finished challenges for the history book (newest first). */
+export function completedChallenges(list) {
+  return (list || []).filter(c => c.status === 'done');
+}
+
+export function otherRole(role) {
+  return role === 'A' ? 'B' : 'A';
 }
 
 /**

@@ -1,10 +1,10 @@
 // ChallengeRespondModals.jsx — opponent accept flow + shared fate reveal on the home screen.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   GAME_LIST, celebrationLine, challengeNextSlot, gameName, overallWinner,
-  pickRandomGame3, respondChallenge, challengeChannel, scoreOf, cancelChallenge,
+  pickRandomGame3, respondChallenge, scoreOf, cancelChallenge,
 } from '../lib/challenges.js';
 import { artFor } from '../engines/art.js';
 import { ENGINES } from '../engines/index.js';
@@ -301,6 +301,44 @@ export function ChallengeFateModal({ open, game1, game2, game3, rolling, onClose
   );
 }
 
+/** Shown when the challenged partner declines — host only. */
+export function ChallengeDeclinedModal({ open, challenge, partnerName, onClose }) {
+  if (!open || !challenge) return null;
+  return (
+    <PopShell title="Challenge declined" kicker="Your invite" onClose={onClose} compact>
+      <p className="chal-pop-lead">
+        <strong>{partnerName}</strong> declined your challenge.
+      </p>
+      <div className="chal-pop-stake mini">{challenge.stake}</div>
+      <div className="chal-pop-actions">
+        <button type="button" className="btn warm" onClick={onClose}>OK</button>
+      </div>
+    </PopShell>
+  );
+}
+
+/** Auto-opens the lineup for both partners when accepted and after each round. */
+export function useChallengeLineupBoard({ challenge }) {
+  const [open, setOpen] = useState(false);
+  const seenSigRef = useRef(null);
+
+  const sig = challenge?.status === 'active' && challenge?.game3
+    ? `${challenge.id}|${challenge.win1 ?? '-'}|${challenge.win2 ?? '-'}|${challenge.win3 ?? '-'}`
+    : null;
+
+  useEffect(() => {
+    if (!sig) return;
+    if (seenSigRef.current === sig) return;
+    seenSigRef.current = sig;
+    setOpen(true);
+  }, [sig]);
+
+  const close = useCallback(() => setOpen(false), []);
+  const openManual = useCallback(() => setOpen(true), []);
+
+  return { open, close, openManual };
+}
+
 /** Shown when the best-of-three is decided — stays on the home screen. */
 export function ChallengeCompleteModal({ open, challenge, names, onClose }) {
   if (!open || !challenge?.overall_winner) return null;
@@ -318,7 +356,7 @@ export function ChallengeCompleteModal({ open, challenge, names, onClose }) {
 }
 
 /** Wires invite → pick → fate for the challenged partner. */
-export function useChallengeRespondFlow({ code, challenge, myRole, onRefresh }) {
+export function useChallengeRespondFlow({ code, challenge, myRole, onRefresh, onChallenge }) {
   const [step, setStep] = useState(null); // null | invite | pick | fate
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -327,8 +365,16 @@ export function useChallengeRespondFlow({ code, challenge, myRole, onRefresh }) 
   const [rolling, setRolling] = useState(false);
   const fateTimer = useRef(null);
   const dismissedRef = useRef(null);
+  const prevChallengeId = useRef(null);
 
   const isReceiver = challenge?.status === 'pending' && challenge.created_by !== myRole;
+
+  useEffect(() => {
+    if (challenge?.id && prevChallengeId.current != null && prevChallengeId.current !== challenge.id) {
+      dismissedRef.current = null;
+    }
+    if (challenge?.id) prevChallengeId.current = challenge.id;
+  }, [challenge?.id]);
 
   useEffect(() => {
     if (!isReceiver) {
@@ -361,12 +407,8 @@ export function useChallengeRespondFlow({ code, challenge, myRole, onRefresh }) 
     setBusy(true);
     setErr('');
     try {
-      await respondChallenge(challenge.id, false);
-      try {
-        const ch = await challengeChannel(code);
-        await ch.send({ k: 'chal' });
-        setTimeout(() => ch.close(), 300);
-      } catch (_) { /* ignore */ }
+      const updated = await respondChallenge(challenge.id, false);
+      onChallenge?.(updated, 'declined');
       dismiss();
       await onRefresh?.();
     } catch (e) {
@@ -405,12 +447,8 @@ export function useChallengeRespondFlow({ code, challenge, myRole, onRefresh }) 
         (async () => {
           setBusy(true);
           try {
-            await respondChallenge(challenge.id, true, g2, g3);
-            try {
-              const ch = await challengeChannel(code);
-              await ch.send({ k: 'chal' });
-              setTimeout(() => ch.close(), 300);
-            } catch (_) { /* ignore */ }
+            const updated = await respondChallenge(challenge.id, true, g2, g3);
+            onChallenge?.(updated, 'accepted');
             await onRefresh?.();
           } catch (e) {
             setErr(e.message || 'Could not accept challenge');
@@ -445,26 +483,5 @@ export function useChallengeRespondFlow({ code, challenge, myRole, onRefresh }) 
     pickGame,
     closeFate,
     backToInvite: () => setStep('invite'),
-  };
-}
-
-/** Fate reveal for the challenger when the match goes active. */
-export function useChallengeFateReveal({ challenge }) {
-  const [open, setOpen] = useState(false);
-  const shownRef = useRef(new Set());
-
-  useEffect(() => {
-    if (challenge?.status !== 'active' || !challenge.game3) return;
-    if (shownRef.current.has(challenge.id)) return;
-    shownRef.current.add(challenge.id);
-    setOpen(true);
-  }, [challenge?.id, challenge?.status, challenge?.game3]);
-
-  return {
-    open,
-    close: () => setOpen(false),
-    game1: challenge?.game1,
-    game2: challenge?.game2,
-    game3: challenge?.game3,
   };
 }

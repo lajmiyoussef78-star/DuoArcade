@@ -9,7 +9,7 @@ import { watchGeo } from '../lib/location.js';
 import { chatConfigured, sendGameEvent } from '../lib/chat.js';
 import { awardXp } from '../lib/xp.js';
 import {
-  challengeChannel, challengeNextSlot, gameForChallengeSlot, setChallengeResult,
+  challengeNextSlot, gameForChallengeSlot, setChallengeResult,
 } from '../lib/challenges.js';
 import AuthScreen from '../arcade/AuthScreen.jsx';
 import LobbyScreen from '../arcade/LobbyScreen.jsx';
@@ -19,6 +19,7 @@ import PlaceScreen from '../arcade/PlaceScreen.jsx';
 import GameScreen from '../arcade/GameScreen.jsx';
 import WatchScreen from '../arcade/WatchScreen.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
+import { ChallengeProvider } from '../arcade/ChallengeContext.jsx';
 import PartnerChat from '../arcade/PartnerChat.jsx';
 import SettingsMenu from '../arcade/SettingsMenu.jsx';
 
@@ -302,40 +303,21 @@ export default function Arcade() {
     }
   }, [patchLocal, upd, flushSessionRecap]);
 
-  const pingChallenge = useCallback(async duoCode => {
-    try {
-      const ch = await challengeChannel(duoCode);
-      await ch.send({ k: 'chal' });
-      setTimeout(() => ch.close(), 300);
-    } catch (_) { /* ignore */ }
-  }, []);
-
   const afterChallengeWin = useCallback(async (challengeId, slot, winner) => {
     if (challengeBusyRef.current) return;
     challengeBusyRef.current = true;
     const { code } = ctxRef.current;
     try {
       const updated = await setChallengeResult(challengeId, slot, winner);
-      await pingChallenge(code);
-      window.dispatchEvent(new CustomEvent('duoarcade-challenge-update', { detail: updated }));
-      if (updated.status === 'done') {
-        const patch = { session: null, turn: '-' };
-        patchLocal(patch);
-        await upd(code, patch, { force: true });
-        window.dispatchEvent(new CustomEvent('duoarcade-challenge-done', { detail: updated }));
-        return;
-      }
-      const next = challengeNextSlot(updated);
-      if (next) {
-        const gameId = gameForChallengeSlot(updated, next);
-        if (gameId) await startGame(gameId, { id: updated.id, slot: next });
-      }
+      const patch = { session: null, turn: '-' };
+      patchLocal(patch);
+      await upd(code, patch, { force: true });
     } catch (e) {
       setHomeStatus('Challenge score: ' + e.message);
     } finally {
       challengeBusyRef.current = false;
     }
-  }, [patchLocal, upd, pingChallenge, startGame]);
+  }, [patchLocal, upd]);
 
   const startChallengeGame = useCallback(async (challenge, slot) => {
     const gameId = gameForChallengeSlot(challenge, slot ?? challengeNextSlot(challenge) ?? 1);
@@ -833,8 +815,9 @@ export default function Arcade() {
   if (!booted) {
     screen = <div className="status">Warming up the arcade…</div>;
   } else if (duo && code) {
+    let inner;
     if (s && s.type === 'watch') {
-      screen = (
+      inner = (
         <WatchScreen
           duo={duo} myRole={myRole}
           pushWatch={pushWatch} submitRating={submitRating} onBack={backToHome}
@@ -843,7 +826,7 @@ export default function Arcade() {
     } else if (s && s.game &&
       !(s.phase === 'invite' && s.by !== myRole) &&
       !(s.phase === 'declined' && s.declinedBy === myRole)) {
-      screen = (
+      inner = (
         <GameScreen
           duo={duo} code={code} myRole={myRole} isAway={isAway}
           sync={syncRef.current} onMove={move} onReady={pressReady}
@@ -856,19 +839,24 @@ export default function Arcade() {
       const placeProps = {
         duo, code, myRole, isAway, presence: presenceState, geoStatus,
         homeStatus, setHomeStatus,
-        onStartGame: startGame, onStartWatch: startWatch, onStartChallengeGame: startChallengeGame,
+        onStartGame: startGame, onStartWatch: startWatch,
         onBack: () => { leaveDuoContext(); enterLobby(); },
         onSetAnniversary: setAnniversary,
         onSetFavoriteGames: setFavoriteGames, onRedeem: redeemCode,
         avatarTick,
       };
-      screen = (
+      inner = (
         <Routes>
           <Route index element={<HomeScreen {...placeProps} />} />
           <Route path="place/:featureId" element={<PlaceScreen {...placeProps} />} />
         </Routes>
       );
     }
+    screen = myRole ? (
+      <ChallengeProvider code={code} myRole={myRole} onStartChallengeGame={startChallengeGame}>
+        {inner}
+      </ChallengeProvider>
+    ) : inner;
   } else if (view === 'lobby') {
     screen = (
       <LobbyScreen

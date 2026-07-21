@@ -13,7 +13,7 @@ const MS_KEY = code => 'duoarcade-ms-' + code;
 
 export default function HomeScreen({
   duo, code, myRole, isAway, presence, geoStatus, homeStatus, setHomeStatus,
-  onStartGame, onSetFavoriteGames, onSetAnniversary, onStartChallengeGame, onBack, avatarTick = 0,
+  onStartGame, onSetFavoriteGames, onSetAnniversary, onBack, avatarTick = 0,
 }) {
   const [copied, setCopied] = useState(false);
   const [celebrate, setCelebrate] = useState(null);
@@ -228,7 +228,7 @@ export default function HomeScreen({
             })}
         </div>
 
-        <ChallengeCard code={code} myRole={myRole} onStartChallengeGame={onStartChallengeGame} />
+        <ChallengeCard />
 
         {myRole === 'A' && inviteUrl && (
           <div className="invite-box" style={{ width: '100%', marginTop: 14 }}>
