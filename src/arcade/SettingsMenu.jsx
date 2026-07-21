@@ -12,11 +12,15 @@ export default function SettingsMenu({
   onSignOut, theme, onSetTheme, canSetTheme,
   nameA = 'Partner one', nameB = 'Partner two',
   code = null, myRole = null, onAvatarChange,
+  duo = null, onDeleteDuo = null,
 }) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [avs, setAvs] = useState({ avatar_a: null, avatar_b: null });
   const [avErr, setAvErr] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const panelRef = useRef(null);
   const { name: activeName, flip } = parseTheme(theme);
   const colors = themeColors(theme);
@@ -52,7 +56,21 @@ export default function SettingsMenu({
 
   const close = () => {
     setPickerOpen(false);
+    setDeleting(false);
+    setConfirmText('');
     setOpen(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!duo || !onDeleteDuo) return;
+    if (confirmText.trim().toUpperCase() !== duo.code) return;
+    setDeleteBusy(true);
+    try {
+      await onDeleteDuo(duo);
+      close();
+    } finally {
+      setDeleteBusy(false);
+    }
   };
 
   const pickTheme = (name) => {
@@ -230,6 +248,57 @@ export default function SettingsMenu({
             </section>
           )}
 
+          {duo && onDeleteDuo && (
+            <section className="set-block set-block-danger">
+              <div className="set-block-head">
+                <h3>Danger zone</h3>
+                <p>Permanently erase this duo for both of you — including streaks, records, snaps, and the whiteboard.</p>
+              </div>
+              {!deleting ? (
+                <button
+                  type="button"
+                  className="set-danger-btn"
+                  onClick={() => { setDeleting(true); setConfirmText(''); }}
+                >
+                  Delete duo
+                </button>
+              ) : (
+                <div className="set-danger-confirm">
+                  <p>
+                    This erases <b>{duo.nameA} & {duo.nameB}</b> for both of you — streaks,
+                    records, snaps, todos, and the whiteboard. No undo.
+                  </p>
+                  <label htmlFor="setDelConfirm">Type <b>{duo.code}</b> to confirm</label>
+                  <input
+                    type="text"
+                    id="setDelConfirm"
+                    maxLength={5}
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <div className="set-danger-row">
+                    <button
+                      type="button"
+                      className="set-danger-btn set-danger-btn-solid"
+                      disabled={deleteBusy || confirmText.trim().toUpperCase() !== duo.code}
+                      onClick={confirmDelete}
+                    >
+                      {deleteBusy ? 'Deleting…' : 'Delete forever'}
+                    </button>
+                    <button
+                      type="button"
+                      className="set-danger-cancel"
+                      onClick={() => { setDeleting(false); setConfirmText(''); }}
+                    >
+                      Keep it
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
           {onSignOut && (
             <section className="set-block set-block-account">
               <div className="set-block-head">
@@ -246,7 +315,7 @@ export default function SettingsMenu({
             </section>
           )}
 
-          {!canSetTheme && !canSetAvatar && !onSignOut && (
+          {!canSetTheme && !canSetAvatar && !onSignOut && !(duo && onDeleteDuo) && (
             <section className="set-block">
               <div className="set-block-head">
                 <h3>Your place</h3>

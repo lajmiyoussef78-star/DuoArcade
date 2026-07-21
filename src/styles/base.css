@@ -9,13 +9,15 @@ html[data-appearance="dark"] {
   --text: #F2EDF7;
   --dim: #A99FBC;
   --p1: #7FA8FF;
-  --p1s: #2A3252;
+  --p1s: color-mix(in srgb, var(--p1) 22%, var(--night));
   --p2: #FF7FA8;
-  --p2s: #4A2A3A;
+  --p2s: color-mix(in srgb, var(--p2) 22%, var(--night));
   --candle: #FFC66E;
-  --candles: #4A3A1E;
+  --candles: color-mix(in srgb, var(--candle) 16%, var(--night));
   --good: #6FDCA8;
   --shadow: rgba(0, 0, 0, 0.45);
+  --theme-glow: color-mix(in srgb, var(--candle) 45%, transparent);
+  --theme-line: color-mix(in srgb, var(--candle) 42%, var(--line));
   color-scheme: dark;
 }
 
@@ -27,13 +29,15 @@ html[data-appearance="light"] {
   --text: #1F2330;
   --dim: #545C70;
   --p1: #3B6FD4;
-  --p1s: #C5D4F5;
+  --p1s: color-mix(in srgb, var(--p1) 22%, var(--room));
   --p2: #D94478;
-  --p2s: #F0C4D4;
+  --p2s: color-mix(in srgb, var(--p2) 22%, var(--room));
   --candle: #B87A1C;
-  --candles: #E8D4A8;
+  --candles: color-mix(in srgb, var(--candle) 22%, var(--room));
   --good: #168A5E;
   --shadow: rgba(28, 30, 42, 0.14);
+  --theme-glow: color-mix(in srgb, var(--candle) 28%, transparent);
+  --theme-line: color-mix(in srgb, var(--candle) 38%, var(--line));
   color-scheme: light;
 }
 

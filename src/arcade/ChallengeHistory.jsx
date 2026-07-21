@@ -50,7 +50,7 @@ function HistGameTile({ gameId, slot, win, names }) {
   );
 }
 
-export default function ChallengeHistory({ code, myRole }) {
+export default function ChallengeHistory({ code, myRole, compact = false }) {
   const [rows, setRows] = useState([]);
   const [names, setNames] = useState({ A: 'A', B: 'B' });
   const [busyId, setBusyId] = useState(null);
@@ -100,14 +100,16 @@ export default function ChallengeHistory({ code, myRole }) {
   };
 
   return (
-    <div className="chal-history-page" id="sect-challenge-history">
-      <header className="chal-history-hero">
-        <div className="chal-history-kicker">Your memory book</div>
-        <h3 className="chal-history-title">Challenge history</h3>
-        <p className="chal-history-lead">
-          Finished best-of-threes — stakes, scores, and who hosted.
-        </p>
-      </header>
+    <div className={'chal-history-page' + (compact ? ' chal-history-compact' : '')} id="sect-challenge-history">
+      {!compact && (
+        <header className="chal-history-hero">
+          <div className="chal-history-kicker">Your memory book</div>
+          <h3 className="chal-history-title">Challenge history</h3>
+          <p className="chal-history-lead">
+            Finished best-of-threes — stakes, scores, and who hosted.
+          </p>
+        </header>
+      )}
 
       {!rows.length ? (
         <div className="chal-history-empty">

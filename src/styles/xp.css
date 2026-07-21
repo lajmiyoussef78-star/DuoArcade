@@ -5,8 +5,11 @@
   margin: 16px 0 4px;
   padding: 14px 14px 12px;
   border-radius: 14px;
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--room2), var(--room));
+  border: 1px solid var(--theme-line);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--candle) 8%, var(--room2)),
+    var(--room));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--candle) 8%, transparent);
 }
 
 .arcade-page .xp-bar-top {
@@ -51,7 +54,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--candles);
+  background: color-mix(in srgb, var(--candle) 12%, var(--room2));
   border: 1px solid var(--candle);
   color: var(--candle);
   border-radius: 999px;
@@ -60,6 +63,7 @@
   font-weight: 700;
   white-space: nowrap;
   margin: 0;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--candle) 22%, transparent);
 }
 
 .arcade-page .xp-title-pill-ico {

@@ -1,21 +1,67 @@
 /* Surface tokens live in base.css (dark/light via data-appearance). */
 .arcade-page, .arcade-page *{box-sizing:border-box;margin:0;padding:0;}
-.arcade-page{background:var(--night);color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;
-       min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:22px 14px 60px;}
+.arcade-page{background:
+  radial-gradient(ellipse 80% 50% at 0% -10%, color-mix(in srgb, var(--p1) 16%, transparent), transparent 55%),
+  radial-gradient(ellipse 70% 45% at 100% 0%, color-mix(in srgb, var(--p2) 14%, transparent), transparent 52%),
+  radial-gradient(ellipse 50% 40% at 50% 100%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 55%),
+  var(--night);
+  color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;
+  min-height:100vh;display:flex;flex-direction:column;align-items:stretch;
+  padding:0 0 calc(72px + env(safe-area-inset-bottom, 0px));}
 html[data-appearance="light"] .arcade-page{
   background:
     radial-gradient(ellipse 90% 55% at 8% -8%, color-mix(in srgb, var(--p1) 14%, transparent), transparent 58%),
     radial-gradient(ellipse 70% 48% at 96% 0%, color-mix(in srgb, var(--p2) 12%, transparent), transparent 52%),
     radial-gradient(ellipse 50% 40% at 70% 100%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 55%),
     var(--night);}
-html[data-appearance="light"] .arcade-page .card{
-  box-shadow:0 16px 44px rgba(28,30,42,.08),0 1px 0 rgba(255,255,255,.95) inset;}
 .arcade-page h1, .arcade-page h2, .arcade-page h3{font-family:'Fraunces',serif;font-weight:900;}
-.arcade-page .brand{font-size:23px;text-decoration:none;}
-.arcade-page .brand .a{color:var(--p1);}
-.arcade-page .brand .b{color:var(--p2);}
+.arcade-page .brand{font-size:22px;text-decoration:none;letter-spacing:.01em;line-height:1;}
+.arcade-page .brand .a{color:var(--p1);text-shadow:0 0 16px color-mix(in srgb, var(--p1) 50%, transparent);}
+.arcade-page .brand .b{color:var(--p2);text-shadow:0 0 16px color-mix(in srgb, var(--p2) 50%, transparent);}
 .arcade-page .sub{color:var(--dim);font-size:13px;margin:2px 0 18px;text-align:center;}
-.arcade-page .card{background:var(--room);border:1px solid var(--line);border-radius:18px;padding:24px;max-width:560px;width:100%;}
+/* Main panel — pairs with the full-bleed top rail */
+.arcade-page .card{
+  position:relative;overflow:hidden;
+  background:
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--p1) 14%, var(--room)) 0%,
+      var(--room) 42%,
+      color-mix(in srgb, var(--p2) 12%, var(--room)) 100%);
+  border:1px solid color-mix(in srgb, var(--candle) 32%, var(--line));
+  border-radius:20px;padding:22px 22px 24px;max-width:560px;width:100%;
+  box-shadow:
+    0 22px 56px rgba(0,0,0,.38),
+    0 0 40px color-mix(in srgb, var(--candle) 10%, transparent),
+    0 1px 0 color-mix(in srgb, var(--candle) 14%, transparent) inset;
+}
+.arcade-page .card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 6% 14%, color-mix(in srgb, var(--text) 50%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 18% 78%, color-mix(in srgb, var(--text) 35%, transparent) 40%, transparent 100%),
+    radial-gradient(1.4px 1.4px at 31% 28%, color-mix(in srgb, var(--text) 45%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 44% 62%, color-mix(in srgb, var(--text) 32%, transparent) 40%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 57% 11%, color-mix(in srgb, var(--text) 40%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 68% 84%, color-mix(in srgb, var(--text) 36%, transparent) 40%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 79% 37%, color-mix(in srgb, var(--text) 45%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 88% 56%, color-mix(in srgb, var(--text) 30%, transparent) 40%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 92% 18%, color-mix(in srgb, var(--text) 42%, transparent) 40%, transparent 100%),
+    radial-gradient(1px 1px at 12% 44%, color-mix(in srgb, var(--text) 34%, transparent) 40%, transparent 100%);
+  opacity:.9;
+}
+.arcade-page .card::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  border-radius:inherit;
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--candle) 55%, transparent), transparent) top / 72% 2px no-repeat,
+    radial-gradient(ellipse 42% 50% at 0% 100%, color-mix(in srgb, var(--p1) 18%, transparent), transparent 70%),
+    radial-gradient(ellipse 38% 46% at 100% 0%, color-mix(in srgb, var(--p2) 16%, transparent), transparent 72%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--candle) 8%, transparent);
+}
+.arcade-page .card > *{position:relative;z-index:1;}
+html[data-appearance="light"] .arcade-page .card{
+  box-shadow:0 18px 48px rgba(28,30,42,.1),0 1px 0 rgba(255,255,255,.9) inset,
+    0 0 28px color-mix(in srgb, var(--candle) 12%, transparent);}
 .arcade-page .btn{font-family:'Inter',sans-serif;font-weight:600;font-size:14px;padding:12px 20px;border-radius:12px;
        border:1px solid var(--line);background:var(--room2);color:var(--text);cursor:pointer;}
 .arcade-page .btn.warm{background:var(--candle);border-color:var(--candle);color:#2a1e05;}
@@ -39,17 +85,56 @@ html[data-appearance="light"] .arcade-page .who{color:#4A5266;}
 .arcade-page .mode-pill.supabase{color:var(--good);border:1px solid var(--good);}
 .arcade-page .share{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--room2);
          border:1px dashed var(--line);border-radius:10px;padding:9px 11px;word-break:break-all;margin-top:10px;}
-.arcade-page section{display:none;width:100%;max-width:600px;flex-direction:column;align-items:center;}
+.arcade-page section{display:none;width:100%;max-width:600px;flex-direction:column;align-items:center;
+  margin-left:auto;margin-right:auto;padding:12px 14px 0;box-sizing:border-box;}
 .arcade-page section.on{display:flex;}
-.arcade-page .topbar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:600px;margin-bottom:10px;gap:8px;flex-wrap:wrap;
-  position:sticky;top:0;z-index:70;padding:8px 0 10px;
-  background:color-mix(in srgb, var(--night) 92%, transparent);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.arcade-page .topbar{
+  position:sticky;top:0;z-index:70;width:100%;max-width:none;margin:0;padding:0;flex:none;
+  isolation:isolate;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--room) 94%, transparent) 0%,
+      color-mix(in srgb, var(--night) 88%, transparent) 100%);
+  backdrop-filter:blur(16px) saturate(1.2);
+  -webkit-backdrop-filter:blur(16px) saturate(1.2);
+  border-bottom:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  box-shadow:
+    0 12px 32px rgba(0,0,0,.28),
+    0 1px 0 color-mix(in srgb, var(--candle) 12%, transparent) inset;
+}
+.arcade-page .topbar::before{
+  content:'';position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    var(--p1) 18%,
+    var(--candle) 50%,
+    var(--p2) 82%,
+    transparent 100%);
+  opacity:.9;
+}
+.arcade-page .topbar::after{
+  content:'';position:absolute;left:12%;right:12%;bottom:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--candle) 55%, transparent), transparent);
+}
+.arcade-page .topbar-inner{
+  position:relative;z-index:1;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  width:100%;max-width:640px;margin:0 auto;padding:12px 18px;
+}
 html[data-appearance="light"] .arcade-page .topbar{
-  background:color-mix(in srgb, var(--night) 88%, transparent);}
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--room) 96%, transparent),
+    color-mix(in srgb, var(--night) 90%, transparent));
+  box-shadow:0 10px 28px rgba(28,30,42,.1),0 1px 0 rgba(255,255,255,.5) inset;
+}
 .arcade-page .topbar-right{display:flex;align-items:center;gap:10px;}
 .arcade-page .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .arcade-page .who{font-size:12px;color:var(--dim);}
+.arcade-page > .status,
+.arcade-page > .gv-screen{
+  width:100%;max-width:600px;margin-left:auto;margin-right:auto;
+  padding-left:14px;padding-right:14px;box-sizing:border-box;
+}
 .arcade-page /* auth */
   .tabs{display:flex;gap:8px;margin-bottom:6px;}
 .arcade-page .tab{flex:1;text-align:center;padding:10px;border-radius:10px;border:1px solid var(--line);cursor:pointer;font-size:14px;font-weight:600;background:var(--room2);}
@@ -72,9 +157,9 @@ html[data-appearance="light"] .arcade-page .topbar{
   flex:1;min-width:0;margin:0;
   font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.arcade-page .duo-title .amp{color:var(--candle);}
-.arcade-page .duo-title .pA{color:var(--p1);}
-.arcade-page .duo-title .pB{color:var(--p2);}
+.arcade-page .duo-title .amp{color:var(--candle);text-shadow:0 0 12px var(--theme-glow);}
+.arcade-page .duo-title .pA{color:var(--p1);text-shadow:0 0 12px color-mix(in srgb, var(--p1) 45%, transparent);}
+.arcade-page .duo-title .pB{color:var(--p2);text-shadow:0 0 12px color-mix(in srgb, var(--p2) 45%, transparent);}
 .arcade-page .duo-meta{font-size:12px;color:var(--dim);}
 .arcade-page .duo-badges{
   display:flex;flex-wrap:wrap;align-items:center;gap:10px;
@@ -86,8 +171,12 @@ html[data-appearance="light"] .arcade-page .topbar{
   flex:none;
 }
 .arcade-page .duo-head-top .btn{flex:none;margin-left:0;}
-.arcade-page .streak-pill{background:var(--candles);border:1px solid var(--candle);color:var(--candle);
-               border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;white-space:nowrap;}
+.arcade-page .streak-pill{
+  background:color-mix(in srgb, var(--candle) 12%, var(--room2));
+  border:1px solid var(--candle);color:var(--candle);
+  border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;white-space:nowrap;
+  box-shadow:0 0 14px color-mix(in srgb, var(--candle) 22%, transparent);
+}
 .arcade-page .streak-pill-compact{
   align-items:center;justify-content:center;gap:4px;
   padding:6px 12px;min-width:0;margin:0;
@@ -122,7 +211,12 @@ html[data-appearance="light"] .arcade-page .topbar{
 .arcade-page .react-lane{position:absolute;right:12px;bottom:12px;top:12px;width:56px;pointer-events:none;overflow:hidden;z-index:5;}
 .arcade-page .float-emoji{position:absolute;bottom:-30px;left:8px;font-size:26px;animation:rise 2.4s ease-out forwards;}
 @keyframes rise{to{transform:translateY(-240px) translateX(-10px);opacity:0;}}
-.arcade-page .home-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:16px;background:var(--room);}
+.arcade-page .home-stats{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;
+  border:1px solid var(--theme-line);border-radius:14px;overflow:hidden;margin-top:16px;
+  background:color-mix(in srgb, var(--room2) 88%, transparent);
+  box-shadow:0 0 24px color-mix(in srgb, var(--candle) 8%, transparent);
+}
 .arcade-page .hstat{padding:13px 8px;border-right:1px solid var(--line);text-align:center;min-width:0;}
 .arcade-page .hstat:last-child{border-right:none;}
 .arcade-page .hstat .n{font-family:'Fraunces',serif;font-weight:900;font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -134,14 +228,18 @@ html[data-appearance="light"] .arcade-page .hstat .l{color:#4E566A;}
 .arcade-page .milestones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;width:100%;}
 .arcade-page .ms{font-size:11px;color:var(--dim);border:1px dashed var(--line);border-radius:999px;padding:5px 11px;}
 .arcade-page .ms.lit{color:var(--candle);border-color:var(--candle);border-style:solid;}
-.arcade-page .shelf-title{width:100%;font-size:15px;font-weight:700;margin-top:18px;font-family:'Fraunces',serif;}
+.arcade-page .shelf-title{width:100%;font-size:15px;font-weight:700;margin-top:18px;font-family:'Fraunces',serif;
+  color:var(--text);text-shadow:0 0 18px color-mix(in srgb, var(--candle) 18%, transparent);}
 .arcade-page .shelf-anchor{width:100%;margin-top:36px;padding-top:28px;} /* 2× title margin + former title line as empty space */
 .arcade-page .shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;margin-top:10px;align-items:stretch;}
-.arcade-page .gcard{border:1px solid var(--line);border-radius:14px;background:var(--room);padding:14px 14px 12px;cursor:pointer;
+.arcade-page .gcard{border:1px solid color-mix(in srgb, var(--candle) 22%, var(--line));border-radius:14px;
+         background:color-mix(in srgb, var(--room) 92%, transparent);padding:14px 14px 12px;cursor:pointer;
          display:flex;flex-direction:column;gap:4px;transition:border-color .12s ease,box-shadow .18s ease;position:relative;
          width:100%;height:118px;min-height:118px;max-height:118px;box-sizing:border-box;overflow:hidden;contain:strict;}
-.arcade-page .gcard:hover{border-color:var(--p1);box-shadow:0 8px 20px color-mix(in srgb, var(--p1) 14%, transparent);}
-.arcade-page .gcard-fav-active{border-color:color-mix(in srgb, var(--candle) 55%, var(--line));}
+.arcade-page .gcard:hover{border-color:var(--candle);
+  box-shadow:0 8px 22px color-mix(in srgb, var(--candle) 16%, transparent),0 0 18px color-mix(in srgb, var(--p1) 10%, transparent);}
+.arcade-page .gcard-fav-active{border-color:color-mix(in srgb, var(--candle) 55%, var(--line));
+  box-shadow:0 0 16px color-mix(in srgb, var(--candle) 14%, transparent);}
 .arcade-page .gcard-art{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:13px;
   /* Keep illustration inks dark so art stays vivid under light-mode veils */
   --night:#191420;--room:#221B2D;--room2:#2B2338;--line:#3D3450;
@@ -188,7 +286,7 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 /* ---------- games browse (filter + smart rows) ---------- */
 .arcade-page .games-browse{width:100%;margin-top:8px;}
 .arcade-page .games-filter-bar{
-  position:sticky;top:52px;z-index:55;width:100%;margin:10px 0 4px;padding:10px 0 12px;
+  position:sticky;top:56px;z-index:55;width:100%;margin:10px 0 4px;padding:10px 0 12px;
   background:linear-gradient(180deg, color-mix(in srgb, var(--room) 96%, transparent) 70%, transparent);
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
 }
@@ -199,26 +297,28 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 }
 .arcade-page .games-chips::-webkit-scrollbar{display:none;}
 .arcade-page .games-chip{
-  flex:none;border:1px solid var(--line);background:var(--room2);color:var(--dim);
+  flex:none;border:1px solid color-mix(in srgb, var(--candle) 22%, var(--line));
+  background:color-mix(in srgb, var(--candle) 6%, var(--room2));color:var(--dim);
   font-size:12px;font-weight:600;padding:7px 11px;border-radius:999px;cursor:pointer;
-  white-space:nowrap;transition:color .14s,border-color .14s,background .14s,transform .12s;
+  white-space:nowrap;transition:color .14s,border-color .14s,background .14s,box-shadow .14s,transform .12s;
 }
-.arcade-page .games-chip:hover{color:var(--text);border-color:color-mix(in srgb, var(--p1) 45%, var(--line));}
+.arcade-page .games-chip:hover{color:var(--candle);border-color:var(--candle);
+  box-shadow:0 0 12px color-mix(in srgb, var(--candle) 18%, transparent);}
 .arcade-page .games-chip.on{
-  color:#2a1e05;background:var(--candle);border-color:var(--candle);
-  box-shadow:0 0 16px color-mix(in srgb, var(--candle) 28%, transparent);
+  color:#1a1420;background:var(--candle);border-color:var(--candle);
+  box-shadow:0 0 18px color-mix(in srgb, var(--candle) 35%, transparent);
 }
 html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
 .arcade-page .games-pick-btn{
   flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   min-width:72px;padding:6px 10px;border-radius:14px;cursor:pointer;
-  border:1px solid color-mix(in srgb, var(--p2) 45%, var(--line));
-  background:linear-gradient(160deg, color-mix(in srgb, var(--p2) 22%, var(--room)), var(--room2));
+  border:1px solid color-mix(in srgb, var(--candle) 45%, var(--line));
+  background:linear-gradient(160deg, color-mix(in srgb, var(--candle) 16%, var(--room)), var(--room2));
   color:var(--text);font-weight:700;line-height:1.1;
-  box-shadow:0 6px 18px color-mix(in srgb, var(--p2) 18%, transparent);
+  box-shadow:0 6px 18px color-mix(in srgb, var(--candle) 16%, transparent);
   transition:transform .14s,border-color .14s,opacity .14s;
 }
-.arcade-page .games-pick-btn:hover:not(:disabled){transform:scale(1.04);border-color:var(--p2);}
+.arcade-page .games-pick-btn:hover:not(:disabled){transform:scale(1.04);border-color:var(--candle);}
 .arcade-page .games-pick-btn:disabled{opacity:.55;cursor:default;}
 .arcade-page .games-pick-dice{display:flex;line-height:1;color:var(--candle);}
 .arcade-page .games-pick-btn.spinning .games-pick-dice{animation:games-dice-spin .35s linear infinite;}
@@ -305,7 +405,7 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
   margin:8px 0 0;padding-left:16px;font-size:12px;color:var(--dim);line-height:1.5;
 }
 @media (max-width:460px){
-  .arcade-page .games-filter-bar{top:48px;}
+  .arcade-page .games-filter-bar{top:54px;}
   .arcade-page .games-pick-label{display:none;}
   .arcade-page .games-pick-btn{min-width:48px;padding:8px;}
   .arcade-page .games-sort{width:118px;}
@@ -543,9 +643,49 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
   display:flex;gap:8px;flex-wrap:wrap;padding:4px 22px 18px;
 }
 .arcade-page .profile-danger{margin:0 22px 18px;}
+.arcade-page .profile-hero-actions{
+  display:flex;flex-direction:column;gap:8px;align-items:stretch;flex:none;
+}
+.arcade-page .profile-hero-actions .btn.on{
+  border-color:var(--candle);color:var(--candle);
+}
+.arcade-page .profile-edit{
+  margin:0 22px 8px;padding:14px 16px;border-radius:14px;
+  border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  background:color-mix(in srgb, var(--candle) 6%, var(--room2));
+}
+.arcade-page .profile-edit-toggles{
+  display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;
+}
+.arcade-page .profile-edit-toggle{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 11px;border-radius:999px;border:1px solid var(--line);
+  background:var(--room);font-size:12.5px;color:var(--text);cursor:pointer;
+}
+.arcade-page .profile-edit-toggle input{accent-color:var(--candle);cursor:pointer;}
+.arcade-page .profile-edit-vis{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;
+}
+.arcade-page .profile-edit-hint{font-size:11.5px;color:var(--dim);line-height:1.4;}
+.arcade-page .profile-hist-tabs{
+  display:flex;gap:6px;margin:4px 0 12px;padding:4px;border-radius:12px;
+  background:var(--room2);border:1px solid var(--line);
+}
+.arcade-page .profile-hist-tab{
+  flex:1;border:none;background:transparent;color:var(--dim);
+  font:inherit;font-size:13px;font-weight:600;padding:9px 10px;border-radius:9px;cursor:pointer;
+}
+.arcade-page .profile-hist-tab.on{
+  background:var(--room);color:var(--candle);
+  box-shadow:0 1px 0 rgba(255,255,255,.04);
+}
+.arcade-page .profile-chal-wrap{margin-top:4px;}
+.arcade-page .chal-history-compact{padding:0;margin:0;}
+.arcade-page .chal-history-compact .chal-history-empty{margin-top:4px;}
 
 @media (max-width:560px){
   .arcade-page .profile-hero{flex-direction:column;align-items:flex-start;}
+  .arcade-page .profile-hero-actions{width:100%;}
   .arcade-page .profile-enter{width:100%;}
   .arcade-page .profile-stats{grid-template-columns:repeat(2,1fr);}
   .arcade-page .profile-stats .hstat:nth-child(2){border-right:none;}
@@ -573,8 +713,12 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 .arcade-page .price-opt .amt{font-family:'Fraunces',serif;font-weight:900;font-size:19px;}
 .arcade-page .price-opt .per{font-size:10.5px;color:var(--dim);}
 .arcade-page .price-opt .tagl{font-size:10px;color:var(--candle);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-top:4px;}
-.arcade-page .pass-badge{background:var(--candles);border:1px solid var(--candle);color:var(--candle);border-radius:999px;
-              padding:6px 12px;font-size:12px;font-weight:700;white-space:nowrap;margin:0;}
+.arcade-page .pass-badge{
+  background:color-mix(in srgb, var(--candle) 12%, var(--room2));
+  border:1px solid var(--candle);color:var(--candle);border-radius:999px;
+  padding:6px 12px;font-size:12px;font-weight:700;white-space:nowrap;margin:0;
+  box-shadow:0 0 14px color-mix(in srgb, var(--candle) 22%, transparent);
+}
 .arcade-page .theme-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .arcade-page .theme-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;}
 .arcade-page .theme-dot.on{border-color:var(--candle);}
@@ -718,34 +862,72 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
   .arcade-page .gv-screen{min-height:calc(100vh - 96px);padding-bottom:88px;}
 }
 
-/* ---------- feature rail (Supabase-style side dock) ---------- */
-.arcade-page .frail{position:fixed;left:14px;top:50%;transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:5px;padding:9px 7px;overflow:visible;
-  background:rgba(24,18,33,.78);border:1px solid var(--line);border-radius:16px;
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:60;
-  box-shadow:0 14px 38px rgba(0,0,0,.4);}
+/* ---------- feature rail — full-bleed bottom dock (pairs with topbar) ---------- */
+.arcade-page .frail{
+  position:fixed;left:0;right:0;bottom:0;top:auto;transform:none;
+  display:flex;flex-direction:row;align-items:center;justify-content:center;
+  gap:2px;padding:8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  overflow-x:auto;overflow-y:visible;scrollbar-width:none;-ms-overflow-style:none;
+  background:
+    linear-gradient(0deg,
+      color-mix(in srgb, var(--room) 96%, transparent) 0%,
+      color-mix(in srgb, var(--night) 90%, transparent) 100%);
+  border:none;
+  border-top:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  border-radius:0;
+  backdrop-filter:blur(16px) saturate(1.2);
+  -webkit-backdrop-filter:blur(16px) saturate(1.2);
+  z-index:60;
+  box-shadow:
+    0 -12px 32px rgba(0,0,0,.32),
+    0 -1px 0 color-mix(in srgb, var(--candle) 12%, transparent) inset;
+  isolation:isolate;
+}
+.arcade-page .frail::-webkit-scrollbar{display:none;}
+.arcade-page .frail::before{
+  content:'';position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;z-index:1;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    var(--p1) 18%,
+    var(--candle) 50%,
+    var(--p2) 82%,
+    transparent 100%);
+  opacity:.9;
+}
 .arcade-page .frail-btn{position:relative;display:flex;align-items:center;justify-content:center;
-  width:40px;height:40px;border-radius:11px;border:1px solid transparent;background:transparent;
-  color:var(--dim);cursor:pointer;padding:0;overflow:visible;transition:color .16s ease,background .16s ease,border-color .16s ease;}
+  width:42px;height:42px;flex:none;border-radius:12px;border:1px solid transparent;background:transparent;
+  color:var(--dim);cursor:pointer;padding:0;overflow:visible;
+  transition:color .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease;}
 .arcade-page .frail-btn svg{width:21px;height:21px;display:block;}
-.arcade-page .frail-btn:hover{color:var(--text);background:rgba(255,255,255,.07);}
-.arcade-page .frail-btn.on{color:var(--candle);background:rgba(255,198,110,.10);
-  border-color:rgba(255,198,110,.28);}
-.arcade-page .frail-pop{position:absolute;left:calc(100% + 16px);top:50%;
-  transform:translateY(-50%);width:max-content;max-width:248px;
-  background:linear-gradient(155deg,var(--room2) 0%,var(--room) 58%,rgba(43,35,56,.96) 100%);
-  border:1px solid var(--line);border-radius:14px;padding:13px 15px 12px;
+.arcade-page .frail-btn:hover{color:var(--candle);background:color-mix(in srgb, var(--candle) 10%, transparent);
+  border-color:color-mix(in srgb, var(--candle) 28%, transparent);
+  box-shadow:0 0 14px color-mix(in srgb, var(--candle) 16%, transparent);}
+.arcade-page .frail-btn.on{color:var(--candle);
+  background:color-mix(in srgb, var(--candle) 14%, transparent);
+  border-color:color-mix(in srgb, var(--candle) 42%, var(--line));
+  box-shadow:0 0 18px color-mix(in srgb, var(--candle) 28%, transparent);}
+.arcade-page .frail-pop{position:absolute;left:50%;bottom:calc(100% + 14px);top:auto;
+  transform:translateX(-50%);width:max-content;max-width:min(268px,calc(100vw - 32px));
+  background:linear-gradient(155deg,
+    color-mix(in srgb, var(--p1) 10%, var(--room2)) 0%,
+    var(--room) 58%,
+    color-mix(in srgb, var(--p2) 10%, var(--room)) 100%);
+  border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  border-radius:14px;padding:13px 15px 12px;
   z-index:80;pointer-events:none;overflow:hidden;
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  box-shadow:0 14px 36px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow:0 14px 36px rgba(0,0,0,.48),0 0 24px color-mix(in srgb, var(--candle) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--candle) 10%, transparent);
   animation:frail-in .16s ease;}
 html[data-appearance="light"] .arcade-page .frail{
-  background:rgba(232,235,243,.9);
-  border-color:color-mix(in srgb, var(--line) 80%, var(--p1));
-  box-shadow:0 10px 32px rgba(28,30,42,.12),0 1px 0 rgba(255,255,255,.45) inset;}
+  background:linear-gradient(0deg,
+    color-mix(in srgb, var(--room) 96%, transparent),
+    color-mix(in srgb, var(--night) 90%, transparent));
+  border-top-color:color-mix(in srgb, var(--candle) 30%, var(--line));
+  box-shadow:0 -10px 28px rgba(28,30,42,.1),0 -1px 0 rgba(255,255,255,.45) inset;}
 html[data-appearance="light"] .arcade-page .frail-btn{color:#5A6276;}
 html[data-appearance="light"] .arcade-page .frail-btn:hover{
-  color:var(--text);background:rgba(28,30,42,.07);}
+  color:var(--candle);background:color-mix(in srgb, var(--candle) 12%, var(--room));}
 html[data-appearance="light"] .arcade-page .frail-btn.on{
   color:var(--candle);
   background:color-mix(in srgb, var(--candle) 16%, var(--room));
@@ -753,11 +935,11 @@ html[data-appearance="light"] .arcade-page .frail-btn.on{
 html[data-appearance="light"] .arcade-page .frail-pop{
   background:linear-gradient(155deg,var(--room) 0%,var(--room2) 100%);
   box-shadow:0 14px 36px rgba(28,30,42,.16),inset 0 1px 0 rgba(255,255,255,.4);}
-.arcade-page .frail-pop::before{content:'';position:absolute;inset:0 0 auto 0;height:3px;
+.arcade-page .frail-pop::before{content:'';position:absolute;inset:0 0 auto 0;height:2px;
   background:linear-gradient(90deg,var(--p1),var(--candle),var(--p2));opacity:.9;}
-.arcade-page .frail-pop::after{content:'';position:absolute;right:100%;top:50%;
-  transform:translateY(-50%);border:8px solid transparent;border-right-color:var(--room);
-  filter:drop-shadow(-1px 0 0 var(--line));}
+.arcade-page .frail-pop::after{content:'';position:absolute;left:50%;top:100%;right:auto;
+  transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--room);
+  filter:drop-shadow(0 1px 0 color-mix(in srgb, var(--candle) 25%, var(--line)));}
 .arcade-page .frail-pop.accent-p1::before{background:linear-gradient(90deg,var(--p1s),var(--p1));}
 .arcade-page .frail-pop.accent-p2::before{background:linear-gradient(90deg,var(--p2s),var(--p2));}
 .arcade-page .frail-pop.accent-candle::before{background:linear-gradient(90deg,var(--candles),var(--candle));}
@@ -765,8 +947,8 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .frail-pop-title{font-family:'Fraunces',serif;font-size:15px;font-weight:900;
   color:var(--text);margin:2px 0 5px;letter-spacing:.01em;}
 .arcade-page .frail-pop-desc{font-size:12px;line-height:1.5;color:var(--dim);}
-@keyframes frail-in{from{opacity:0;transform:translateY(-50%) translateX(-8px);}
-  to{opacity:1;transform:translateY(-50%) translateX(0);}}
+@keyframes frail-in{from{opacity:0;transform:translateX(-50%) translateY(8px);}
+  to{opacity:1;transform:translateX(-50%) translateY(0);}}
 
 .arcade-page .place-back{width:100%;margin-bottom:4px;}
 
@@ -774,20 +956,13 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page #sect-favorites,.arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
 .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena,.arcade-page #sect-activity{scroll-margin-top:108px;}
 @media (max-width: 768px){
-  .arcade-page .frail{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);
-    flex-direction:row;gap:2px;max-width:calc(100vw - 16px);overflow-x:auto;padding:7px;}
-  .arcade-page .frail-btn{width:38px;height:38px;flex:none;}
-  .arcade-page .frail-pop{left:50%;bottom:calc(100% + 12px);top:auto;
-    transform:translateX(-50%);max-width:min(268px,calc(100vw - 32px));}
-  .arcade-page .frail-pop::after{right:auto;left:50%;top:100%;transform:translateX(-50%);
-    border-right-color:transparent;border-top-color:var(--room);
-    filter:drop-shadow(0 1px 0 var(--line));}
-  @keyframes frail-in{from{opacity:0;transform:translateX(-50%) translateY(8px);}
-    to{opacity:1;transform:translateX(-50%) translateY(0);}}
+  .arcade-page .frail{padding:7px 8px calc(7px + env(safe-area-inset-bottom, 0px));}
+  .arcade-page .frail-btn{width:40px;height:40px;}
   .arcade-page #sect-together,.arcade-page #sect-tonight,.arcade-page #sect-play,
   .arcade-page #sect-favorites,.arcade-page #sect-wall,.arcade-page #sect-list,.arcade-page #sect-week,.arcade-page #sect-snap,
   .arcade-page #sect-watch,.arcade-page #sect-pass,.arcade-page #arena,.arcade-page #sect-activity{scroll-margin-top:100px;}
-  .arcade-page{padding-bottom:76px;}
+  .arcade-page{padding-bottom:calc(68px + env(safe-area-inset-bottom, 0px));}
+  .arcade-page .gv-screen{padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px));}
 }
 .arcade-page .gv-players{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin-bottom:14px;font-size:13px;}
 .arcade-page .gv-board{width:100%;}

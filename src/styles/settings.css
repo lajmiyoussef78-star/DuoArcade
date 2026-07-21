@@ -9,19 +9,21 @@
 .set-gear {
   width: 36px; height: 36px;
   border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--room2);
-  color: var(--dim);
+  border: 1px solid color-mix(in srgb, var(--candle) 35%, var(--line));
+  background: color-mix(in srgb, var(--candle) 8%, var(--room2));
+  color: var(--candle);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   padding: 0; margin: 0;
-  transition: color .15s, border-color .15s, background .15s;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--candle) 16%, transparent);
+  transition: color .15s, border-color .15s, background .15s, box-shadow .15s;
 }
 .set-gear:hover,
 .set-gear.on {
   color: var(--candle);
-  border-color: color-mix(in srgb, var(--candle) 45%, var(--line));
-  background: var(--room);
+  border-color: var(--candle);
+  background: color-mix(in srgb, var(--candle) 14%, var(--room));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--candle) 28%, transparent);
 }
 
 .set-overlay {
@@ -39,6 +41,7 @@
 }
 
 .set-modal {
+  position: relative;
   width: min(560px, 100%);
   max-height: min(88vh, 720px);
   display: flex;
@@ -46,12 +49,33 @@
   background:
     radial-gradient(ellipse 80% 50% at 0% 0%, color-mix(in srgb, var(--p1) 16%, transparent), transparent 55%),
     radial-gradient(ellipse 70% 45% at 100% 0%, color-mix(in srgb, var(--p2) 14%, transparent), transparent 50%),
-    var(--room);
-  border: 1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--p1) 10%, var(--room)),
+      var(--room) 50%,
+      color-mix(in srgb, var(--p2) 10%, var(--room)));
+  border: 1px solid color-mix(in srgb, var(--candle) 32%, var(--line));
   border-radius: 22px;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .04);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, .45),
+    0 0 48px color-mix(in srgb, var(--candle) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--candle) 14%, transparent);
   overflow: hidden;
   animation: set-rise .22s ease;
+}
+.set-modal::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--p1) 18%,
+    var(--candle) 50%,
+    var(--p2) 82%,
+    transparent 100%);
+  opacity: .95;
 }
 
 @keyframes set-fade {
@@ -72,7 +96,8 @@
   justify-content: space-between;
   gap: 16px;
   padding: 22px 22px 16px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid color-mix(in srgb, var(--candle) 18%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--candle) 6%, transparent), transparent);
 }
 .set-modal-kicker {
   font-size: 10px;
@@ -81,6 +106,7 @@
   text-transform: uppercase;
   color: var(--candle);
   margin-bottom: 4px;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--candle) 40%, transparent);
 }
 .set-modal-head h2 {
   font-family: 'Fraunces', serif;
@@ -89,6 +115,7 @@
   margin: 0;
   color: var(--text);
   line-height: 1.1;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--candle) 16%, transparent);
 }
 
 .set-close {
@@ -348,23 +375,145 @@
 .set-block-account .set-signout {
   margin-top: 14px;
   width: 100%;
-  border: 1px solid color-mix(in srgb, var(--p2) 40%, var(--line));
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--p2) 8%, transparent);
-  color: var(--p2);
+  background: var(--room2);
+  color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 600;
   padding: 12px 16px;
   cursor: pointer;
-  transition: background .15s, border-color .15s, transform .12s;
+  transition: background .15s, border-color .15s, color .15s, transform .12s;
 }
 .set-block-account .set-signout:hover {
-  background: color-mix(in srgb, var(--p2) 16%, transparent);
-  border-color: var(--p2);
+  background: var(--room);
+  border-color: color-mix(in srgb, var(--candle) 40%, var(--line));
+  color: var(--candle);
 }
 .set-block-account .set-signout:active { transform: scale(.98); }
 
+/* Danger sits above Account; quiet rose, not theme magenta */
+.set-block-danger {
+  --set-danger: #C45C6A;
+  --set-danger-soft: color-mix(in srgb, #C45C6A 14%, var(--room2));
+  margin-top: 8px;
+  padding: 16px 16px 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--set-danger) 28%, var(--line));
+  background: linear-gradient(165deg, var(--set-danger-soft), transparent 70%);
+}
+.set-block-danger .set-block-head h3 {
+  color: var(--set-danger);
+  font-size: 15px;
+  letter-spacing: .01em;
+}
+.set-block-danger .set-block-head p {
+  color: var(--dim);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.set-block-account {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.set-danger-btn {
+  margin-top: 12px;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--set-danger) 55%, var(--line));
+  border-radius: 11px;
+  background: transparent;
+  color: var(--set-danger);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, transform .12s;
+}
+.set-danger-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--set-danger) 12%, transparent);
+  border-color: var(--set-danger);
+}
+.set-danger-btn:disabled { opacity: .4; cursor: default; }
+.set-danger-btn:active:not(:disabled) { transform: scale(.98); }
+.set-danger-btn-solid {
+  background: var(--set-danger);
+  border-color: var(--set-danger);
+  color: #fff;
+}
+.set-danger-btn-solid:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--set-danger) 88%, #000);
+  border-color: color-mix(in srgb, var(--set-danger) 88%, #000);
+  color: #fff;
+}
+.set-danger-confirm {
+  margin-top: 12px;
+  border: 1px solid color-mix(in srgb, var(--set-danger) 30%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--night) 35%, var(--room));
+  padding: 14px;
+}
+.set-danger-confirm p {
+  font-size: 13px;
+  color: var(--dim);
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+.set-danger-confirm label {
+  display: block;
+  font-size: 12px;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.set-danger-confirm label b {
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .06em;
+}
+.set-danger-confirm input {
+  width: 100%;
+  font: inherit;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--room2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.set-danger-confirm input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--set-danger) 50%, var(--line));
+}
+.set-danger-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.set-danger-row .set-danger-btn { width: auto; flex: 1.2; min-width: 120px; margin-top: 0; }
+.set-danger-cancel {
+  flex: 1;
+  min-width: 96px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--room2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.set-danger-cancel:hover {
+  color: var(--candle);
+  border-color: color-mix(in srgb, var(--candle) 40%, var(--line));
+}
 html[data-appearance="light"] .set-overlay {
   background: rgba(232, 235, 243, .72);
 }

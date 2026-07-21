@@ -209,6 +209,10 @@
   max-width: 560px;
   margin: 0 auto;
 }
+.arcade-page .chal-history-compact {
+  max-width: none;
+  margin: 0;
+}
 .arcade-page .chal-history-hero {
   margin-bottom: 22px;
 }

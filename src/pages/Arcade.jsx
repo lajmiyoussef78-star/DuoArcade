@@ -864,9 +864,12 @@ export default function Arcade() {
     screen = (
       <LobbyScreen
         myDuos={myDuos} lobbyStatus={lobbyStatus}
+        myRole={ctx.myRole || (myDuos[0] && syncRef.current?.auth.user()?.id
+          ? (myDuos[0].memberA === syncRef.current.auth.user().id ? 'A'
+            : myDuos[0].memberB === syncRef.current.auth.user().id ? 'B' : null)
+          : null)}
         onOpenDuo={openByAccount}
         onCreateDuo={createDuo} onJoinInvite={joinFromInviteString}
-        onDeleteDuo={deleteDuo}
         onToggleVisibility={toggleVisibility}
       />
     );
@@ -878,30 +881,34 @@ export default function Arcade() {
 
   return (
     <div className="arcade-page">
-      <div className="topbar">
-        <Link className="brand h1" to="/app"><span className="a">Duo</span><span className="b">Arcade</span></Link>
-        <div className="topbar-right">
-          <div className="who">
-            <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
-            <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
-              onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <Link className="brand h1" to="/app"><span className="a">Duo</span><span className="b">Arcade</span></Link>
+          <div className="topbar-right">
+            <div className="who">
+              <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
+              <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
+                onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
+            </div>
+            <SettingsMenu
+              onSignOut={signOut}
+              canSetTheme={!!(ctx.duo || myDuos[0])}
+              theme={(ctx.duo || myDuos[0])?.theme || 'night'}
+              onSetTheme={setTheme}
+              nameA={(ctx.duo || myDuos[0])?.nameA || 'Partner one'}
+              nameB={(ctx.duo || myDuos[0])?.nameB || 'Partner two'}
+              code={ctx.code || myDuos[0]?.code || null}
+              myRole={ctx.myRole || (myDuos[0] && syncRef.current?.auth.user()?.id
+                ? (myDuos[0].memberA === syncRef.current.auth.user().id ? 'A'
+                  : myDuos[0].memberB === syncRef.current.auth.user().id ? 'B' : null)
+                : null)}
+              onAvatarChange={() => setAvatarTick(t => t + 1)}
+              duo={ctx.duo || myDuos[0] || null}
+              onDeleteDuo={deleteDuo}
+            />
           </div>
-          <SettingsMenu
-            onSignOut={signOut}
-            canSetTheme={!!(ctx.duo || myDuos[0])}
-            theme={(ctx.duo || myDuos[0])?.theme || 'night'}
-            onSetTheme={setTheme}
-            nameA={(ctx.duo || myDuos[0])?.nameA || 'Partner one'}
-            nameB={(ctx.duo || myDuos[0])?.nameB || 'Partner two'}
-            code={ctx.code || myDuos[0]?.code || null}
-            myRole={ctx.myRole || (myDuos[0] && syncRef.current?.auth.user()?.id
-              ? (myDuos[0].memberA === syncRef.current.auth.user().id ? 'A'
-                : myDuos[0].memberB === syncRef.current.auth.user().id ? 'B' : null)
-              : null)}
-            onAvatarChange={() => setAvatarTick(t => t + 1)}
-          />
         </div>
-      </div>
+      </header>
 
 
       {screen}
