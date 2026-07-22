@@ -6,7 +6,7 @@ import '../styles/challenges.css';
 
 function DuelMark() {
   return (
-    <svg className="chal-entry-mark" viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+    <svg className="chal-entry-mark" viewBox="0 0 48 48" width="36" height="36" aria-hidden="true">
       <circle className="chal-entry-mark-bg" cx="24" cy="24" r="22" />
       <path
         className="chal-entry-mark-stroke"

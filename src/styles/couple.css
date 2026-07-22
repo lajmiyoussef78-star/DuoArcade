@@ -149,40 +149,36 @@
    ============================================================ */
 
 .ch-hero{position:relative;width:100%;margin-top:14px;border-radius:16px;padding:18px 20px;overflow:hidden;
-  border:1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
-  background:linear-gradient(120deg,
-    color-mix(in srgb, var(--p1) 14%, var(--room)),
-    var(--room) 46%,
-    color-mix(in srgb, var(--p2) 16%, var(--room)));
+  border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  background:
+    radial-gradient(90% 80% at 88% 72%, color-mix(in srgb, var(--candle) 10%, transparent), transparent 58%),
+    radial-gradient(ellipse 50% 70% at -6% 108%, color-mix(in srgb, var(--p1) 11%, transparent), transparent 62%),
+    radial-gradient(ellipse 50% 70% at 108% 108%, color-mix(in srgb, var(--p2) 11%, transparent), transparent 62%),
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--room) 90%, var(--night)),
+      color-mix(in srgb, var(--night) 90%, var(--p1)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent),
+    0 16px 36px rgba(0,0,0,.3);
   display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
 .ch-stars{position:absolute;inset:0;pointer-events:none;}
 .ch-stars .st{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--text);opacity:.18;}
+.ch-hero .ch-stars{opacity:.35;}
 
-/* world map backdrop — proportional halftone world with partner pins */
-.ch-map{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-.ch-map .cm-dot{fill:color-mix(in srgb, var(--text) 26%, transparent);}
-.ch-map .cm-dot-a{fill:var(--p1);opacity:.8;}
-.ch-map .cm-dot-b{fill:var(--p2);opacity:.8;}
-.ch-map .cm-arc{
-  fill:none;stroke:var(--candle);stroke-linecap:round;
-  opacity:.8;filter:drop-shadow(0 0 3px color-mix(in srgb, var(--candle) 60%, transparent));}
-.ch-map .cm-heart{
-  fill:var(--candle);
-  filter:drop-shadow(0 0 4px color-mix(in srgb, var(--candle) 75%, transparent));}
-.ch-map .cm-pin .cm-halo{opacity:.28;}
-.ch-map .cm-pin .cm-ring{fill:none;}
-.ch-map .cm-pin-a .cm-halo,.ch-map .cm-pin-a .cm-core{fill:var(--p1);}
-.ch-map .cm-pin-a .cm-ring{stroke:var(--p1);}
-.ch-map .cm-pin-b .cm-halo,.ch-map .cm-pin-b .cm-core{fill:var(--p2);}
-.ch-map .cm-pin-b .cm-ring{stroke:var(--p2);}
-.ch-map .cm-pin .cm-core{filter:drop-shadow(0 0 2.5px currentColor);}
-@keyframes cm-pin-pulse{
-  0%,100%{opacity:.14;transform:scale(1);}
-  50%{opacity:.4;transform:scale(1.5);}
+/* eternal-love mark — large, soft, behind the timer */
+.ch-love{
+  position:absolute;inset:auto -2% -18% auto;
+  width:min(52%,280px);height:auto;aspect-ratio:120 / 110;
+  pointer-events:none;opacity:.13;
+  transform:rotate(-8deg);
+  filter:drop-shadow(0 0 18px color-mix(in srgb, var(--candle) 35%, transparent));
 }
-html[data-appearance="light"] .ch-map .cm-dot{fill:color-mix(in srgb, var(--dim) 34%, transparent);}
-html[data-appearance="light"] .ch-map .cm-dot-a{fill:var(--p1);opacity:.7;}
-html[data-appearance="light"] .ch-map .cm-dot-b{fill:var(--p2);opacity:.7;}
+.ch-love-heart{opacity:.55;}
+.ch-love-inf{opacity:.95;}
+html[data-appearance="light"] .ch-love{opacity:.1;}
+@media (max-width:700px){
+  .ch-love{width:min(58%,220px);opacity:.11;inset:auto -4% -22% auto;}
+}
 
 .ch-avs{display:flex;align-items:center;gap:6px;position:relative;}
 .ch-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -334,8 +330,6 @@ html[data-appearance="light"] .ch-map .cm-dot-b{fill:var(--p2);opacity:.7;}
   /* E */
   .ch-beat .run{animation:ch-beat-run 2.4s linear infinite;}
   .ch-stars .st{animation:cfx-twinkle 4s ease-in-out infinite;}
-  .ch-map .cm-halo{animation:cm-pin-pulse 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center;}
-  .ch-map .cm-pin-b .cm-halo{animation-delay:1.3s;}
   .arcade-page .todo-card::before,
   .arcade-page .snc::before,
   .arcade-page .wbc::before,

@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { getMyXp, levelFromXp, titleForLevel } from '../lib/xp.js';
 import '../styles/xp.css';
 
+/** Remember last XP per duo so remounts (if any) don't flash from 0. */
+const xpCache = new Map();
+
 function fmtXp(n) {
   return Math.max(0, Math.floor(Number(n) || 0)).toLocaleString('en-US');
 }
@@ -50,16 +53,22 @@ export function XpTitlePill({ code }) {
 }
 
 export default function XpBar({ code }) {
-  const [total, setTotal] = useState(0);
-  const [ready, setReady] = useState(false);
+  const [total, setTotal] = useState(() => xpCache.get(code) || 0);
+  const [ready, setReady] = useState(() => xpCache.has(code));
 
   useEffect(() => {
     if (!code) return undefined;
     let alive = true;
+    if (xpCache.has(code)) {
+      setTotal(xpCache.get(code));
+      setReady(true);
+    }
     getMyXp(code)
       .then(data => {
         if (!alive) return;
-        setTotal(data?.total_xp || 0);
+        const next = data?.total_xp || 0;
+        xpCache.set(code, next);
+        setTotal(next);
         setReady(true);
       })
       .catch(() => {

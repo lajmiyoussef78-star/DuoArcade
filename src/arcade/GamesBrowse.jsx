@@ -185,7 +185,7 @@ export default function GamesBrowse({ duo, code, onStartGame, onSetFavoriteGames
       ) : (
         <div
           className={'shelf shelf-browse' + (favFilter ? ' shelf-favs' : '')}
-          key={`${filter}|${sort}|${query}`}
+          key={`${filter}|${sort}`}
         >
           {list.map(eng => (
             <div className="gcard-anim" key={eng.meta.id}>

@@ -62,7 +62,7 @@ export default function LobbyScreen({
   const [inviteStr, setInviteStr] = useState('');
   const [joining, setJoining] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [histTab, setHistTab] = useState('games'); // game | challenge
+  const [histTab, setHistTab] = useState('game'); // game | challenge
   const duo = myDuos[0] || null;
   const [vis, setVis] = useState(() => (duo ? loadVis(duo.code) : { ...DEFAULT_VIS }));
 
@@ -306,9 +306,9 @@ export default function LobbyScreen({
               <button
                 type="button"
                 role="tab"
-                aria-selected={histTab === 'games'}
-                className={'profile-hist-tab' + (histTab === 'games' ? ' on' : '')}
-                onClick={() => setHistTab('games')}
+                aria-selected={histTab === 'game'}
+                className={'profile-hist-tab' + (histTab === 'game' ? ' on' : '')}
+                onClick={() => setHistTab('game')}
               >
                 Game history
               </button>
@@ -325,9 +325,10 @@ export default function LobbyScreen({
 
             {histTab === 'game' ? (
               rows.length === 0 ? (
-                <p className="lobby-lead">Open the arcade and play — every result lands here.</p>
+                <p className="lobby-lead">No games played yet — open the arcade and your head-to-head records will land here.</p>
               ) : (
                 <div className="profile-rec-list">
+                  <p className="profile-rec-lead">Career records — wins for each game you&apos;ve played together.</p>
                   {rows.map(r => (
                     <div className="profile-rec" key={r.id}>
                       <div className="profile-rec-name">{r.name}</div>

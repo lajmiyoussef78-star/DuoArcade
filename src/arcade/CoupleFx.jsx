@@ -2,7 +2,7 @@
 // the "together" hero (duration + anniversary ring), and confetti bursts.
 // All colors come from the theme CSS variables so duo themes restyle them.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { other } from '../lib/util.js';
 import { formatDistance, haversineKm } from '../lib/location.js';
 
@@ -114,127 +114,47 @@ function formatLongDate(when) {
 
 const annivKey = code => 'duoarcade-anniv-' + code;
 
-/* ---------- approximate low-poly world map (equirectangular) ----------
-   Vertices are [lat, lng]; x = lng + 180, y = 90 - lat (viewBox 360x150,
-   Antarctica cropped). Pins use the same projection so they always line up. */
-const CM_LAND = [
-  // North America
-  [[71, -156], [70, -125], [73, -95], [66, -82], [62, -64], [47, -52], [44, -66], [35, -75], [25, -80], [29, -90], [18, -96], [15, -92], [8, -77], [16, -100], [23, -110], [32, -117], [46, -124], [59, -140], [64, -166]],
-  // Greenland
-  [[83, -35], [70, -22], [60, -43], [75, -58], [80, -60]],
-  // South America
-  [[8, -77], [12, -72], [10, -61], [0, -50], [-8, -35], [-23, -42], [-35, -57], [-51, -69], [-55, -68], [-42, -73], [-18, -70], [-5, -81]],
-  // Africa
-  [[35, -6], [37, 10], [31, 32], [15, 39], [11, 51], [-2, 41], [-16, 40], [-26, 33], [-34, 20], [-23, 14], [-6, 12], [4, -8], [12, -16], [21, -17], [28, -12]],
-  // Eurasia
-  [[36, -9], [43, -9], [48, -5], [51, 2], [56, 8], [71, 26], [73, 70], [77, 105], [71, 140], [66, 178], [60, 162], [52, 143], [43, 132], [37, 122], [30, 121], [21, 108], [8, 105], [13, 100], [1, 103], [14, 98], [21, 89], [8, 77], [19, 72], [25, 62], [13, 45], [29, 33], [36, 28], [40, 26], [36, 22], [43, 7], [36, -5]],
-  // British Isles
-  [[59, -4], [53, 1], [50, -5], [54, -8]],
-  // Japan
-  [[45, 142], [36, 140], [31, 131], [40, 139]],
-  // Sumatra / Borneo / New Guinea
-  [[5, 95], [-6, 106], [0, 101]],
-  [[6, 114], [-3, 116], [0, 109]],
-  [[-2, 131], [-9, 147], [-6, 135]],
-  // Australia
-  [[-11, 132], [-12, 142], [-19, 148], [-28, 154], [-38, 150], [-38, 141], [-34, 116], [-22, 114], [-14, 126]],
-  // Madagascar
-  [[-12, 49], [-25, 47], [-20, 44]],
-  // New Zealand
-  [[-36, 174], [-46, 168], [-41, 172]],
-];
-
-const cmX = lng => lng + 180;
-const cmY = lat => 90 - lat;
-
-/* Land mask in equirectangular space (x = lng+180, y = 90-lat) */
-const CM_POLYS = CM_LAND.map(poly => poly.map(([lat, lng]) => [cmX(lng), cmY(lat)]));
-function cmOnLand(x, yE) {
-  return CM_POLYS.some(pts => {
-    let c = false;
-    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-      const [xi, yi] = pts[i], [xj, yj] = pts[j];
-      if ((yi > yE) !== (yj > yE) && x < ((xj - xi) * (yE - yi)) / (yj - yi) + xi) c = !c;
-    }
-    return c;
-  });
-}
-
-const CM_NEAR = 8; /* dots this close to a pin take that partner's color */
-const CM_LAT_TOP = 85, CM_LAT_BOT = -57; /* Antarctica trimmed */
-
-function ChWorldMap({ a, b }) {
-  /* The map height follows the hero's real shape, so the whole world
-     (Cape Town, Patagonia, Australia included) always fits — and the
-     dot grid is generated in final coordinates, keeping dots round. */
-  const [H, setH] = useState(96);
-  const svgRef = useRef(null);
-  useEffect(() => {
-    const el = svgRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(entries => {
-      const r = entries[0]?.contentRect;
-      if (r?.width > 0 && r?.height > 0) {
-        setH(Math.max(48, Math.round((360 * r.height / r.width) / 4) * 4));
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const py = lat => ((CM_LAT_TOP - lat) / (CM_LAT_TOP - CM_LAT_BOT)) * H;
-  const A = a?.lat != null && a?.lng != null ? { x: cmX(a.lng), y: py(a.lat) } : null;
-  const B = b?.lat != null && b?.lng != null ? { x: cmX(b.lng), y: py(b.lat) } : null;
-
-  const dots = useMemo(() => {
-    const out = [];
-    for (let y = 1.6; y < H; y += 3.2) {
-      const lat = CM_LAT_TOP - (y / H) * (CM_LAT_TOP - CM_LAT_BOT);
-      const yE = 90 - lat;
-      for (let x = 2; x <= 358; x += 3.2) {
-        if (cmOnLand(x, yE)) out.push([x, y]);
-      }
-    }
-    return out;
-  }, [H]);
-
-  let arc = null, heart = null;
-  if (A && B) {
-    const lift = Math.max(6, Math.hypot(B.x - A.x, B.y - A.y) * 0.24);
-    const C = { x: (A.x + B.x) / 2, y: Math.min(A.y, B.y) - lift };
-    arc = `M ${A.x} ${A.y} Q ${C.x} ${C.y} ${B.x} ${B.y}`;
-    heart = { x: (A.x + 2 * C.x + B.x) / 4, y: (A.y + 2 * C.y + B.y) / 4 };
-  }
-
-  const dotClass = (x, y) => {
-    const dA = A ? Math.hypot(x - A.x, y - A.y) : Infinity;
-    const dB = B ? Math.hypot(x - B.x, y - B.y) : Infinity;
-    if (Math.min(dA, dB) > CM_NEAR) return 'cm-dot';
-    return dA <= dB ? 'cm-dot cm-dot-a' : 'cm-dot cm-dot-b';
-  };
-
-  const pin = (P, cls) => (
-    <g className={'cm-pin ' + cls}>
-      <circle className="cm-halo" cx={P.x} cy={P.y} r="4.2" />
-      <circle className="cm-ring" cx={P.x} cy={P.y} r="2.9" strokeWidth="0.7" />
-      <circle className="cm-core" cx={P.x} cy={P.y} r="1.4" />
-    </g>
-  );
-
+/* Soft eternal-love mark (heart + infinity) for the Together hero backdrop */
+function ChLoveMark() {
   return (
-    <svg ref={svgRef} className="ch-map" viewBox={`0 0 360 ${H}`}
-      preserveAspectRatio="none" aria-hidden="true">
-      {dots.map(([x, y], i) => (
-        <circle key={i} className={dotClass(x, y)} cx={x} cy={y} r="0.85" />
-      ))}
-      {arc && <path className="cm-arc" d={arc} strokeWidth="0.9" strokeDasharray="2.5 2.5" />}
-      {heart && (
-        <g className="cm-heart" transform={`translate(${heart.x} ${heart.y - 2.4}) scale(0.42)`}>
-          <path d="M0 3.4 C-3.4 0.4 -4.6 -2 -2.9 -3.7 C-1.5 -5 0 -3.9 0 -2.4 C0 -3.9 1.5 -5 2.9 -3.7 C4.6 -2 3.4 0.4 0 3.4 Z" />
-        </g>
-      )}
-      {A && pin(A, 'cm-pin-a')}
-      {B && pin(B, 'cm-pin-b')}
+    <svg className="ch-love" viewBox="0 0 120 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="ch-love-grad" x1="0%" y1="8%" x2="100%" y2="92%">
+          <stop offset="0%" stopColor="var(--p1)" />
+          <stop offset="50%" stopColor="var(--candle)" />
+          <stop offset="100%" stopColor="var(--p2)" />
+        </linearGradient>
+      </defs>
+      {/* soft heart body */}
+      <path
+        className="ch-love-heart"
+        fill="url(#ch-love-grad)"
+        d="M60 102
+           C38 82 14 64 10 46
+           C6 28 18 14 36 14
+           C48 14 56 22 60 32
+           C64 22 72 14 84 14
+           C102 14 114 28 110 46
+           C106 64 82 82 60 102 Z"
+      />
+      {/* infinity woven across the upper lobes */}
+      <path
+        className="ch-love-inf"
+        fill="none"
+        stroke="url(#ch-love-grad)"
+        strokeWidth="5.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M22 40
+           C22 26 34 20 46 28
+           C54 34 58 42 60 48
+           C62 42 66 34 74 28
+           C86 20 98 26 98 40
+           C98 52 86 58 74 52
+           C66 48 62 42 60 36
+           C58 42 54 48 46 52
+           C34 58 22 52 22 40 Z"
+      />
     </svg>
   );
 }
@@ -303,7 +223,7 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus, onSetAnni
 
   return (
     <div className="ch-hero">
-      <ChWorldMap a={presence?.A} b={presence?.B} />
+      <ChLoveMark />
       <div className="ch-stars">
         {stars.map(s => (
           <span key={s.id} className="st"

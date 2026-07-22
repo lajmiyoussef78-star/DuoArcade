@@ -17,6 +17,7 @@ import LobbyScreen from '../arcade/LobbyScreen.jsx';
 import PublicProfileScreen from '../arcade/PublicProfileScreen.jsx';
 import HomeScreen from '../arcade/HomeScreen.jsx';
 import PlaceScreen from '../arcade/PlaceScreen.jsx';
+import DuoHomeLayout from '../arcade/DuoHomeLayout.jsx';
 import GameScreen from '../arcade/GameScreen.jsx';
 import WatchScreen from '../arcade/WatchScreen.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
@@ -850,8 +851,10 @@ export default function Arcade() {
       };
       inner = (
         <Routes>
-          <Route index element={<HomeScreen {...placeProps} />} />
-          <Route path="place/:featureId" element={<PlaceScreen {...placeProps} />} />
+          <Route element={<DuoHomeLayout {...placeProps} />}>
+            <Route index element={<HomeScreen {...placeProps} />} />
+            <Route path="place/:featureId" element={<PlaceScreen {...placeProps} />} />
+          </Route>
         </Routes>
       );
     }

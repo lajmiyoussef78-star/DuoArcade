@@ -7,7 +7,21 @@
   var(--night);
   color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;
   min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:0 0 24px;
-  --arcade-topbar-h: 58px;}
+  --arcade-topbar-h: 58px;
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb, var(--dim) 55%, transparent) transparent;}
+.arcade-page::-webkit-scrollbar{width:10px;height:10px;}
+.arcade-page::-webkit-scrollbar-track{background:transparent;}
+.arcade-page::-webkit-scrollbar-thumb{
+  background:color-mix(in srgb, var(--dim) 45%, transparent);
+  border-radius:999px;
+  border:3px solid transparent;
+  background-clip:padding-box;}
+.arcade-page::-webkit-scrollbar-thumb:hover{
+  background:color-mix(in srgb, var(--candle) 55%, var(--dim));
+  border:3px solid transparent;
+  background-clip:padding-box;}
+.arcade-page::-webkit-scrollbar-button{display:none;width:0;height:0;}
 html[data-appearance="light"] .arcade-page{
   background:
     radial-gradient(ellipse 90% 55% at 8% -8%, color-mix(in srgb, var(--p1) 14%, transparent), transparent 58%),
@@ -171,6 +185,40 @@ html[data-appearance="light"] .arcade-page .topbar{
   flex:none;
 }
 .arcade-page .duo-head-top .btn{flex:none;margin-left:0;}
+.arcade-page .duo-profile-btn{
+  flex:none;display:inline-flex;align-items:center;gap:7px;
+  margin-left:auto;padding:8px 14px 8px 12px;border-radius:999px;cursor:pointer;
+  font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.02em;
+  color:var(--candle);
+  border:1px solid color-mix(in srgb, var(--candle) 42%, var(--line));
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--candle) 16%, var(--room2)),
+      color-mix(in srgb, var(--room) 88%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--candle) 18%, transparent),
+    0 4px 14px rgba(0,0,0,.18);
+  transition:color .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .12s ease;
+}
+.arcade-page .duo-profile-btn-ico{display:block;flex:none;opacity:.92;}
+.arcade-page .duo-profile-btn:hover{
+  color:#2a1e05;
+  border-color:var(--candle);
+  background:var(--candle);
+  box-shadow:0 6px 18px color-mix(in srgb, var(--candle) 28%, transparent);
+  transform:translateY(-1px);
+}
+.arcade-page .duo-profile-btn:active{transform:translateY(0) scale(.97);}
+html[data-appearance="light"] .arcade-page .duo-profile-btn{
+  color:#8a5a10;
+  background:linear-gradient(145deg,
+    color-mix(in srgb, var(--candle) 18%, var(--room)),
+    var(--room));
+  box-shadow:0 2px 8px rgba(28,30,42,.08);
+}
+html[data-appearance="light"] .arcade-page .duo-profile-btn:hover{
+  color:#1a1408;background:var(--candle);
+}
 .arcade-page .streak-pill{
   background:color-mix(in srgb, var(--candle) 12%, var(--room2));
   border:1px solid var(--candle);color:var(--candle);
@@ -287,8 +335,8 @@ html[data-appearance="light"] .arcade-page .gtag{color:#454D61;}
 .arcade-page .games-browse{width:100%;margin-top:8px;}
 .arcade-page .games-filter-bar{
   position:sticky;top:56px;z-index:55;width:100%;margin:10px 0 4px;padding:10px 0 12px;
-  background:linear-gradient(180deg, color-mix(in srgb, var(--room) 96%, transparent) 70%, transparent);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  background:transparent;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
 }
 .arcade-page .games-filter-top{display:flex;align-items:stretch;gap:8px;width:100%;}
 .arcade-page .games-chips{
@@ -329,7 +377,23 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
 .arcade-page .games-search input,
 .arcade-page .games-sort select{
   width:100%;font:inherit;font-size:13px;color:var(--text);
-  background:var(--room2);border:1px solid var(--line);border-radius:10px;padding:8px 11px;
+  background:color-mix(in srgb, var(--room2) 80%, transparent);
+  border:1px solid color-mix(in srgb, var(--candle) 14%, var(--line));
+  border-radius:999px;padding:9px 14px;outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.arcade-page .games-search input:hover,
+.arcade-page .games-sort select:hover{
+  border-color:color-mix(in srgb, var(--candle) 40%, var(--line));}
+.arcade-page .games-search input:focus,
+.arcade-page .games-sort select:focus{
+  border-color:var(--candle);background:var(--room2);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--candle) 18%, transparent);}
+.arcade-page .games-search input::placeholder{color:var(--dim);}
+.arcade-page .games-sort select{
+  appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:32px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A99FBC' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
 }
 .arcade-page .games-sort{flex:none;width:148px;}
 .arcade-page .games-roulette{
@@ -412,8 +476,145 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
   .arcade-page .games-smart-item{flex-basis:154px;}
 }
 
+/* ---------- home quick-nav (between the map hero and the games) ---------- */
+.arcade-page .home-nav{
+  display:flex;align-items:center;gap:8px;width:100%;margin-top:22px;
+  padding:8px;border-radius:14px;overflow-x:auto;
+  scrollbar-width:none;-ms-overflow-style:none;
+  border:1px solid color-mix(in srgb, var(--candle) 26%, var(--line));
+  background:linear-gradient(120deg,
+    color-mix(in srgb, var(--p1) 8%, var(--room2)),
+    var(--room2) 50%,
+    color-mix(in srgb, var(--p2) 8%, var(--room2)));
+  box-shadow:inset 0 1px 0 color-mix(in srgb, var(--candle) 10%, transparent);
+}
+.arcade-page .home-nav::-webkit-scrollbar{display:none;}
+.arcade-page .home-nav-btn{
+  flex:1 0 auto;padding:9px 16px;border-radius:10px;border:1px solid transparent;
+  background:transparent;color:var(--dim);cursor:pointer;
+  font:inherit;font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap;
+  transition:color .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.arcade-page .home-nav-btn:hover{
+  color:var(--candle);
+  background:color-mix(in srgb, var(--candle) 10%, transparent);
+  border-color:color-mix(in srgb, var(--candle) 32%, transparent);
+  box-shadow:0 0 14px color-mix(in srgb, var(--candle) 14%, transparent);
+}
+.arcade-page .home-nav-btn.on{
+  color:var(--candle);
+  background:color-mix(in srgb, var(--candle) 14%, transparent);
+  border-color:color-mix(in srgb, var(--candle) 40%, transparent);
+  box-shadow:0 0 16px color-mix(in srgb, var(--candle) 16%, transparent);
+}
+html[data-appearance="light"] .arcade-page .home-nav{
+  background:linear-gradient(120deg,
+    color-mix(in srgb, var(--p1) 6%, var(--room)),
+    var(--room) 50%,
+    color-mix(in srgb, var(--p2) 6%, var(--room)));
+}
+html[data-appearance="light"] .arcade-page .home-nav-btn{color:#5A6276;}
+html[data-appearance="light"] .arcade-page .home-nav-btn:hover,
+html[data-appearance="light"] .arcade-page .home-nav-btn.on{
+  color:var(--candle);background:color-mix(in srgb, var(--candle) 12%, var(--room));}
+
 /* ---------- wide layout: every feature fills the viewport (desktop) ---------- */
 .arcade-page .shelf.shelf-browse{grid-template-columns:repeat(auto-fill,minmax(158px,1fr));}
+@media (min-width:1000px){
+  .arcade-page .shelf.shelf-browse{grid-template-columns:repeat(5,minmax(0,1fr));}
+}
+/* phones: keep the same layout, scale proportions — never 1 game per row */
+@media (max-width:768px){
+  .arcade-page section.home-wide{
+    max-width:100%;padding:8px 10px 88px; /* room for bottom feature rail */
+  }
+  .arcade-page .home-card{
+    padding:14px 12px 18px;border-radius:16px;
+  }
+  .arcade-page .duo-head{gap:12px;}
+  .arcade-page .duo-head-top{gap:10px;}
+  .arcade-page .duo-title{font-size:16px;}
+  .arcade-page .av{width:38px;height:38px;font-size:15px;}
+  .arcade-page .duo-profile-btn{padding:7px 12px 7px 10px;font-size:12px;}
+  .arcade-page .home-card .home-stats{margin-top:12px;}
+  .arcade-page .home-stats .hstat{padding:10px 6px;}
+  .arcade-page .home-stats .hstat .n{font-size:17px;}
+  .arcade-page .home-nav{
+    margin-top:14px;padding:6px;gap:4px;border-radius:12px;
+  }
+  .arcade-page .home-nav-btn{padding:8px 11px;font-size:12px;}
+  .arcade-page .games-filter-bar{top:52px;padding:8px 0 10px;}
+  .arcade-page .games-filter-tools{gap:6px;}
+  .arcade-page .games-search input,
+  .arcade-page .games-sort select{padding:8px 12px;font-size:12.5px;}
+  .arcade-page .games-sort{width:120px;}
+  /* always 2 game cards across on phones */
+  .arcade-page .shelf,
+  .arcade-page .shelf.shelf-browse{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;margin-top:8px;
+  }
+  .arcade-page .gcard,
+  .arcade-page .gcard-anim{
+    height:108px;min-height:108px;max-height:108px;
+  }
+  .arcade-page .games-smart-item{flex:0 0 148px;height:108px;}
+  .arcade-page .gname{font-size:13px;}
+  .arcade-page .gtag{font-size:10.5px;-webkit-line-clamp:1;}
+  .arcade-page .grec{font-size:11px;}
+}
+@media (min-width:481px) and (max-width:768px){
+  /* slightly roomier phones / small tablets: 3 across */
+  .arcade-page .shelf,
+  .arcade-page .shelf.shelf-browse{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+/* extra air between the home sections */
+.arcade-page .home-card .home-stats{margin-top:20px;}
+.arcade-page .home-card #sect-together .ch-hero{margin-top:20px;}
+.arcade-page .home-card .games-browse{margin-top:14px;}
+.arcade-page .home-card .home-feature-body{margin-top:14px;width:100%;min-width:0;}
+
+/* ---------- home top split: profile+stats left, compact Together right ---------- */
+@media (min-width:1000px){
+  .arcade-page .home-card{
+    display:grid;
+    grid-template-columns:minmax(0,1.1fr) minmax(330px,1fr);
+    column-gap:26px;
+    align-items:stretch;align-content:start;
+    grid-template-areas:
+      "head   hero"
+      "xp     hero"
+      "stats  hero"
+      "nav    nav"
+      "games  games"
+      "feat   feat"
+      "chal   chal"
+      "chist  chist"
+      "invite invite"
+      "status status";
+  }
+  /* Anything unmapped (modals, extras) spans the full card width */
+  .arcade-page .home-card > *{grid-column:1 / -1;}
+  .arcade-page .home-card > .duo-head{grid-area:head;}
+  .arcade-page .home-card > .xp-bar{grid-area:xp;}
+  .arcade-page .home-card > .home-stats{grid-area:stats;align-self:end;}
+  .arcade-page .home-card > #sect-together{grid-area:hero;display:flex;}
+  .arcade-page .home-card > .home-nav{grid-area:nav;}
+  .arcade-page .home-card > .games-browse{grid-area:games;}
+  .arcade-page .home-card > .home-feature-body{grid-area:feat;}
+  .arcade-page .home-card > .chal-entry{grid-area:chal;}
+  .arcade-page .home-card > .chal-history-link{grid-area:chist;}
+  .arcade-page .home-card > .invite-box{grid-area:invite;}
+  .arcade-page .home-card > .status{grid-area:status;}
+  /* compact hero in the right half */
+  .arcade-page .home-card #sect-together .ch-hero{
+    margin-top:0;flex:1;align-content:center;
+    padding:14px 16px;gap:12px;}
+  .arcade-page .home-card #sect-together .ch-count{font-size:19px;}
+  .arcade-page .home-card #sect-together .ch-count .ch-sec{min-width:0;}
+}
 @media (min-width:769px) and (max-width:999px){
   /* mid-size: widen the column while clearing the side rail */
   .arcade-page section{max-width:min(720px,calc(100vw - 170px));}
@@ -652,6 +853,9 @@ html[data-appearance="light"] .arcade-page .games-chip.on{color:#1a1408;}
 .arcade-page .profile-milestones{margin-top:14px;}
 .arcade-page .profile-records{border-top:1px solid var(--line);}
 .arcade-page .profile-rec-list{display:flex;flex-direction:column;gap:8px;}
+.arcade-page .profile-rec-lead{
+  margin:0 0 4px;font-size:12px;color:var(--dim);line-height:1.4;
+}
 .arcade-page .profile-rec{
   display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;
   column-gap:12px;row-gap:2px;align-items:center;
@@ -1229,7 +1433,6 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .home-stats{grid-template-columns:repeat(2,1fr);}
 .arcade-page .plan{grid-template-columns:1fr;}
 .arcade-page .hstat:nth-child(2){border-right:none;}
-.arcade-page .shelf{grid-template-columns:1fr 1fr;}
 }
 
 /* ── Sticks (Nim) ── */
