@@ -9,11 +9,11 @@ import { getDuoAvatars } from '../lib/avatars.js';
 /* Quick section links — same destinations the feature rail uses */
 export const HOME_NAV = [
   { id: 'sect-play', label: 'Games', scroll: true },
+  { id: 'sect-watch', label: 'WatchParty' },
   { id: 'sect-week', label: 'Timetable' },
   { id: 'sect-snap', label: 'DuoSnap' },
   { id: 'sect-list', label: 'TodoList' },
   { id: 'arena', label: '2v2 Arena', route: '/arena' },
-  { id: 'sect-watch', label: 'WatchParty' },
   { id: 'sect-wall', label: 'Whiteboard' },
 ];
 

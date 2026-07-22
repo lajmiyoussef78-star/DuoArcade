@@ -26,6 +26,25 @@ function other(role) {
   return role === 'A' ? 'B' : 'A';
 }
 
+const declinedSeenKey = code => 'duoarcade-chal-declined-seen-' + code;
+
+function loadDeclinedSeen(code) {
+  if (!code) return new Set();
+  try {
+    const raw = JSON.parse(localStorage.getItem(declinedSeenKey(code)) || '[]');
+    return new Set(Array.isArray(raw) ? raw.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDeclinedSeen(code, set) {
+  if (!code) return;
+  try {
+    localStorage.setItem(declinedSeenKey(code), JSON.stringify([...set]));
+  } catch { /* ignore quota */ }
+}
+
 export function ChallengeProvider({ code, myRole, onStartChallengeGame, children }) {
   const [cur, setCur] = useState(null);
   const [names, setNames] = useState({ A: 'A', B: 'B' });
@@ -33,9 +52,30 @@ export function ChallengeProvider({ code, myRole, onStartChallengeGame, children
   const [completeOpen, setCompleteOpen] = useState(null);
   const [declinedOpen, setDeclinedOpen] = useState(null);
   const [cancelling, setCancelling] = useState(false);
-  const shownDeclinedRef = useRef(new Set());
+  const shownDeclinedRef = useRef(loadDeclinedSeen(code));
   const myRoleRef = useRef(myRole);
   myRoleRef.current = myRole;
+
+  useEffect(() => {
+    shownDeclinedRef.current = loadDeclinedSeen(code);
+    setDeclinedOpen(null);
+  }, [code]);
+
+  const markDeclinedSeen = useCallback((id) => {
+    if (id == null || !code) return;
+    const key = String(id);
+    if (shownDeclinedRef.current.has(key)) return;
+    shownDeclinedRef.current.add(key);
+    saveDeclinedSeen(code, shownDeclinedRef.current);
+  }, [code]);
+
+  /* Old declines on page load shouldn't keep popping — only fresh ones. */
+  const isStaleDeclined = (c) => {
+    const t = c?.resolved_at || c?.created_at;
+    if (!t) return false;
+    const age = Date.now() - new Date(t).getTime();
+    return Number.isFinite(age) && age > 30 * 60 * 1000;
+  };
 
   const applyChallenge = useCallback((c, type) => {
     if (!c) return;
@@ -50,8 +90,9 @@ export function ChallengeProvider({ code, myRole, onStartChallengeGame, children
     }
     if (c.status === 'declined' && c.created_by === myRoleRef.current) {
       setCur(null);
-      if (!shownDeclinedRef.current.has(c.id)) {
-        shownDeclinedRef.current.add(c.id);
+      const key = String(c.id);
+      if (!shownDeclinedRef.current.has(key)) {
+        markDeclinedSeen(c.id);
         setDeclinedOpen(c);
       }
       return;
@@ -59,20 +100,26 @@ export function ChallengeProvider({ code, myRole, onStartChallengeGame, children
     if (c.status === 'cancelled' || type === 'cancelled') {
       setCur(null);
     }
-  }, []);
+  }, [markDeclinedSeen]);
 
   const checkDeclined = useCallback(rows => {
     if (!myRoleRef.current) return;
-    const declined = rows.find(c =>
-      c.status === 'declined'
-      && c.created_by === myRoleRef.current
-      && !shownDeclinedRef.current.has(c.id)
-    );
-    if (declined) {
-      shownDeclinedRef.current.add(declined.id);
-      setDeclinedOpen(declined);
+    let toShow = null;
+    for (const c of rows || []) {
+      if (c.status !== 'declined' || c.created_by !== myRoleRef.current) continue;
+      const key = String(c.id);
+      if (shownDeclinedRef.current.has(key)) continue;
+      if (isStaleDeclined(c)) {
+        markDeclinedSeen(c.id);
+        continue;
+      }
+      if (!toShow) toShow = c;
     }
-  }, []);
+    if (toShow) {
+      markDeclinedSeen(toShow.id);
+      setDeclinedOpen(toShow);
+    }
+  }, [markDeclinedSeen]);
 
   const pull = useCallback(async () => {
     if (!code) return;
@@ -267,7 +314,10 @@ export function ChallengeProvider({ code, myRole, onStartChallengeGame, children
         open={!!declinedOpen}
         challenge={declinedOpen}
         partnerName={declinedPartner}
-        onClose={() => setDeclinedOpen(null)}
+        onClose={() => {
+          if (declinedOpen?.id != null) markDeclinedSeen(declinedOpen.id);
+          setDeclinedOpen(null);
+        }}
       />
 
       <ChallengeCompleteModal
