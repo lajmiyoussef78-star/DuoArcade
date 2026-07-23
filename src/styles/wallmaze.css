@@ -1,0 +1,182 @@
+/* src/styles/wallmaze.css — Wallmaze board (arcade theme vars). */
+
+.arcade-page .wallmaze-wrap,
+.wallmaze-wrap { width: 100%; }
+
+.arcade-page .wm-shell,
+.arcade-page .wm-table,
+.arcade-page .wm-game,
+.arcade-page .wm-boardwrap,
+.arcade-page .wm-board,
+.arcade-page .wm-cell,
+.arcade-page .wm-dock,
+.arcade-page .wm-toolbar,
+.arcade-page .wm-controls { box-sizing: border-box; }
+
+.arcade-page .wm-shell { padding: 4px 0 8px; }
+.arcade-page .wm-table { padding: 14px 12px 16px; }
+.arcade-page .wm-boardwrap { padding: calc(var(--wm-gap) + 4px); }
+.arcade-page .wm-cell { padding: 0; }
+.arcade-page .wm-dock { padding: 12px 10px 4px; }
+.arcade-page .wm-status { padding: 20px; }
+.arcade-page .wm-toolbar { padding: 0 0 4px; }
+.arcade-page .wm-dock .btn,
+.arcade-page .wm-controls .btn { padding: 10px 16px; }
+.arcade-page .wm-controls .btn.small { padding: 7px 12px; }
+
+.wm-shell {
+  --wm-cell: 46px;
+  --wm-gap: 9px;
+  width: 100%; max-width: 560px; margin: 0 auto;
+  color: var(--text); font-family: 'Inter', sans-serif;
+  position: relative;
+}
+@media (max-width: 480px) {
+  .wm-shell { --wm-cell: min(11vw, 42px); --wm-gap: 7px; }
+}
+
+.pA { color: var(--p1); } .pB { color: var(--p2); }
+
+.wm-table {
+  position: relative;
+  border-radius: 28px;
+  padding: 14px 12px 16px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, color-mix(in srgb, var(--candle) 12%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 80% 80%, color-mix(in srgb, var(--p1) 10%, transparent), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--room) 92%, #000), var(--night));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.wm-game { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.wm-toolbar { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wm-brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; }
+.wm-scorebar { display: flex; align-items: center; gap: 12px; }
+.wm-pname { font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px; }
+.wm-pips { display: flex; align-items: center; gap: 5px; }
+.wm-pip { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line); background: var(--room2); }
+.wm-pip.A.on { background: var(--p1); border-color: var(--p1); }
+.wm-pip.B.on { background: var(--p2); border-color: var(--p2); }
+.wm-roundno { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--dim); margin: 0 8px; }
+
+.wm-statusline { min-height: 20px; font-size: 13.5px; color: var(--dim); text-align: center; }
+.wm-yourturn { color: var(--candle); font-weight: 700; }
+.wm-roundmsg { font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; color: var(--candle); }
+.wm-status { text-align: center; color: var(--dim); }
+.wm-note { text-align: center; font-size: 11.5px; color: var(--dim); margin: 0; }
+
+.wm-orb {
+  width: calc(var(--wm-cell) * 0.56); height: calc(var(--wm-cell) * 0.56);
+  border-radius: 50%; display: inline-block; position: relative; z-index: 2;
+}
+.wm-orb.A {
+  background: radial-gradient(circle at 34% 30%, #D6E4FF 0 18%, var(--p1) 45%, #3A5CA8 100%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--p1) 50%, transparent), 0 0 14px color-mix(in srgb, var(--p1) 25%, transparent);
+}
+.wm-orb.B {
+  background: radial-gradient(circle at 34% 30%, #FFDCE8 0 18%, var(--p2) 45%, #B04A72 100%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--p2) 50%, transparent), 0 0 14px color-mix(in srgb, var(--p2) 25%, transparent);
+}
+.wm-orb.active { animation: wm-pulse 1.6s ease-in-out infinite; }
+@keyframes wm-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+.wm-orb.crowned { box-shadow: 0 0 0 3px var(--candle), 0 0 22px color-mix(in srgb, var(--candle) 55%, transparent); }
+
+.wm-stock { display: flex; align-items: center; gap: 10px; }
+.wm-stock-name { font-size: 12px; font-weight: 700; }
+.wm-stock-bars { display: flex; gap: 4px; }
+.wm-stock-bars i {
+  width: 16px; height: 6px; border-radius: 3px;
+  background: var(--room2); border: 1px solid var(--line);
+}
+.wm-stock-bars i.on {
+  background: linear-gradient(90deg, #E8A94F, var(--candle));
+  border-color: color-mix(in srgb, var(--candle) 60%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--candle) 35%, transparent);
+}
+
+.wm-boardwrap {
+  padding: calc(var(--wm-gap) + 4px); border-radius: 18px;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 35%, color-mix(in srgb, var(--candle) 5%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--room) 80%, #000), var(--night));
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 34px rgba(0,0,0,.35);
+}
+.wm-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--n), var(--wm-cell));
+  grid-auto-rows: var(--wm-cell);
+  gap: var(--wm-gap);
+}
+
+.wm-cell {
+  position: relative; border: none; padding: 0; cursor: default;
+  border-radius: 9px;
+  background: linear-gradient(160deg, var(--room2), color-mix(in srgb, var(--room) 70%, #000));
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.06), inset 0 -2px 3px rgba(0,0,0,.3);
+  display: flex; align-items: center; justify-content: center;
+  color: inherit;
+}
+.wm-cell.goal {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--room2) 80%, var(--candle)), var(--room2));
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--candle) 10%, transparent), inset 0 1px 2px rgba(255,255,255,.06);
+}
+.wm-cell.target { cursor: pointer; }
+.wm-cell.target:hover { filter: brightness(1.12); }
+.wm-ring {
+  position: absolute; inset: 16%; border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--candle) 85%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--candle) 25%, transparent);
+  animation: wm-ring 2.2s linear infinite;
+}
+@keyframes wm-ring { to { transform: rotate(360deg); } }
+
+.wm-wall {
+  position: absolute; border-radius: 5px; z-index: 3; pointer-events: none;
+  background: linear-gradient(90deg, #E8A94F, var(--candle), #E8A94F);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--candle) 50%, transparent), 0 2px 5px rgba(0,0,0,.5);
+}
+.wm-wall.h {
+  left: calc(var(--wc) * (var(--wm-cell) + var(--wm-gap)));
+  top: calc((var(--wr) + 1) * var(--wm-cell) + var(--wr) * var(--wm-gap));
+  width: calc(2 * var(--wm-cell) + var(--wm-gap));
+  height: var(--wm-gap);
+}
+.wm-wall.v {
+  top: calc(var(--wr) * (var(--wm-cell) + var(--wm-gap)));
+  left: calc((var(--wc) + 1) * var(--wm-cell) + var(--wc) * var(--wm-gap));
+  height: calc(2 * var(--wm-cell) + var(--wm-gap));
+  width: var(--wm-gap);
+  background: linear-gradient(180deg, #E8A94F, var(--candle), #E8A94F);
+}
+.wm-wall.byA { outline: 1.5px solid color-mix(in srgb, var(--p1) 55%, transparent); }
+.wm-wall.byB { outline: 1.5px solid color-mix(in srgb, var(--p2) 55%, transparent); }
+.wm-wall.ghost {
+  opacity: .65; outline: 2px dashed color-mix(in srgb, var(--text) 70%, transparent);
+  animation: wm-ghost 1s ease-in-out infinite;
+}
+.wm-wall.ghost.bad {
+  background: linear-gradient(90deg, #C05555, var(--bad, #FF8A8A), #C05555);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--bad, #FF8A8A) 50%, transparent);
+}
+@keyframes wm-ghost { 0%,100% { opacity: .65; } 50% { opacity: .9; } }
+
+.wm-node {
+  position: absolute; z-index: 4; width: 26px; height: 26px; border-radius: 50%;
+  border: none; cursor: pointer; background: color-mix(in srgb, var(--text) 10%, transparent);
+  outline: 1px dashed color-mix(in srgb, var(--text) 25%, transparent);
+  left: calc((var(--nc) + 1) * var(--wm-cell) + var(--nc) * var(--wm-gap) + var(--wm-gap) / 2 - 13px);
+  top:  calc((var(--nr) + 1) * var(--wm-cell) + var(--nr) * var(--wm-gap) + var(--wm-gap) / 2 - 13px);
+  transition: background .12s;
+}
+.wm-node:hover { background: color-mix(in srgb, var(--candle) 28%, transparent); }
+.wm-node.on { background: color-mix(in srgb, var(--candle) 45%, transparent); outline-color: var(--candle); }
+
+.wm-controls { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 46px; }
+.wm-wallbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.wm-why { font-size: 11.5px; color: var(--bad, #FF8A8A); font-weight: 600; }
+.wm-err { color: var(--bad, #FF8A8A); font-size: 12.5px; font-weight: 600; }
+.wm-dock { display: flex; justify-content: center; }

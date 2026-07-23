@@ -1,0 +1,304 @@
+﻿/* ---- map icon animations ---- */
+@keyframes map-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes map-sword-slash-l {
+  0%, 100% { transform: rotate(-28deg); }
+  40% { transform: rotate(48deg); }
+  55% { transform: rotate(48deg); }
+}
+
+@keyframes map-sword-slash-r {
+  0%, 100% { transform: rotate(28deg); }
+  40% { transform: rotate(-48deg); }
+  55% { transform: rotate(-48deg); }
+}
+
+@keyframes map-leg-run {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(14deg); }
+}
+
+@keyframes map-leg-run-opp {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-12deg); }
+}
+
+@keyframes map-spark {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes map-torch-flicker {
+  0%, 100% { transform: scaleY(1) translateY(0); opacity: 0.85; }
+  40% { transform: scaleY(1.15) translateY(-1px); opacity: 1; }
+  70% { transform: scaleY(0.9) translateY(1px); opacity: 0.7; }
+}
+
+@keyframes map-crowd-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes map-star-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes map-aurora {
+  0% { transform: translateX(-8%) skewX(-4deg); opacity: 0.35; }
+  50% { transform: translateX(8%) skewX(4deg); opacity: 0.55; }
+  100% { transform: translateX(-8%) skewX(-4deg); opacity: 0.35; }
+}
+
+@keyframes map-cloud-drift {
+  0% { transform: translateX(-20px); }
+  100% { transform: translateX(40px); }
+}
+
+@keyframes map-lantern-rise {
+  0% { transform: translateY(8px); opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { transform: translateY(-70px); opacity: 0; }
+}
+
+@keyframes map-ember-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0.9; }
+  100% { transform: translateY(-55px) scale(0.4); opacity: 0; }
+}
+
+@keyframes map-lava-pulse {
+  0%, 100% { opacity: 0.75; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.25); }
+}
+
+@keyframes map-plat-slide {
+  0%, 100% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+}
+
+@keyframes map-volcano-glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+.map-icon {
+  height: 110px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(var(--sky0), var(--sky1));
+}
+
+.map-icon__layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.map-icon__ground {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 10px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--plat);
+  box-shadow: 0 -2px 0 var(--accent);
+}
+
+.map-icon__plat {
+  position: absolute;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: map-plat-slide 3.2s ease-in-out infinite;
+}
+
+.map-icon__fighters {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  height: 58px;
+  z-index: 3;
+}
+
+.map-icon__fighter {
+  position: absolute;
+  bottom: 0;
+  width: 48px;
+  height: 56px;
+  animation: map-bob 1.1s ease-in-out infinite;
+}
+
+.map-icon__fighter--p1 {
+  left: 28px;
+  animation-delay: 0s;
+}
+
+.map-icon__fighter--p2 {
+  right: 28px;
+  animation-delay: 0.52s;
+}
+
+.map-icon__spark {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: #ffe97a;
+  box-shadow: 0 0 12px #ffe97a, 0 0 22px #fff;
+  animation: map-spark 1.05s ease-in-out infinite;
+  animation-delay: 0.35s;
+  z-index: 4;
+}
+
+/* torch / crowd (colosseum) */
+.map-torch {
+  position: absolute;
+  bottom: 18px;
+  width: 3px;
+  height: 22px;
+  background: #3d2415;
+}
+
+.map-torch::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 8px;
+  height: 10px;
+  margin-left: -4px;
+  border-radius: 50% 50% 40% 40%;
+  background: radial-gradient(circle at 50% 30%, #ffe08a, #ff5c1a 70%);
+  box-shadow: 0 0 10px #ff9a3c;
+  transform-origin: bottom center;
+  animation: map-torch-flicker 0.45s ease-in-out infinite;
+}
+
+.map-crowd {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 22px;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 10px;
+  opacity: 0.55;
+}
+
+.map-crowd span {
+  width: 8px;
+  height: 12px;
+  border-radius: 8px 8px 2px 2px;
+  background: #1c0f14;
+  animation: map-crowd-bob 1.4s ease-in-out infinite;
+}
+
+.map-crowd span:nth-child(2n) { animation-delay: 0.2s; }
+.map-crowd span:nth-child(3n) { animation-delay: 0.45s; height: 14px; }
+
+.map-banner {
+  position: absolute;
+  top: 8px;
+  width: 10px;
+  height: 28px;
+  animation: map-crowd-bob 1.8s ease-in-out infinite;
+}
+
+/* sky shrine */
+.map-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #dcebfa;
+  animation: map-star-twinkle 2s ease-in-out infinite;
+}
+
+.map-aurora {
+  position: absolute;
+  top: 8px;
+  left: -10%;
+  right: -10%;
+  height: 36px;
+  background: linear-gradient(90deg, transparent, rgba(140, 255, 190, 0.35), rgba(130, 180, 255, 0.3), transparent);
+  filter: blur(4px);
+  animation: map-aurora 5s ease-in-out infinite;
+}
+
+.map-cloud {
+  position: absolute;
+  height: 8px;
+  border-radius: 8px;
+  background: rgba(160, 190, 230, 0.18);
+  animation: map-cloud-drift 8s linear infinite;
+}
+
+.map-lantern {
+  position: absolute;
+  bottom: 12px;
+  width: 5px;
+  height: 7px;
+  border: 1px solid #ffd27a;
+  border-radius: 1px;
+  box-shadow: 0 0 8px #ffd27a;
+  background: rgba(255, 210, 122, 0.35);
+  animation: map-lantern-rise 4.5s linear infinite;
+}
+
+/* lava forge */
+.map-volcano {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 0;
+  height: 0;
+  margin-left: -42px;
+  border-left: 42px solid transparent;
+  border-right: 42px solid transparent;
+  border-bottom: 48px solid #1c0906;
+}
+
+.map-volcano::after {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 4px;
+  width: 28px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff6e28;
+  box-shadow: 0 0 14px #ff5c1a;
+  animation: map-volcano-glow 1.6s ease-in-out infinite;
+}
+
+.map-lava {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9px;
+  background: linear-gradient(#ff9a3c, #c22a12);
+  box-shadow: 0 0 14px #ff6a2c;
+  animation: map-lava-pulse 1.4s ease-in-out infinite;
+}
+
+.map-ember {
+  position: absolute;
+  bottom: 8px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffb85c;
+  box-shadow: 0 0 6px #ff7a3c;
+  animation: map-ember-rise 2.2s linear infinite;
+}

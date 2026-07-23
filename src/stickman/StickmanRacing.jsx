@@ -269,14 +269,6 @@ const KEYS = {
   p2: { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp", slide: "ArrowDown", turbo: "KeyK" },
 };
 const ALL_KEYS = [...Object.values(KEYS.p1), ...Object.values(KEYS.p2)];
-const LOCAL = KEYS.p1; // each partner uses WASD+F on their own device
-const LOCAL_CODES = Object.values(LOCAL);
-
-function remapTo(slot, code) {
-  const entry = Object.entries(LOCAL).find(([, v]) => v === code);
-  if (!entry) return null;
-  return KEYS[slot][entry[0]];
-}
 
 function makeRacer(id) {
   return {
@@ -285,22 +277,18 @@ function makeRacer(id) {
     glow: id === 0 ? "#7cc8ff" : "#ff8090",
     onGround: true, sliding: false, slideFx: 0,
     wallDir: 0,
-    rope: null, ropeTh: 0, ropeW: 0, ropeCd: 0, lastRope: null,
+    rope: null, ropeTh: 0, ropeW: 0, ropeLen: 0, ropeCd: 0, lastRope: null,
     stumbleT: 0, respawnT: 0,
     turbo: 1, turboT: 0,
     checkpoint: { x: 200, y: GY },
     finished: false, finishTime: 0,
     runPhase: 0, facing: 1, airT: 0,
     trail: [],
+    camX: null, camY: null,
   };
 }
 
-export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplete, pausedRef }) {
-  const isHost = myRole === 'A';
-  const mySlot = myRole === 'A' ? 'p1' : 'p2';
-  const p1Name = names.A || 'Player 1';
-  const p2Name = names.B || 'Player 2';
-
+export default function StickmanRacing() {
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu");
   const [mapIdx, setMapIdx] = useState(0);
@@ -308,7 +296,6 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
   const [muted, setMuted] = useState(false);
   const [touchUI, setTouchUI] = useState(false);
   const stateRef = useRef({});
-  const finishedRef = useRef(false);
 
   // show on-screen buttons only on touch devices (phones / tablets)
   useEffect(() => {
@@ -319,38 +306,12 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
 
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
 
-  const startRace = (mi, fromNet = false) => {
-    if (!isHost && !fromNet) return;
+  const startRace = (mi) => {
     SFX.unlock();
-    finishedRef.current = false;
     setMapIdx(mi); setResult(null);
     setPhase("playing");
     stateRef.current.launch = { mapIdx: mi };
-    if (isHost && !fromNet) rt?.send({ k: 'sr-start', mapIdx: mi });
   };
-
-  useEffect(() => {
-    if (!rt?.on) return undefined;
-    rt.on(msg => {
-      if (!msg?.k) return;
-      if (msg.k === 'sr-start' && !isHost) startRace(msg.mapIdx, true);
-      if (msg.k === 'sr-end') {
-        setResult(msg.result || null);
-        setPhase('matchEnd');
-      }
-      if (msg.k === 'sr-menu') {
-        setPhase('menu');
-        setResult(null);
-      }
-      if (msg.k === 'sr-in' && isHost && stateRef.current.applyRemoteKeys) {
-        stateRef.current.applyRemoteKeys(msg);
-      }
-      if (msg.k === 'sr-st' && !isHost && stateRef.current.applySnap) {
-        stateRef.current.applySnap(msg);
-      }
-    });
-    return undefined;
-  }, [rt, isHost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -368,70 +329,19 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
       done: false,
     };
 
-    const remoteHeld = {};
-    stateRef.current.applyRemoteKeys = (msg) => {
-      Object.keys(remoteHeld).forEach(k => { remoteHeld[k] = false; });
-      const held = msg.held || {};
-      Object.entries(held).forEach(([code, on]) => {
-        const mapped = remapTo('p2', code);
-        if (mapped) remoteHeld[mapped] = !!on;
-      });
-      (msg.edge || []).forEach(code => {
-        const mapped = remapTo('p2', code);
-        if (mapped) S.pressed[mapped] = true;
-      });
-    };
-    stateRef.current.applySnap = (msg) => {
-      if (!msg.players) return;
-      S.players = msg.players;
-      S.mode = msg.mode;
-      S.modeT = msg.modeT;
-      S.raceT = msg.raceT;
-      S.t = msg.t;
-      S.done = !!msg.done;
-      S.particles = msg.particles || S.particles;
-      S.texts = msg.texts || S.texts;
-    };
-
-    let edgeBuf = [];
     const down = (e) => {
-      if (!LOCAL_CODES.includes(e.code)) return;
-      e.preventDefault();
-      const mapped = remapTo(mySlot, e.code);
-      if (!mapped) return;
-      if (isHost) {
-        if (!S.keys[mapped]) S.pressed[mapped] = true;
-        S.keys[mapped] = true;
-      } else {
-        if (!remoteHeld[e.code]) edgeBuf.push(e.code);
-        remoteHeld[e.code] = true;
-      }
+      if (ALL_KEYS.includes(e.code)) e.preventDefault();
+      if (!S.keys[e.code]) S.pressed[e.code] = true;
+      S.keys[e.code] = true;
     };
-    const up = (e) => {
-      if (!LOCAL_CODES.includes(e.code)) return;
-      const mapped = remapTo(mySlot, e.code);
-      if (!mapped) return;
-      if (isHost) S.keys[mapped] = false;
-      else remoteHeld[e.code] = false;
-    };
+    const up = (e) => { S.keys[e.code] = false; };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
 
     // touch-control bridge — on-screen buttons drive the exact same key states
     stateRef.current.setKey = (code, isDown) => {
-      // Touch buttons pass physical KEYS.p1 / KEYS.p2 codes — remap for my seat
-      const action = Object.entries(KEYS.p1).find(([, v]) => v === code)?.[0]
-        || Object.entries(KEYS.p2).find(([, v]) => v === code)?.[0];
-      if (!action) return;
-      const mapped = KEYS[mySlot][action];
-      if (isHost) {
-        if (isDown && !S.keys[mapped]) S.pressed[mapped] = true;
-        S.keys[mapped] = isDown;
-      } else {
-        const localCode = LOCAL[action];
-        if (isDown && !remoteHeld[localCode]) edgeBuf.push(localCode);
-        remoteHeld[localCode] = isDown;
-      }
+      if (isDown && !S.keys[code]) S.pressed[code] = true;
+      S.keys[code] = isDown;
     };
 
     const spark = (x, y, color, n = 8, spd = 220) => {
@@ -480,9 +390,31 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
     const respawn = (p) => {
       SFX.fall();
       p.x = p.checkpoint.x; p.y = p.checkpoint.y;
-      p.vx = 0; p.vy = 0; p.rope = null; p.sliding = false;
+      p.vx = 0; p.vy = 0; p.rope = null; p.ropeLen = 0; p.sliding = false;
       p.respawnT = 0.7; p.turboT = 0;
+      p.camX = null; p.camY = null;
       worldText(p.x, p.y - 100, "RESPAWN", "#a9c4e6");
+    };
+
+    const syncRopePos = (p) => {
+      const r = p.rope;
+      p.x = r.ax + Math.sin(p.ropeTh) * p.ropeLen;
+      p.y = r.ay + Math.cos(p.ropeTh) * p.ropeLen + 48;
+    };
+
+    const updateCam = (p, dt) => {
+      const targetX = p.x - CW * 0.42;
+      let targetY = p.y - 158;
+      targetY = Math.max(-260, Math.min(GY - VIEW_H + 96, targetY));
+      if (p.camX == null || p.camY == null) {
+        p.camX = targetX;
+        p.camY = targetY;
+        return;
+      }
+      // Smooth follow — kills the hitch when rope length settles or velocity spikes
+      const a = 1 - Math.exp(-11 * dt);
+      p.camX += (targetX - p.camX) * a;
+      p.camY += (targetY - p.camY) * a;
     };
 
     // ---------------- PLAYER UPDATE ----------------
@@ -516,7 +448,10 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
       // ROPE SWING
       if (p.rope) {
         const r = p.rope;
-        let acc = -(GRAV / r.len) * Math.sin(p.ropeTh);
+        // Ease attach distance toward the rope's natural length (no teleport snap)
+        const settle = 1 - Math.exp(-9 * dt);
+        p.ropeLen += (r.len - p.ropeLen) * settle;
+        let acc = -(GRAV / Math.max(p.ropeLen, 40)) * Math.sin(p.ropeTh);
         if (canControl && !stunned) {
           if (S.keys[k.right]) acc += 2.4;
           if (S.keys[k.left]) acc -= 2.4;
@@ -524,14 +459,13 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
         p.ropeW += acc * dt;
         p.ropeW *= 0.998;
         p.ropeTh += p.ropeW * dt;
-        p.x = r.ax + Math.sin(p.ropeTh) * r.len;
-        p.y = r.ay + Math.cos(p.ropeTh) * r.len + 48;
+        syncRopePos(p);
         if (canControl && S.pressed[k.jump]) {
           // release with a strong launch — flings you far enough to chain ropes
-          const tv = Math.max(Math.abs(p.ropeW * r.len), 240) * Math.sign(p.ropeW * r.len || 1);
+          const tv = Math.max(Math.abs(p.ropeW * p.ropeLen), 240) * Math.sign(p.ropeW * p.ropeLen || 1);
           p.vx = Math.cos(p.ropeTh) * tv * 1.3;
           p.vy = -Math.sin(p.ropeTh) * tv - 360;
-          p.rope = null; p.lastRope = r; p.ropeCd = 0.45;
+          p.rope = null; p.ropeLen = 0; p.lastRope = r; p.ropeCd = 0.45;
           SFX.release();
           spark(p.x, p.y - 40, p.neon, 6, 180);
         }
@@ -631,9 +565,12 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
           if (d < r.len + 95 && d > r.len * 0.25) {
             p.rope = r; p.lastRope = r;
             p.ropeTh = Math.atan2(hx, hy2);
+            p.ropeLen = d; // keep current reach — settle to r.len over the next frames
             const c = Math.cos(p.ropeTh), sn = Math.sin(p.ropeTh);
-            p.ropeW = (p.vx * c - p.vy * sn) / r.len;
+            p.ropeW = (p.vx * c - p.vy * sn) / Math.max(d, 1);
+            p.vx = 0; p.vy = 0;
             p.sliding = false;
+            syncRopePos(p);
             SFX.grab();
             break;
           }
@@ -646,7 +583,11 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
           if (p.onGround && Math.abs(p.y - hd.y) < 6 && Math.abs(p.x - hd.x) < 16 && Math.abs(p.vx) > 30) stumble(p);
         }
         for (const b of T.bars) {
-          if (p.onGround && Math.abs(p.y - b.y) < 6 && Math.abs(p.x - b.x) < 30 && !p.sliding && Math.abs(p.vx) > 30) stumble(p, "DUCK!");
+          if (p.onGround && Math.abs(p.y - b.y) < 6 && Math.abs(p.x - b.x) < 30 && !p.sliding && Math.abs(p.vx) > 30) {
+            stumble(p, "DUCK!");
+            // same as spikes — reset just before the barrier so you can retry the slide
+            p.x = b.x - 36; p.vx = -60; p.vy = -330; p.onGround = false;
+          }
         }
         for (const sp of T.spikes) {
           if (p.onGround && Math.abs(p.y - sp.y) < 6 && p.x > sp.x - 6 && p.x < sp.x + sp.w + 6) {
@@ -678,20 +619,13 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
             SFX.finish();
             const other = S.players[1 - p.id];
             const gap = T.finishX - other.x;
-            const payload = {
-              winner: p.id + 1,
-              time: p.finishTime,
-              gap: Math.max(0, Math.round(gap / 10)),
-            };
             setTimeout(() => {
-              if (finishedRef.current) return;
-              finishedRef.current = true;
-              setResult(payload);
+              setResult({
+                winner: p.id + 1,
+                time: p.finishTime,
+                gap: Math.max(0, Math.round(gap / 10)),
+              });
               setPhase("matchEnd");
-              if (isHost) {
-                rt?.send({ k: 'sr-end', result: payload });
-                onComplete?.(p.id === 0 ? 'A' : 'B');
-              }
             }, 1600);
           }
         }
@@ -1048,8 +982,8 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
     const w2s = (camX, camY, vy0, x, y) => [x - camX, vy0 + (y - camY)];
 
     const drawWorld = (pov, vy0) => {
-      const camX = pov.x - CW * 0.42;
-      let camY = pov.y - 158;
+      const camX = pov.camX != null ? pov.camX : pov.x - CW * 0.42;
+      let camY = pov.camY != null ? pov.camY : pov.y - 158;
       camY = Math.max(-260, Math.min(GY - VIEW_H + 96, camY));
 
       ctx.save();
@@ -1206,7 +1140,7 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
 
       T.ropes.forEach((r) => {
         if (r.ax < camX - 300 || r.ax > camX + CW + 300) return;
-        const swingers = S.players.filter((pp) => pp.rope && Math.abs(pp.rope.ax - r.ax) < 1);
+        const swingers = S.players.filter((pp) => pp.rope === r);
         const [ax0, ay0] = P(r.ax, r.ay);
         ctx.save();
         ctx.shadowColor = "#ffd27a"; ctx.shadowBlur = 8;
@@ -1424,69 +1358,32 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
     };
 
     let raf, last = performance.now();
-    let snapAcc = 0, sendAcc = 0;
     const loop = (now) => {
       const dt = Math.min((now - last) / 1000, 0.033);
       last = now;
+      S.t += dt;
 
-      if (pausedRef?.current) {
-        raf = requestAnimationFrame(loop);
-        return;
+      if (S.mode === "countdown") {
+        S.modeT += dt;
+        const n = Math.ceil(3 - S.modeT);
+        if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
+        if (S.modeT >= 3) { S.mode = "race"; }
+      } else if (S.mode === "race") {
+        S.raceT += dt;
       }
 
-      if (isHost) {
-        // Guest inputs arrive remapped into p2 key codes via applyRemoteKeys
-        Object.values(KEYS.p2).forEach(code => {
-          S.keys[code] = !!remoteHeld[code];
-        });
+      S.players.forEach((p) => {
+        updateRacer(p, dt);
+        updateCam(p, dt);
+      });
 
-        S.t += dt;
-
-        if (S.mode === "countdown") {
-          S.modeT += dt;
-          const n = Math.ceil(3 - S.modeT);
-          if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
-          if (S.modeT >= 3) { S.mode = "race"; }
-        } else if (S.mode === "race") {
-          S.raceT += dt;
-        }
-
-        S.players.forEach((p) => updateRacer(p, dt));
-
-        S.particles = S.particles.filter((pt) => {
-          pt.life -= dt;
-          pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
-          pt.x += pt.vx * dt; pt.y += pt.vy * dt;
-          return pt.life > 0;
-        });
-        S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
-
-        snapAcc += dt;
-        if (snapAcc >= 0.05) {
-          snapAcc = 0;
-          rt?.send({
-            k: 'sr-st',
-            players: S.players.map(p => ({
-              ...p,
-              trail: (p.trail || []).slice(-6),
-              rope: p.rope ? { ax: p.rope.ax, ay: p.rope.ay, len: p.rope.len } : null,
-            })),
-            mode: S.mode, modeT: S.modeT, raceT: S.raceT, t: S.t, done: S.done,
-            particles: S.particles.slice(0, 36),
-            texts: S.texts.slice(0, 8),
-          });
-        }
-      } else {
-        // guest: stream inputs ~30Hz
-        sendAcc += dt;
-        if (sendAcc >= 0.033) {
-          sendAcc = 0;
-          const held = {};
-          LOCAL_CODES.forEach(c => { if (remoteHeld[c]) held[c] = true; });
-          const edge = edgeBuf.splice(0);
-          rt?.send({ k: 'sr-in', held, edge });
-        }
-      }
+      S.particles = S.particles.filter((pt) => {
+        pt.life -= dt;
+        pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
+        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+        return pt.life > 0;
+      });
+      S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
 
       ctx.clearRect(0, 0, CW, CH);
       drawWorld(S.players[0], 0);
@@ -1523,33 +1420,263 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [phase, isHost, mySlot, rt, onComplete, pausedRef]);
+  }, [phase]);
 
   // ================= UI =================
   const wrap = {
-    width: "100%", maxWidth: 960, margin: "0 auto", background: "transparent", color: "#e8eef5",
+    minHeight: "100vh", background: "#07090f", color: "#e8eef5",
     display: "flex", flexDirection: "column", alignItems: "center",
-    fontFamily: "monospace", padding: "8px 8px 12px", boxSizing: "border-box",
+    fontFamily: "monospace", padding: 16, boxSizing: "border-box",
   };
   const neonText = (color) => ({ color, textShadow: `0 0 12px ${color}` });
 
+  // Proper SVG stick runners — real run-cycle poses (lean + knee bend + opposite limbs)
+  const MenuStickman = ({ color, delay = "0s" }) => {
+    const pivot = (ox, oy) => ({ transformBox: "view-box", transformOrigin: `${ox}px ${oy}px` });
+    // Local pivot at 0,0 — use for nested limbs so elbows/knees stay attached
+    const local = {
+      transformBox: "view-box",
+      transformOrigin: "0px 0px",
+    };
+    return (
+      <svg
+        width="32" height="44" viewBox="0 0 32 44"
+        style={{ display: "block", filter: `drop-shadow(0 0 5px ${color})`, overflow: "visible" }}
+      >
+        <g style={{ ...pivot(16, 42), animation: `msRunBody 0.36s linear ${delay} infinite` }}>
+          <circle cx="18" cy="7" r="4.4" fill="none" stroke={color} strokeWidth="2.1" />
+          <line x1="17" y1="11.2" x2="14" y2="24" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+
+          {/* BACK arm — nested local pivots so hand stays on the forearm */}
+          <g style={{ transform: "translate(16.5px, 13.5px)" }}>
+            <g style={{ ...local, animation: `msRunArmB 0.36s linear ${delay} infinite` }}>
+              <line x1="0" y1="0" x2="0" y2="7.5" stroke={color} strokeWidth="2" strokeLinecap="round" />
+              <g style={{ transform: "translate(0px, 7.5px)" }}>
+                <g style={{ ...local, animation: `msRunForeB 0.36s linear ${delay} infinite` }}>
+                  <line x1="0" y1="0" x2="0" y2="7" stroke={color} strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="0" cy="7.5" r="1.4" fill={color} />
+                </g>
+              </g>
+            </g>
+          </g>
+
+          {/* FRONT arm */}
+          <g style={{ transform: "translate(16.5px, 13.5px)" }}>
+            <g style={{ ...local, animation: `msRunArmF 0.36s linear ${delay} infinite` }}>
+              <line x1="0" y1="0" x2="0" y2="7.5" stroke={color} strokeWidth="2" strokeLinecap="round" />
+              <g style={{ transform: "translate(0px, 7.5px)" }}>
+                <g style={{ ...local, animation: `msRunForeF 0.36s linear ${delay} infinite` }}>
+                  <line x1="0" y1="0" x2="0" y2="7" stroke={color} strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="0" cy="7.5" r="1.4" fill={color} />
+                </g>
+              </g>
+            </g>
+          </g>
+
+          {/* BACK leg */}
+          <g style={{ ...pivot(14, 24), animation: `msRunThighB 0.36s linear ${delay} infinite` }}>
+            <line x1="14" y1="24" x2="11" y2="31" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+            <g style={{ ...pivot(11, 31), animation: `msRunShinB 0.36s linear ${delay} infinite` }}>
+              <line x1="11" y1="31" x2="9" y2="40" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+            </g>
+          </g>
+
+          {/* FRONT leg */}
+          <g style={{ ...pivot(14, 24), animation: `msRunThighF 0.36s linear ${delay} infinite` }}>
+            <line x1="14" y1="24" x2="18" y2="31" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+            <g style={{ ...pivot(18, 31), animation: `msRunShinF 0.36s linear ${delay} infinite` }}>
+              <line x1="18" y1="31" x2="22" y2="40" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+            </g>
+          </g>
+        </g>
+      </svg>
+    );
+  };
+
+  const CardFx = ({ accent, theme, seed }) => {
+    const dots = [0, 1, 2, 3, 4, 5].map((n) => {
+      const x = ((seed * 37 + n * 53) % 90) + 5;
+      const y = ((seed * 19 + n * 29) % 40) + 4;
+      const dur = 1.6 + ((seed + n) % 5) * 0.25;
+      const size = 2 + ((seed + n) % 3);
+      return (
+        <div key={n} style={{
+          position: "absolute", left: `${x}%`, top: `${y}%`,
+          width: size, height: size, borderRadius: "50%",
+          background: accent, opacity: 0.55,
+          boxShadow: `0 0 6px ${accent}`,
+          animation: `msSparkle ${dur}s ease-in-out ${(n * 0.2).toFixed(1)}s infinite`,
+        }} />
+      );
+    });
+    return (
+      <>
+        {/* drifting sky / fog layer */}
+        <div style={{
+          position: "absolute", inset: 0, pointerEvents: "none",
+          background: `radial-gradient(ellipse at 30% 20%, ${accent}33 0%, transparent 55%)`,
+          animation: `msPulse 2.8s ease-in-out ${seed * 0.1}s infinite`,
+        }} />
+        {/* scrolling parallax hills */}
+        <div style={{
+          position: "absolute", left: 0, right: 0, bottom: 14, height: 22, overflow: "hidden", opacity: 0.35,
+        }}>
+          <div style={{
+            position: "absolute", inset: "0 auto 0 0", width: "200%", height: "100%",
+            background: `repeating-linear-gradient(90deg, transparent 0 18px, ${accent}44 18px 28px, transparent 28px 46px)`,
+            clipPath: "polygon(0 70%, 8% 40%, 16% 65%, 24% 30%, 34% 60%, 42% 25%, 52% 55%, 60% 35%, 70% 62%, 78% 28%, 88% 58%, 100% 40%, 100% 100%, 0 100%)",
+            animation: `msScroll 4.5s linear ${seed * 0.15}s infinite`,
+          }} />
+        </div>
+        {/* speed lines */}
+        <div style={{
+          position: "absolute", left: 0, right: 0, top: 18, height: 28, overflow: "hidden", opacity: 0.4,
+        }}>
+          {[0, 1, 2].map((n) => (
+            <div key={n} style={{
+              position: "absolute", top: 4 + n * 9, left: 0, width: "40%", height: 1.5,
+              background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+              animation: `msSpeed ${0.7 + n * 0.15}s linear ${(n * 0.22).toFixed(2)}s infinite`,
+            }} />
+          ))}
+        </div>
+        {dots}
+        {/* theme flair */}
+        {theme === "volcano" && (
+          <div style={{
+            position: "absolute", left: "20%", bottom: 14, width: 10, height: 10, borderRadius: "50%",
+            background: "#ff6a2c", boxShadow: "0 0 12px #ff6a2c",
+            animation: "msLava 1.1s ease-in-out infinite",
+          }} />
+        )}
+        {theme === "ice" && (
+          <div style={{
+            position: "absolute", right: "28%", top: 10, width: 8, height: 8,
+            background: "#a9e6ff", opacity: 0.7, transform: "rotate(45deg)",
+            boxShadow: "0 0 8px #a9e6ff", animation: "msSparkle 1.8s ease-in-out infinite",
+          }} />
+        )}
+        {(theme === "cyber" || theme === "crystal") && (
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: `repeating-linear-gradient(0deg, transparent 0 7px, ${accent}14 7px 8px)`,
+            animation: "msScan 2.2s linear infinite",
+          }} />
+        )}
+      </>
+    );
+  };
+
   if (phase === "menu" || phase === "matchEnd") {
     return (
-      <div className="sr-shell" style={wrap}>
-        <h1 style={{ letterSpacing: 5, margin: "12px 0 2px", fontSize: 28 }}>
+      <div style={wrap}>
+        <style>{`
+          /* run cycle — 4 poses, linear for that "sprinting" feel */
+          @keyframes msRunBody {
+            0%, 100% { transform: rotate(12deg) translateY(0); }
+            25% { transform: rotate(14deg) translateY(-2px); }
+            50% { transform: rotate(12deg) translateY(0); }
+            75% { transform: rotate(14deg) translateY(-2px); }
+          }
+          /* thighs: big stride swing, opposite phases */
+          @keyframes msRunThighF {
+            0%   { transform: rotate(-38deg); }
+            25%  { transform: rotate(8deg); }
+            50%  { transform: rotate(42deg); }
+            75%  { transform: rotate(5deg); }
+            100% { transform: rotate(-38deg); }
+          }
+          @keyframes msRunThighB {
+            0%   { transform: rotate(42deg); }
+            25%  { transform: rotate(5deg); }
+            50%  { transform: rotate(-38deg); }
+            75%  { transform: rotate(8deg); }
+            100% { transform: rotate(42deg); }
+          }
+          /* shins: tuck on recovery, extend on drive */
+          @keyframes msRunShinF {
+            0%   { transform: rotate(8deg); }
+            25%  { transform: rotate(55deg); }
+            50%  { transform: rotate(12deg); }
+            75%  { transform: rotate(-5deg); }
+            100% { transform: rotate(8deg); }
+          }
+          @keyframes msRunShinB {
+            0%   { transform: rotate(12deg); }
+            25%  { transform: rotate(-5deg); }
+            50%  { transform: rotate(8deg); }
+            75%  { transform: rotate(55deg); }
+            100% { transform: rotate(12deg); }
+          }
+          /* arms opposite the legs — when a leg drives forward, that-side arm swings back */
+          @keyframes msRunArmF {
+            0%   { transform: rotate(-52deg); }
+            25%  { transform: rotate(5deg); }
+            50%  { transform: rotate(48deg); }
+            75%  { transform: rotate(10deg); }
+            100% { transform: rotate(-52deg); }
+          }
+          @keyframes msRunArmB {
+            0%   { transform: rotate(48deg); }
+            25%  { transform: rotate(10deg); }
+            50%  { transform: rotate(-52deg); }
+            75%  { transform: rotate(5deg); }
+            100% { transform: rotate(48deg); }
+          }
+          @keyframes msRunForeF {
+            0%   { transform: rotate(-92deg); }
+            25%  { transform: rotate(-78deg); }
+            50%  { transform: rotate(-88deg); }
+            75%  { transform: rotate(-100deg); }
+            100% { transform: rotate(-92deg); }
+          }
+          @keyframes msRunForeB {
+            0%   { transform: rotate(-88deg); }
+            25%  { transform: rotate(-100deg); }
+            50%  { transform: rotate(-92deg); }
+            75%  { transform: rotate(-78deg); }
+            100% { transform: rotate(-88deg); }
+          }
+          @keyframes msChase {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(18px); }
+          }
+          @keyframes msScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          @keyframes msSpeed {
+            0% { transform: translateX(-30%); opacity: 0; }
+            20% { opacity: 0.8; }
+            100% { transform: translateX(160%); opacity: 0; }
+          }
+          @keyframes msSparkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.7); }
+            50% { opacity: 0.9; transform: scale(1.25); }
+          }
+          @keyframes msPulse {
+            0%, 100% { opacity: 0.45; }
+            50% { opacity: 0.9; }
+          }
+          @keyframes msLava {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
+            50% { transform: translateY(-10px) scale(1.3); opacity: 1; }
+          }
+          @keyframes msScan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 16px; }
+          }
+          @keyframes msFlag {
+            0%, 100% { transform: rotate(-6deg); }
+            50% { transform: rotate(8deg); }
+          }
+        `}</style>
+        <h1 style={{ letterSpacing: 5, margin: "26px 0 2px", fontSize: 34 }}>
           <span style={neonText("#3aa0ff")}>STICKMAN</span>{" "}
           <span style={{ opacity: 0.9 }}>🏁</span>{" "}
           <span style={neonText("#ff3b4d")}>RACING</span>
         </h1>
-        <p style={{ opacity: 0.65, marginTop: 4, textAlign: "center" }}>
-          10 tracks · online duel · first to the flag
-        </p>
-        <p style={{ opacity: 0.75, fontSize: 12, marginTop: 6 }}>
-          <span style={neonText("#3aa0ff")}>{p1Name}</span>
-          {" vs "}
-          <span style={neonText("#ff3b4d")}>{p2Name}</span>
-          {isHost ? " · you pick the track" : " · waiting for host to pick"}
-        </p>
+        <p style={{ opacity: 0.65, marginTop: 4 }}>10 tracks · split-screen duel · long parkour marathons</p>
 
         {phase === "matchEnd" && result && (
           <div style={{
@@ -1557,36 +1684,48 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
             background: result.winner === 1 ? "rgba(58,160,255,0.12)" : "rgba(255,59,77,0.12)",
             border: `2px solid ${result.winner === 1 ? "#3aa0ff" : "#ff3b4d"}`,
             boxShadow: `0 0 24px ${result.winner === 1 ? "rgba(58,160,255,0.35)" : "rgba(255,59,77,0.35)"}`,
-            fontSize: 20, fontWeight: "bold", textAlign: "center",
+            fontSize: 22, fontWeight: "bold", textAlign: "center",
           }}>
-            🏆 {(result.winner === 1 ? p1Name : p2Name)} WINS — {result.time.toFixed(2)}s
+            🏆 PLAYER {result.winner} WINS — {result.time.toFixed(2)}s
             <div style={{ fontSize: 13, opacity: 0.75, fontWeight: "normal", marginTop: 4 }}>
               rival was {result.gap}m behind
-            </div>
-            <div style={{ fontSize: 11, opacity: 0.6, marginTop: 6, fontWeight: "normal" }}>
-              Use Rematch in the shell for another race.
             </div>
           </div>
         )}
 
-        <p style={{ marginBottom: 8, opacity: 0.85 }}>
-          {isHost ? "Pick a track (roughly easiest → hardest):" : "Host is choosing a track…"}
-        </p>
+        <p style={{ marginBottom: 8, opacity: 0.85 }}>Pick a track (roughly easiest → hardest):</p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", maxWidth: 940 }}>
           {MAPS.map((m, i) => (
-            <button key={m.name} onClick={() => startRace(i)} disabled={!isHost}
+            <button key={m.name} onClick={() => startRace(i)}
               style={{
-                cursor: isHost ? "pointer" : "default", width: 168, padding: 0, borderRadius: 10, overflow: "hidden",
+                cursor: "pointer", width: 168, padding: 0, borderRadius: 10, overflow: "hidden",
                 border: "2px solid rgba(255,255,255,0.18)", background: "#10141d", color: "#e8eef5",
                 fontFamily: "monospace", transition: "transform .15s, box-shadow .15s",
-                opacity: isHost ? 1 : 0.55,
               }}
-              onMouseEnter={(e) => { if (!isHost) return; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(120,180,255,0.25)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(120,180,255,0.25)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-              <div style={{ height: 70, background: `linear-gradient(${m.card.top}, ${m.card.bot})`, position: "relative" }}>
-                <div style={{ position: "absolute", top: 6, left: 8, fontSize: 18 }}>{m.card.emoji}</div>
-                <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, height: 4, background: m.card.acc, borderRadius: 2, boxShadow: `0 0 10px ${m.card.acc}` }} />
-                <div style={{ position: "absolute", bottom: 10, right: 10, fontSize: 11 }}>🏁</div>
+              <div style={{ height: 78, background: `linear-gradient(${m.card.top}, ${m.card.bot})`, position: "relative", overflow: "hidden" }}>
+                <CardFx accent={m.card.acc} theme={m.theme} seed={i + 1} />
+                <div style={{ position: "absolute", top: 5, left: 7, fontSize: 16, zIndex: 2 }}>{m.card.emoji}</div>
+                {/* ground track */}
+                <div style={{
+                  position: "absolute", bottom: 8, left: 8, right: 8, height: 4, zIndex: 2,
+                  background: m.card.acc, borderRadius: 2, boxShadow: `0 0 10px ${m.card.acc}`,
+                }} />
+                {/* racing duo */}
+                <div style={{
+                  position: "absolute", left: 22, bottom: 10, zIndex: 3,
+                  display: "flex", alignItems: "flex-end", gap: 2,
+                  animation: `msChase 1.35s ease-in-out ${(i * 0.07).toFixed(2)}s infinite alternate`,
+                }}>
+                  <MenuStickman color="#3aa0ff" delay="0s" />
+                  <MenuStickman color="#ff3b4d" delay="0.07s" />
+                </div>
+                <div style={{
+                  position: "absolute", bottom: 10, right: 8, fontSize: 13, zIndex: 3,
+                  transformOrigin: "bottom center",
+                  animation: "msFlag 0.9s ease-in-out infinite",
+                }}>🏁</div>
               </div>
               <div style={{ padding: "8px 0 2px", fontWeight: "bold", letterSpacing: 0.5, fontSize: 13 }}>{m.name}</div>
               <div style={{ padding: "0 6px 9px", fontSize: 9, opacity: 0.55 }}>{m.desc}</div>
@@ -1595,13 +1734,30 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
         </div>
 
         <div style={{
-          marginTop: 16, fontSize: 13, lineHeight: 1.85, background: "#10141d", padding: "14px 22px",
-          borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", textAlign: "center", maxWidth: 520,
+          marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30,
+          fontSize: 13, lineHeight: 1.85, background: "#10141d", padding: "16px 28px",
+          borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
         }}>
-          <b style={neonText(myRole === 'A' ? "#3aa0ff" : "#ff3b4d")}>
-            You are {myRole === 'A' ? p1Name : p2Name} ({myRole === 'A' ? 'top' : 'bottom'} screen)
-          </b><br />
-          A / D — run · W — jump · S — slide · <b>F — TURBO</b>
+          <div>
+            <b style={neonText("#3aa0ff")}>PLAYER 1 — top screen</b><br />
+            A / D — run · W — jump<br />
+            S — slide · <b>F — TURBO 🔥</b>
+          </div>
+          <div>
+            <b style={neonText("#ff3b4d")}>PLAYER 2 — bottom screen</b><br />
+            ← / → — run · ↑ — jump<br />
+            ↓ — slide · <b>K — TURBO 🔥</b>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 12, fontSize: 12, background: "#10141d", padding: "12px 26px",
+          borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", maxWidth: 680, lineHeight: 2, textAlign: "center",
+        }}>
+          <b>🧗 Wall-jump:</b> leap at a cliff → wall-slide → jump to kick up, steer forward onto the ledge<br />
+          <b>🪢 Ropes:</b> jump into a rope to grab · hold forward to pump · jump to release with a big launch<br />
+          <b>🔥 Turbo:</b> one press burns the meter for a burst, recharges over time (needs ≥35%)<br />
+          <span style={{ opacity: 0.6 }}>hurdles → jump · low bars → slide · spikes → jump (they bounce you back) · pits → checkpoint respawn</span>
         </div>
 
         <button onClick={() => setMuted((m) => !m)}
@@ -1612,8 +1768,6 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
     );
   }
 
-  const myKeys = KEYS[mySlot];
-  const myColor = mySlot === 'p1' ? "#3aa0ff" : "#ff3b4d";
   const press = (code, d) => (e) => {
     e.preventDefault();
     if (stateRef.current.setKey) stateRef.current.setKey(code, d);
@@ -1623,9 +1777,6 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
       onTouchStart={press(code, true)}
       onTouchEnd={press(code, false)}
       onTouchCancel={press(code, false)}
-      onPointerDown={press(code, true)}
-      onPointerUp={press(code, false)}
-      onPointerCancel={press(code, false)}
       onContextMenu={(e) => e.preventDefault()}
       style={{
         position: "absolute", width: size, height: size, borderRadius: "50%",
@@ -1637,19 +1788,15 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
     >{label}</div>
   );
 
-  const padTop = mySlot === 'p1' ? "26%" : "77%";
-  const padJump = mySlot === 'p1' ? "16%" : "67%";
-  const padSlide = mySlot === 'p1' ? "29%" : "80%";
-
   return (
-    <div className="sr-shell" style={wrap}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 10px", flexWrap: "wrap", justifyContent: "center" }}>
+    <div style={wrap}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 10px" }}>
         <span style={{ opacity: 0.7, fontSize: 13 }}>{MAPS[mapIdx].name} · first to the flag 🏁</span>
         <button onClick={() => setMuted((m) => !m)}
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 10px", fontFamily: "monospace", fontSize: 12 }}>
           {muted ? "🔇" : "🔊"}
         </button>
-        <button onClick={() => { setPhase("menu"); rt?.send({ k: 'sr-menu' }); }}
+        <button onClick={() => setPhase("menu")}
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 12px", fontFamily: "monospace", fontSize: 12 }}>
           quit to menu
         </button>
@@ -1659,16 +1806,25 @@ export default function StickmanRacing({ myRole = 'A', names = {}, rt, onComplet
           style={{ width: "100%", display: "block", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "#000", boxShadow: "0 0 40px rgba(80,140,255,0.12)" }} />
         {touchUI && (
           <>
-            <TouchBtn label="◀" code={myKeys.left} color={myColor} style={{ left: 10, top: padTop }} />
-            <TouchBtn label="▶" code={myKeys.right} color={myColor} style={{ left: 74, top: padTop }} />
-            <TouchBtn label="⭡" code={myKeys.jump} color={myColor} style={{ right: 74, top: padJump }} />
-            <TouchBtn label="⭣" code={myKeys.slide} color={myColor} style={{ right: 138, top: padSlide }} />
-            <TouchBtn label="🔥" code={myKeys.turbo} color="#ffe97a" style={{ right: 10, top: padSlide }} />
+            {/* P1 — overlays the TOP screen */}
+            <TouchBtn label="◀" code={KEYS.p1.left} color="#3aa0ff" style={{ left: 10, top: "26%" }} />
+            <TouchBtn label="▶" code={KEYS.p1.right} color="#3aa0ff" style={{ left: 74, top: "26%" }} />
+            <TouchBtn label="⭡" code={KEYS.p1.jump} color="#3aa0ff" style={{ right: 74, top: "16%" }} />
+            <TouchBtn label="⭣" code={KEYS.p1.slide} color="#3aa0ff" style={{ right: 138, top: "29%" }} />
+            <TouchBtn label="🔥" code={KEYS.p1.turbo} color="#ffe97a" style={{ right: 10, top: "29%" }} />
+            {/* P2 — overlays the BOTTOM screen */}
+            <TouchBtn label="◀" code={KEYS.p2.left} color="#ff3b4d" style={{ left: 10, top: "77%" }} />
+            <TouchBtn label="▶" code={KEYS.p2.right} color="#ff3b4d" style={{ left: 74, top: "77%" }} />
+            <TouchBtn label="⭡" code={KEYS.p2.jump} color="#ff3b4d" style={{ right: 74, top: "67%" }} />
+            <TouchBtn label="⭣" code={KEYS.p2.slide} color="#ff3b4d" style={{ right: 138, top: "80%" }} />
+            <TouchBtn label="🔥" code={KEYS.p2.turbo} color="#ffe97a" style={{ right: 10, top: "80%" }} />
           </>
         )}
       </div>
-      <p style={{ opacity: 0.5, fontSize: 12, marginTop: 8, textAlign: "center" }}>
-        You control the {mySlot === 'p1' ? 'blue (top)' : 'pink (bottom)'} racer · WASD + F turbo
+      <p style={{ opacity: 0.5, fontSize: 12, marginTop: 8 }}>
+        {touchUI
+          ? "P1 = blue buttons (top screen) · P2 = red buttons (bottom screen) · ⭡ jump/rope · ⭣ slide · 🔥 turbo"
+          : "top = P1 (WASD + F turbo) · bottom = P2 (arrows + K turbo) · long tracks — pace your turbo!"}
       </p>
     </div>
   );

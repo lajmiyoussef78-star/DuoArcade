@@ -566,36 +566,79 @@ export const ART = {
      @keyframes cb-pop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
      ${pulse('cb', 'cb-lock', 2.4)} ${sparkAnim('cb', 3)}`),
 
-  /* ─── Stickman Sword Duel: neon fighters ─── */
-  stickmanswordduel: scene('ssd', '', `
-    <rect x="20" y="100" width="200" height="14" rx="3" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
+  /* ─── Stickman Sword Duel: torch-lit arena, real crossed blades ─── */
+  stickmanswordduel: (() => {
+    const sword = (x1, y1, x2, y2) => {
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const px = -uy, py = ux;
+      const guard = 7, bladeW = 1.7, gripLen = 9;
+      const gx = x1 - ux * gripLen, gy = y1 - uy * gripLen;
+      const cx1 = x1 + px * guard, cy1 = y1 + py * guard;
+      const cx2 = x1 - px * guard, cy2 = y1 - py * guard;
+      const bx1 = x1 + px * bladeW, by1 = y1 + py * bladeW;
+      const bx2 = x1 - px * bladeW, by2 = y1 - py * bladeW;
+      const tx1 = x2 + px * bladeW * 0.2, ty1 = y2 + py * bladeW * 0.2;
+      const tx2 = x2 - px * bladeW * 0.2, ty2 = y2 - py * bladeW * 0.2;
+      const f = n => n.toFixed(1);
+      return `
+        <path d="M${f(gx)} ${f(gy)} L${f(x1)} ${f(y1)}" stroke="var(--line)" stroke-width="3.2" stroke-linecap="round"/>
+        <circle cx="${f(gx)}" cy="${f(gy)}" r="2" fill="var(--line)"/>
+        <path d="M${f(cx1)} ${f(cy1)} L${f(cx2)} ${f(cy2)}" stroke="var(--candle)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M${f(bx1)} ${f(by1)} L${f(tx1)} ${f(ty1)} L${f(x2)} ${f(y2)} L${f(tx2)} ${f(ty2)} L${f(bx2)} ${f(by2)} Z"
+          fill="url(#ssd-blade)" stroke="color-mix(in srgb, var(--text) 55%, transparent)" stroke-width="0.5"/>`;
+    };
+    return scene('ssd', `
+    <linearGradient id="ssd-blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="color-mix(in srgb, #eef2f8 88%, var(--candle))"/>
+      <stop offset="60%" stop-color="color-mix(in srgb, #c9d2de 70%, var(--line))"/>
+      <stop offset="100%" stop-color="var(--line)"/>
+    </linearGradient>`, `
+    <ellipse cx="120" cy="116" rx="98" ry="9" fill="var(--night)" opacity=".4"/>
+    <rect x="18" y="100" width="204" height="14" rx="4" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
+    <rect x="18" y="100" width="204" height="3" fill="var(--candle)" opacity=".22"/>
+
+    <g class="ssd-torchL"><rect x="24" y="66" width="3.5" height="34" fill="var(--line)"/><ellipse cx="25.7" cy="62" rx="5" ry="8" fill="var(--candle)" filter="url(#ssd-glow)"/></g>
+    <g class="ssd-torchR"><rect x="212" y="66" width="3.5" height="34" fill="var(--line)"/><ellipse cx="213.7" cy="62" rx="5" ry="8" fill="var(--candle)" filter="url(#ssd-glow)"/></g>
+
     <g class="ssd-p1">
-      <circle cx="78" cy="58" r="8" fill="var(--p1)"/>
-      <path d="M78 66 V92 M66 74 H90 M78 92 L68 108 M78 92 L88 108" stroke="var(--p1)" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M90 72 L118 54" stroke="var(--candle)" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="118" cy="54" r="3" fill="var(--candle)" filter="url(#ssd-glow)"/>
+      <circle cx="76" cy="58" r="8" fill="var(--p1)"/>
+      <path d="M76 66 V92 M64 76 H88 M76 92 L66 108 M76 92 L86 106" stroke="var(--p1)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      ${sword(88, 74, 128, 48)}
     </g>
     <g class="ssd-p2">
-      <circle cx="162" cy="58" r="8" fill="var(--p2)"/>
-      <path d="M162 66 V92 M148 74 H176 M162 92 L152 108 M162 92 L172 108" stroke="var(--p2)" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M148 72 L122 56" stroke="var(--candle)" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="122" cy="56" r="3" fill="var(--candle)" filter="url(#ssd-glow)"/>
+      <circle cx="164" cy="58" r="8" fill="var(--p2)"/>
+      <path d="M164 66 V92 M152 76 H176 M164 92 L154 106 M164 92 L174 108" stroke="var(--p2)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      ${sword(152, 74, 112, 48)}
     </g>
-    ${sparks('ssd', [[40, 28, 1.6, 'var(--p1)'], [200, 36, 1.6, 'var(--p2)'], [120, 22, 1.4, 'var(--candle)']])}`,
+
+    <g class="ssd-clash" transform="translate(120 52)">
+      <circle r="11" fill="var(--candle)" opacity=".4" filter="url(#ssd-glow2)"/>
+      <path d="M0 -11 L0 11 M-11 0 L11 0 M-7.5 -7.5 L7.5 7.5 M-7.5 7.5 L7.5 -7.5" stroke="color-mix(in srgb, var(--text) 85%, transparent)" stroke-width="1.6"/>
+    </g>
+
+    ${sparks('ssd', [[40, 36, 1.5, 'var(--p1)'], [200, 36, 1.5, 'var(--p2)']])}`,
     `.ssd-p1 { animation: ssd-lunge 2.4s ease-in-out infinite; }
      .ssd-p2 { animation: ssd-lunge 2.4s ease-in-out .3s infinite reverse; }
      @keyframes ssd-lunge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
-     ${sparkAnim('ssd', 3)}`),
+     .ssd-clash { animation: ssd-flash 1.2s ease-in-out infinite; transform-box: fill-box; }
+     @keyframes ssd-flash { 0%,78%,100% { opacity: .25; transform: scale(.8) } 88% { opacity: 1; transform: scale(1.2) } }
+     .ssd-torchL, .ssd-torchR { animation: ssd-flicker 1.4s ease-in-out infinite; }
+     .ssd-torchR { animation-delay: .4s; }
+     @keyframes ssd-flicker { 0%,100% { opacity: .8 } 50% { opacity: 1 } }
+     ${sparkAnim('ssd', 2)}`);
+  })(),
 
   /* ─── Stickman Racing: split-screen Neon City race ─── */
   stickmanracing: scene('sr', `
     <linearGradient id="sr-sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#070b1e"/>
-      <stop offset="100%" stop-color="#182448"/>
+      <stop offset="0%" stop-color="color-mix(in srgb, var(--night) 55%, #070b1e)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--room2) 55%, #182448)"/>
     </linearGradient>
     <linearGradient id="sr-plat" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#2c3a5e"/>
-      <stop offset="100%" stop-color="#1a243f"/>
+      <stop offset="0%" stop-color="color-mix(in srgb, var(--room2) 55%, #2c3a5e)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--night) 55%, #1a243f)"/>
     </linearGradient>
     <clipPath id="sr-clip"><rect x="42" y="16" width="164" height="98" rx="12"/></clipPath>
     <clipPath id="sr-top"><rect x="42" y="16" width="164" height="44"/></clipPath>
@@ -604,7 +647,7 @@ export const ART = {
     <rect x="42" y="16" width="164" height="98" rx="12" fill="url(#sr-sky)" stroke="var(--line)" stroke-width="2"/>
     <g clip-path="url(#sr-clip)">
       <!-- shared skyline (both lanes) -->
-      <g fill="#0c1330" opacity=".95">
+      <g fill="color-mix(in srgb, var(--night) 55%, #0c1330)" opacity=".95">
         <rect x="52" y="28" width="10" height="28"/>
         <rect x="64" y="22" width="14" height="34"/>
         <rect x="80" y="30" width="9" height="26"/>
@@ -612,7 +655,7 @@ export const ART = {
         <rect x="64" y="76" width="14" height="34"/>
         <rect x="80" y="84" width="9" height="26"/>
       </g>
-      <g fill="#111a3e">
+      <g fill="color-mix(in srgb, var(--night) 40%, #111a3e)">
         <rect x="96" y="26" width="12" height="30"/>
         <rect x="110" y="20" width="16" height="36"/>
         <rect x="96" y="80" width="12" height="30"/>
@@ -646,7 +689,7 @@ export const ART = {
       </g>
 
       <!-- progress strip (matches in-game middle bar) -->
-      <rect x="42" y="60" width="164" height="10" fill="#0a0e1a"/>
+      <rect x="42" y="60" width="164" height="10" fill="color-mix(in srgb, var(--night) 65%, #0a0e1a)"/>
       <line x1="54" y1="65" x2="190" y2="65" stroke="rgba(255,255,255,.18)" stroke-width="2" stroke-linecap="round"/>
       <circle cx="118" cy="65" r="3.2" fill="var(--p1)" filter="url(#sr-glow)"/>
       <circle cx="148" cy="65" r="3.2" fill="var(--p2)" filter="url(#sr-glow)"/>
@@ -1306,6 +1349,121 @@ export const ART = {
      @keyframes ti-hole { 0%,100% { opacity: .75 } 50% { opacity: 1 } }
      ${sparkAnim('ti', 4)}`),
 
+  /* ─── Wallmaze: grid race with glowing wall bars + orbs ─── */
+  wallmaze: scene('wm', `
+    <linearGradient id="wm-tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E2740"/>
+      <stop offset="100%" stop-color="#221B2D"/>
+    </linearGradient>
+    <linearGradient id="wm-wall" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E8A94F"/>
+      <stop offset="50%" stop-color="var(--candle)"/>
+      <stop offset="100%" stop-color="#E8A94F"/>
+    </linearGradient>
+    <radialGradient id="wm-orbA" cx="32%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="25%" stop-color="#D6E4FF"/>
+      <stop offset="55%" stop-color="var(--p1)"/>
+      <stop offset="100%" stop-color="#2A4A98"/>
+    </radialGradient>
+    <radialGradient id="wm-orbB" cx="32%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="25%" stop-color="#FFDCE8"/>
+      <stop offset="55%" stop-color="var(--p2)"/>
+      <stop offset="100%" stop-color="#A03868"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="118" rx="78" ry="9" fill="var(--night)" opacity=".45"/>
+    <rect x="42" y="16" width="156" height="96" rx="14" fill="#191424" stroke="var(--line)" stroke-width="1.6"/>
+
+    ${[0,1,2,3].map(r => [0,1,2,3].map(c => {
+      const x = 52 + c * 34, y = 24 + r * 22;
+      const goal = r === 0;
+      return `<rect class="wm-cell${r}${c}" x="${x}" y="${y}" width="28" height="18" rx="5"
+        fill="${goal ? 'url(#wm-tile)' : 'url(#wm-tile)'}"
+        stroke="${goal ? 'var(--candle)' : 'var(--line)'}" stroke-width="${goal ? 1.4 : 1}"
+        opacity="${goal ? '.95' : '.88'}"/>`;
+    }).join('')).join('')}
+
+    <rect class="wm-barh" x="52" y="55" width="62" height="5" rx="2.5" fill="url(#wm-wall)" filter="url(#wm-glow)"/>
+    <rect class="wm-barv" x="147" y="24" width="5" height="40" rx="2.5" fill="url(#wm-wall)" filter="url(#wm-glow)"/>
+
+    <g class="wm-dotA">
+      <circle cx="66" cy="101" r="9" fill="url(#wm-orbA)" filter="url(#wm-glow)"/>
+      <circle cx="63" cy="98" r="2.2" fill="#FFFFFF" opacity=".85"/>
+    </g>
+    <g class="wm-dotB">
+      <circle cx="184" cy="33" r="9" fill="url(#wm-orbB)" filter="url(#wm-glow2)"/>
+      <circle cx="181" cy="30" r="2.2" fill="#FFFFFF" opacity=".85"/>
+    </g>
+
+    ${sparks('wm', [[36, 28, 1.4, 'var(--candle)'], [210, 40, 1.4, 'var(--p1)'], [120, 112, 1.3, 'var(--p2)']])}`,
+    `.wm-dotA { animation: wm-bob 2.2s ease-in-out infinite; }
+     .wm-dotB { animation: wm-bob 2.2s ease-in-out .35s infinite; }
+     @keyframes wm-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     .wm-barh { animation: wm-glowbar 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+     .wm-barv { animation: wm-glowbar 2.4s ease-in-out .5s infinite; transform-origin: center; transform-box: fill-box; }
+     @keyframes wm-glowbar { 0%,100% { opacity: .75 } 50% { opacity: 1; filter: brightness(1.15) } }
+     .wm-cell00,.wm-cell01,.wm-cell02,.wm-cell03 { animation: wm-goal 2.8s ease-in-out infinite; }
+     @keyframes wm-goal { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
+     ${sparkAnim('wm', 3)}`),
+
+  /* ─── Night Curling: house rings + sliding granite stones ─── */
+  nightcurling: scene('nc', `
+    <radialGradient id="nc-house" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="var(--candle)" stop-opacity=".95"/>
+      <stop offset="12%" stop-color="var(--candle)" stop-opacity=".9"/>
+      <stop offset="13%" stop-color="var(--p2)" stop-opacity=".35"/>
+      <stop offset="35%" stop-color="#121A28" stop-opacity=".95"/>
+      <stop offset="36%" stop-color="var(--p1)" stop-opacity=".28"/>
+      <stop offset="62%" stop-color="#16202F" stop-opacity=".9"/>
+      <stop offset="63%" stop-color="var(--p1)" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="#1B2436" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nc-stone" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#5A5566"/>
+      <stop offset="55%" stop-color="#37333F"/>
+      <stop offset="100%" stop-color="#232029"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="118" rx="86" ry="9" fill="var(--night)" opacity=".45"/>
+    <rect x="28" y="22" width="184" height="88" rx="14" fill="#16202F" stroke="var(--line)" stroke-width="1.6"/>
+
+    <!-- hog line -->
+    <line class="nc-hog" x1="78" y1="28" x2="78" y2="104" stroke="var(--bad, #FF8A8A)" stroke-width="2.5" stroke-dasharray="8 6" opacity=".65"/>
+
+    <!-- house -->
+    <circle cx="168" cy="66" r="42" fill="url(#nc-house)" filter="url(#nc-glow)"/>
+    <circle cx="168" cy="66" r="42" fill="none" stroke="rgba(242,237,247,.2)" stroke-width="1.2"/>
+    <circle cx="168" cy="66" r="28" fill="none" stroke="rgba(242,237,247,.18)" stroke-width="1"/>
+    <circle cx="168" cy="66" r="15" fill="none" stroke="rgba(242,237,247,.22)" stroke-width="1"/>
+
+    <!-- guide trail -->
+    <path class="nc-trail" d="M48 66 Q100 58 150 66" fill="none" stroke="var(--candle)" stroke-width="2.5"
+      stroke-dasharray="5 8" opacity=".55" stroke-linecap="round"/>
+
+    <g class="nc-s1">
+      <circle cx="52" cy="66" r="11" fill="url(#nc-stone)" filter="url(#nc-glow)"/>
+      <path d="M44 60 A8 8 0 0 1 58 60" fill="none" stroke="var(--p1)" stroke-width="3.2" stroke-linecap="round"/>
+    </g>
+    <g class="nc-s2">
+      <circle cx="148" cy="78" r="11" fill="url(#nc-stone)" filter="url(#nc-glow2)"/>
+      <path d="M140 72 A8 8 0 0 1 154 72" fill="none" stroke="var(--p2)" stroke-width="3.2" stroke-linecap="round"/>
+    </g>
+
+    ${sparks('nc', [[40, 32, 1.4, 'var(--p1)'], [210, 40, 1.4, 'var(--candle)'], [100, 108, 1.3, 'var(--p2)']])}`,
+    `.nc-s1 { animation: nc-slide 3.2s ease-in-out infinite; }
+     @keyframes nc-slide {
+       0% { transform: translate(0,0); opacity: .9 }
+       55% { transform: translate(88px,-4px); opacity: 1 }
+       75%,100% { transform: translate(96px,-2px); opacity: .55 }
+     }
+     .nc-s2 { animation: nc-bob 2.4s ease-in-out .4s infinite; }
+     @keyframes nc-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+     .nc-trail { animation: nc-dash 2.8s linear infinite; }
+     @keyframes nc-dash { to { stroke-dashoffset: -52 } }
+     .nc-hog { animation: nc-hogpulse 2.2s ease-in-out infinite; }
+     @keyframes nc-hogpulse { 0%,100% { opacity: .45 } 50% { opacity: .85 } }
+     ${sparkAnim('nc', 3)}`),
+
   /* ─── Sumo Bomb: ring of alternating sumos + fused bomb ─── */
   sumobomb: scene('sb', `
     <radialGradient id="sb-ring" cx="50%" cy="50%" r="50%">
@@ -1574,7 +1732,331 @@ export const ART = {
      .mh-spark { animation: mh-flick .4s ease-in-out infinite alternate; }
      @keyframes mh-flick { from { opacity: .5 } to { opacity: 1 } }
      .mh-bomb { animation: mh-bob 1.8s ease-in-out .2s infinite; }
-     ${sparkAnim('mh', 4)}`)
+     ${sparkAnim('mh', 4)}`),
+
+  /* ─── Stickman Archery Battle: moonlit hills, real bows & flying arrows ─── */
+  stickmanarchery: scene('sab', `
+    <linearGradient id="sab-hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--room2)"/>
+      <stop offset="100%" stop-color="var(--night)"/>
+    </linearGradient>
+    <radialGradient id="sab-moon" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="60%" stop-color="color-mix(in srgb, var(--candle) 55%, #fff)"/>
+      <stop offset="100%" stop-color="var(--candle)"/>
+    </radialGradient>`, `
+    <circle cx="120" cy="26" r="10" fill="url(#sab-moon)" opacity=".92" filter="url(#sab-glow)"/>
+    <g fill="color-mix(in srgb, var(--text) 55%, transparent)">
+      <circle cx="44" cy="20" r="1.1"/><circle cx="70" cy="34" r="1"/><circle cx="168" cy="16" r="1.2"/>
+      <circle cx="196" cy="38" r="1"/><circle cx="92" cy="14" r=".9"/>
+    </g>
+    <path d="M14 118 Q46 74 80 118 Z" fill="url(#sab-hill)" stroke="var(--p1)" stroke-width="2"/>
+    <path d="M160 118 Q194 74 226 118 Z" fill="url(#sab-hill)" stroke="var(--p2)" stroke-width="2"/>
+
+    <g class="sab-balloon">
+      <path d="M120 68 Q123 76 120 84" stroke="color-mix(in srgb, var(--text) 45%, transparent)" stroke-width="1" fill="none"/>
+      <ellipse cx="120" cy="62" rx="9" ry="11" fill="var(--candle)" filter="url(#sab-glow)"/>
+      <path d="M114 60 Q120 54 126 60" stroke="#fff" stroke-width="1.2" fill="none" opacity=".5"/>
+    </g>
+
+    <g class="sab-p1">
+      <circle cx="46" cy="74" r="6" fill="var(--p1)"/>
+      <path d="M46 80 V98 M38 86 H54 M46 98 L40 110 M46 98 L52 110" stroke="var(--p1)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M56 66 Q70 80 56 94" stroke="var(--candle)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M56 66 L56 94" stroke="color-mix(in srgb, var(--text) 55%, transparent)" stroke-width="1"/>
+      <line x1="56" y1="80" x2="80" y2="80" stroke="color-mix(in srgb, var(--text) 90%, transparent)" stroke-width="2" stroke-linecap="round" class="sab-arrow"/>
+    </g>
+    <g class="sab-p2">
+      <circle cx="194" cy="74" r="6" fill="var(--p2)"/>
+      <path d="M194 80 V98 M186 86 H202 M194 98 L188 110 M194 98 L200 110" stroke="var(--p2)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M184 66 Q170 80 184 94" stroke="var(--candle)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M184 66 L184 94" stroke="color-mix(in srgb, var(--text) 55%, transparent)" stroke-width="1"/>
+    </g>
+    ${sparks('sab', [[34, 50, 1.4, 'var(--p1)'], [206, 54, 1.4, 'var(--p2)']])}`,
+    `.sab-p1 { animation: sab-draw 2.6s ease-in-out infinite; }
+     .sab-p2 { animation: sab-draw 2.6s ease-in-out .35s infinite reverse; }
+     .sab-arrow { animation: sab-fly 2.6s ease-in-out infinite; }
+     .sab-balloon { animation: sab-bob 3.2s ease-in-out infinite; }
+     @keyframes sab-draw { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+     @keyframes sab-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+     @keyframes sab-fly {
+       0%,10% { opacity: 0; transform: translate(0,0) }
+       20% { opacity: 1 }
+       75% { opacity: 1; transform: translate(112px,-8px) }
+       88%,100% { opacity: 0; transform: translate(124px,-10px) }
+     }
+     ${sparkAnim('sab', 2)}`),
+
+  /* ─── Stickman Dodgeball: framed arena, hazard storm, dodging duo ─── */
+  stickmandodgeball: scene('sdb', `
+    <linearGradient id="sdb-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="color-mix(in srgb, var(--night) 55%, #0a0714)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--room2) 55%, #1a1430)"/>
+    </linearGradient>
+    <radialGradient id="sdb-storm" cx="50%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="var(--p2)" stop-opacity=".25"/>
+      <stop offset="100%" stop-color="var(--p2)" stop-opacity="0"/>
+    </radialGradient>`, `
+    <rect x="14" y="14" width="212" height="102" rx="12" fill="url(#sdb-sky)" stroke="var(--line)" stroke-width="2"/>
+    <ellipse cx="120" cy="22" rx="90" ry="26" fill="url(#sdb-storm)"/>
+    <rect x="14" y="100" width="212" height="16" rx="4" fill="var(--room2)"/>
+    <rect x="14" y="100" width="212" height="3" fill="var(--candle)" opacity=".2"/>
+
+    <g class="sdb-haz1" filter="url(#sdb-glow)">
+      <circle cx="72" cy="26" r="7" fill="var(--candle)"/>
+      <path d="M72 33 L66 44 L78 44 Z" fill="var(--candle)"/>
+    </g>
+    <g class="sdb-haz2" filter="url(#sdb-glow)">
+      <rect x="150" y="18" width="13" height="13" rx="2" fill="var(--p2)" transform="rotate(24 156.5 24.5)"/>
+    </g>
+    <g class="sdb-haz3" filter="url(#sdb-glow)">
+      <circle cx="112" cy="20" r="5" fill="color-mix(in srgb, var(--text) 60%, var(--candle))"/>
+    </g>
+
+    <g class="sdb-p1">
+      <circle cx="66" cy="76" r="6" fill="var(--p1)"/>
+      <path d="M66 82 V96 M58 88 H74 M66 96 L58 92 M66 96 L76 108" stroke="var(--p1)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="sdb-p2">
+      <circle cx="168" cy="70" r="6" fill="var(--p2)"/>
+      <path d="M168 76 V94 M160 84 H176 M168 94 L162 108 M168 94 L174 108" stroke="var(--p2)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <rect x="14" y="14" width="212" height="102" rx="12" fill="none" stroke="var(--line)" stroke-width="2"/>
+    ${sparks('sdb', [[40, 40, 1.4, 'var(--candle)'], [200, 36, 1.3, 'var(--p2)'], [120, 96, 1.3, 'var(--p1)']])}`,
+    `.sdb-haz1 { animation: sdb-fall 2.1s ease-in infinite; }
+     .sdb-haz2 { animation: sdb-fall 2.1s ease-in .6s infinite; }
+     .sdb-haz3 { animation: sdb-fall 2.1s ease-in 1.2s infinite; }
+     @keyframes sdb-fall {
+       0% { transform: translateY(-6px); opacity: 0 }
+       15% { opacity: 1 }
+       100% { transform: translateY(78px); opacity: .15 }
+     }
+     .sdb-p1 { animation: sdb-slide 1.8s ease-in-out infinite; }
+     .sdb-p2 { animation: sdb-hop 1.6s ease-in-out .3s infinite; }
+     @keyframes sdb-slide { 0%,100% { transform: translate(0,0) } 50% { transform: translate(10px,4px) } }
+     @keyframes sdb-hop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-9px) } }
+     ${sparkAnim('sdb', 3)}`),
+
+  /* ─── Stickman Moto Race: framed split-screen, real bikes on the road ─── */
+  stickmanmotorace: scene('smr', `
+    <linearGradient id="smr-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="color-mix(in srgb, var(--night) 55%, #081018)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--room2) 55%, #142438)"/>
+    </linearGradient>
+    <linearGradient id="smr-road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="color-mix(in srgb, var(--line) 45%, #1a2a44)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--night) 55%, #0c1528)"/>
+    </linearGradient>
+    <clipPath id="smr-top"><rect x="18" y="14" width="204" height="48" rx="8"/></clipPath>
+    <clipPath id="smr-bot"><rect x="18" y="68" width="204" height="48" rx="8"/></clipPath>`, `
+    <rect x="18" y="14" width="204" height="102" rx="10" fill="url(#smr-sky)"/>
+
+    <g clip-path="url(#smr-top)">
+      <path d="M18 52 Q70 34 120 46 T222 42 L222 62 L18 62 Z" fill="url(#smr-road)"/>
+      <line x1="200" y1="18" x2="200" y2="58" stroke="color-mix(in srgb, var(--text) 85%, transparent)" stroke-width="2" stroke-dasharray="5 4"/>
+      <g class="smr-speed1">
+        <line x1="30" y1="44" x2="48" y2="44" stroke="var(--p1)" stroke-width="2"/>
+        <line x1="26" y1="52" x2="46" y2="52" stroke="var(--p1)" stroke-width="2" opacity=".7"/>
+      </g>
+      <g transform="translate(70 50)">
+        <g class="smr-bike1">
+          <circle cx="0" cy="0" r="7" fill="none" stroke="var(--p1)" stroke-width="2.2"/>
+          <circle cx="20" cy="0" r="7" fill="none" stroke="var(--p1)" stroke-width="2.2"/>
+          <path d="M0 0 L10 -10 L20 0 M10 -10 L10 -18 M6 -18 L14 -18" stroke="var(--p1)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <circle cx="10" cy="-24" r="4" fill="var(--p1)"/>
+        </g>
+      </g>
+    </g>
+
+    <rect x="18" y="62" width="204" height="6" fill="color-mix(in srgb, var(--night) 60%, #0a0e1a)"/>
+    <circle cx="110" cy="65" r="2.6" fill="var(--p1)" filter="url(#smr-glow)"/>
+    <circle cx="130" cy="65" r="2.6" fill="var(--p2)" filter="url(#smr-glow)"/>
+
+    <g clip-path="url(#smr-bot)">
+      <path d="M18 108 Q70 90 120 102 T222 98 L222 118 L18 118 Z" fill="url(#smr-road)"/>
+      <line x1="200" y1="72" x2="200" y2="112" stroke="color-mix(in srgb, var(--text) 85%, transparent)" stroke-width="2" stroke-dasharray="5 4"/>
+      <g class="smr-speed2">
+        <line x1="30" y1="98" x2="48" y2="98" stroke="var(--p2)" stroke-width="2"/>
+        <line x1="26" y1="106" x2="46" y2="106" stroke="var(--p2)" stroke-width="2" opacity=".7"/>
+      </g>
+      <g transform="translate(58 104)">
+        <g class="smr-bike2">
+          <circle cx="0" cy="0" r="7" fill="none" stroke="var(--p2)" stroke-width="2.2"/>
+          <circle cx="20" cy="0" r="7" fill="none" stroke="var(--p2)" stroke-width="2.2"/>
+          <path d="M0 0 L10 -10 L20 0 M10 -10 L10 -18 M6 -18 L14 -18" stroke="var(--p2)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <circle cx="10" cy="-24" r="4" fill="var(--p2)"/>
+        </g>
+      </g>
+    </g>
+
+    <rect x="18" y="14" width="204" height="102" rx="10" fill="none" stroke="var(--line)" stroke-width="2"/>
+    ${sparks('smr', [[32, 26, 1.4, 'var(--p1)'], [206, 88, 1.4, 'var(--p2)'], [120, 40, 1.3, 'var(--candle)']])}`,
+    `.smr-bike1 { animation: smr-race 1.8s ease-in-out infinite; }
+     .smr-bike2 { animation: smr-race 1.8s ease-in-out .3s infinite; }
+     @keyframes smr-race { 0%,100% { transform: translateX(0) } 50% { transform: translateX(16px) } }
+     .smr-speed1, .smr-speed2 { animation: smr-zoom 1s ease-in-out infinite; }
+     @keyframes smr-zoom { 0%,100% { opacity: .25 } 50% { opacity: .7 } }
+     ${sparkAnim('smr', 3)}`),
+
+  /* ─── Stickman Gunfight: circular arena, real sidearms + muzzle flash ─── */
+  stickmangunfight: scene('sgf', `
+    <radialGradient id="sgf-arena" cx="50%" cy="55%" r="60%">
+      <stop offset="0%" stop-color="color-mix(in srgb, var(--room2) 60%, #1a2238)"/>
+      <stop offset="100%" stop-color="color-mix(in srgb, var(--night) 70%, #070a12)"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="72" rx="94" ry="46" fill="url(#sgf-arena)" stroke="var(--line)" stroke-width="2"/>
+    <ellipse cx="120" cy="72" rx="56" ry="26" fill="none" stroke="var(--candle)" stroke-width="1.5" opacity=".3"/>
+
+    <rect x="94" y="88" width="10" height="20" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
+    <rect x="136" y="38" width="10" height="20" rx="2" fill="var(--room2)" stroke="var(--line)" stroke-width="1.5"/>
+
+    <g class="sgf-p1">
+      <circle cx="72" cy="66" r="5.5" fill="var(--p1)"/>
+      <path d="M72 71.5 V88 M65 78 H82 M72 88 L67 100 M72 88 L79 100" stroke="var(--p1)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M82 78 L100 76 L102 79 L86 82 Z" fill="var(--line)"/>
+      <rect x="98" y="74" width="4" height="4" fill="var(--line)"/>
+      <g class="sgf-flash1">
+        <circle cx="106" cy="77" r="4" fill="var(--candle)" filter="url(#sgf-glow)"/>
+        <path d="M106 77 L114 74 M106 77 L115 77 M106 77 L114 80" stroke="var(--candle)" stroke-width="1.4"/>
+      </g>
+    </g>
+
+    <g class="sgf-p2">
+      <circle cx="168" cy="66" r="5.5" fill="var(--p2)"/>
+      <path d="M168 71.5 V88 M161 78 H178 M168 88 L163 100 M168 88 L175 100" stroke="var(--p2)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M158 78 L140 76 L138 79 L154 82 Z" fill="var(--line)"/>
+      <rect x="138" y="74" width="4" height="4" fill="var(--line)"/>
+      <g class="sgf-flash2">
+        <circle cx="134" cy="77" r="4" fill="var(--candle)" filter="url(#sgf-glow)"/>
+        <path d="M134 77 L126 74 M134 77 L125 77 M134 77 L126 80" stroke="var(--candle)" stroke-width="1.4"/>
+      </g>
+    </g>
+
+    ${sparks('sgf', [[48, 40, 1.4, 'var(--p1)'], [192, 42, 1.4, 'var(--p2)'], [120, 32, 1.4, 'var(--candle)']])}`,
+    `.sgf-p1 { animation: sgf-strafe 2s ease-in-out infinite; }
+     .sgf-p2 { animation: sgf-strafe 2s ease-in-out .3s infinite reverse; }
+     .sgf-flash1 { animation: sgf-flash 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+     .sgf-flash2 { animation: sgf-flash 1.6s ease-in-out .8s infinite; transform-box: fill-box; transform-origin: center; }
+     @keyframes sgf-strafe { 0%,100% { transform: translateX(0) } 50% { transform: translateX(6px) } }
+     @keyframes sgf-flash { 0%,55%,100% { opacity: 0; transform: scale(.5) } 65% { opacity: 1; transform: scale(1.15) } 80% { opacity: 0; transform: scale(.7) } }
+     ${sparkAnim('sgf', 3)}`),
+
+  /* ─── Dominoes: tiles cascade into a snake chain ─── */
+  dominoes: scene('dom', `
+    <linearGradient id="dom-bone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF8EC"/>
+      <stop offset="100%" stop-color="#E8DCC4"/>
+    </linearGradient>
+    <radialGradient id="dom-gold" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="var(--candle)" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="var(--candle)" stop-opacity="0"/>
+    </radialGradient>`, `
+    <ellipse cx="120" cy="118" rx="92" ry="10" fill="var(--night)" opacity=".38"/>
+
+    <!-- boneyard stack -->
+    <g transform="translate(18 78)">
+      <g class="dom-yard">
+        <rect x="2" y="4" width="22" height="44" rx="5" fill="url(#dom-bone)" stroke="var(--line)" stroke-width="1.2" opacity=".55"/>
+        <rect x="0" y="0" width="22" height="44" rx="5" fill="url(#dom-bone)" stroke="var(--line)" stroke-width="1.4"/>
+        <line x1="3" y1="22" x2="19" y2="22" stroke="var(--line)" stroke-width="1" opacity=".4"/>
+      </g>
+    </g>
+
+    <!-- open-end glows -->
+    <circle class="dom-glow-l" cx="58" cy="70" r="18" fill="url(#dom-gold)"/>
+    <circle class="dom-glow-r" cx="196" cy="70" r="18" fill="url(#dom-gold)"/>
+
+    <!-- snake: tile 1 upright -->
+    <g transform="translate(44 42)">
+      <g class="dom-t1">
+        <rect width="28" height="56" rx="6" fill="url(#dom-bone)" stroke="var(--line)" stroke-width="1.5"/>
+        <line x1="4" y1="28" x2="24" y2="28" stroke="var(--line)" stroke-width="1.2" opacity=".45"/>
+        <circle cx="14" cy="14" r="3" fill="var(--p1)"/>
+        <circle cx="9" cy="42" r="2.4" fill="var(--night)" opacity=".75"/>
+        <circle cx="19" cy="42" r="2.4" fill="var(--night)" opacity=".75"/>
+        <circle cx="14" cy="48" r="2.4" fill="var(--night)" opacity=".75"/>
+      </g>
+    </g>
+
+    <!-- snake: tile 2 horizontal (spinner) -->
+    <g transform="translate(100 70)">
+      <g class="dom-t2">
+        <g transform="rotate(90)">
+          <rect width="28" height="56" rx="6" fill="url(#dom-bone)" stroke="var(--candle)" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="24" y2="28" stroke="var(--line)" stroke-width="1.2" opacity=".45"/>
+          <circle cx="14" cy="14" r="3" fill="var(--candle)"/>
+          <circle cx="14" cy="42" r="3" fill="var(--candle)"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- snake: tile 3 upright -->
+    <g transform="translate(156 42)">
+      <g class="dom-t3">
+        <rect width="28" height="56" rx="6" fill="url(#dom-bone)" stroke="var(--line)" stroke-width="1.5"/>
+        <line x1="4" y1="28" x2="24" y2="28" stroke="var(--line)" stroke-width="1.2" opacity=".45"/>
+        <circle cx="9" cy="10" r="2.3" fill="var(--p2)"/>
+        <circle cx="19" cy="10" r="2.3" fill="var(--p2)"/>
+        <circle cx="14" cy="16" r="2.3" fill="var(--p2)"/>
+        <circle cx="14" cy="42" r="3" fill="var(--night)" opacity=".75"/>
+      </g>
+    </g>
+
+    <!-- flying tile about to land -->
+    <g transform="translate(188 18)">
+      <g class="dom-fly">
+        <rect width="24" height="48" rx="5" fill="url(#dom-bone)" stroke="var(--p1)" stroke-width="1.6" opacity=".95"/>
+        <line x1="3" y1="24" x2="21" y2="24" stroke="var(--line)" stroke-width="1" opacity=".4"/>
+        <circle cx="12" cy="12" r="2.6" fill="var(--p1)"/>
+        <circle cx="12" cy="36" r="2.6" fill="var(--night)" opacity=".7"/>
+      </g>
+    </g>
+
+    ${sparks('dom', [[40, 28, 1.4, 'var(--p1)'], [200, 36, 1.4, 'var(--p2)'], [120, 24, 1.4, 'var(--candle)']])}`,
+    `.dom-yard { animation: dom-yard-bob 2.8s ease-in-out infinite; transform-origin: 11px 22px; transform-box: fill-box; }
+     @keyframes dom-yard-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+     .dom-t1 { animation: dom-place 3.6s ease-out infinite; transform-origin: 14px 28px; transform-box: fill-box; }
+     .dom-t2 { animation: dom-place 3.6s ease-out .35s infinite; transform-origin: 0 14px; transform-box: fill-box; }
+     .dom-t3 { animation: dom-place 3.6s ease-out .7s infinite; transform-origin: 14px 28px; transform-box: fill-box; }
+     @keyframes dom-place {
+       0% { transform: translateY(-18px) scale(.85); opacity: 0 }
+       18% { transform: translateY(0) scale(1); opacity: 1 }
+       72% { transform: translateY(0) scale(1); opacity: 1 }
+       88%,100% { transform: translateY(4px) scale(.96); opacity: .35 }
+     }
+     .dom-fly { animation: dom-flyin 3.6s cubic-bezier(.2,.8,.2,1) 1.05s infinite; transform-origin: 12px 24px; transform-box: fill-box; }
+     @keyframes dom-flyin {
+       0% { transform: translate(22px,-28px) rotate(-28deg); opacity: 0 }
+       35% { transform: translate(0,0) rotate(0deg); opacity: 1 }
+       70% { transform: translate(0,0) rotate(0deg); opacity: 1 }
+       90%,100% { transform: translate(8px,10px) rotate(8deg); opacity: 0 }
+     }
+     .dom-glow-l, .dom-glow-r { animation: dom-glow 1.8s ease-in-out infinite; }
+     .dom-glow-r { animation-delay: .4s; }
+     @keyframes dom-glow { 0%,100% { opacity: .25 } 50% { opacity: .85 } }
+     ${sparkAnim('dom', 3)}`),
+
+  /* ─── Word Grid: 4×4 letter hunt ─── */
+  wordgrid: scene('wg', '', `
+    <g font-family="'JetBrains Mono',monospace" font-weight="800" font-size="14" text-anchor="middle">
+      ${[[0,'C'],[1,'A'],[2,'T'],[3,'S'],[4,'R'],[5,'O'],[6,'P'],[7,'E'],[8,'L'],[9,'I'],[10,'N'],[11,'K'],[12,'B'],[13,'U'],[14,'G'],[15,'Y']].map(([i, ch]) => {
+        const col = i % 4, row = Math.floor(i / 4);
+        const x = 52 + col * 34, y = 18 + row * 26;
+        const fill = i === 0 || i === 5 || i === 10 ? 'var(--p1)' : i === 2 || i === 7 || i === 13 ? 'var(--p2)' : 'var(--room2)';
+        const stroke = i === 0 || i === 5 || i === 10 ? 'var(--p1)' : i === 2 || i === 7 || i === 13 ? 'var(--p2)' : 'var(--line)';
+        return `<g class="wg-cell${i}">
+          <rect x="${x}" y="${y}" width="28" height="22" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5" opacity=".92"/>
+          <text x="${x + 14}" y="${y + 16}" fill="var(--text)">${ch}</text>
+        </g>`;
+      }).join('')}
+    </g>
+    ${sparks('wg', [[36, 24, 1.4, 'var(--p1)'], [204, 40, 1.4, 'var(--p2)'], [120, 118, 1.3, 'var(--candle)']])}`,
+    `${[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(i =>
+      `.wg-cell${i} { animation: wg-pop 2.8s ease-in-out ${(i % 4) * 0.08 + Math.floor(i / 4) * 0.05}s infinite; }`
+    ).join('')}
+     @keyframes wg-pop { 0%,100% { transform: translateY(0); opacity: .9 } 50% { transform: translateY(-2px); opacity: 1 } }
+     ${sparkAnim('wg', 3)}`)
 };
 
 export const artFor = id => ART[id] || null;

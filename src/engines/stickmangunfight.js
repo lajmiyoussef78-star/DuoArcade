@@ -1,18 +1,18 @@
-// Stickman Sword Duel — couch co-op (same keyboard), as-is from upstream.
+// Stickman Gunfight — couch co-op (same keyboard), as-is from upstream.
 // No dedicated SQL schema — match wins go through the shell onFinish tally.
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
-import StickmanSwordDuelShell from '../stickman/StickmanSwordDuelShell.jsx';
+import StickmanGunfightShell from '../stickman/StickmanGunfightShell.jsx';
 
 let root = null;
 let pausedRef = { current: false };
 let finished = false;
 
 export const meta = {
-  id: 'stickmanswordduel',
-  name: 'Stickman Sword Duel',
-  tag: 'same keyboard · co-op · neon fighter · first to 3',
+  id: 'stickmangunfight',
+  name: 'Stickman Gunfight',
+  tag: 'same keyboard · co-op · neon arena · gunfight',
   accent: 'p2',
   realtime: true
 };
@@ -23,7 +23,7 @@ export function mount(el, ctx) {
   pausedRef = { current: false };
   el.innerHTML = '';
   const wrap = document.createElement('div');
-  wrap.className = 'ssd-wrap';
+  wrap.className = 'sgf-wrap';
   el.appendChild(wrap);
 
   const isHost = ctx.myRole === 'A';
@@ -34,7 +34,7 @@ export function mount(el, ctx) {
   };
 
   root = createRoot(wrap);
-  root.render(createElement(StickmanSwordDuelShell, {
+  root.render(createElement(StickmanGunfightShell, {
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

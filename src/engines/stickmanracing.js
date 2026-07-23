@@ -1,9 +1,9 @@
-// Stickman Racing — neon parkour duel, host-authoritative over duo realtime.
+// Stickman Racing — couch co-op (same keyboard), as-is from upstream.
 // No dedicated SQL schema — match wins go through the shell onFinish tally.
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
-import StickmanRacing from '../stickman/StickmanRacing.jsx';
+import StickmanRacingShell from '../stickman/StickmanRacingShell.jsx';
 
 let root = null;
 let pausedRef = { current: false };
@@ -12,7 +12,7 @@ let finished = false;
 export const meta = {
   id: 'stickmanracing',
   name: 'Stickman Racing',
-  tag: 'real-time · parkour · first to the flag',
+  tag: 'same keyboard · co-op · parkour · first to the flag',
   accent: 'p1',
   realtime: true
 };
@@ -34,10 +34,7 @@ export function mount(el, ctx) {
   };
 
   root = createRoot(wrap);
-  root.render(createElement(StickmanRacing, {
-    myRole: ctx.myRole,
-    names: ctx.names,
-    rt: ctx.rt,
+  root.render(createElement(StickmanRacingShell, {
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

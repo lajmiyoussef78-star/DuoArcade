@@ -1306,6 +1306,21 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .ss-canvas{width:100%;max-width:800px;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;}
 .arcade-page .rsc-wrap{width:100%;}
 .arcade-page .ssd-wrap{width:100%;max-width:960px;margin:0 auto;}
+.arcade-page .ssd-wrap .ssd-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
+.arcade-page .dominoes-wrap{width:100%;max-width:720px;margin:0 auto;}
+.arcade-page .dominoes-wrap > div{min-height:0 !important;padding:8px 0 16px !important;}
+.arcade-page .wordgrid-wrap{width:100%;max-width:560px;margin:0 auto;}
+.arcade-page .wordgrid-wrap > div{min-height:0 !important;padding:8px 0 16px !important;}
+.arcade-page .sr-wrap{width:100%;max-width:960px;margin:0 auto;}
+.arcade-page .sr-wrap .sr-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
+.arcade-page .sab-wrap{width:100%;max-width:960px;margin:0 auto;}
+.arcade-page .sab-wrap .sab-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
+.arcade-page .sdb-wrap{width:100%;max-width:960px;margin:0 auto;}
+.arcade-page .sdb-wrap .sdb-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
+.arcade-page .smr-wrap{width:100%;max-width:960px;margin:0 auto;}
+.arcade-page .smr-wrap .smr-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
+.arcade-page .sgf-wrap{width:100%;max-width:960px;margin:0 auto;}
+.arcade-page .sgf-wrap .sgf-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
 .arcade-page .sc-wrap{width:100%;max-width:860px;margin:0 auto;}
 .arcade-page .sc-embedded{padding:8px 0 20px;}
 .arcade-page .mo-wrap{width:100%;max-width:620px;margin:0 auto;}

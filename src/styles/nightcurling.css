@@ -1,0 +1,94 @@
+/* src/styles/nightcurling.css — Night Curling ice sheet (arcade theme). */
+
+.arcade-page .nightcurling-wrap,
+.nightcurling-wrap { width: 100%; }
+
+.arcade-page .nc-shell,
+.arcade-page .nc-table,
+.arcade-page .nc-gamewrap,
+.arcade-page .nc-canvaswrap,
+.arcade-page .nc-toolbar,
+.arcade-page .nc-dock { box-sizing: border-box; }
+
+.arcade-page .nc-shell { padding: 4px 0 8px; }
+.arcade-page .nc-table { padding: 12px 10px 14px; }
+.arcade-page .nc-status { padding: 20px; }
+.arcade-page .nc-toolbar { padding: 0 0 4px; }
+.arcade-page .nc-dock { padding: 8px 10px 4px; }
+.arcade-page .nc-dock .btn,
+.arcade-page .nc-curlbar .btn { padding: 7px 12px; }
+
+.nc-shell {
+  width: 100%; max-width: 940px; margin: 0 auto;
+  color: var(--text); font-family: 'Inter', sans-serif;
+  position: relative;
+}
+.pA { color: var(--p1); } .pB { color: var(--p2); }
+
+.nc-table {
+  position: relative;
+  border-radius: 28px;
+  padding: 12px 10px 14px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--p1) 28%, var(--line));
+  background:
+    radial-gradient(ellipse 90% 70% at 70% 40%, color-mix(in srgb, var(--p1) 10%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 20% 80%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--room) 92%, #000), var(--night));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.nc-gamewrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.nc-toolbar { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.nc-brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; }
+
+.nc-hud {
+  display: flex; justify-content: space-between; align-items: center; width: 100%;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; gap: 10px;
+}
+.nc-hud b { font-size: 18px; }
+.nc-endinfo { color: var(--dim); font-size: 11.5px; text-align: center; }
+.nc-endinfo em { font-style: normal; color: var(--candle); }
+.nc-stonedots { display: inline-flex; gap: 3px; margin: 0 8px; vertical-align: middle; }
+.nc-stonedots i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--room2); border: 1px solid var(--line);
+}
+.nc-stonedots i.A.on { background: var(--p1); border-color: var(--p1); }
+.nc-stonedots i.B.on { background: var(--p2); border-color: var(--p2); }
+
+.nc-statusline { min-height: 22px; font-size: 13.5px; color: var(--dim); text-align: center; }
+.nc-winline { font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; color: var(--candle); }
+.nc-status { text-align: center; color: var(--dim); }
+.nc-note { text-align: center; font-size: 11.5px; color: var(--dim); margin: 0; }
+
+.nc-canvaswrap {
+  position: relative; width: 100%; max-width: 900px; touch-action: none;
+  border-radius: 18px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35); user-select: none; cursor: crosshair;
+}
+.nc-canvas { display: block; width: 100%; height: auto; }
+
+.nc-curlbar { display: flex; align-items: center; gap: 8px; }
+.nc-curllabel {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+
+.nc-sweepbtn {
+  width: 150px; height: 62px; border-radius: 999px;
+  border: 2px solid var(--candle);
+  background: color-mix(in srgb, var(--candle) 14%, transparent);
+  color: var(--candle);
+  font-family: 'Fraunces', serif; font-weight: 800; font-size: 20px; letter-spacing: .06em;
+  cursor: pointer; touch-action: none; user-select: none;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--candle) 18%, transparent);
+  animation: nc-urge 0.8s ease-in-out infinite;
+}
+.nc-sweepbtn:active { background: var(--candle); color: #2a1e05; transform: scale(.96); }
+@keyframes nc-urge {
+  0%,100% { box-shadow: 0 0 14px color-mix(in srgb, var(--candle) 15%, transparent); }
+  50% { box-shadow: 0 0 26px color-mix(in srgb, var(--candle) 40%, transparent); }
+}
+
+.nc-dock { display: flex; justify-content: center; }

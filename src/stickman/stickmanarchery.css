@@ -1,0 +1,267 @@
+/* ========== Map card backgrounds ========== */
+@keyframes map-drift {
+  from { transform: translateX(-30%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes map-star-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes map-firefly {
+  0%, 100% { transform: translate(0, 0); opacity: 0.35; }
+  50% { transform: translate(6px, -8px); opacity: 1; }
+}
+
+@keyframes map-moon-pulse {
+  0%, 100% { opacity: 0.75; filter: blur(0); }
+  50% { opacity: 1; filter: blur(0.5px); }
+}
+
+@keyframes map-dust {
+  0% { transform: translateY(10px); opacity: 0; }
+  20% { opacity: 0.55; }
+  100% { transform: translateY(-55px); opacity: 0; }
+}
+
+@keyframes map-window-flicker {
+  0%, 100% { opacity: 0.85; }
+  40% { opacity: 0.25; }
+  55% { opacity: 1; }
+  70% { opacity: 0.4; }
+}
+
+@keyframes map-rain {
+  from { transform: translateY(-10px) translateX(0); }
+  to { transform: translateY(100px) translateX(-18px); }
+}
+
+@keyframes map-lightning {
+  0%, 92%, 100% { opacity: 0; }
+  93% { opacity: 0.55; }
+  94% { opacity: 0.1; }
+  95% { opacity: 0.7; }
+  97% { opacity: 0; }
+}
+
+@keyframes map-cloud {
+  from { transform: translateX(-40%); }
+  to { transform: translateX(140%); }
+}
+
+@keyframes map-gate {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes map-grass {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(8deg); }
+}
+
+/* ========== Mini archers ========== */
+@keyframes archer-patrol {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(16px); }
+  50%  { transform: translateX(16px) scaleX(-1); }
+  95%  { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+@keyframes archer-patrol-flip {
+  0%   { transform: translateX(0) scaleX(-1); }
+  45%  { transform: translateX(-16px) scaleX(-1); }
+  50%  { transform: translateX(-16px) scaleX(1); }
+  95%  { transform: translateX(0) scaleX(1); }
+  100% { transform: translateX(0) scaleX(-1); }
+}
+
+@keyframes archer-hop {
+  0%, 70%, 100% { transform: translateY(0); }
+  78% { transform: translateY(-7px); }
+  86% { transform: translateY(0); }
+}
+
+@keyframes archer-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--neon)); }
+  50% { filter: drop-shadow(0 0 5px var(--neon)); }
+}
+
+.map-preview {
+  position: relative;
+  height: 96px;
+  overflow: hidden;
+}
+
+.map-preview .sky {
+  position: absolute;
+  inset: 0;
+}
+
+.map-preview .star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #e8f0ff;
+  animation: map-star-twinkle 2.4s ease-in-out infinite;
+}
+
+.map-preview .moon {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: #eef4ff;
+  box-shadow: 0 0 12px 3px rgba(200, 220, 255, 0.55);
+  animation: map-moon-pulse 3.2s ease-in-out infinite;
+}
+
+.map-preview .cloud {
+  position: absolute;
+  height: 8px;
+  border-radius: 8px;
+  background: rgba(150, 180, 225, 0.18);
+  animation: map-cloud linear infinite;
+}
+
+.map-preview .firefly {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d8ff7a;
+  box-shadow: 0 0 6px 2px rgba(216, 255, 122, 0.7);
+  animation: map-firefly 2.8s ease-in-out infinite;
+}
+
+.map-preview .grass-blade {
+  position: absolute;
+  bottom: 8px;
+  width: 2px;
+  height: 7px;
+  background: #3f7a52;
+  border-radius: 1px;
+  transform-origin: bottom center;
+  animation: map-grass 1.6s ease-in-out infinite;
+}
+
+.map-preview .sun {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: #ffd9a0;
+  box-shadow: 0 0 14px 4px rgba(255, 184, 92, 0.55);
+  animation: map-moon-pulse 2.6s ease-in-out infinite;
+}
+
+.map-preview .dust {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 220, 170, 0.7);
+  animation: map-dust linear infinite;
+}
+
+.map-preview .win-light {
+  position: absolute;
+  width: 4px;
+  height: 5px;
+  background: rgba(255, 190, 110, 0.9);
+  box-shadow: 0 0 6px 1px rgba(255, 184, 92, 0.7);
+  animation: map-window-flicker 2.2s ease-in-out infinite;
+}
+
+.map-preview .raindrop {
+  position: absolute;
+  top: -8px;
+  width: 1.5px;
+  height: 8px;
+  background: rgba(160, 200, 255, 0.45);
+  border-radius: 1px;
+  animation: map-rain linear infinite;
+}
+
+.map-preview .lightning-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(200, 220, 255, 0.45);
+  animation: map-lightning 5.5s linear infinite;
+  pointer-events: none;
+}
+
+.map-preview .storm-cloud {
+  position: absolute;
+  height: 10px;
+  border-radius: 10px;
+  background: rgba(60, 75, 110, 0.45);
+  animation: map-cloud linear infinite;
+}
+
+.map-preview .hill {
+  position: absolute;
+  bottom: 8px;
+  width: 46px;
+  height: 22px;
+  background: #2c3a4a;
+  z-index: 1;
+}
+
+.map-preview .hill.left { left: 12px; }
+.map-preview .hill.right { right: 12px; }
+
+.map-preview .barrier {
+  position: absolute;
+  background: #4a5a80;
+  z-index: 1;
+}
+
+.map-preview .barrier.moving {
+  animation: map-gate 2.4s ease-in-out infinite;
+}
+
+.map-mini-archer {
+  --neon: #3aa0ff;
+  position: absolute;
+  bottom: 28px;
+  width: 18px;
+  height: 28px;
+  z-index: 3;
+  pointer-events: none;
+  transform-origin: center bottom;
+  animation: archer-patrol 3.2s linear infinite;
+}
+
+.map-mini-archer.left { left: 16px; --neon: #3aa0ff; }
+.map-mini-archer.right {
+  right: 16px;
+  --neon: #ff3b4d;
+  animation-name: archer-patrol-flip;
+  animation-duration: 3.5s;
+  animation-delay: -1.1s;
+}
+
+.map-mini-archer .hop {
+  width: 100%;
+  height: 100%;
+  animation: archer-hop 2.8s ease-in-out infinite;
+}
+
+.map-mini-archer.right .hop { animation-delay: -1.4s; }
+
+.map-mini-archer svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: archer-glow 1.6s ease-in-out infinite;
+}

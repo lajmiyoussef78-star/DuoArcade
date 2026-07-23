@@ -220,6 +220,10 @@ export const GAME_LIST = [
   { id: 'sparksplash', name: 'Spark & Splash', route: '/app' },
   { id: 'readysetcook', name: 'Ready, Set, Cook', route: '/app' },
   { id: 'stickmanswordduel', name: 'Stickman Sword Duel', route: '/app' },
+  { id: 'stickmanarchery', name: 'Stickman Archery Battle', route: '/app' },
+  { id: 'stickmandodgeball', name: 'Stickman Dodgeball', route: '/app' },
+  { id: 'stickmanmotorace', name: 'Stickman Moto Race', route: '/app' },
+  { id: 'stickmangunfight', name: 'Stickman Gunfight', route: '/app' },
   { id: 'stickmanracing', name: 'Stickman Racing', route: '/app' },
   { id: 'microsoccer', name: 'Micro Soccer', route: '/app' },
   { id: 'moleduel', name: 'Heart Duel', route: '/app' },
@@ -231,10 +235,14 @@ export const GAME_LIST = [
   { id: 'coup', name: 'Veilcourt', route: '/app' },
   { id: 'carrot', name: 'Carrot in a Box', route: '/app' },
   { id: 'chkobba', name: 'Chkobba', route: '/app' },
+  { id: 'dominoes', name: 'Dominoes', route: '/app' },
+  { id: 'wordgrid', name: 'Word Grid', route: '/app' },
   { id: 'minusone', name: 'Minus One', route: '/app' },
   { id: 'thinice', name: 'Thin Ice', route: '/app' },
   { id: 'sumobomb', name: 'Sumo Bomb', route: '/app' },
   { id: 'magnethearts', name: 'Magnet Hearts', route: '/app' },
+  { id: 'wallmaze', name: 'Wallmaze', route: '/app' },
+  { id: 'nightcurling', name: 'Night Curling', route: '/app' },
 ];
 
 export function gameName(id) {

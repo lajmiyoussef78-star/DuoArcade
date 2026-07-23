@@ -102,21 +102,73 @@ export const RULES = {
   },
 
   stickmanswordduel: {
-    goal: 'Win three rounds in a neon sword duel.',
+    goal: 'Win three rounds in a neon sword duel on the same keyboard.',
     how: [
-      'Player A picks the arena; both of you fight online, each on your own device.',
-      'A/D move \u00b7 W jump \u00b7 S dash \u00b7 F attack \u00b7 G block \u00b7 H kick.',
+      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the winner.',
+      'Pick an arena, then fight best of 5 (first to 3).',
+      'P1: A/D move \u00b7 W jump \u00b7 S dash \u00b7 F attack \u00b7 G block \u00b7 H kick.',
+      'P2: \u2190/\u2192 move \u00b7 \u2191 jump \u00b7 \u2193 dash \u00b7 K attack \u00b7 L block \u00b7 J kick.',
       'Tap attack up to three times for a combo; hold attack to charge a heavy; dash+attack lunges; air+attack plunges.',
       'Perfect-timed block = parry. Kick breaks a raised guard.'
     ],
     tip: 'Don\u2019t spam heavies \u2014 a parry beats everything, including a charged swing.'
   },
 
+  stickmanarchery: {
+    goal: 'Win a best-of-3 neon archery duel on the same keyboard.',
+    how: [
+      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the winner.',
+      'Pick a map: Moonlit Meadow, Fortress Walls, or Storm Peaks.',
+      'P1: A/D move \u00b7 W jump \u00b7 R/F aim \u00b7 SPACE hold-draw, release-fire.',
+      'P2: \u2190/\u2192 move \u00b7 \u2191 jump \u00b7 K/J aim \u00b7 ENTER hold-draw, release-fire.',
+      'Move and jump anytime to dodge. Balloons grant triple, explosive, or ice arrows.'
+    ],
+    tip: 'Arc over barriers \u2014 and release in the green power zone for max range.'
+  },
+
+  stickmandodgeball: {
+    goal: 'Be the last stickman standing in a neon hazard storm.',
+    how: [
+      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the winner.',
+      'Pick Quick, Best of 3, or Best of 5, then choose one of 6 arenas.',
+      'P1: A/D move \u00b7 W jump (double) \u00b7 S slide \u00b7 F dash.',
+      'P2: \u2190/\u2192 move \u00b7 \u2191 jump (double) \u00b7 \u2193 slide \u00b7 / dash.',
+      'Dodge falling hazards, grab power-ups, survive arena events every 20 seconds.'
+    ],
+    tip: 'Slide under low hazards and dash through tight gaps \u2014 the storm only gets worse.'
+  },
+
+  stickmanmotorace: {
+    goal: 'Cross the finish line first on a split-screen neon moto track.',
+    how: [
+      'Couch co-op: both players on one device / one screen. Host (A) starts the race and reports the winner.',
+      'Pick one of 10 tracks from Sunny Hills to Inferno Circuit.',
+      'P1 (top): W gas \u00b7 S brake \u00b7 A/D lean.',
+      'P2 (bottom): \u2191 gas \u00b7 \u2193 brake \u00b7 \u2190/\u2192 lean.',
+      'First to the flag wins. Crashes cost time \u2014 lean through jumps and loops.'
+    ],
+    tip: 'Ease off the gas before big drops \u2014 landing flat keeps you racing.'
+  },
+
+  stickmangunfight: {
+    goal: 'Win a neon circular-arena gunfight \u2014 Quick Match or Full Session.',
+    how: [
+      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the result.',
+      'Quick Match: pick one weapon category, best of 3. Full Session: all 5 weapon levels \u00d7 3 rounds.',
+      'P1 (upper): A/D move \u00b7 W jump \u00b7 S crouch \u00b7 Q/E aim \u00b7 Space fire \u00b7 R reload.',
+      'P2 (lower): \u2190/\u2192 move \u00b7 \u2191 jump \u00b7 \u2193 crouch \u00b7 O/P aim \u00b7 Enter fire \u00b7 / reload.',
+      'Use cover, utilities, and timing \u2014 last alive wins the round.'
+    ],
+    tip: 'Reload behind cover. Crouch shrinks your hitbox when bullets fly.'
+  },
+
   stickmanracing: {
     goal: 'Reach the finish flag first on a long neon parkour track.',
     how: [
-      'Host picks one of 10 tracks. Split view: blue (A) on top, pink (B) on bottom \u2014 each of you controls your own racer online.',
-      'Both use WASD + F: A/D run, W jump / wall-jump / rope release, S slide, F turbo.',
+      'Couch co-op: both players on one device / one screen. Host (A) starts the race and reports the winner.',
+      'Pick one of 10 tracks. Split view: blue (P1) on top, pink (P2) on bottom.',
+      'P1 (top): A/D run \u00b7 W jump / wall-jump / rope release \u00b7 S slide \u00b7 F turbo.',
+      'P2 (bottom): \u2190/\u2192 run \u00b7 \u2191 jump / wall-jump / rope release \u00b7 \u2193 slide \u00b7 K turbo.',
       'Jump hurdles, slide under bars, clear spikes, swing ropes, use springs. Fall? You respawn at the last checkpoint.',
       'First to the checkered flag wins the race.'
     ],
@@ -225,6 +277,30 @@ export const RULES = {
     tip: 'Central position early = options later. Your trail is a knife \u2014 wall them off.'
   },
 
+  wallmaze: {
+    goal: 'Race your orb to the far side while building a labyrinth around your partner. First to 2 rounds wins.',
+    how: [
+      'Play from your own device. The board is flipped for each of you \u2014 you always march UP toward the glowing goal row.',
+      'On your turn: step once onto a gold ring, or place one of your 6 walls (2-span bar) on an intersection.',
+      'Jump straight over an adjacent partner; if a wall or the edge is behind them, diagonal side-steps light up instead.',
+      'No wall may seal either path completely \u2014 illegal placements explain themselves. Starter alternates each round.',
+      'First orb to the far row takes the round; first to 2 rounds takes the match.'
+    ],
+    tip: 'Save a wall for the endgame \u2014 a race decided by one tempo is decided by whoever still holds one.'
+  },
+
+  nightcurling: {
+    goal: 'Score closest to the button on midnight ice. First to 5 points wins.',
+    how: [
+      'Four stones each per end. On your throw: pick curl (Up / Straight / Down), then pull back and release (slingshot).',
+      'While YOUR stone slides, hammer SWEEP (or SPACE) to cut friction and carry it deeper. Stop short of the hog line and it\u2019s removed.',
+      'Stones collide with real takeouts \u2014 knock theirs out of the house.',
+      'After 8 stones: closest side scores one point per stone closer than the opponent\u2019s best. Blank end = nobody in the house.',
+      'Hammer (last throw) passes to the end\u2019s loser; blank ends keep the hammer where it was.'
+    ],
+    tip: 'Save the hammer for a blank-or-score end \u2014 and sweep early if you need the deep freeze.'
+  },
+
   sumobomb: {
     goal: 'Pass the fused bomb before it blows on YOUR sumo \u2014 first to 3 points (best of 5).',
     how: [
@@ -258,6 +334,30 @@ export const RULES = {
       'Values: 1\u20137 as printed, Queen = 8, Lieutenant = 9, King = 10. Diamonds score like classic Dinari; the 7 of Diamonds is 7aya.'
     ],
     tip: 'Hunt the 7 of Diamonds (7aya) and keep an eye on who is winning Carta.'
+  },
+
+  dominoes: {
+    goal: 'Bank 50 points first in a classic draw-dominoes match.',
+    how: [
+      'Play from your own device. Both of you see the same board; only your hand is face-up.',
+      'Double-six set: 7 tiles each, rest in the boneyard. Highest double leads round 1; starters alternate after.',
+      'On your turn, play on either open end. If a tile fits both, you choose. Can\u2019t play? Draw until you can; empty boneyard \u2192 pass.',
+      'Empty your hand to bank the opponent\u2019s leftover pips. Locked game (two passes): lighter hand wins the pip difference.',
+      'First to 50 points wins the match.'
+    ],
+    tip: 'Save doubles for when an end locks up \u2014 and watch both open pips before you draw.'
+  },
+
+  wordgrid: {
+    goal: 'Score more unique words than your partner on the same 4\u00d74 grid.',
+    how: [
+      'Play from your own device, at the same time. Both of you hunt the same shared Boggle grid for 60 seconds \u2014 no peeking at each other\u2019s words until you\u2019re both done.',
+      'Finish early or run out the clock; if your partner is still hunting, sit tight until they\u2019re done too.',
+      'Words are 3+ letters, chained through neighbouring tiles (diagonals count). Each tile used once per word.',
+      'Scoring: 1 (3\u20134 letters), 2 (5), 3 (6), 5 (7), 11 (8+). Words BOTH of you found cancel to zero.',
+      'Words not in the dictionary get a gold ? and can be vetoed on the review screen.'
+    ],
+    tip: 'Hunt the long words your partner is likely to miss \u2014 shared finds score nothing.'
   },
 
   wordbomb: {

@@ -134,6 +134,124 @@ function makeSFX() {
 }
 const SFX = makeSFX();
 
+function MapFighter({ color, facing = 1, delay = 0 }) {
+  // Draw facing-right locally, then mirror for P2 so limbs stay connected
+  const d = `${delay}s`;
+  return (
+    <svg width="48" height="56" viewBox="0 0 48 56" style={{ display: "block", overflow: "visible" }}>
+      <g transform={facing === -1 ? "translate(48,0) scale(-1,1)" : undefined}>
+        {/* legs — rotate around hip */}
+        <g transform="translate(22, 34)">
+          <g>
+            <animateTransform attributeName="transform" type="rotate"
+              values="-18;16;-18" dur="0.5s" begin={d} repeatCount="indefinite" />
+            <line x1="0" y1="0" x2="-8" y2="18" stroke="#f4f7fb" strokeWidth="2.6" strokeLinecap="round" />
+          </g>
+          <g>
+            <animateTransform attributeName="transform" type="rotate"
+              values="16;-18;16" dur="0.5s" begin={d} repeatCount="indefinite" />
+            <line x1="0" y1="0" x2="9" y2="18" stroke="#f4f7fb" strokeWidth="2.6" strokeLinecap="round" />
+          </g>
+        </g>
+
+        <line x1="22" y1="34" x2="22" y2="16" stroke="#f4f7fb" strokeWidth="2.8" strokeLinecap="round" />
+
+        <circle cx="22" cy="10" r="5.5" fill="none" stroke="#f4f7fb" strokeWidth="2.5" />
+        <path d="M16.8 8.2 A5.5 5.5 0 0 1 27.2 8.2" fill="none" stroke={color} strokeWidth="2"
+          style={{ filter: `drop-shadow(0 0 3px ${color})` }} />
+
+        <line x1="22" y1="18" x2="13" y2="28" stroke="#f4f7fb" strokeWidth="2.4" strokeLinecap="round" />
+
+        {/* sword arm — rotate around shoulder */}
+        <g transform="translate(22, 18)">
+          <g>
+            <animateTransform attributeName="transform" type="rotate"
+              values="-55;45;-55" dur="1.05s" begin={d} repeatCount="indefinite"
+              keyTimes="0;0.42;1" calcMode="spline"
+              keySplines="0.4 0 0.2 1; 0.4 0 0.2 1" />
+            <line x1="0" y1="0" x2="11" y2="8" stroke="#f4f7fb" strokeWidth="2.4" strokeLinecap="round" />
+            <line x1="8" y1="5" x2="14" y2="12" stroke="#2a2f38" strokeWidth="2.2" strokeLinecap="round" />
+            <line x1="10" y1="7" x2="24" y2="-8" stroke={color} strokeWidth="3.4" strokeLinecap="round"
+              style={{ filter: `drop-shadow(0 0 5px ${color})` }} />
+            <line x1="11" y1="6" x2="23" y2="-7" stroke="#ffffff" strokeWidth="1.3" strokeLinecap="round" />
+          </g>
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+function MapIconPreview({ map, index }) {
+  return (
+    <div
+      className="map-icon"
+      style={{ "--sky0": map.sky[0], "--sky1": map.sky[1], "--plat": map.plat, "--accent": map.accent }}
+    >
+      {/* map-specific ambient layers */}
+      {index === 0 && (
+        <div className="map-icon__layer">
+          <div className="map-crowd">
+            {Array.from({ length: 12 }, (_, i) => <span key={i} />)}
+          </div>
+          <div className="map-banner" style={{ left: 28, background: "#8a1f2d" }} />
+          <div className="map-banner" style={{ right: 28, background: "#1f3f8a", animationDelay: "0.4s" }} />
+          <div className="map-torch" style={{ left: 16 }} />
+          <div className="map-torch" style={{ right: 16 }} />
+        </div>
+      )}
+      {index === 1 && (
+        <div className="map-icon__layer">
+          <div className="map-aurora" />
+          {[
+            [18, 14, 0], [48, 22, 0.4], [86, 12, 0.8], [120, 28, 1.2],
+            [155, 16, 0.2], [172, 34, 1.5], [70, 40, 0.6],
+          ].map(([x, y, d], i) => (
+            <div key={i} className="map-star" style={{ left: x, top: y, animationDelay: `${d}s` }} />
+          ))}
+          <div className="map-cloud" style={{ top: 48, left: 10, width: 46, animationDuration: "9s" }} />
+          <div className="map-cloud" style={{ top: 58, left: 90, width: 34, animationDuration: "11s", animationDelay: "-3s" }} />
+          <div className="map-lantern" style={{ left: 36, animationDelay: "0s" }} />
+          <div className="map-lantern" style={{ left: 120, animationDelay: "1.6s" }} />
+          <div className="map-lantern" style={{ left: 160, animationDelay: "3s" }} />
+        </div>
+      )}
+      {index === 2 && (
+        <div className="map-icon__layer">
+          <div className="map-volcano" />
+          <div className="map-lava" />
+          {[
+            [40, 0], [70, 0.4], [100, 0.9], [130, 0.2], [160, 1.3], [55, 1.7], [145, 0.6],
+          ].map(([x, d], i) => (
+            <div key={i} className="map-ember" style={{ left: x, animationDelay: `${d}s`, animationDuration: `${1.8 + (i % 3) * 0.4}s` }} />
+          ))}
+        </div>
+      )}
+
+      <div className="map-icon__ground" style={index === 2 ? { left: 8, right: "auto", width: 54 } : undefined} />
+      {index === 2 && <div className="map-icon__ground" style={{ left: "auto", right: 8, width: 54 }} />}
+      <div
+        className="map-icon__plat"
+        style={{
+          bottom: index === 2 ? 36 : 42,
+          left: index === 1 ? 70 : 62,
+          width: index === 1 ? 54 : 48,
+          animationDuration: index === 1 ? "2.6s" : "3.2s",
+        }}
+      />
+
+      <div className="map-icon__fighters">
+        <div className="map-icon__fighter map-icon__fighter--p1">
+          <MapFighter color="#3aa0ff" facing={1} delay={0} />
+        </div>
+        <div className="map-icon__spark" />
+        <div className="map-icon__fighter map-icon__fighter--p2">
+          <MapFighter color="#ff3b4d" facing={-1} delay={0} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function makePlayer(id, x, facing) {
   return {
     id, x, y: 200, vx: 0, vy: 0, facing,
@@ -153,21 +271,7 @@ function makePlayer(id, x, facing) {
   };
 }
 
-const LOCAL = KEYS.p1; // both partners use these on their own device
-const LOCAL_CODES = Object.values(LOCAL);
-
-function remapTo(slot, code) {
-  const entry = Object.entries(LOCAL).find(([, v]) => v === code);
-  if (!entry) return null;
-  return KEYS[slot][entry[0]];
-}
-
-export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComplete, pausedRef }) {
-  const isHost = myRole === 'A';
-  const mySlot = myRole === 'A' ? 'p1' : 'p2';
-  const p1Name = names.A || 'Player 1';
-  const p2Name = names.B || 'Player 2';
-
+export default function StickmanSwordDuel() {
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu");
   const [mapIdx, setMapIdx] = useState(0);
@@ -178,37 +282,12 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
 
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
 
-  const startMatch = (mi, fromNet = false) => {
-    if (!isHost && !fromNet) return;
+  const startMatch = (mi) => {
     SFX.unlock();
     setMapIdx(mi); setScore([0, 0]); setMatchWinner(0);
     setPhase("playing");
     stateRef.current.launch = { mapIdx: mi };
-    if (isHost && !fromNet) rt?.send({ k: 'ssd-start', mapIdx: mi });
   };
-
-  useEffect(() => {
-    if (!rt?.on) return;
-    rt.on(msg => {
-      if (!msg || !msg.k) return;
-      if (msg.k === 'ssd-start' && !isHost) startMatch(msg.mapIdx, true);
-      if (msg.k === 'ssd-end') {
-        setScore(msg.wins || [0, 0]);
-        setMatchWinner(msg.winner);
-        setPhase('matchEnd');
-      }
-      if (msg.k === 'ssd-menu') {
-        setPhase('menu');
-        setMatchWinner(0);
-      }
-      if (msg.k === 'ssd-in' && isHost && stateRef.current.applyRemoteKeys) {
-        stateRef.current.applyRemoteKeys(msg);
-      }
-      if (msg.k === 'ssd-st' && !isHost && stateRef.current.applySnap) {
-        stateRef.current.applySnap(msg);
-      }
-    });
-  }, [rt, isHost]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -236,69 +315,15 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
     };
     resetRound();
 
-    const remoteHeld = {};
-    const remotePressed = {};
-    stateRef.current.applyRemoteKeys = (msg) => {
-      Object.keys(remoteHeld).forEach(k => { remoteHeld[k] = false; });
-      const held = msg.held || {};
-      Object.entries(held).forEach(([code, on]) => {
-        const mapped = remapTo('p2', code);
-        if (mapped) remoteHeld[mapped] = !!on;
-      });
-      (msg.edge || []).forEach(code => {
-        const mapped = remapTo('p2', code);
-        if (mapped) remotePressed[mapped] = true;
-      });
-    };
-    stateRef.current.applySnap = (msg) => {
-      if (!msg.players) return;
-      S.players = msg.players;
-      S.mode = msg.mode;
-      S.modeT = msg.modeT;
-      S.wins = msg.wins;
-      S.round = msg.round;
-      S.roundWinner = msg.roundWinner;
-      S.platOffsets = msg.platOffsets || S.platOffsets;
-      S.t = msg.t;
-      S.banner = msg.banner || '';
-      S.bannerT = msg.bannerT || 0;
-      S.bannerCol = msg.bannerCol || S.bannerCol;
-      S.flash = msg.flash || 0;
-      S.shake = msg.shake || 0;
-      S.particles = msg.particles || S.particles;
-      S.rings = msg.rings || S.rings;
-      S.texts = msg.texts || S.texts;
-      if (msg.wins && (msg.wins[0] !== S._lastW0 || msg.wins[1] !== S._lastW1)) {
-        S._lastW0 = msg.wins[0]; S._lastW1 = msg.wins[1];
-        setScore([...msg.wins]);
-      }
-    };
-
-    let edgeBuf = [];
     const down = (e) => {
-      if (!LOCAL_CODES.includes(e.code)) return;
-      e.preventDefault();
-      const mapped = remapTo(mySlot, e.code);
-      if (!mapped) return;
-      if (isHost) {
-        if (!S.keys[mapped]) S.pressed[mapped] = true;
-        S.keys[mapped] = true;
-      } else {
-        if (!remoteHeld[e.code]) edgeBuf.push(e.code);
-        remoteHeld[e.code] = true;
-      }
+      const all = [...Object.values(KEYS.p1), ...Object.values(KEYS.p2)];
+      if (all.includes(e.code)) e.preventDefault();
+      if (!S.keys[e.code]) S.pressed[e.code] = true;
+      S.keys[e.code] = true;
     };
-    const up = (e) => {
-      if (!LOCAL_CODES.includes(e.code)) return;
-      const mapped = remapTo(mySlot, e.code);
-      if (isHost && mapped) S.keys[mapped] = false;
-      else remoteHeld[e.code] = false;
-    };
+    const up = (e) => { S.keys[e.code] = false; };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-
-    let sendAcc = 0;
-    let snapAcc = 0;
 
     // ---------- fx helpers ----------
     const spark = (x, y, color, n = 10, spd = 260, upBias = 60) => {
@@ -1058,8 +1083,8 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
       bar(24, S.players[0], false);
       bar(W - 24 - bw, S.players[1], true);
       ctx.fillStyle = "#fff"; ctx.font = "bold 12px monospace";
-      ctx.textAlign = "left"; ctx.fillText(p1Name, 24, 52);
-      ctx.textAlign = "right"; ctx.fillText(p2Name, W - 24, 52);
+      ctx.textAlign = "left"; ctx.fillText("P1", 24, 52);
+      ctx.textAlign = "right"; ctx.fillText("P2", W - 24, 52);
 
       ctx.textAlign = "center";
       for (let s = 0; s < 2; s++) {
@@ -1125,10 +1150,6 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
     const loop = (now) => {
       let dt = Math.min((now - last) / 1000, 0.033);
       last = now;
-      if (pausedRef?.current) {
-        raf = requestAnimationFrame(loop);
-        return;
-      }
       if (S.slowmo > 0) { S.slowmo -= dt; dt *= 0.35; }
       S.t += dt;
       if (S.bannerT > 0) S.bannerT -= dt;
@@ -1144,103 +1165,63 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
         }
       });
 
-      if (isHost) {
-        // merge guest held/pressed into S.keys for p2
-        Object.entries(remoteHeld).forEach(([code, on]) => {
-          if (KEYS.p2 && Object.values(KEYS.p2).includes(code)) S.keys[code] = on;
-        });
-        Object.keys(remotePressed).forEach(code => {
-          if (remotePressed[code]) { S.pressed[code] = true; remotePressed[code] = false; }
-        });
-
-        if (S.mode === "countdown") {
-          S.modeT += dt;
-          const n = Math.ceil(3 - S.modeT);
-          if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
-          if (S.modeT >= 3) { S.mode = "fight"; S.modeT = 0; }
-        } else if (S.mode === "fight") {
-          const d0 = S.players[0].hp <= 0 || S.players[0].dead;
-          const d1 = S.players[1].hp <= 0 || S.players[1].dead;
-          if (d0 || d1) {
-            S.roundWinner = d0 ? 1 : 0;
-            S.wins[S.roundWinner]++;
-            S.players[S.roundWinner].victory = true;
-            setScore([...S.wins]);
-            SFX.win();
-            S.mode = "roundEnd"; S.modeT = 0;
-          }
-        } else if (S.mode === "roundEnd") {
-          S.modeT += dt;
-          if (Math.random() < 0.3) {
-            const p = S.players[S.roundWinner];
-            spark(p.x, p.y - 90, p.neon, 3, 200, 160);
-          }
-          if (S.modeT >= 2.4) {
-            if (S.wins[0] >= 3 || S.wins[1] >= 3) {
-              if (!S.done) {
-                S.done = true;
-                SFX.fanfare();
-                const w = S.wins[0] >= 3 ? 1 : 2;
-                setMatchWinner(w);
-                setPhase("matchEnd");
-                rt?.send({ k: 'ssd-end', winner: w, wins: [...S.wins] });
-                onComplete?.(w === 1 ? 'A' : 'B');
-              }
-            } else {
-              S.round++;
-              resetRound();
+      if (S.mode === "countdown") {
+        S.modeT += dt;
+        const n = Math.ceil(3 - S.modeT);
+        if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
+        if (S.modeT >= 3) { S.mode = "fight"; S.modeT = 0; }
+      } else if (S.mode === "fight") {
+        const d0 = S.players[0].hp <= 0 || S.players[0].dead;
+        const d1 = S.players[1].hp <= 0 || S.players[1].dead;
+        if (d0 || d1) {
+          S.roundWinner = d0 ? 1 : 0;
+          S.wins[S.roundWinner]++;
+          S.players[S.roundWinner].victory = true;
+          setScore([...S.wins]);
+          SFX.win();
+          S.mode = "roundEnd"; S.modeT = 0;
+        }
+      } else if (S.mode === "roundEnd") {
+        S.modeT += dt;
+        if (Math.random() < 0.3) {
+          const p = S.players[S.roundWinner];
+          spark(p.x, p.y - 90, p.neon, 3, 200, 160);
+        }
+        if (S.modeT >= 2.4) {
+          if (S.wins[0] >= 3 || S.wins[1] >= 3) {
+            if (!S.done) {
+              S.done = true;
+              SFX.fanfare();
+              setMatchWinner(S.wins[0] >= 3 ? 1 : 2);
+              setPhase("matchEnd");
             }
+          } else {
+            S.round++;
+            resetRound();
           }
-        }
-
-        S.players.forEach((p, i) =>
-          updatePlayer(p, S.players[1 - i], dt, i === 0 ? KEYS.p1 : KEYS.p2)
-        );
-        resolveHits();
-
-        S.particles = S.particles.filter((pt) => {
-          pt.life -= dt;
-          pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
-          pt.x += pt.vx * dt; pt.y += pt.vy * dt;
-          return pt.life > 0;
-        });
-        S.rings = S.rings.filter((r) => {
-          r.life -= dt;
-          r.r += (r.max - r.r) * 12 * dt;
-          return r.life > 0;
-        });
-        S.texts = S.texts.filter((tx) => {
-          tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94;
-          return tx.life > 0;
-        });
-
-        snapAcc += dt;
-        if (snapAcc >= 0.05) {
-          snapAcc = 0;
-          rt?.send({
-            k: 'ssd-st',
-            players: S.players.map(p => ({ ...p, trail: (p.trail || []).slice(-5) })),
-            mode: S.mode, modeT: S.modeT,
-            wins: S.wins, round: S.round, roundWinner: S.roundWinner,
-            platOffsets: S.platOffsets, t: S.t,
-            banner: S.banner, bannerT: S.bannerT, bannerCol: S.bannerCol,
-            flash: S.flash, shake: S.shake,
-            particles: S.particles.slice(0, 40),
-            rings: S.rings.slice(0, 8),
-            texts: S.texts.slice(0, 8),
-          });
-        }
-      } else {
-        // guest: stream inputs ~30Hz
-        sendAcc += dt;
-        if (sendAcc >= 0.033) {
-          sendAcc = 0;
-          const held = {};
-          LOCAL_CODES.forEach(c => { if (remoteHeld[c]) held[c] = true; });
-          const edge = edgeBuf.splice(0);
-          rt?.send({ k: 'ssd-in', held, edge });
         }
       }
+
+      S.players.forEach((p, i) =>
+        updatePlayer(p, S.players[1 - i], dt, i === 0 ? KEYS.p1 : KEYS.p2)
+      );
+      resolveHits();
+
+      S.particles = S.particles.filter((pt) => {
+        pt.life -= dt;
+        pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
+        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+        return pt.life > 0;
+      });
+      S.rings = S.rings.filter((r) => {
+        r.life -= dt;
+        r.r += (r.max - r.r) * 12 * dt;
+        return r.life > 0;
+      });
+      S.texts = S.texts.filter((tx) => {
+        tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94;
+        return tx.life > 0;
+      });
 
       ctx.save();
       if (S.shake > 0) {
@@ -1284,16 +1265,14 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
-      stateRef.current.applyRemoteKeys = null;
-      stateRef.current.applySnap = null;
     };
-  }, [phase, isHost, mySlot, rt, onComplete, pausedRef]);
+  }, [phase]);
 
   // ================= UI =================
   const wrap = {
-    minHeight: 0, width: "100%", background: "#07090f", color: "#e8eef5",
+    minHeight: "100vh", background: "#07090f", color: "#e8eef5",
     display: "flex", flexDirection: "column", alignItems: "center",
-    fontFamily: "monospace", padding: 12, boxSizing: "border-box",
+    fontFamily: "monospace", padding: 16, boxSizing: "border-box",
   };
   const neonText = (color) => ({ color, textShadow: `0 0 12px ${color}` });
 
@@ -1305,8 +1284,7 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
           <span style={{ opacity: 0.9 }}>⚔️</span>{" "}
           <span style={neonText("#ff3b4d")}>SWORD DUEL</span>
         </h1>
-        <p style={{ opacity: 0.65, marginTop: 4 }}>neon edition · online duel · first to 3
-          {!isHost && phase === 'menu' ? ' · waiting for partner to pick an arena…' : ''}</p>
+        <p style={{ opacity: 0.65, marginTop: 4 }}>neon edition · local 2-player · best of 5</p>
 
         {phase === "matchEnd" && (
           <div style={{
@@ -1316,26 +1294,22 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
             boxShadow: `0 0 24px ${matchWinner === 1 ? "rgba(58,160,255,0.35)" : "rgba(255,59,77,0.35)"}`,
             fontSize: 24, fontWeight: "bold",
           }}>
-            🏆 {(matchWinner === 1 ? p1Name : p2Name).toUpperCase()} WINS {score[0]}–{score[1]}
+            🏆 PLAYER {matchWinner} WINS {score[0]}–{score[1]}
           </div>
         )}
 
         <p style={{ marginBottom: 8, opacity: 0.85 }}>Choose your arena:</p>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
           {MAPS.map((m, i) => (
-            <button key={m.name} onClick={() => startMatch(i)} disabled={!isHost}
+            <button key={m.name} onClick={() => startMatch(i)}
               style={{
-                cursor: "pointer", width: 200, padding: 0, borderRadius: 10, overflow: "hidden",
+                cursor: "pointer", width: 220, padding: 0, borderRadius: 10, overflow: "hidden",
                 border: "2px solid rgba(255,255,255,0.18)", background: "#10141d", color: "#e8eef5",
                 fontFamily: "monospace", transition: "transform .15s, box-shadow .15s",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(120,180,255,0.25)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-              <div style={{ height: 88, background: `linear-gradient(${m.sky[0]}, ${m.sky[1]})`, position: "relative" }}>
-                <div style={{ position: "absolute", bottom: 10, left: 20, right: 20, height: 8, background: m.plat, borderRadius: 2 }} />
-                <div style={{ position: "absolute", bottom: 40, left: 55, width: 60, height: 5, background: m.accent, borderRadius: 2, boxShadow: `0 0 10px ${m.accent}` }} />
-                {m.lava && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 7, background: "#ff7a3c", boxShadow: "0 0 14px #ff7a3c" }} />}
-              </div>
+              <MapIconPreview map={m} index={i} />
               <div style={{ padding: "9px 0 2px", fontWeight: "bold", letterSpacing: 1 }}>{m.name}</div>
               <div style={{ padding: "0 0 10px", fontSize: 10, opacity: 0.55 }}>{m.desc}</div>
             </button>
@@ -1348,17 +1322,16 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
           borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
         }}>
           <div>
-            <b style={neonText("#3aa0ff")}>{p1Name.toUpperCase()}</b>
-            {myRole === 'A' ? ' · you' : ''}<br />
+            <b style={neonText("#3aa0ff")}>PLAYER 1</b><br />
             A / D — move · W — jump<br />
             S — dash · F — attack · H — kick<br />
-            G — block <span style={{ opacity: 0.6 }}>(perfect = parry)</span>
+            G — block <span style={{ opacity: 0.6 }}>(perfect timing = parry)</span>
           </div>
           <div>
-            <b style={neonText("#ff3b4d")}>{p2Name.toUpperCase()}</b>
-            {myRole === 'B' ? ' · you' : ''}<br />
-            Same keys on your device:<br />
-            A / D · W · S · F · H · G
+            <b style={neonText("#ff3b4d")}>PLAYER 2</b><br />
+            ← / → — move · ↑ — jump<br />
+            ↓ — dash · K — attack · J — kick<br />
+            L — block <span style={{ opacity: 0.6 }}>(perfect timing = parry)</span>
           </div>
         </div>
 
@@ -1390,7 +1363,7 @@ export default function StickmanSwordDuel({ myRole = 'A', names = {}, rt, onComp
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 10px", fontFamily: "monospace", fontSize: 12 }}>
           {muted ? "🔇" : "🔊"}
         </button>
-        <button onClick={() => { setPhase("menu"); rt?.send({ k: 'ssd-menu' }); }}
+        <button onClick={() => setPhase("menu")}
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 12px", fontFamily: "monospace", fontSize: 12 }}>
           quit to menu
         </button>

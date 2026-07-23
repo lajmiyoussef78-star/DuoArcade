@@ -28,6 +28,10 @@ import * as CB from './codebreak.js';
 import * as SS from './sparksplash.js';
 import * as RSC from './readysetcook.js';
 import * as SSD from './stickmanswordduel.js';
+import * as SAB from './stickmanarchery.js';
+import * as SDB from './stickmandodgeball.js';
+import * as SMR from './stickmanmotorace.js';
+import * as SGF from './stickmangunfight.js';
 import * as SR from './stickmanracing.js';
 import * as MSC from './microsoccer.js';
 import * as MD from './moleduel.js';
@@ -39,12 +43,16 @@ import * as UNO from './uno.js';
 import * as COUP from './coup.js';
 import * as CARROT from './carrot.js';
 import * as CHKOBBA from './chkobba.js';
+import * as DOMINOES from './dominoes.js';
+import * as WORDGRID from './wordgrid.js';
 import * as MINUSONE from './minusone.js';
 import * as THINICE from './thinice.js';
 import * as SUMOBOMB from './sumobomb.js';
 import * as MAGNETHEARTS from './magnethearts.js';
+import * as WALLMAZE from './wallmaze.js';
+import * as NIGHTCURLING from './nightcurling.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, MINUSONE, THINICE, SUMOBOMB, MAGNETHEARTS]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SAB, SDB, SMR, SGF, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, DOMINOES, WORDGRID, MINUSONE, THINICE, SUMOBOMB, MAGNETHEARTS, WALLMAZE, NIGHTCURLING]
     .map(e => [e.meta.id, e])
 );
