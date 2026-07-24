@@ -59,6 +59,9 @@ const APPLIANCES: ApplianceDef[] = [
   { id: "sink_a", x: 380, y: 280, kind: "sink", label: "Sink" },
   { id: "fryer_a", x: 480, y: 280, kind: "fryer", label: "Fryer" },
   { id: "pass_a", x: 580, y: 280, kind: "pass", label: "Pass · hold" },
+  // Free hold spots on the cook island edges
+  { id: "hold_island_l", x: 420, y: 320, kind: "counter", label: "Hold" },
+  { id: "hold_island_r", x: 540, y: 320, kind: "counter", label: "Hold" },
   { id: "juice_a", x: 400, y: 470, kind: "juice", label: "Juice", dispenses: "juice" },
   { id: "icecream_a", x: 500, y: 470, kind: "icecream", label: "Ice cream", dispenses: "ice_cream" },
   { id: "pantry_tomato", x: 80, y: 448, kind: "pantry", label: "Tomatoes", dispenses: "tomato" },

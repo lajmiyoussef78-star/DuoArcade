@@ -135,6 +135,12 @@ export class BuffetTray {
     return { added, keepItem: added === 0 };
   }
 
+  /** Sync stock from server authority snapshot. */
+  setStock(n: number) {
+    this.stock = Math.max(0, Math.min(this.def.max, Math.floor(n)));
+    this.refresh();
+  }
+
   private refresh() {
     this.label.setText(`${this.stock}/${this.def.max}`);
     this.label.setColor(this.stock <= 0 ? "#b71c1c" : this.isFull ? "#2e7d32" : "#e65100");

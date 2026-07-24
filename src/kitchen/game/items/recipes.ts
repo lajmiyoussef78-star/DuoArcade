@@ -74,10 +74,8 @@ export const RECIPES: Recipe[] = [
     name: "Pizza",
     needs: [],
     basePoints: 130,
-    // dough+tomato + oven + plate/wash + crowding detours + deliver
-    patience: Math.round(
-      (14 + 5.5 + PIZZA_COOK_MS / 1000 + (WASH_MS / 1000) * 0.5) * 2.4,
-    ),
+    // Oven wait is meaningful, but shorter bake keeps pizza in line with other dishes
+    patience: Math.round((10 + PIZZA_COOK_MS / 1000 + 5) * 2.15),
   },
   {
     id: "burger",
@@ -98,22 +96,25 @@ export const RECIPES: Recipe[] = [
     name: "Fries meal",
     needs: ["fries"],
     basePoints: 70,
-    patience: patienceFor(["fries"]),
+    // Slightly more time so fries guests aren't gone before pizza is even plated
+    patience: Math.max(
+      patienceFor(["fries"]),
+      Math.round(patienceFor(["fries"]) * 1.15),
+    ),
   },
   {
     id: "juice",
     name: "Juice",
     needs: [],
     basePoints: 55,
-    // walk to machine + dispense + deliver (+ crowding)
-    patience: 38,
+    patience: 42,
   },
   {
     id: "ice_cream",
     name: "Ice cream",
     needs: [],
     basePoints: 65,
-    patience: 40,
+    patience: 44,
   },
 ];
 
@@ -126,13 +127,29 @@ export function recipeByDish(id: ItemId): Recipe | undefined {
   return RECIPES.find((r) => r.id === id);
 }
 
-export function randomRecipe(menu?: ItemId[]): Recipe {
+/**
+ * Pick a menu order, preferring dishes that are under-represented among
+ * currently seated guests so one order (e.g. pizza) doesn't dominate the floor.
+ */
+export function randomRecipe(menu?: ItemId[], activeOrderIds: ItemId[] = []): Recipe {
   const pool =
     menu && menu.length > 0
       ? recipesForMenu(menu)
       : RECIPES.filter((r) => r.id === "pizza" || r.needs.length > 0);
   const list = pool.length > 0 ? pool : RECIPES;
-  return list[Math.floor(Math.random() * list.length)]!;
+
+  if (list.length === 1) return list[0]!;
+
+  const counts = new Map<ItemId, number>();
+  for (const id of list) counts.set(id.id, 0);
+  for (const id of activeOrderIds) {
+    if (counts.has(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+
+  const min = Math.min(...[...counts.values()]);
+  const under = list.filter((r) => (counts.get(r.id) ?? 0) === min);
+  const pickFrom = under.length > 0 ? under : list;
+  return pickFrom[Math.floor(Math.random() * pickFrom.length)]!;
 }
 
 export function tryAssemble(contents: ItemId[]): ItemId | null {

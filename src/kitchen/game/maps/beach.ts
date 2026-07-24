@@ -23,13 +23,34 @@ import {
   drawTableCondiments,
   drawTomatoCrate,
   drawTrash,
-  drawWoodFloor,
   ensureCanvas,
   roundRect,
   strokeInk,
 } from "./paintShared";
 
-const BG = "bg-beach-15";
+function drawBeachSand(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  ctx.fillStyle = "#f0d9a8";
+  roundRect(ctx, x, y, w, h, 14, true);
+  // Soft sand grain (not tile grid)
+  for (let i = 0; i < 120; i++) {
+    const px = x + 8 + ((i * 47) % Math.max(1, w - 16));
+    const py = y + 8 + ((i * 31) % Math.max(1, h - 16));
+    ctx.fillStyle = i % 3 === 0 ? "rgba(210,180,120,0.35)" : "rgba(255,248,225,0.4)";
+    ctx.beginPath();
+    ctx.ellipse(px, py, 6 + (i % 5), 2 + (i % 3), (i % 7) * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  strokeInk(ctx, 4);
+  roundRect(ctx, x, y, w, h, 14, false);
+}
+
+const BG = "bg-beach-16";
 
 /**
  * BEACH HOUSE — long TOP bar kitchen facing the ocean view,
@@ -63,6 +84,9 @@ const APPLIANCES: ApplianceDef[] = [
   { id: "sink_a", x: 560, y: 170, kind: "sink", label: "Sink" },
   { id: "fryer_a", x: 680, y: 170, kind: "fryer", label: "Fryer" },
   { id: "pass_a", x: 800, y: 170, kind: "pass", label: "Pass · hold" },
+  // Free hold spots beside the top bar / fryer line
+  { id: "hold_bar_l", x: 620, y: 210, kind: "counter", label: "Hold" },
+  { id: "hold_bar_r", x: 740, y: 210, kind: "counter", label: "Hold" },
   { id: "juice_a", x: 100, y: 300, kind: "juice", label: "Juice", dispenses: "juice" },
   { id: "pantry_tomato", x: 100, y: 458, kind: "pantry", label: "Tomatoes", dispenses: "tomato" },
   { id: "pantry_cheese", x: 165, y: 458, kind: "pantry", label: "Mozzarella", dispenses: "lettuce" },
@@ -82,10 +106,10 @@ const SEATS: CustomerSeat[] = [
 
 function paint(scene: Phaser.Scene) {
   ensureCanvas(scene, BG, MAP_W, MAP_H, (ctx) => {
-    // Sand + wood deck
-    ctx.fillStyle = "#f0d9a8";
+    // Sand serving / patio floor (beach house)
+    ctx.fillStyle = "#e8c48a";
     ctx.fillRect(0, 0, MAP_W, MAP_H);
-    drawWoodFloor(ctx, 50, 200, MAP_W - 100, MAP_H - 230, "#d4a574");
+    drawBeachSand(ctx, 40, 195, MAP_W - 80, MAP_H - 220);
 
     // Ocean band at top
     ctx.fillStyle = "#4fc3f7";
@@ -125,8 +149,8 @@ function paint(scene: Phaser.Scene) {
     drawCounterIsland(ctx, 50, 220, 120, 60, "#fff3e0", "#ffb74d");
     drawJuiceMachine(ctx, 70, 200);
 
-    // Patio dining row
-    ctx.fillStyle = "#efebe9";
+    // Patio dining on sand
+    ctx.fillStyle = "rgba(255,248,225,0.45)";
     roundRect(ctx, 180, 270, 600, 120, 16, true);
     strokeInk(ctx, 3);
     roundRect(ctx, 180, 270, 600, 120, 16, false);

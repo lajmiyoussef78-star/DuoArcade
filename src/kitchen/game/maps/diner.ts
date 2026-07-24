@@ -66,6 +66,9 @@ const APPLIANCES: ApplianceDef[] = [
   { id: "prep_a", x: 140, y: 280, kind: "prep", label: "Chop" },
   { id: "sink_a", x: 220, y: 280, kind: "sink", label: "Sink" },
   { id: "fryer_a", x: 180, y: 390, kind: "fryer", label: "Fryer" },
+  // Free hold spots on either side of the fryer counter — park any item
+  { id: "hold_fryer_l", x: 95, y: 340, kind: "counter", label: "Hold" },
+  { id: "hold_fryer_r", x: 255, y: 340, kind: "counter", label: "Hold" },
   { id: "pass_a", x: 340, y: 250, kind: "pass", label: "Pass · hold" },
   // Diner meals: pizza, mozzarella, fries — dough / tomato / moz / potato
   { id: "pantry_tomato", x: 80, y: 448, kind: "pantry", label: "Tomatoes", dispenses: "tomato" },

@@ -7,7 +7,27 @@ export const MAP_H = 540;
 
 export type EnvId = "diner" | "beach" | "mall" | "buffet";
 
-export type MapId = "diner-1" | "beach-1" | "mall-1" | "buffet-1";
+export type MapId =
+  | "diner-1"
+  | "diner-2"
+  | "diner-3"
+  | "diner-4"
+  | "diner-5"
+  | "beach-1"
+  | "beach-2"
+  | "beach-3"
+  | "beach-4"
+  | "beach-5"
+  | "mall-1"
+  | "mall-2"
+  | "mall-3"
+  | "mall-4"
+  | "mall-5"
+  | "buffet-1"
+  | "buffet-2"
+  | "buffet-3"
+  | "buffet-4"
+  | "buffet-5";
 
 export type GameMode = "classic" | "buffet";
 

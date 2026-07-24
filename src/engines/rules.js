@@ -93,9 +93,10 @@ export const RULES = {
   readysetcook: {
     goal: 'Serve as many customers as you can before the kitchen closes.',
     how: [
-      'Pick the same kitchen map as your partner, then cook together.',
+      'Pick the same kitchen as your partner (4 worlds \u00d7 5 maps: Diner, Beach, Mall, Buffet).',
       'WASD to move \u00b7 E to interact \u00b7 Q to drop \u00b7 Space to throw \u00b7 H for help.',
       'Grab ingredients, prep at stations, plate orders, and serve customers before they walk out.',
+      'Buffet maps: stock trays and hand plates to waves of groups.',
       'When the shift ends, your score counts as a co-op evening together.'
     ],
     tip: 'Split jobs \u2014 one chops, one plates. Closing time stops new orders, so finish what\u2019s on the pass.'
@@ -160,6 +161,30 @@ export const RULES = {
       'Use cover, utilities, and timing \u2014 last alive wins the round.'
     ],
     tip: 'Reload behind cover. Crouch shrinks your hitbox when bullets fly.'
+  },
+
+  stickmanbombtag: {
+    goal: 'Pass the bomb before it blows \u2014 the survivor wins the round.',
+    how: [
+      'Couch co-op: both players on one device. Host (A) starts the match and reports the winner.',
+      'Pick match length (1 / best of 3 / best of 5), bomb fuse (30\u201360s), and a themed arena.',
+      'P1: A/D move \u00b7 W jump (double-jump) \u00b7 E pass bomb. P2: arrows move/jump \u00b7 M pass.',
+      'You must be close to your partner to pass. Whoever holds it when the fuse hits zero loses the round.',
+      'On phones, on-screen buttons appear; you can also tap the other stickman to pass.'
+    ],
+    tip: 'Hold the bomb near a platform edge so a double-jump pass is hard to dodge.'
+  },
+
+  stickmankart: {
+    goal: 'Finish first in a neon stickman kart race \u2014 first across the line wins.',
+    how: [
+      'Couch co-op: both players on one keyboard. Host (A) starts the race and reports the winner.',
+      'Garage: pick kart type + color, track (6 themes with different grip), lap count, and power-ups on/off.',
+      'P1: W accelerate \u00b7 S brake/reverse \u00b7 A/D steer \u00b7 Space use item.',
+      'P2: \u2191 accelerate \u00b7 \u2193 brake/reverse \u00b7 \u2190/\u2192 steer \u00b7 Enter use item.',
+      'Items: boost, missile, banana, oil slick, shield, lightning. Esc pauses.'
+    ],
+    tip: 'Save a shield for the last lap \u2014 a late missile or oil can erase a clean lead.'
   },
 
   stickmanracing: {
@@ -299,6 +324,18 @@ export const RULES = {
       'Hammer (last throw) passes to the end\u2019s loser; blank ends keep the hammer where it was.'
     ],
     tip: 'Save the hammer for a blank-or-score end \u2014 and sweep early if you need the deep freeze.'
+  },
+
+  laserwall: {
+    goal: 'Trace glowing outlines with a laser while your partner tries to block you on the wall. Highest artist accuracy wins.',
+    how: [
+      'Same keyboard, two roles that swap after round 1. Match = 2 rounds.',
+      'Laser Artist (A/D walk, mouse aim, hold click to fire): stay ON the dashed outline — off-line drawing tanks your score. Reach 80%+ to win the round.',
+      'Wall Runner (arrow keys on the wall, Shift to leap): wear the inflatable suit and body-block the beam so the artist gets zero progress.',
+      'Pick a themed map (or a custom drawing set) and a round timer (45s / 60s) from the menu.',
+      'Final winner = whoever scored the higher tracing accuracy as the artist.'
+    ],
+    tip: 'As runner, camp the corners of hard shapes. As artist, short controlled strokes beat wild scribbling.'
   },
 
   sumobomb: {

@@ -54,14 +54,14 @@ export class KitchenFx {
   coinBurst(x: number, y: number) {
     for (let i = 0; i < 8; i++) {
       const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
-      const sp = 50 + Math.random() * 70;
+      const sp = 40 + Math.random() * 55;
       this.puffs.push({
         x,
         y,
         vx: Math.cos(a) * sp,
         vy: Math.sin(a) * sp,
         life: 0,
-        max: 0.55 + Math.random() * 0.2,
+        max: 0.85 + Math.random() * 0.35,
         r: 3,
         color: 0xffd54f,
         kind: "spark",

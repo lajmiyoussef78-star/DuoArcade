@@ -1,0 +1,148 @@
+/* Minimal Tailwind-utility shim scoped to Laser Wall Duel (no Tailwind in repo). */
+
+.arcade-page .lwd-wrap,
+.lwd-wrap { width: 100%; }
+
+.lwd-shell,
+.lwd-shell * { box-sizing: border-box; }
+
+.lwd-shell {
+  width: 100%;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line, #3D3450);
+}
+
+.lwd-shell .relative { position: relative; }
+.lwd-shell .absolute { position: absolute; }
+.lwd-shell .inset-0 { inset: 0; }
+.lwd-shell .top-2\.5 { top: 0.625rem; }
+.lwd-shell .top-3 { top: 0.75rem; }
+.lwd-shell .left-1\/2 { left: 50%; }
+.lwd-shell .left-3\.5 { left: 0.875rem; }
+.lwd-shell .right-3\.5 { right: 0.875rem; }
+.lwd-shell .-translate-x-1\/2 { transform: translateX(-50%); }
+.lwd-shell .z-10 { z-index: 10; }
+.lwd-shell .z-20 { z-index: 20; }
+.lwd-shell .z-30 { z-index: 30; }
+.lwd-shell .z-40 { z-index: 40; }
+
+.lwd-shell .flex { display: flex; }
+.lwd-shell .inline-flex { display: inline-flex; }
+.lwd-shell .inline-block { display: inline-block; }
+.lwd-shell .block { display: block; }
+.lwd-shell .grid { display: grid; }
+.lwd-shell .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lwd-shell .flex-col { flex-direction: column; }
+.lwd-shell .flex-wrap { flex-wrap: wrap; }
+.lwd-shell .items-center { align-items: center; }
+.lwd-shell .justify-center { justify-content: center; }
+.lwd-shell .gap-2 { gap: 0.5rem; }
+.lwd-shell .gap-3 { gap: 0.75rem; }
+.lwd-shell .gap-3\.5 { gap: 0.875rem; }
+
+.lwd-shell .w-full { width: 100%; }
+.lwd-shell .w-10 { width: 2.5rem; }
+.lwd-shell .h-10 { height: 2.5rem; }
+.lwd-shell .h-screen { height: min(780px, calc(100vh - 170px)); min-height: 520px; }
+.lwd-shell .w-\[min\(760px\,95\%\)\] { width: min(760px, 95%); }
+.lwd-shell .min-w-\[260px\] { min-width: 260px; }
+.lwd-shell .max-w-\[860px\] { max-width: 860px; }
+
+.lwd-shell .overflow-hidden { overflow: hidden; }
+.lwd-shell .overflow-auto { overflow: auto; }
+.lwd-shell .pointer-events-none { pointer-events: none; }
+.lwd-shell .pointer-events-auto { pointer-events: auto; }
+.lwd-shell .cursor-pointer { cursor: pointer; }
+
+.lwd-shell .rounded { border-radius: 0.25rem; }
+.lwd-shell .rounded-md { border-radius: 0.375rem; }
+.lwd-shell .rounded-lg { border-radius: 0.5rem; }
+.lwd-shell .rounded-xl { border-radius: 0.75rem; }
+.lwd-shell .rounded-2xl { border-radius: 1rem; }
+.lwd-shell .rounded-3xl { border-radius: 1.5rem; }
+
+.lwd-shell .p-2 { padding: 0.5rem; }
+.lwd-shell .p-2\.5 { padding: 0.625rem; }
+.lwd-shell .p-4 { padding: 1rem; }
+.lwd-shell .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.lwd-shell .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.lwd-shell .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.lwd-shell .px-4 { padding-left: 1rem; padding-right: 1rem; }
+.lwd-shell .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.lwd-shell .px-7 { padding-left: 1.75rem; padding-right: 1.75rem; }
+.lwd-shell .px-11 { padding-left: 2.75rem; padding-right: 2.75rem; }
+.lwd-shell .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+.lwd-shell .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.lwd-shell .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.lwd-shell .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.lwd-shell .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.lwd-shell .py-7 { padding-top: 1.75rem; padding-bottom: 1.75rem; }
+.lwd-shell .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.lwd-shell .pb-3 { padding-bottom: 0.75rem; }
+.lwd-shell .pb-10 { padding-bottom: 2.5rem; }
+.lwd-shell .pt-7 { padding-top: 1.75rem; }
+
+.lwd-shell .m-0 { margin: 0; }
+.lwd-shell .mx-auto { margin-left: auto; margin-right: auto; }
+.lwd-shell .mx-px { margin-left: 1px; margin-right: 1px; }
+.lwd-shell .ml-1 { margin-left: 0.25rem; }
+.lwd-shell .mt-0\.5 { margin-top: 0.125rem; }
+.lwd-shell .mt-1 { margin-top: 0.25rem; }
+.lwd-shell .-mt-1 { margin-top: -0.25rem; }
+.lwd-shell .mt-2 { margin-top: 0.5rem; }
+.lwd-shell .mt-3 { margin-top: 0.75rem; }
+.lwd-shell .mt-4 { margin-top: 1rem; }
+.lwd-shell .mt-5 { margin-top: 1.25rem; }
+.lwd-shell .mt-6 { margin-top: 1.5rem; }
+.lwd-shell .mb-1 { margin-bottom: 0.25rem; }
+.lwd-shell .mb-1\.5 { margin-bottom: 0.375rem; }
+.lwd-shell .mb-2 { margin-bottom: 0.5rem; }
+.lwd-shell .mb-2\.5 { margin-bottom: 0.625rem; }
+.lwd-shell .mb-3 { margin-bottom: 0.75rem; }
+.lwd-shell .mb-4 { margin-bottom: 1rem; }
+.lwd-shell .mb-5 { margin-bottom: 1.25rem; }
+.lwd-shell .my-5 { margin-top: 1.25rem; margin-bottom: 1.25rem; }
+
+.lwd-shell .text-left { text-align: left; }
+.lwd-shell .text-center { text-align: center; }
+.lwd-shell .text-right { text-align: right; }
+.lwd-shell .text-white { color: #fff; }
+.lwd-shell .uppercase { text-transform: uppercase; }
+.lwd-shell .font-bold { font-weight: 700; }
+.lwd-shell .font-normal { font-weight: 400; }
+.lwd-shell .tracking-widest { letter-spacing: 0.1em; }
+.lwd-shell .tracking-\[5px\] { letter-spacing: 5px; }
+.lwd-shell .tracking-\[6px\] { letter-spacing: 6px; }
+.lwd-shell .leading-relaxed { line-height: 1.625; }
+.lwd-shell .leading-loose { line-height: 2; }
+
+.lwd-shell .text-\[9px\] { font-size: 9px; }
+.lwd-shell .text-\[10px\] { font-size: 10px; }
+.lwd-shell .text-\[11px\] { font-size: 11px; }
+.lwd-shell .text-\[13px\] { font-size: 13px; }
+.lwd-shell .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.lwd-shell .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.lwd-shell .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.lwd-shell .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.lwd-shell .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.lwd-shell .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.lwd-shell .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.lwd-shell .text-6xl { font-size: 3.75rem; line-height: 1; }
+.lwd-shell .text-\[26px\] { font-size: 26px; }
+
+.lwd-shell .bg-black { background: #000; }
+.lwd-shell .transition-transform { transition: transform 0.15s ease; }
+.lwd-shell .hover\:-translate-y-1:hover { transform: translateY(-0.25rem); }
+.lwd-shell .hover\:-translate-y-0\.5:hover { transform: translateY(-0.125rem); }
+.lwd-shell .hover\:scale-105:hover { transform: scale(1.05); }
+
+@media (max-width: 640px) {
+  .lwd-shell .max-\[640px\]\:grid-cols-1 { grid-template-columns: 1fr; }
+}
+
+.arcade-page .lwd-shell .h-screen {
+  height: min(720px, calc(100vh - 200px));
+  min-height: 480px;
+}

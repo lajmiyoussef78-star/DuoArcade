@@ -35,6 +35,7 @@ export class Customer {
   private ringGfx: Phaser.GameObjects.Graphics;
   private orderIcon: Phaser.GameObjects.Image;
   private callText: Phaser.GameObjects.Text;
+  private orderLabel: Phaser.GameObjects.Text;
   private mood: Phaser.GameObjects.Text;
   private leaving = false;
   private leaveTween?: Phaser.Tweens.Tween;
@@ -72,8 +73,8 @@ export class Customer {
     this.bubbleBg = scene.add.graphics();
     this.ringGfx = scene.add.graphics();
     this.orderIcon = scene.add
-      .image(12, -70, ITEMS[order.id].texture)
-      .setScale(1.45)
+      .image(0, -78, ITEMS[order.id].texture)
+      .setScale(1.35)
       .setVisible(false);
     this.callText = scene.add
       .text(0, -70, "!", {
@@ -85,11 +86,23 @@ export class Customer {
         strokeThickness: 4,
       })
       .setOrigin(0.5);
+    this.orderLabel = scene.add
+      .text(0, -52, order.name, {
+        fontFamily: "Sora, sans-serif",
+        fontSize: "9px",
+        color: "#bf360c",
+        fontStyle: "bold",
+        stroke: "#ffffff",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
     this.bubble = scene.add.container(0, 0, [
       this.bubbleBg,
       this.ringGfx,
       this.orderIcon,
       this.callText,
+      this.orderLabel,
     ]);
     this.bubble.setVisible(false);
     this.redrawBubble();
@@ -187,29 +200,32 @@ export class Customer {
 
   private redrawBubble() {
     this.bubbleBg.clear();
-    const bw = 68;
-    const bh = 52;
+    const bw = 72;
+    const bh = 58;
     this.bubbleBg.fillStyle(0xffffff, 0.98);
-    this.bubbleBg.fillRoundedRect(-bw / 2, -98, bw, bh, 16);
+    this.bubbleBg.fillRoundedRect(-bw / 2, -102, bw, bh, 16);
     this.bubbleBg.lineStyle(4, 0x2b1d14, 1);
-    this.bubbleBg.strokeRoundedRect(-bw / 2, -98, bw, bh, 16);
+    this.bubbleBg.strokeRoundedRect(-bw / 2, -102, bw, bh, 16);
     this.bubbleBg.fillStyle(0xffffff, 0.98);
-    this.bubbleBg.fillTriangle(-6, -46, 6, -46, 0, -36);
+    this.bubbleBg.fillTriangle(-6, -44, 6, -44, 0, -34);
     this.bubbleBg.lineStyle(4, 0x2b1d14, 1);
-    this.bubbleBg.lineBetween(-6, -46, 0, -36);
-    this.bubbleBg.lineBetween(6, -46, 0, -36);
+    this.bubbleBg.lineBetween(-6, -44, 0, -34);
+    this.bubbleBg.lineBetween(6, -44, 0, -34);
 
     if (this.phase === "waiting") {
       this.callText.setVisible(true);
       this.orderIcon.setVisible(false);
+      this.orderLabel.setVisible(false);
       this.ringGfx.clear();
     } else if (this.phase === "ordered") {
       this.callText.setVisible(false);
       this.orderIcon.setVisible(true);
+      this.orderLabel.setVisible(true);
       this.drawRing();
     } else {
       this.callText.setVisible(false);
       this.orderIcon.setVisible(false);
+      this.orderLabel.setVisible(false);
       this.ringGfx.clear();
     }
   }
@@ -225,13 +241,13 @@ export class Customer {
     const t = Phaser.Math.Clamp(this.patience / this.maxPatience, 0, 1);
     const color = this.urgencyColor();
     this.ringGfx.clear();
-    this.ringGfx.lineStyle(5, 0xeceff1, 1);
+    this.ringGfx.lineStyle(4, 0xeceff1, 1);
     this.ringGfx.beginPath();
-    this.ringGfx.arc(-14, -72, 14, 0, Math.PI * 2);
+    this.ringGfx.arc(-22, -78, 11, 0, Math.PI * 2);
     this.ringGfx.strokePath();
-    this.ringGfx.lineStyle(5, color, 1);
+    this.ringGfx.lineStyle(4, color, 1);
     this.ringGfx.beginPath();
-    this.ringGfx.arc(-14, -72, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t, false);
+    this.ringGfx.arc(-22, -78, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t, false);
     this.ringGfx.strokePath();
   }
 
@@ -314,25 +330,43 @@ export class Customer {
     this.walkBob?.stop();
     this.bubble.setVisible(false);
     this.mood.setText(happy ? "😍 ♥" : "💢");
+    this.mood.setScale(1.35);
     this.body.setFlipX(this.door.x < this.root.x);
 
-    const dist = Phaser.Math.Distance.Between(this.root.x, this.root.y, this.door.x, this.door.y);
-    const walkMs = Phaser.Math.Clamp(dist * 6, 600, 1600);
+    const scene = this.root.scene;
+    // Hold so tip / satisfaction float text is readable before they walk away
+    const holdMs = happy ? 1600 : 700;
+    scene.tweens.add({
+      targets: this.mood,
+      scale: 1,
+      duration: 420,
+      ease: "Back.out",
+    });
 
-    this.leaveTween = this.root.scene.tweens.add({
-      targets: this.root,
-      x: this.door.x,
-      y: this.door.y,
-      duration: walkMs,
-      ease: "Sine.inOut",
-      onComplete: () => {
-        this.root.scene.tweens.add({
-          targets: this.root,
-          alpha: 0,
-          duration: 220,
-          onComplete: () => this.destroy(),
-        });
-      },
+    scene.time.delayedCall(holdMs, () => {
+      if (!this.alive || !this.root?.active) return;
+      const dist = Phaser.Math.Distance.Between(
+        this.root.x,
+        this.root.y,
+        this.door.x,
+        this.door.y,
+      );
+      const walkMs = Phaser.Math.Clamp(dist * 10, 1100, 2800);
+      this.leaveTween = scene.tweens.add({
+        targets: this.root,
+        x: this.door.x,
+        y: this.door.y,
+        duration: walkMs,
+        ease: "Sine.inOut",
+        onComplete: () => {
+          scene.tweens.add({
+            targets: this.root,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => this.destroy(),
+          });
+        },
+      });
     });
   }
 
@@ -387,7 +421,10 @@ export class CustomerManager {
     const free = this.seats.filter((s) => !taken.has(s.id));
     if (free.length === 0) return;
     const seat = Phaser.Utils.Array.GetRandom(free);
-    const order = randomRecipe(this.menu);
+    const activeOrders = this.active
+      .filter((c) => c.alive && (c.phase === "waiting" || c.phase === "ordered"))
+      .map((c) => c.order.id);
+    const order = randomRecipe(this.menu, activeOrders);
     const vip = Math.random() < 0.12;
     // Second tour+: extra patience for wash dirty plate → return → re-serve
     const tour = Math.floor(this.spawnedTotal / Math.max(1, this.seats.length));

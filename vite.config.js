@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@gastronomica/shared': path.resolve(__dirname, 'src/kitchen/shared.ts')
+      '@gastronomica/shared': path.resolve(__dirname, 'src/kitchen/shared/index.ts')
     }
   },
   optimizeDeps: {

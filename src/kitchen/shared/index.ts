@@ -1,4 +1,4 @@
-/** Minimal shared types for the embedded kitchen (from project-gastronomica). */
+/** Stand-in for `@gastronomica/shared` — DuoArcade embeds kitchen without the monorepo package. */
 
 export const APP_NAME = 'Ready, Set, Cook';
 export const APP_VERSION = '1.1.0';
@@ -23,3 +23,6 @@ export type PlayerNetState = {
   sprinting: boolean;
   heldLabel: string | null;
 };
+
+export * from './kitchenNet';
+export * from './handCombine';

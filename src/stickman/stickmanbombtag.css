@@ -1,0 +1,165 @@
+/* Minimal Tailwind-utility shim scoped to Stickman Bomb Tag (no Tailwind in repo). */
+
+.arcade-page .sbt-wrap,
+.sbt-wrap { width: 100%; }
+
+.sbt-shell,
+.sbt-shell * { box-sizing: border-box; }
+
+.sbt-shell {
+  width: 100%;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line, #3D3450);
+}
+
+.sbt-shell .relative { position: relative; }
+.sbt-shell .absolute { position: absolute; }
+.sbt-shell .inset-0 { inset: 0; }
+.sbt-shell .top-2\.5 { top: 0.625rem; }
+.sbt-shell .top-3 { top: 0.75rem; }
+.sbt-shell .left-1\/2 { left: 50%; }
+.sbt-shell .left-3\.5 { left: 0.875rem; }
+.sbt-shell .right-3\.5 { right: 0.875rem; }
+.sbt-shell .-translate-x-1\/2 { transform: translateX(-50%); }
+.sbt-shell .z-10 { z-index: 10; }
+.sbt-shell .z-20 { z-index: 20; }
+.sbt-shell .z-30 { z-index: 30; }
+.sbt-shell .z-40 { z-index: 40; }
+
+.sbt-shell .flex { display: flex; }
+.sbt-shell .inline-flex { display: inline-flex; }
+.sbt-shell .inline-block { display: inline-block; }
+.sbt-shell .block { display: block; }
+.sbt-shell .grid { display: grid; }
+.sbt-shell .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sbt-shell .flex-col { flex-direction: column; }
+.sbt-shell .flex-wrap { flex-wrap: wrap; }
+.sbt-shell .items-center { align-items: center; }
+.sbt-shell .justify-center { justify-content: center; }
+.sbt-shell .gap-2 { gap: 0.5rem; }
+.sbt-shell .gap-3 { gap: 0.75rem; }
+.sbt-shell .gap-3\.5 { gap: 0.875rem; }
+
+.sbt-shell .w-full { width: 100%; }
+.sbt-shell .w-10 { width: 2.5rem; }
+.sbt-shell .h-10 { height: 2.5rem; }
+.sbt-shell .h-screen { height: min(780px, calc(100vh - 170px)); min-height: 520px; }
+.sbt-shell .w-\[min\(760px\,95\%\)\] { width: min(760px, 95%); }
+.sbt-shell .min-w-\[260px\] { min-width: 260px; }
+.sbt-shell .max-w-\[860px\] { max-width: 860px; }
+
+.sbt-shell .overflow-hidden { overflow: hidden; }
+.sbt-shell .overflow-auto { overflow: auto; }
+.sbt-shell .pointer-events-none { pointer-events: none; }
+.sbt-shell .pointer-events-auto { pointer-events: auto; }
+.sbt-shell .cursor-pointer { cursor: pointer; }
+
+.sbt-shell .rounded { border-radius: 0.25rem; }
+.sbt-shell .rounded-md { border-radius: 0.375rem; }
+.sbt-shell .rounded-lg { border-radius: 0.5rem; }
+.sbt-shell .rounded-xl { border-radius: 0.75rem; }
+.sbt-shell .rounded-2xl { border-radius: 1rem; }
+.sbt-shell .rounded-3xl { border-radius: 1.5rem; }
+
+.sbt-shell .p-2 { padding: 0.5rem; }
+.sbt-shell .p-2\.5 { padding: 0.625rem; }
+.sbt-shell .p-4 { padding: 1rem; }
+.sbt-shell .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.sbt-shell .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.sbt-shell .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.sbt-shell .px-4 { padding-left: 1rem; padding-right: 1rem; }
+.sbt-shell .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.sbt-shell .px-7 { padding-left: 1.75rem; padding-right: 1.75rem; }
+.sbt-shell .px-11 { padding-left: 2.75rem; padding-right: 2.75rem; }
+.sbt-shell .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+.sbt-shell .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.sbt-shell .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.sbt-shell .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.sbt-shell .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.sbt-shell .py-7 { padding-top: 1.75rem; padding-bottom: 1.75rem; }
+.sbt-shell .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.sbt-shell .pb-3 { padding-bottom: 0.75rem; }
+.sbt-shell .pb-10 { padding-bottom: 2.5rem; }
+.sbt-shell .pt-7 { padding-top: 1.75rem; }
+
+.sbt-shell .m-0 { margin: 0; }
+.sbt-shell .mx-auto { margin-left: auto; margin-right: auto; }
+.sbt-shell .mx-px { margin-left: 1px; margin-right: 1px; }
+.sbt-shell .ml-1 { margin-left: 0.25rem; }
+.sbt-shell .mt-0\.5 { margin-top: 0.125rem; }
+.sbt-shell .mt-1 { margin-top: 0.25rem; }
+.sbt-shell .-mt-1 { margin-top: -0.25rem; }
+.sbt-shell .mt-2 { margin-top: 0.5rem; }
+.sbt-shell .mt-3 { margin-top: 0.75rem; }
+.sbt-shell .mt-4 { margin-top: 1rem; }
+.sbt-shell .mt-5 { margin-top: 1.25rem; }
+.sbt-shell .mt-6 { margin-top: 1.5rem; }
+.sbt-shell .mb-1 { margin-bottom: 0.25rem; }
+.sbt-shell .mb-1\.5 { margin-bottom: 0.375rem; }
+.sbt-shell .mb-2 { margin-bottom: 0.5rem; }
+.sbt-shell .mb-2\.5 { margin-bottom: 0.625rem; }
+.sbt-shell .mb-3 { margin-bottom: 0.75rem; }
+.sbt-shell .mb-4 { margin-bottom: 1rem; }
+.sbt-shell .mb-5 { margin-bottom: 1.25rem; }
+.sbt-shell .my-5 { margin-top: 1.25rem; margin-bottom: 1.25rem; }
+
+.sbt-shell .text-left { text-align: left; }
+.sbt-shell .text-center { text-align: center; }
+.sbt-shell .text-right { text-align: right; }
+.sbt-shell .text-white { color: #fff; }
+.sbt-shell .uppercase { text-transform: uppercase; }
+.sbt-shell .font-bold { font-weight: 700; }
+.sbt-shell .font-normal { font-weight: 400; }
+.sbt-shell .tracking-widest { letter-spacing: 0.1em; }
+.sbt-shell .tracking-\[5px\] { letter-spacing: 5px; }
+.sbt-shell .tracking-\[6px\] { letter-spacing: 6px; }
+.sbt-shell .leading-relaxed { line-height: 1.625; }
+.sbt-shell .leading-loose { line-height: 2; }
+
+.sbt-shell .text-\[9px\] { font-size: 9px; }
+.sbt-shell .text-\[10px\] { font-size: 10px; }
+.sbt-shell .text-\[11px\] { font-size: 11px; }
+.sbt-shell .text-\[13px\] { font-size: 13px; }
+.sbt-shell .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.sbt-shell .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.sbt-shell .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.sbt-shell .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.sbt-shell .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.sbt-shell .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.sbt-shell .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.sbt-shell .text-6xl { font-size: 3.75rem; line-height: 1; }
+.sbt-shell .text-\[26px\] { font-size: 26px; }
+
+.sbt-shell .bg-black { background: #000; }
+.sbt-shell .transition-transform { transition: transform 0.15s ease; }
+.sbt-shell .hover\:-translate-y-1:hover { transform: translateY(-0.25rem); }
+.sbt-shell .hover\:-translate-y-0\.5:hover { transform: translateY(-0.125rem); }
+.sbt-shell .hover\:scale-105:hover { transform: scale(1.05); }
+
+@media (max-width: 640px) {
+  .sbt-shell .max-\[640px\]\:grid-cols-1 { grid-template-columns: 1fr; }
+}
+
+.arcade-page .sbt-shell .h-screen {
+  height: min(720px, calc(100vh - 200px));
+  min-height: 480px;
+}
+
+.sbt-shell .flex-1 { flex: 1 1 0%; }
+.sbt-shell .bottom-3 { bottom: 0.75rem; }
+.sbt-shell .left-3 { left: 0.75rem; }
+.sbt-shell .right-3 { right: 0.75rem; }
+.sbt-shell .top-\[72px\] { top: 72px; }
+.sbt-shell .z-\[12\] { z-index: 12; }
+.sbt-shell .z-\[15\] { z-index: 15; }
+.sbt-shell .select-none { user-select: none; }
+.sbt-shell .text-base { font-size: 1rem; line-height: 1.5rem; }
+.sbt-shell .text-\[28px\] { font-size: 28px; }
+.sbt-shell .min-w-\[280px\] { min-width: 280px; }
+.sbt-shell .max-w-\[880px\] { max-width: 880px; }
+.sbt-shell .gap-2\.5 { gap: 0.625rem; }
+.sbt-shell .mb-3\.5 { margin-bottom: 0.875rem; }
+.sbt-shell .pt-6 { padding-top: 1.5rem; }
+.sbt-shell .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }

@@ -9,7 +9,7 @@ The full **project-gastronomica** Phaser kitchen lives inside DuoArcade at `src/
 | `src/kitchen/game/` | Phaser scenes, maps, entities (from gastronomica) |
 | `src/kitchen/KitchenPlay.jsx` | React mount + DuoArcade realtime bridge |
 | `src/kitchen/MapLobby.jsx` | Kitchen / map picker UI |
-| `src/kitchen/shared.ts` | Stand-in for `@gastronomica/shared` types |
+| `src/kitchen/shared/` | Stand-in for `@gastronomica/shared` (types + handCombine + kitchenNet) |
 | `src/engines/readysetcook.js` | DuoArcade engine entry (`mount` / `unmount`) |
 | `src/styles/kitchen.scoped.css` | Map lobby + kitchen chrome styles |
 

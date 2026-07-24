@@ -11,11 +11,28 @@ export type BuffetPhase =
   | "wantJuice"
   | "leaving";
 
-const GROUP_SIZES = [5, 6, 7] as const;
-const EAT_MS = 8000;
-const JUICE_WAIT_MS = 9000;
-const EMPTY_WAIT_MS = 2500;
+const GROUP_SIZES = [4, 6, 8] as const;
+/** Guests eat after filling their plate. */
+const EAT_MS = 9000;
+/** Time to deliver juice before they give up. */
+const JUICE_WAIT_MS = 18000;
+/** Pause when a tray is empty before they check the next. */
+const EMPTY_WAIT_MS = 5000;
 const BUFFET_BASE_POINTS = 110;
+
+/** Walk / settle timings (ms) — kept readable, not rushed. */
+const ENTER_MS_MIN = 2400;
+const ENTER_MS_VAR = 800;
+const RETURN_SEAT_MS = 1800;
+const PAY_HOLD_MS = 2800;
+const LEAVE_MS = 3200;
+const FADE_IN_MS = 450;
+
+/** Wave 1: clean plates ready. Wave 2+: wash loop needed. */
+const NEED_PLATE_MS_WAVE1 = 45_000;
+const NEED_PLATE_MS_LATER = 100_000;
+const BUFFET_WAIT_MS = 55_000;
+const JUICE_DRAIN_MS = 40_000;
 
 export class BuffetCustomer {
   readonly seat: CustomerSeat;
@@ -26,6 +43,8 @@ export class BuffetCustomer {
   foodsTaken = 0;
   wantsJuice = false;
   juiceServed = false;
+  /** ms for plate patience — shorter on first wave, longer once wash cycle starts. */
+  private needPlateMs: number;
   private root: Phaser.GameObjects.Container;
   private body: Phaser.GameObjects.Image;
   private bubble: Phaser.GameObjects.Text;
@@ -43,9 +62,11 @@ export class BuffetCustomer {
     scene: Phaser.Scene,
     seat: CustomerSeat,
     door: DoorPoint,
+    waveIndex = 1,
   ) {
     this.seat = seat;
     this.door = door;
+    this.needPlateMs = waveIndex <= 1 ? NEED_PLATE_MS_WAVE1 : NEED_PLATE_MS_LATER;
 
     const shadow = scene.textures.exists("shadow")
       ? scene.add.image(0, 6, "shadow").setAlpha(0.4).setScale(1.5)
@@ -87,13 +108,13 @@ export class BuffetCustomer {
     this.root.setDepth(7);
     this.root.setAlpha(0);
 
-    scene.tweens.add({ targets: this.root, alpha: 1, duration: 200 });
+    scene.tweens.add({ targets: this.root, alpha: 1, duration: FADE_IN_MS });
     this.enterTween = scene.tweens.add({
       targets: this.root,
       x: seat.x,
       y: seat.y,
-      duration: 900 + Math.random() * 400,
-      ease: "Sine.out",
+      duration: ENTER_MS_MIN + Math.random() * ENTER_MS_VAR,
+      ease: "Sine.inOut",
       onComplete: () => {
         this.phase = "needPlate";
         this.bubble.setText("Plate!").setVisible(true);
@@ -138,7 +159,7 @@ export class BuffetCustomer {
     if (!this.alive) return null;
 
     if (this.phase === "needPlate") {
-      this.satisfaction -= delta / 45000;
+      this.satisfaction -= delta / this.needPlateMs;
       this.mood.setText(this.satisfaction < 0.4 ? "…" : "");
       if (this.satisfaction <= 0) return this.walkout();
       return null;
@@ -147,7 +168,7 @@ export class BuffetCustomer {
     if (this.phase === "buffet") {
       this.emptyWait -= delta;
       if (this.emptyWait > 0) {
-        this.satisfaction -= delta / 28000;
+        this.satisfaction -= delta / BUFFET_WAIT_MS;
         if (this.satisfaction <= 0) return this.walkout();
         return null;
       }
@@ -159,7 +180,7 @@ export class BuffetCustomer {
         if (tray.isEmpty) {
           this.emptyWait = EMPTY_WAIT_MS;
           this.bubble.setText(`Wait ${tray.def.label}`).setVisible(true);
-          this.satisfaction -= 0.04;
+          this.satisfaction -= 0.02;
           return null;
         }
         if (tray.takeServing()) {
@@ -180,8 +201,8 @@ export class BuffetCustomer {
         targets: this.root,
         x: this.seat.x,
         y: this.seat.y,
-        duration: 700,
-        ease: "Sine.out",
+        duration: RETURN_SEAT_MS,
+        ease: "Sine.inOut",
       });
       return null;
     }
@@ -203,7 +224,7 @@ export class BuffetCustomer {
 
     if (this.phase === "wantJuice") {
       this.juiceTimer -= delta;
-      this.satisfaction -= delta / 22000;
+      this.satisfaction -= delta / JUICE_DRAIN_MS;
       if (this.juiceTimer <= 0 || this.satisfaction <= 0) {
         // Missed juice — finish with lower satisfaction
         this.satisfaction = Math.max(0.25, this.satisfaction - 0.2);
@@ -215,32 +236,56 @@ export class BuffetCustomer {
     return null;
   }
 
-  private finishHappy(scene: Phaser.Scene): "happy" | "dirty" {
+  private finishHappy(scene: Phaser.Scene): "happy" | "dirty" | null {
+    if (this.dirtySpawned) return null;
+    this.dirtySpawned = true;
     this.phase = "leaving";
-    this.bubble.setVisible(false);
     const seat = this.seat;
-    this.leaveTween = scene.tweens.add({
-      targets: this.root,
-      x: this.door.x,
-      y: this.door.y,
-      alpha: 0.2,
-      duration: 900,
-      onComplete: () => this.destroy(),
+    const { tip, stars } = this.scorePoints();
+    const tipLabel = tip > 0 ? `Tip +${tip}` : "Thanks!";
+    this.mood.setText(`${"★".repeat(stars)}`);
+    this.bubble.setText(tipLabel).setVisible(true);
+
+    // Hold at the seat to show pay / tip / satisfaction, then walk out slowly
+    scene.time.delayedCall(PAY_HOLD_MS, () => {
+      if (!this.alive || !this.root?.active) return;
+      this.bubble.setText("Bye!").setVisible(true);
+      this.leaveTween = scene.tweens.add({
+        targets: this.root,
+        x: this.door.x,
+        y: this.door.y,
+        alpha: 0.15,
+        duration: LEAVE_MS,
+        ease: "Sine.inOut",
+        onComplete: () => this.destroy(),
+      });
     });
-    if (!this.dirtySpawned) {
-      this.dirtySpawned = true;
-      // Signal scene to spawn dirty plate at seat
-      void seat;
-      return "dirty";
-    }
-    return "happy";
+
+    void seat;
+    return "dirty";
   }
 
-  private walkout(): "walkout" {
+  private walkout(): "walkout" | null {
+    if (this.phase === "leaving") return null;
     this.phase = "leaving";
-    this.bubble.setText("Bye!").setVisible(true);
-    this.alive = false;
-    this.root.destroy(true);
+    this.bubble.setText("…").setVisible(true);
+    this.mood.setText("");
+    const scene = this.root.scene;
+    scene.time.delayedCall(600, () => {
+      if (!this.root?.active) return;
+      this.leaveTween = scene.tweens.add({
+        targets: this.root,
+        x: this.door.x,
+        y: this.door.y,
+        alpha: 0.2,
+        duration: LEAVE_MS,
+        ease: "Sine.inOut",
+        onComplete: () => {
+          this.alive = false;
+          this.root.destroy(true);
+        },
+      });
+    });
     return "walkout";
   }
 
@@ -273,6 +318,8 @@ export class BuffetCustomerManager {
   private groupPending = false;
   private waveCooldown = 0;
   private firstSpawned = false;
+  /** Seats reserved by living guests (incl. still entering / leaving). */
+  private occupied = new Set<number>();
 
   constructor(scene: Phaser.Scene, seats: CustomerSeat[], door: DoorPoint) {
     this.scene = scene;
@@ -303,22 +350,43 @@ export class BuffetCustomerManager {
     return GROUP_SIZES[this.wave % GROUP_SIZES.length]!;
   }
 
+  private freeSeats(): CustomerSeat[] {
+    return this.seats.filter((s) => !this.occupied.has(s.id));
+  }
+
   private spawnGroup() {
     if (!this.spawning) return;
-    const size = Math.min(this.groupSize(), this.seats.length);
-    const free = [...this.seats];
+    const free = this.freeSeats();
+    if (!free.length) {
+      this.groupPending = false;
+      return;
+    }
     Phaser.Utils.Array.Shuffle(free);
+    const size = Math.min(this.groupSize(), free.length);
+    // Reserve seats immediately so another wave cannot double-book
+    const assigned: CustomerSeat[] = [];
     for (let i = 0; i < size; i++) {
-      const seat = free[i];
-      if (!seat) break;
-      // Stagger entry slightly
-      this.scene.time.delayedCall(i * 350, () => {
-        if (!this.spawning) return;
-        this.active.push(new BuffetCustomer(this.scene, seat, this.door));
-      });
+      const seat = free[i]!;
+      this.occupied.add(seat.id);
+      assigned.push(seat);
     }
     this.wave += 1;
-    this.groupPending = false;
+    // Keep pending until staggered entries finish so update() won't start another wave
+    this.groupPending = true;
+    this.waveCooldown = assigned.length * 600 + 400;
+
+    for (let i = 0; i < assigned.length; i++) {
+      const seat = assigned[i]!;
+      this.scene.time.delayedCall(i * 600, () => {
+        if (!this.spawning) {
+          this.occupied.delete(seat.id);
+          return;
+        }
+        // Seat must still be exclusively ours
+        if ([...this.active].some((c) => c.alive && c.seat.id === seat.id)) return;
+        this.active.push(new BuffetCustomer(this.scene, seat, this.door, this.wave));
+      });
+    }
   }
 
   nearestNeedPlate(px: number, py: number, range: number): BuffetCustomer | null {
@@ -362,24 +430,41 @@ export class BuffetCustomerManager {
     for (const c of this.active) {
       if (!c.alive) continue;
       const r = c.update(delta, trays, this.scene);
-      if (r === "walkout") walkouts += 1;
+      if (r === "walkout") {
+        walkouts += 1;
+      }
       if (r === "dirty" || r === "happy") {
         if (r === "dirty") finished.push({ customer: c, dirtySeat: c.seat });
-        // Apply score in scene via finished callback for dirty; happy without dirty already scored?
-        // finishHappy returns dirty first then destroys — scene scores on dirty event
       }
     }
 
+    const prev = this.active;
     this.active = this.active.filter((c) => c.alive);
+    for (const c of prev) {
+      if (!c.alive) this.occupied.delete(c.seat.id);
+    }
 
-    // Next wave when group cleared
-    if (this.spawning && this.firstSpawned && this.active.length === 0 && !this.groupPending) {
+    // Next wave only when the floor is clear and no spawn stagger is in progress
+    if (
+      this.spawning &&
+      this.firstSpawned &&
+      this.active.length === 0 &&
+      this.occupied.size === 0 &&
+      !this.groupPending
+    ) {
       this.groupPending = true;
-      this.waveCooldown = 2800;
+      this.waveCooldown = 4500;
     }
     if (this.groupPending) {
       this.waveCooldown -= delta;
-      if (this.waveCooldown <= 0) this.spawnGroup();
+      if (this.waveCooldown <= 0) {
+        // If seats still reserved / guests alive, wait; else spawn
+        if (this.active.length === 0 && this.occupied.size === 0) {
+          this.spawnGroup();
+        } else if (this.active.length > 0) {
+          this.groupPending = false;
+        }
+      }
     }
 
     return { walkouts, finished };
@@ -388,5 +473,6 @@ export class BuffetCustomerManager {
   destroy() {
     for (const c of this.active) c.destroy();
     this.active = [];
+    this.occupied.clear();
   }
 }

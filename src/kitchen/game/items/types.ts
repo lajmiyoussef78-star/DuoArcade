@@ -301,12 +301,15 @@ export const PICKUP_RANGE = 48;
 export const APPLIANCE_RANGE = 64;
 /** Ingredient crates / plates — reach from front or back of the counter. */
 export const PANTRY_RANGE = 100;
+/** Pass table — reach from any side of the counter. */
+export const PASS_RANGE = 110;
 
 export const COOK_MS = 3500;
-/** Pizza oven — long enough to grab/wash a plate and return. */
-export const PIZZA_COOK_MS = 10000;
-export const BURN_MS = 2500;
+/** Pizza oven — shorter bake so it fits between other prep without feeling idle. */
+export const PIZZA_COOK_MS = 7500;
+/** Grace window after food is ready before it burns. */
+export const BURN_MS = 12000;
 /** Extra window after pizza is ready before it burns. */
-export const PIZZA_BURN_MS = 8500;
+export const PIZZA_BURN_MS = 15000;
 export const CHOP_MS = 1200;
 export const WASH_MS = 1000;

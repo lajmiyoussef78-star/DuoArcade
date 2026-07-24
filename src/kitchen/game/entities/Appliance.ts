@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { tryHandCombine } from "@gastronomica/shared";
 import { ItemEntity } from "../items/ItemEntity";
 import {
   burnResult,
@@ -20,6 +21,7 @@ import {
   WASH_MS,
   type ApplianceDef,
   type ApplianceKind,
+  type ItemId,
 } from "../items/types";
 
 type ProcessKind = "cook" | "chop" | "wash";
@@ -88,6 +90,17 @@ export class Appliance {
         })
         .setOrigin(0.5)
         .setDepth(8);
+    } else if (this.kind === "counter") {
+      this.slotHint = scene.add
+        .text(this.x, this.y + 18, "Hold", {
+          fontFamily: "Sora, sans-serif",
+          fontSize: "8px",
+          color: "#5d4037",
+          backgroundColor: "#fff8e1cc",
+          padding: { x: 3, y: 1 },
+        })
+        .setOrigin(0.5)
+        .setDepth(8);
     }
   }
 
@@ -100,8 +113,39 @@ export class Appliance {
     return this.items.length > 0 ? this.items[this.items.length - 1]! : null;
   }
 
+  /** All parked items (pass / counter). */
+  get parked(): readonly ItemEntity[] {
+    return this.items;
+  }
+
   get capacity(): number {
-    return this.kind === "pass" || this.kind === "counter" ? 3 : 1;
+    if (this.kind === "pass") return 3;
+    // Free hold spots (sides of fryer / spare counters) — one item each
+    if (this.kind === "counter") return 1;
+    return 1;
+  }
+
+  /** World position of pass slot i. */
+  slotWorldPos(i: number): { x: number; y: number } {
+    if (this.kind === "counter") return { x: this.x, y: this.y - 10 };
+    const o = PASS_OFFSETS[Math.min(Math.max(0, i), PASS_OFFSETS.length - 1)]!;
+    return { x: this.x + o.x, y: this.y + o.y };
+  }
+
+  /** Index of the parked item closest to (px, py). */
+  nearestSlotIndex(px: number, py: number): number {
+    if (this.items.length === 0) return -1;
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < this.items.length; i++) {
+      const pos = this.slotWorldPos(i);
+      const d = (px - pos.x) ** 2 + (py - pos.y) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
   }
 
   get isDispenser(): boolean {
@@ -179,6 +223,12 @@ export class Appliance {
     if (this.isDispenser) return false;
     if (this.kind === "trash") return true;
 
+    // Pass / hold: park if space, OR merge into a parked dough/plate
+    if (this.kind === "pass" || this.kind === "counter") {
+      if (this.findCombineTarget(item)) return true;
+      return this.items.length < this.capacity;
+    }
+
     const top = this.held;
     // Tomato onto pizza dough → raw pizza (either order)
     if (top?.id === "pizza_dough" && isTomatoTopping(item.id)) return true;
@@ -197,7 +247,6 @@ export class Appliance {
 
     if (this.kind === "grill") return item.id === "patty_raw";
     if (this.kind === "grill_panel") {
-      // Removable pans only — cook happens on the pan's contents
       return item.isGrillPan;
     }
     if (this.kind === "oven") return item.id === "pizza_raw";
@@ -222,7 +271,6 @@ export class Appliance {
         item.id === "pizza_raw"
       );
     }
-    if (this.kind === "pass" || this.kind === "counter") return true;
     return false;
   }
 
@@ -241,7 +289,7 @@ export class Appliance {
     return this.held?.id === "pizza_cooked";
   }
 
-  promptFor(hands: ItemEntity | null): string | null {
+  promptFor(hands: ItemEntity | null, px = this.x, py = this.y): string | null {
     if (this.kind === "trash") {
       if (!hands) return "Trash · throw burned food here";
       const burned = hands.id.includes("burned");
@@ -332,34 +380,66 @@ export class Appliance {
       if (this.held.id === "pizza_cooked") {
         return "Need empty plate to take pizza";
       }
-      const extra =
-        this.kind === "pass" && this.items.length > 1 ? ` (${this.items.length}/3)` : "";
-      return `E · Take ${this.held.label}${extra}`;
+      if ((this.kind === "pass" || this.kind === "counter") && this.items.length > 0) {
+        const idx = this.nearestSlotIndex(px, py);
+        const pick = this.items[idx] ?? this.held;
+        const extra = this.items.length > 1 ? ` (${this.items.length}/3)` : "";
+        return `E · Take ${pick.label}${extra}`;
+      }
+      return `E · Take ${this.held.label}`;
     }
 
-    if (hands && this.held?.id === "pizza_dough" && isTomatoTopping(hands.id)) {
-      return "E · Put tomato on dough";
-    }
-    if (hands?.id === "pizza_dough" && this.held && isTomatoTopping(this.held.id)) {
-      return "E · Put dough on tomato";
+    // Merge onto dough / plate on this station (including pass & hold)
+    if (hands) {
+      const target = this.findCombineTarget(hands, px, py);
+      if (target) {
+        const r = tryHandCombine(
+          { id: hands.id, contents: [...hands.contents] },
+          { id: target.id, contents: [...target.contents] },
+        );
+        if (r?.kind === "transform_held") {
+          if (isTomatoTopping(hands.id)) return "E · Put tomato on dough";
+          if (hands.id === "pizza_dough") return "E · Put dough on tomato";
+          return `E · Combine → ${ITEMS[r.heldId as ItemId]?.label ?? "item"}`;
+        }
+        if (r?.kind === "mutate_other_plate") {
+          return `E · Add ${hands.label} to plate`;
+        }
+        if (r?.kind === "mutate_held_plate") {
+          return `E · Add ${target.label} to plate`;
+        }
+      }
     }
 
-    if (hands && this.held?.isPlate && canAddToPlate(this.held.contents, hands.id)) {
-      return `E · Add ${hands.label} to plate`;
+    if (this.kind !== "pass" && this.kind !== "counter") {
+      if (hands && this.held?.id === "pizza_dough" && isTomatoTopping(hands.id)) {
+        return "E · Put tomato on dough";
+      }
+      if (hands?.id === "pizza_dough" && this.held && isTomatoTopping(this.held.id)) {
+        return "E · Put dough on tomato";
+      }
+
+      if (hands && this.held?.isPlate && canAddToPlate(this.held.contents, hands.id)) {
+        return `E · Add ${hands.label} to plate`;
+      }
     }
 
     if (hands && this.canAccept(hands)) {
       if (this.kind === "pass") {
         return `E · Park ${hands.label} (${this.items.length + 1}/3)`;
       }
+      if (this.kind === "counter") {
+        return `E · Park ${hands.label}`;
+      }
       return `E · Place ${hands.label}`;
     }
 
     if (hands && this.items.length >= this.capacity) {
-      return this.kind === "pass" ? "Pass full (3/3)" : "Station full";
+      return this.kind === "pass" ? "Pass full (3/3)" : "Hold spot full";
     }
     if (hands && !this.canAccept(hands)) return "Wrong station";
-    if (this.kind === "pass") return `Pass · hold up to 3 items (${this.items.length}/3)`;
+    if (this.kind === "pass") return `Pass · up to 3 items (${this.items.length}/3)`;
+    if (this.kind === "counter") return this.items.length ? "E · Take item" : "Hold · park any item";
     return `E · ${this.def.label}`;
   }
 
@@ -405,6 +485,16 @@ export class Appliance {
       const next = flourResult(item.id);
       if (!next) return false;
       item.transform(next);
+    }
+
+    // Pass & hold: merge onto dough/plate first, otherwise park as a separate item
+    if (this.kind === "pass" || this.kind === "counter") {
+      if (this.tryMergeOntoParked(item)) return true;
+      if (this.items.length >= this.capacity) return false;
+      this.items.push(item);
+      this.layoutSlots();
+      this.refreshSlotHint();
+      return true;
     }
 
     const top = this.held;
@@ -486,7 +576,99 @@ export class Appliance {
     return null;
   }
 
-  take(opts?: { allowCookedPizza?: boolean }): ItemEntity | null {
+  /**
+   * Mirror server appliance stack (authority co-op). Keeps pass/hold items visible
+   * and pickable by standing nearest the slot you want.
+   */
+  reconcileNet(
+    scene: Phaser.Scene,
+    netItems: ReadonlyArray<{
+      uid: string;
+      id: string;
+      x: number;
+      y: number;
+      contents: string[];
+    }>,
+    process: {
+      kind: "cook" | "chop" | "wash";
+      elapsed: number;
+      duration: number;
+      phase: "active" | "ready" | "burning";
+    } | null,
+    plateStock?: number,
+  ) {
+    const byUid = new Map<string, ItemEntity>();
+    for (const ent of this.items) {
+      if (ent.netUid && ent.sprite?.active) byUid.set(ent.netUid, ent);
+      else {
+        try {
+          ent.destroy();
+        } catch {
+          /* already gone */
+        }
+      }
+    }
+
+    const next: ItemEntity[] = [];
+    const used = new Set<string>();
+    for (const ni of netItems) {
+      if (!ni?.uid || !ni.id || !(ni.id in ITEMS)) continue;
+      used.add(ni.uid);
+      let ent = byUid.get(ni.uid);
+      if (!ent || !ent.sprite?.active) {
+        ent = new ItemEntity(scene, ni.id as ItemId, ni.x, ni.y);
+        ent.netUid = ni.uid;
+      } else if (ent.id !== ni.id) {
+        ent.transform(ni.id as ItemId);
+      }
+
+      if (ent.id === "grill_pan") {
+        ent.setPanFood(ni.contents[0] ? (ni.contents[0] as ItemId) : null);
+      } else if (ent.id === "plate") {
+        ent.contents = (ni.contents ?? []).filter((c): c is ItemId => c in ITEMS);
+      } else {
+        ent.contents = [...((ni.contents ?? []).filter((c): c is ItemId => c in ITEMS))];
+      }
+      next.push(ent);
+    }
+
+    for (const [uid, ent] of byUid) {
+      if (used.has(uid)) continue;
+      try {
+        ent.destroy();
+      } catch {
+        /* already gone */
+      }
+    }
+
+    this.items = next;
+    this.layoutSlots();
+    this.refreshSlotHint();
+
+    if (plateStock !== undefined && this.kind === "plates") {
+      this.setPlateStock(plateStock);
+    }
+
+    if (!process) {
+      this.clearProcess();
+    } else {
+      const phase =
+        process.phase === "burning"
+          ? "burning"
+          : process.phase === "ready"
+            ? "ready"
+            : "active";
+      this.process = {
+        kind: process.kind,
+        elapsed: Math.max(0, process.elapsed) * 1000,
+        duration: Math.max(0.05, process.duration) * 1000,
+        phase,
+      };
+      this.syncBar();
+    }
+  }
+
+  take(opts?: { allowCookedPizza?: boolean; px?: number; py?: number }): ItemEntity | null {
     if (this.items.length === 0) return null;
     // Block bare take of cooked pizza — must use a plate
     if (this.held?.id === "pizza_cooked" && !opts?.allowCookedPizza) return null;
@@ -496,11 +678,109 @@ export class Appliance {
     if (this.process?.kind === "cook") {
       this.clearProcess();
     }
-    const item = this.items.pop()!;
+
+    let item: ItemEntity;
+    if (
+      (this.kind === "pass" || this.kind === "counter") &&
+      opts?.px !== undefined &&
+      opts?.py !== undefined
+    ) {
+      const idx = Math.max(0, this.nearestSlotIndex(opts.px, opts.py));
+      item = this.items.splice(idx, 1)[0]!;
+    } else {
+      item = this.items.pop()!;
+    }
     this.clearProcess();
     this.layoutSlots();
     this.refreshSlotHint();
     return item;
+  }
+
+  /** Re-anchor parked items after an in-place merge. */
+  refreshParked() {
+    this.layoutSlots();
+    this.refreshSlotHint();
+  }
+
+  /** Remove a specific parked item (hand-combine). */
+  removeItem(item: ItemEntity): boolean {
+    const idx = this.items.indexOf(item);
+    if (idx < 0) return false;
+    if (this.process?.phase === "active" && this.process.kind !== "cook") {
+      this.clearProcess();
+    }
+    if (this.process?.kind === "cook") this.clearProcess();
+    this.items.splice(idx, 1);
+    this.clearProcess();
+    this.layoutSlots();
+    this.refreshSlotHint();
+    return true;
+  }
+
+  /** Nearest parked item that can combine with `hands`. */
+  findCombineTarget(hands: ItemEntity, px = this.x, py = this.y): ItemEntity | null {
+    const heldSide = { id: hands.id, contents: [...hands.contents] };
+    let best: ItemEntity | null = null;
+    let bestD = Infinity;
+    for (let i = 0; i < this.items.length; i++) {
+      const it = this.items[i]!;
+      if (
+        !tryHandCombine(heldSide, {
+          id: it.id,
+          contents: [...it.contents],
+        })
+      ) {
+        continue;
+      }
+      const pos = this.slotWorldPos(i);
+      const d = (px - pos.x) ** 2 + (py - pos.y) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = it;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Merge held item onto parked dough/plate (or scoop station ingredient onto held plate).
+   * Returns true if merge applied. Held item is destroyed unless it was a plate that
+   * scooped an ingredient (then the plate entity stays active for the caller to keep).
+   */
+  tryMergeOntoParked(item: ItemEntity, px = this.x, py = this.y): boolean {
+    const target = this.findCombineTarget(item, px, py);
+    if (!target) return false;
+    const result = tryHandCombine(
+      { id: item.id, contents: [...item.contents] },
+      { id: target.id, contents: [...target.contents] },
+    );
+    if (!result) return false;
+
+    if (result.kind === "transform_held") {
+      // Tomato + dough → raw pizza stays on the hold/pass
+      target.transform(result.heldId as ItemId);
+      target.contents = [...(result.heldContents as ItemId[])];
+      item.destroy();
+      this.layoutSlots();
+      this.refreshSlotHint();
+      return true;
+    }
+    if (result.kind === "mutate_other_plate") {
+      target.transform(result.otherId as ItemId);
+      target.contents = [...(result.otherContents as ItemId[])];
+      item.destroy();
+      this.layoutSlots();
+      this.refreshSlotHint();
+      return true;
+    }
+    if (result.kind === "mutate_held_plate") {
+      this.removeItem(target);
+      target.destroy();
+      item.transform(result.heldId as ItemId);
+      item.contents = [...(result.heldContents as ItemId[])];
+      return true;
+    }
+    return false;
   }
 
   update(delta: number): string | null {
@@ -574,19 +854,26 @@ export class Appliance {
   }
 
   private layoutSlots() {
-    if (this.kind === "pass" || this.kind === "counter") {
+    if (this.kind === "pass") {
       this.items.forEach((item, i) => {
         const o = PASS_OFFSETS[Math.min(i, PASS_OFFSETS.length - 1)]!;
         item.anchorAt(this.x + o.x, this.y + o.y);
       });
+    } else if (this.kind === "counter") {
+      const top = this.held;
+      if (top) top.anchorAt(this.x, this.y - 10);
     } else if (this.held) {
       this.held.anchorAt(this.x, this.y - 10);
     }
   }
 
   private refreshSlotHint() {
-    if (this.slotHint) {
+    if (!this.slotHint) return;
+    if (this.kind === "pass") {
       this.slotHint.setText(`${this.items.length}/3`);
+    } else if (this.kind === "counter") {
+      this.slotHint.setText(this.items.length ? "Full" : "Hold");
+      this.slotHint.setColor(this.items.length ? "#bf360c" : "#5d4037");
     }
   }
 

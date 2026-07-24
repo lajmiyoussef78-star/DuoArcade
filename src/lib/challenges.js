@@ -243,6 +243,9 @@ export const GAME_LIST = [
   { id: 'magnethearts', name: 'Magnet Hearts', route: '/app' },
   { id: 'wallmaze', name: 'Wallmaze', route: '/app' },
   { id: 'nightcurling', name: 'Night Curling', route: '/app' },
+  { id: 'laserwall', name: 'Laser Wall Duel', route: '/app' },
+  { id: 'stickmanbombtag', name: 'Stickman Bomb Tag', route: '/app' },
+  { id: 'stickmankart', name: 'Stickman Kart Racing', route: '/app' },
 ];
 
 export function gameName(id) {

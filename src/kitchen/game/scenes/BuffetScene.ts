@@ -1,16 +1,19 @@
 import Phaser from "phaser";
+import type { KitchenSnapshot } from "@gastronomica/shared";
 import { AudioManager } from "../audio/AudioManager";
 import { Appliance } from "../entities/Appliance";
 import { BuffetCustomer, BuffetCustomerManager } from "../entities/BuffetCustomer";
 import { BuffetTray } from "../entities/BuffetTray";
 import { Player } from "../entities/Player";
+import { RemoteChef } from "../entities/RemoteChef";
 import { ItemEntity } from "../items/ItemEntity";
 import { BUFFET_GUIDES } from "../items/buffetRecipes";
-import { APPLIANCE_RANGE, ITEMS, PANTRY_RANGE, PICKUP_RANGE } from "../items/types";
+import { APPLIANCE_RANGE, ITEMS, PANTRY_RANGE, PICKUP_RANGE, type ItemId } from "../items/types";
 import { getMap, MAP_H, MAP_W, type MapDef } from "../maps/catalog";
 import { calcStars, ScoreManager } from "../systems/ScoreManager";
 import { KitchenFx } from "../systems/KitchenFx";
 import { generateGameAssets } from "../assets/generateAssets";
+import type { MultiplayerBridge } from "../net/MultiplayerBridge";
 
 const CUSTOMER_RANGE = 90;
 
@@ -29,6 +32,17 @@ export class BuffetScene extends Phaser.Scene {
   private solids!: Phaser.Physics.Arcade.StaticGroup;
   private itemGroup!: Phaser.Physics.Arcade.Group;
   private worldItems: ItemEntity[] = [];
+
+  private mp: MultiplayerBridge | null = null;
+  private authority = false;
+  private remotes = new Map<string, RemoteChef>();
+  private authWorld = new Map<string, ItemEntity>();
+  private authCustomers = new Map<
+    number,
+    { root: Phaser.GameObjects.Container; bubble: Phaser.GameObjects.Text }
+  >();
+  private lastSnapSeq = -1;
+  private localNameLabel: Phaser.GameObjects.Text | null = null;
 
   private interactKey?: Phaser.Input.Keyboard.Key;
   private dropKey?: Phaser.Input.Keyboard.Key;
@@ -64,8 +78,17 @@ export class BuffetScene extends Phaser.Scene {
     this.worldItems = [];
     this.appliances = [];
     this.trays = [];
+    this.remotes.clear();
+    this.authWorld.clear();
+    this.authCustomers.clear();
+    this.lastSnapSeq = -1;
 
-    this.mapDef = getMap(this.registry.get("mapId") as string | undefined);
+    this.mp = (this.registry.get("multiplayer") as MultiplayerBridge | undefined) ?? null;
+    this.authority = Boolean(this.mp?.authority);
+    this.mapDef = getMap(
+      (this.mp?.mapId as string | undefined) ??
+        (this.registry.get("mapId") as string | undefined),
+    );
     this.scoring = new ScoreManager(this.mapDef.matchSeconds);
     this.audio = new AudioManager();
     const prefs = this.registry.get("audioPrefs") as
@@ -168,12 +191,14 @@ export class BuffetScene extends Phaser.Scene {
       this.trays.push(new BuffetTray(this, def));
     }
 
-    // Seed removable pans on both grill slots
-    for (const a of this.appliances) {
-      if (a.kind === "grill_panel") {
-        const pan = new ItemEntity(this, "grill_pan", a.x, a.y - 8);
-        this.trackWorldItem(pan);
-        a.place(pan);
+    // Seed removable pans on both grill slots (solo only — authority uses server pans)
+    if (!this.authority) {
+      for (const a of this.appliances) {
+        if (a.kind === "grill_panel") {
+          const pan = new ItemEntity(this, "grill_pan", a.x, a.y - 8);
+          this.trackWorldItem(pan);
+          a.place(pan);
+        }
       }
     }
 
@@ -187,13 +212,32 @@ export class BuffetScene extends Phaser.Scene {
     this.buildRecipeRibbon();
     this.buildOverlay();
 
-    // Prep window so trays can be stocked before the first wave
-    this.tip("Prep time! Stock the buffet — guests arrive soon");
-    this.time.delayedCall(12000, () => {
-      if (this.ended) return;
-      this.customers.spawnFirstGroup();
-      this.tip("Group arriving — hand out clean plates!");
-    });
+    if (this.authority) {
+      this.customers.setSpawning(false);
+      this.tip("Online co-op · shared buffet (server)");
+      const self = this.mp?.peers.find((p) => p.id === this.mp?.localId);
+      if (self) {
+        this.localNameLabel = this.add
+          .text(this.player.sprite.x, this.player.sprite.y - 34, self.displayName, {
+            fontFamily: "Sora, sans-serif",
+            fontSize: "11px",
+            color: "#fff8e1",
+            stroke: "#3e2723",
+            strokeThickness: 3,
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5)
+          .setDepth(30);
+      }
+    } else {
+      // Prep window so trays can be stocked before the first wave
+      this.tip("Prep time! Stock the buffet — guests arrive soon");
+      this.time.delayedCall(18000, () => {
+        if (this.ended || this.authority) return;
+        this.customers.spawnFirstGroup();
+        this.tip("Group arriving — hand out clean plates!");
+      });
+    }
 
     const kb = this.input.keyboard;
     if (kb) {
@@ -244,7 +288,7 @@ export class BuffetScene extends Phaser.Scene {
       .setDepth(51);
 
     this.comboHud = this.add
-      .text(12, 48, "", {
+      .text(12, 68, "", {
         fontFamily: "Sora, sans-serif",
         fontSize: "12px",
         color: "#fff8e1",
@@ -256,7 +300,7 @@ export class BuffetScene extends Phaser.Scene {
       .setVisible(false);
 
     this.heldHud = this.add
-      .text(12, 48, "Hands: empty", {
+      .text(12, 42, "Hands: empty", {
         fontFamily: "Sora, sans-serif",
         fontSize: "12px",
         color: "#2b1d14",
@@ -267,7 +311,7 @@ export class BuffetScene extends Phaser.Scene {
       .setDepth(51);
 
     this.waveHud = this.add
-      .text(12, 78, "Wave 1 · Group arriving", {
+      .text(12, 68, "Wave 1 · Group arriving", {
         fontFamily: "Sora, sans-serif",
         fontSize: "11px",
         color: "#004d40",
@@ -449,6 +493,11 @@ export class BuffetScene extends Phaser.Scene {
     }
     if (this.ended) return;
 
+    if (this.authority) {
+      this.updateAuthority(delta);
+      return;
+    }
+
     this.scoring.tick(delta / 1000);
     if (this.scoring.isClosing) this.customers.setSpawning(false);
     if (this.scoring.ended && !this.ended) {
@@ -487,12 +536,13 @@ export class BuffetScene extends Phaser.Scene {
       this.tip("A guest left unhappy!");
       this.refreshScoreHud();
     }
-    for (const f of finished) {
+      for (const f of finished) {
       const { points, tip, stars } = f.customer.scorePoints();
       this.scoring.registerServe(points, tip);
       this.audio.playServe();
       this.floatFeedback(f.dirtySeat.x, f.dirtySeat.y - 40, [
         `+${points}`,
+        tip > 0 ? `Tip +${tip}` : "Thanks!",
         `${"★".repeat(stars)}`,
       ]);
       const dirty = new ItemEntity(this, "dirty_plate", f.dirtySeat.x, f.dirtySeat.y + 8);
@@ -783,7 +833,10 @@ export class BuffetScene extends Phaser.Scene {
     }
 
     if (!this.player.held && app.held) {
-      const item = app.take();
+      const item = app.take({
+        px: this.player.sprite.x,
+        py: this.player.sprite.y,
+      });
       if (item && this.player.pickUp(item)) {
         this.audio.playPickup();
         this.tip(`Took ${item.label}`);
@@ -799,6 +852,10 @@ export class BuffetScene extends Phaser.Scene {
         this.audio.playInteract();
         if (app.kind === "trash") {
           this.tip("Trashed");
+        } else if (app.kind === "counter") {
+          this.tip("Parked on hold spot");
+        } else if (app.kind === "pass") {
+          this.tip(`Parked on pass (${app.parked.length}/3)`);
         } else if (app.kind === "fryer" || app.kind === "grill_panel") {
           this.tip(`Cooking on ${app.def.label}…`);
         } else if (app.kind === "flour") {
@@ -848,41 +905,259 @@ export class BuffetScene extends Phaser.Scene {
     this.ratingHud.setText("★".repeat(stars) + "☆".repeat(3 - stars));
     if (this.scoring.combo > 0) {
       this.comboHud.setText(`Combo ×${this.scoring.combo}`).setVisible(true);
-      this.heldHud.setY(72);
-      this.waveHud.setY(102);
+      this.waveHud.setY(92);
     } else {
       this.comboHud.setVisible(false);
-      this.heldHud.setY(48);
-      this.waveHud.setY(78);
+      this.waveHud.setY(68);
     }
+  }
+
+  private updateAuthority(delta: number) {
+    let ax = 0;
+    let ay = 0;
+    const kb = this.input.keyboard;
+    if (kb) {
+      const A = kb.addKey(Phaser.Input.Keyboard.KeyCodes.A, false);
+      const D = kb.addKey(Phaser.Input.Keyboard.KeyCodes.D, false);
+      const W = kb.addKey(Phaser.Input.Keyboard.KeyCodes.W, false);
+      const S = kb.addKey(Phaser.Input.Keyboard.KeyCodes.S, false);
+      const L = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT, false);
+      const R = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT, false);
+      const U = kb.addKey(Phaser.Input.Keyboard.KeyCodes.UP, false);
+      const Dn = kb.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN, false);
+      if (A.isDown || L.isDown) ax -= 1;
+      if (D.isDown || R.isDown) ax += 1;
+      if (W.isDown || U.isDown) ay -= 1;
+      if (S.isDown || Dn.isDown) ay += 1;
+    }
+    const sprint = kb?.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT, false).isDown ?? false;
+    const interact = this.interactKey ? Phaser.Input.Keyboard.JustDown(this.interactKey) : false;
+    const drop = this.dropKey ? Phaser.Input.Keyboard.JustDown(this.dropKey) : false;
+    let facing: "down" | "left" | "right" | "up" | undefined;
+    if (Math.abs(ax) > Math.abs(ay) && ax !== 0) facing = ax < 0 ? "left" : "right";
+    else if (ay !== 0) facing = ay < 0 ? "up" : "down";
+
+    this.mp?.sendInput?.({ ax, ay, sprint, interact, drop, facing });
+    const snap = this.mp?.getSnapshot?.() ?? null;
+    if (snap) {
+      try {
+        this.applyAuthoritySnapshot(snap);
+      } catch (err) {
+        console.error("[buffet] authority snapshot apply failed", err);
+      }
+      this.player.sprite.setVelocity(0, 0);
+    } else {
+      this.player.update();
+    }
+
+    this.localNameLabel?.setPosition(this.player.sprite.x, this.player.sprite.y - 34);
+    this.audio.playStep(delta, Math.hypot(ax, ay) > 0.05 || this.player.moving);
+    this.kitchenFx.update(delta);
+    this.updateStationGlow();
+    this.prompt.setVisible(false);
+
+    if (snap?.ended && !this.ended) this.finishAuthorityMatch(snap);
+  }
+
+  private applyAuthoritySnapshot(snap: KitchenSnapshot) {
+    if (snap.seq === this.lastSnapSeq) return;
+    this.lastSnapSeq = snap.seq;
+
+    this.scoring.score = snap.score;
+    this.scoring.served = snap.served;
+    this.scoring.walkouts = snap.walkouts;
+    this.scoring.tips = snap.tips;
+    this.scoring.burns = snap.burns;
+    this.scoring.combo = snap.combo;
+    this.scoring.timeLeft = snap.timeLeft;
+    this.refreshScoreHud();
+    this.syncTimerHud();
+    this.waveHud.setText(
+      `Wave ${snap.waveIndex || 1} · Guests ${snap.customers.length}`,
+    );
+
+    for (const t of snap.trays ?? []) {
+      const tray = this.trays.find((x) => x.def.id === t.id);
+      tray?.setStock(t.stock);
+    }
+
+    const self = snap.players.find((p) => p.id === this.mp?.localId);
+    if (self) {
+      this.player.sprite.setPosition(self.x, self.y);
+      this.player.facing = self.facing;
+      this.heldHud.setText(self.held ? `Hands: ${self.held.id}` : "Hands: empty");
+      if (self.held && self.held.id in ITEMS) {
+        const want = self.held.id as ItemId;
+        if (!this.player.held || this.player.held.id !== want) {
+          this.player.held?.destroy();
+          const ent = new ItemEntity(this, want, self.x, self.y - 18);
+          if (want === "grill_pan" && self.held.contents[0]) {
+            ent.setPanFood(self.held.contents[0] as ItemId);
+          }
+          ent.attachTo(this.player.sprite);
+          this.player.held = ent;
+        } else {
+          this.player.held.updateCarry(this.player.sprite, self.facing);
+        }
+      } else if (this.player.held) {
+        this.player.held.destroy();
+        this.player.held = null;
+      }
+    }
+
+    const seen = new Set<string>();
+    for (const p of snap.players) {
+      if (p.id === this.mp?.localId) continue;
+      seen.add(p.id);
+      let chef = this.remotes.get(p.id);
+      if (!chef) {
+        chef = new RemoteChef(this, p.id, p.x, p.y, p.displayName, p.avatarHue);
+        this.remotes.set(p.id, chef);
+      }
+      chef.apply({
+        id: p.id,
+        x: p.x,
+        y: p.y,
+        facing: p.facing,
+        moving: p.moving,
+        sprinting: p.sprinting,
+        heldLabel: p.held?.id ?? null,
+      });
+    }
+    for (const [id, chef] of [...this.remotes]) {
+      if (seen.has(id)) continue;
+      chef.destroy();
+      this.remotes.delete(id);
+    }
+
+    const worldSeen = new Set<string>();
+    for (const it of snap.worldItems) {
+      if (!(it.id in ITEMS)) continue;
+      worldSeen.add(it.uid);
+      let ent = this.authWorld.get(it.uid);
+      if (!ent || !ent.sprite?.active) {
+        ent = new ItemEntity(this, it.id as ItemId, it.x, it.y);
+        if (it.id === "grill_pan" && it.contents[0]) {
+          ent.setPanFood(it.contents[0] as ItemId);
+        }
+        this.authWorld.set(it.uid, ent);
+        this.trackWorldItem(ent);
+      } else if (ent.id !== it.id) {
+        ent.transform(it.id as ItemId);
+      }
+      ent.sprite.setPosition(it.x, it.y);
+    }
+    for (const [uid, ent] of [...this.authWorld]) {
+      if (worldSeen.has(uid)) continue;
+      ent.destroy();
+      this.authWorld.delete(uid);
+      this.worldItems = this.worldItems.filter((w) => w !== ent);
+    }
+
+    for (const na of snap.appliances ?? []) {
+      const app = this.appliances.find((a) => a.def.id === na.id);
+      if (!app) continue;
+      try {
+        app.reconcileNet(this, na.items ?? [], na.process, na.plateStock);
+      } catch (err) {
+        console.error("[buffet] appliance reconcile failed", na.id, err);
+      }
+    }
+
+    const custSeen = new Set<number>();
+    for (const c of snap.customers) {
+      custSeen.add(c.seatId);
+      let vis = this.authCustomers.get(c.seatId);
+      if (!vis) {
+        const body = this.add
+          .image(0, 0, c.vip ? "customer_vip" : "customer")
+          .setOrigin(0.5, 0.85)
+          .setScale(1.2);
+        const bubble = this.add
+          .text(0, -70, c.orderName, {
+            fontFamily: "Sora, sans-serif",
+            fontSize: "11px",
+            color: "#bf360c",
+            backgroundColor: "#fffde7",
+            padding: { x: 5, y: 3 },
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5);
+        const root = this.add.container(c.x, c.y, [body, bubble]).setDepth(12);
+        vis = { root, bubble };
+        this.authCustomers.set(c.seatId, vis);
+      }
+      vis.root.setPosition(c.x, c.y);
+      const show =
+        c.phase === "needPlate" ||
+        c.phase === "buffet" ||
+        c.phase === "wantJuice" ||
+        c.phase === "eating" ||
+        c.phase === "entering";
+      vis.bubble.setText(c.orderName || c.phase);
+      vis.bubble.setVisible(show);
+    }
+    for (const [seatId, vis] of [...this.authCustomers]) {
+      if (custSeen.has(seatId)) continue;
+      vis.root.destroy(true);
+      this.authCustomers.delete(seatId);
+    }
+  }
+
+  private finishAuthorityMatch(snap: KitchenSnapshot) {
+    if (this.ended) return;
+    this.ended = true;
+    this.scoring.score = snap.score;
+    this.scoring.served = snap.served;
+    this.scoring.walkouts = snap.walkouts;
+    this.scoring.tips = snap.tips;
+    this.scoring.burns = snap.burns;
+    this.scoring.ended = true;
+    this.tip("Buffet closed!");
+    this.audio.playServe();
+    this.time.delayedCall(600, () => {
+      this.scene.start("results", { result: this.scoring.snapshot() });
+    });
   }
 
   private floatFeedback(x: number, y: number, lines: string[], color = "#00695c") {
     const t = this.add
       .text(x, y, lines.join("\n"), {
         fontFamily: "Sora, sans-serif",
-        fontSize: "14px",
+        fontSize: "16px",
         color,
         fontStyle: "bold",
         align: "center",
         stroke: "#ffffff",
-        strokeThickness: 4,
+        strokeThickness: 5,
+        lineSpacing: 4,
       })
       .setOrigin(0.5)
-      .setDepth(40);
+      .setDepth(40)
+      .setAlpha(0);
+    // Fade in, hold so tip / stars are readable, then drift up slowly
     this.tweens.add({
       targets: t,
-      y: y - 40,
-      alpha: 0,
-      duration: 1000,
-      onComplete: () => t.destroy(),
+      alpha: 1,
+      duration: 320,
+      onComplete: () => {
+        this.tweens.add({
+          targets: t,
+          y: y - 64,
+          alpha: 0,
+          duration: 2600,
+          delay: 1000,
+          ease: "Sine.out",
+          onComplete: () => t.destroy(),
+        });
+      },
     });
   }
 
   private tip(msg: string) {
     if (!this.hudHint) return;
     this.hudHint.setText(msg).setVisible(true);
-    this.time.delayedCall(2200, () => {
+    this.time.delayedCall(3200, () => {
       if (this.hudHint?.text === msg) this.hudHint.setVisible(false);
     });
   }

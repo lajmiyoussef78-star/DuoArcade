@@ -3,12 +3,15 @@ import { TILE, TileId } from "../config";
 import {
   DEFAULT_CHEF_LOOK,
   REMOTE_CHEF_LOOK,
+  normalizeInitial,
+  shirtShowsInitial,
+  type CharacterId,
   type ChefLook,
   type HatStyle,
 } from "../cosmetics/chefLook";
 
 const OUTLINE = 0x2b1d14;
-const ASSET_VER = 10;
+const ASSET_VER = 13;
 
 /** Ready Set Cook reference look: thick outlines, wood + check floors, teal walls. */
 export function generateGameAssets(scene: Phaser.Scene): void {
@@ -741,6 +744,7 @@ export function makeChefSheet(
   }
   if (scene.textures.exists(key)) scene.textures.remove(key);
   g.generateTexture(key, fw * cols, fh * rows);
+  paintInitialsOnChefSheet(scene, key, look, fw, fh, cols, rows);
 
   const texture = scene.textures.get(key);
   for (let row = 0; row < rows; row++) {
@@ -749,6 +753,61 @@ export function makeChefSheet(
       texture.add(String(index), 0, col * fw, row * fh, fw, fh);
     }
   }
+}
+
+function paintInitialsOnChefSheet(
+  scene: Phaser.Scene,
+  key: string,
+  look: ChefLook,
+  fw: number,
+  fh: number,
+  cols: number,
+  rows: number,
+) {
+  if (!shirtShowsInitial(look.shirtStyle ?? "plain")) return;
+  const source = scene.textures.get(key).getSourceImage() as HTMLCanvasElement;
+  const ctx = source.getContext("2d");
+  if (!ctx) return;
+  const letter = normalizeInitial(look.shirtInitial);
+  const style = look.shirtStyle;
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const bob = col % 2 === 0 ? 0 : 1;
+      const cx = col * fw + 18;
+      const cy = row * fh + 28 + bob;
+      if (style === "tee_sport") {
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4.2, 0, Math.PI * 2);
+        ctx.fillStyle = colorToCssHex(look.apronColor);
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#2b1d14";
+        ctx.stroke();
+      } else if (style === "tee_badge") {
+        ctx.fillStyle = colorToCssHex(look.apronColor);
+        ctx.fillRect(cx - 4, cy - 4, 8, 7);
+        ctx.strokeStyle = "#2b1d14";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - 4, cy - 4, 8, 7);
+      } else {
+        ctx.fillStyle = colorToCssHex(look.apronColor);
+        ctx.fillRect(cx - 3.5, cy - 3.5, 7, 6);
+      }
+      ctx.font = "bold 7px Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#2b1d14";
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeText(letter, cx, cy);
+      ctx.fillText(letter, cx, cy);
+    }
+  }
+  scene.textures.get(key).source[0].update();
+}
+
+function colorToCssHex(hex: number): string {
+  return `#${(hex >>> 0).toString(16).padStart(6, "0")}`;
 }
 
 /** Rebuild the local player sheet from a look (e.g. after prefs change). */
@@ -782,43 +841,141 @@ function drawChef(
   g.fillStyle(0x000000, 0.22);
   g.fillEllipse(cx, y + 41, 22, 6);
 
-  // tiny shoes / legs
+  // tiny shoes / legs — boot styles
+  const boot = look.bootStyle ?? "sneakers";
+  const shoeH =
+    boot === "sneakers" || boot === "clogs" || boot === "chefs"
+      ? 6
+      : boot === "hitops"
+        ? 9
+        : 11;
+  const shoeY = y + 33 + bob - (shoeH - 6);
+  const shoeFill = boot === "chefs" ? 0xf5f5f5 : shoe;
+  const shoeR = boot === "clogs" ? 3 : 2;
   g.fillStyle(OUTLINE);
-  g.fillRoundedRect(cx - 8 + leg, y + 32 + bob, 6, 8, 2);
-  g.fillRoundedRect(cx + 2 - leg, y + 32 + bob, 6, 8, 2);
-  g.fillStyle(shoe);
-  g.fillRoundedRect(cx - 7 + leg, y + 33 + bob, 4, 6, 1);
-  g.fillRoundedRect(cx + 3 - leg, y + 33 + bob, 4, 6, 1);
+  g.fillRoundedRect(cx - 8 + leg, shoeY - 1, 6, shoeH + 2, shoeR);
+  g.fillRoundedRect(cx + 2 - leg, shoeY - 1, 6, shoeH + 2, shoeR);
+  g.fillStyle(shoeFill);
+  g.fillRoundedRect(cx - 7 + leg, shoeY, 4, shoeH, Math.max(1, shoeR - 1));
+  g.fillRoundedRect(cx + 3 - leg, shoeY, 4, shoeH, Math.max(1, shoeR - 1));
+  if (boot === "hitops") {
+    g.fillStyle(0xffffff, 0.85);
+    g.fillRect(cx - 7 + leg, shoeY + 3, 4, 1.5);
+    g.fillRect(cx + 3 - leg, shoeY + 3, 4, 1.5);
+  } else if (boot === "rainboots") {
+    g.fillStyle(0xffffff, 0.35);
+    g.fillRect(cx - 7 + leg, shoeY + 1, 4, 2);
+    g.fillRect(cx + 3 - leg, shoeY + 1, 4, 2);
+  } else if (boot === "workboots") {
+    g.fillStyle(0xffd54f, 0.7);
+    g.fillRect(cx - 6 + leg, shoeY + shoeH - 2, 3, 1);
+    g.fillRect(cx + 4 - leg, shoeY + shoeH - 2, 3, 1);
+  } else if (boot === "chefs") {
+    g.fillStyle(OUTLINE, 0.35);
+    g.fillRect(cx - 7 + leg, shoeY + shoeH - 2, 4, 1);
+    g.fillRect(cx + 3 - leg, shoeY + shoeH - 2, 4, 1);
+  }
 
-  // tiny torso + apron
+  // tiny torso + apron — shirt styles
+  const shirtStyle = look.shirtStyle ?? "plain";
+  const charEarly = look.characterId ?? "chef";
+  const torsoW = charEarly === "man" ? 20 : charEarly === "kid" ? 15 : 18;
+  const torsoX = cx - torsoW / 2;
   g.fillStyle(OUTLINE);
-  g.fillRoundedRect(cx - 9, y + 23 + bob, 18, 12, 5);
-  g.fillStyle(shirt);
-  g.fillRoundedRect(cx - 8, y + 24 + bob, 16, 10, 4);
-  g.fillStyle(apron);
-  g.fillRoundedRect(cx - 5, y + 25 + bob, 10, 8, 3);
+  g.fillRoundedRect(torsoX, y + 23 + bob, torsoW, 12, 5);
+  if (shirtStyle === "denim") {
+    g.fillStyle(0x455a64);
+    g.fillRoundedRect(cx - 9, y + 22 + bob, 18, 13, 4);
+    g.fillStyle(shirt);
+    g.fillRoundedRect(cx - 7, y + 24 + bob, 14, 9, 3);
+    g.fillStyle(0xffd54f);
+    g.fillCircle(cx - 5, y + 26 + bob, 1);
+    g.fillCircle(cx + 5, y + 26 + bob, 1);
+  } else if (shirtStyle === "hoodie") {
+    g.fillStyle(shirt);
+    g.fillRoundedRect(cx - 9, y + 22 + bob, 18, 13, 5);
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 22 + bob, 14, 5);
+    g.fillStyle(shirt);
+    g.fillEllipse(cx, y + 22 + bob, 11, 3.5);
+    g.fillStyle(apron);
+    g.fillRoundedRect(cx - 4, y + 26 + bob, 8, 6, 2);
+  } else if (shirtStyle === "suit") {
+    g.fillStyle(0x37474f);
+    g.fillRoundedRect(cx - 8, y + 24 + bob, 16, 10, 3);
+    g.fillStyle(shirt);
+    g.fillTriangle(cx, y + 24 + bob, cx - 5, y + 34 + bob, cx + 5, y + 34 + bob);
+    g.fillStyle(apron);
+    g.fillRoundedRect(cx - 3, y + 27 + bob, 6, 6, 1);
+  } else if (shirtStyle === "polo") {
+    g.fillStyle(shirt);
+    g.fillRoundedRect(cx - 8, y + 24 + bob, 16, 10, 4);
+    g.fillStyle(OUTLINE, 0.55);
+    g.fillTriangle(cx, y + 24 + bob, cx - 4, y + 28 + bob, cx + 4, y + 28 + bob);
+    g.fillStyle(apron);
+    g.fillRect(cx - 2, y + 24 + bob, 4, 2);
+  } else if (shirtStyle === "overalls") {
+    g.fillStyle(shirt);
+    g.fillRoundedRect(cx - 8, y + 24 + bob, 16, 10, 3);
+    g.fillStyle(0x455a64);
+    g.fillRoundedRect(cx - 6, y + 22 + bob, 12, 11, 2);
+    g.fillStyle(0x37474f);
+    g.fillRect(cx - 5, y + 23 + bob, 10, 3);
+    g.fillStyle(0xffd54f);
+    g.fillCircle(cx - 3, y + 28 + bob, 1);
+    g.fillCircle(cx + 3, y + 28 + bob, 1);
+  } else if (shirtShowsInitial(shirtStyle)) {
+    g.fillStyle(shirt);
+    g.fillRoundedRect(cx - 8, y + 24 + bob, 16, 10, 4);
+    // Initial badge + letter painted on canvas after sheet generate.
+  } else {
+    g.fillStyle(shirt);
+    g.fillRoundedRect(cx - 8, y + 24 + bob, 16, 10, 4);
+    g.fillStyle(apron);
+    g.fillRoundedRect(cx - 5, y + 25 + bob, 10, 8, 3);
+    if (shirtStyle === "striped") {
+      g.fillStyle(OUTLINE, 0.35);
+      for (let i = 0; i < 4; i++) {
+        g.fillRect(cx - 7 + i * 4, y + 24 + bob, 1.5, 10);
+      }
+    } else if (shirtStyle === "checkered") {
+      g.fillStyle(OUTLINE, 0.28);
+      g.fillRect(cx - 4, y + 26 + bob, 3, 3);
+      g.fillRect(cx + 1, y + 29 + bob, 3, 3);
+      g.fillStyle(0xffffff, 0.35);
+      g.fillRect(cx + 1, y + 26 + bob, 3, 3);
+      g.fillRect(cx - 4, y + 29 + bob, 3, 3);
+    }
+  }
 
-  // stubby arms
+  // stubby arms — broader for man, smaller for kid
+  const char = look.characterId ?? "chef";
+  const armSpread = char === "man" ? 13.5 : char === "kid" ? 10.5 : 12;
+  const armR = char === "kid" ? 4 : 5;
+  const armFill = char === "kid" ? 2.8 : 3.5;
   g.fillStyle(OUTLINE);
-  g.fillCircle(cx - 12, y + 27 + bob, 5);
-  g.fillCircle(cx + 12, y + 27 + bob, 5);
+  g.fillCircle(cx - armSpread, y + 27 + bob, armR);
+  g.fillCircle(cx + armSpread, y + 27 + bob, armR);
   g.fillStyle(skin);
-  g.fillCircle(cx - 12, y + 27 + bob, 3.5);
-  g.fillCircle(cx + 12, y + 27 + bob, 3.5);
+  g.fillCircle(cx - armSpread, y + 27 + bob, armFill);
+  g.fillCircle(cx + armSpread, y + 27 + bob, armFill);
 
-  // huge head
+  // head size by character
+  const headR = char === "kid" ? 13.5 : char === "elder" ? 12 : 12.5;
+  const faceR = char === "kid" ? 11.5 : 10.5;
+  const headY = y + (char === "kid" ? 15 : 16) + bob;
   g.fillStyle(OUTLINE);
-  g.fillCircle(cx, y + 16 + bob, 12.5);
+  g.fillCircle(cx, headY, headR);
   g.fillStyle(skin);
-  g.fillCircle(cx, y + 16 + bob, 10.5);
+  g.fillCircle(cx, headY, faceR);
 
   // blush + eyes
-  g.fillStyle(0xffab91, 0.85);
-  g.fillEllipse(cx - 7, y + 18 + bob, 4, 2.5);
-  g.fillEllipse(cx + 7, y + 18 + bob, 4, 2.5);
+  g.fillStyle(0xffab91, char === "girl" || char === "lady" ? 0.95 : 0.85);
+  g.fillEllipse(cx - 7, headY + 2, char === "girl" ? 4.5 : 4, 2.5);
+  g.fillEllipse(cx + 7, headY + 2, char === "girl" ? 4.5 : 4, 2.5);
   g.fillStyle(OUTLINE);
   if (facing !== 3) {
-    const ey = y + 15 + bob;
+    const ey = headY - 1;
     if (facing === 1) {
       g.fillCircle(cx - 4, ey, 2);
       g.fillStyle(0xffffff);
@@ -835,10 +992,147 @@ function drawChef(
       g.fillCircle(cx + 3.5, ey - 0.5, 0.7);
     }
     g.fillStyle(0xe57373);
-    g.fillEllipse(cx, ey + 5, 5, 2.5);
+    g.fillEllipse(cx, ey + 5, char === "man" ? 4 : 5, 2.5);
   }
 
-  drawHat(g, cx, y + bob, look.hatStyle, hat);
+  // glasses for elder
+  if (char === "elder" && facing !== 3) {
+    g.lineStyle(1.2, OUTLINE, 0.9);
+    g.strokeCircle(cx - 4, headY - 1, 3.2);
+    g.strokeCircle(cx + 4, headY - 1, 3.2);
+    g.lineBetween(cx - 1, headY - 1, cx + 1, headY - 1);
+    g.lineStyle(1, OUTLINE, 0);
+  }
+
+  drawCharacterTop(g, cx, y + bob, char, look.hatStyle, hat, skin, facing);
+}
+
+function drawCharacterTop(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  y: number,
+  char: CharacterId,
+  hatStyle: HatStyle,
+  hairOrHat: number,
+  _skin: number,
+  facing: number,
+) {
+  if (char === "chef") {
+    drawHat(g, cx, y, hatStyle, hairOrHat);
+    return;
+  }
+
+  const hair = hairOrHat;
+  // back hair / silhouette first
+  if (char === "girl") {
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx - 10, y + 18, 8, 16);
+    g.fillEllipse(cx + 10, y + 18, 8, 16);
+    g.fillStyle(hair);
+    g.fillEllipse(cx - 10, y + 18, 6, 14);
+    g.fillEllipse(cx + 10, y + 18, 6, 14);
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 10, 24, 10);
+    g.fillStyle(hair);
+    g.fillEllipse(cx, y + 10, 20, 8);
+    // bangs
+    g.fillStyle(OUTLINE);
+    g.fillRoundedRect(cx - 9, y + 10, 7, 6, 2);
+    g.fillRoundedRect(cx + 2, y + 10, 7, 6, 2);
+    g.fillStyle(hair);
+    g.fillRoundedRect(cx - 8, y + 11, 5, 4, 1);
+    g.fillRoundedRect(cx + 3, y + 11, 5, 4, 1);
+    // ribbon
+    g.fillStyle(0xe91e63);
+    g.fillTriangle(cx + 8, y + 6, cx + 14, y + 2, cx + 14, y + 10);
+    g.fillCircle(cx + 8, y + 6, 2);
+    return;
+  }
+
+  if (char === "lady") {
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 6, 18, 10);
+    g.fillCircle(cx, y + 2, 7);
+    g.fillStyle(hair);
+    g.fillEllipse(cx, y + 6, 15, 8);
+    g.fillCircle(cx, y + 2, 5.5);
+    // earrings when facing front/side
+    if (facing !== 3) {
+      g.fillStyle(0xffd54f);
+      g.fillCircle(cx - 11, y + 18, 1.5);
+      g.fillCircle(cx + 11, y + 18, 1.5);
+    }
+    return;
+  }
+
+  if (char === "man") {
+    g.fillStyle(OUTLINE);
+    g.fillRoundedRect(cx - 10, y + 6, 20, 10, 4);
+    g.fillStyle(hair);
+    g.fillRoundedRect(cx - 9, y + 7, 18, 8, 3);
+    // sideburns
+    g.fillStyle(OUTLINE);
+    g.fillRect(cx - 11, y + 14, 3, 6);
+    g.fillRect(cx + 8, y + 14, 3, 6);
+    g.fillStyle(hair);
+    g.fillRect(cx - 10.5, y + 14.5, 2, 5);
+    g.fillRect(cx + 8.5, y + 14.5, 2, 5);
+    return;
+  }
+
+  if (char === "kid") {
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 8, 22, 10);
+    g.fillStyle(hair);
+    g.fillEllipse(cx, y + 8, 18, 8);
+    // little tuft
+    g.fillStyle(OUTLINE);
+    g.fillTriangle(cx, y - 2, cx - 4, y + 8, cx + 4, y + 8);
+    g.fillStyle(hair);
+    g.fillTriangle(cx, y, cx - 3, y + 7, cx + 3, y + 7);
+    return;
+  }
+
+  if (char === "sous") {
+    // messy hair + bandana
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 10, 22, 9);
+    g.fillStyle(hair);
+    g.fillEllipse(cx, y + 10, 18, 7);
+    g.fillStyle(0xc62828);
+    g.fillRoundedRect(cx - 11, y + 8, 22, 7, 3);
+    g.fillStyle(OUTLINE, 0.35);
+    g.fillRect(cx - 11, y + 11, 22, 1.5);
+    g.fillStyle(0xc62828);
+    g.fillTriangle(cx + 10, y + 10, cx + 16, y + 8, cx + 14, y + 16);
+    return;
+  }
+
+  if (char === "waiter") {
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 9, 20, 8);
+    g.fillStyle(hair);
+    g.fillEllipse(cx, y + 9, 16, 6);
+    // neat side part
+    g.fillStyle(OUTLINE, 0.4);
+    g.fillRect(cx - 1, y + 6, 1.5, 7);
+    return;
+  }
+
+  if (char === "elder") {
+    const gray = 0x90a4ae;
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx, y + 9, 22, 9);
+    g.fillStyle(gray);
+    g.fillEllipse(cx, y + 9, 18, 7);
+    // temples
+    g.fillStyle(OUTLINE);
+    g.fillEllipse(cx - 9, y + 16, 5, 4);
+    g.fillEllipse(cx + 9, y + 16, 5, 4);
+    g.fillStyle(gray);
+    g.fillEllipse(cx - 9, y + 16, 3.5, 2.5);
+    g.fillEllipse(cx + 9, y + 16, 3.5, 2.5);
+  }
 }
 
 function drawHat(

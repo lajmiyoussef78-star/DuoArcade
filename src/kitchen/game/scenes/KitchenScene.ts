@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import type { LobbyPlayer, PlayerNetState } from "@gastronomica/shared";
+import type { KitchenSnapshot } from "@gastronomica/shared";
+import { tryHandCombine } from "@gastronomica/shared";
 import { generateGameAssets } from "../assets/generateAssets";
 import { AudioManager } from "../audio/AudioManager";
 import { Appliance } from "../entities/Appliance";
@@ -7,12 +8,15 @@ import { Customer, CustomerManager } from "../entities/Customer";
 import { Player } from "../entities/Player";
 import { RemoteChef } from "../entities/RemoteChef";
 import { ItemEntity } from "../items/ItemEntity";
-import { APPLIANCE_RANGE, ITEMS, PANTRY_RANGE, PICKUP_RANGE } from "../items/types";
+import { APPLIANCE_RANGE, ITEMS, PANTRY_RANGE, PASS_RANGE, PICKUP_RANGE, type ItemId } from "../items/types";
 import { recipesForMenu, recipeHowTo, recipeIngredientLine, type Recipe } from "../items/recipes";
 import { getMap, MAP_H, MAP_W } from "../maps/catalog";
 import type { MapDef } from "../maps/types";
+import type { MultiplayerBridge } from "../net/MultiplayerBridge";
 import { ScoreManager, calcStars } from "../systems/ScoreManager";
 import { KitchenFx } from "../systems/KitchenFx";
+
+export type { MultiplayerBridge } from "../net/MultiplayerBridge";
 
 const CUSTOMER_RANGE = 140;
 const NET_SEND_MS = 66;
@@ -23,14 +27,6 @@ const SLOT_OFFSETS = [
   { x: -28, y: 0 },
   { x: 0, y: 28 },
 ];
-
-export type MultiplayerBridge = {
-  localId: string;
-  peers: LobbyPlayer[];
-  getPeers?: () => LobbyPlayer[];
-  sendState: (state: Omit<PlayerNetState, "id">) => void;
-  getRemotes: () => Record<string, PlayerNetState>;
-};
 
 export class KitchenScene extends Phaser.Scene {
   private player!: Player;
@@ -72,6 +68,15 @@ export class KitchenScene extends Phaser.Scene {
   private netAcc = 0;
   private localNameLabel: Phaser.GameObjects.Text | null = null;
   private mapDef!: MapDef;
+  private authority = false;
+  private authWorld = new Map<string, ItemEntity>();
+  private authCustomers = new Map<
+    number,
+    { root: Phaser.GameObjects.Container; bubble: Phaser.GameObjects.Text }
+  >();
+  private lastSnapSeq = -1;
+  /** Cooldown so proximity combine doesn't fire every frame. */
+  private combineCd = 0;
 
   constructor() {
     super("kitchen");
@@ -82,9 +87,17 @@ export class KitchenScene extends Phaser.Scene {
     this.paused = false;
     this.helpVisible = false;
     this.remotes.clear();
+    this.worldItems = [];
+    this.authWorld.clear();
+    this.authCustomers.clear();
+    this.lastSnapSeq = -1;
     this.netAcc = 0;
     this.mp = (this.registry.get("multiplayer") as MultiplayerBridge | undefined) ?? null;
-    this.mapDef = getMap(this.registry.get("mapId") as string | undefined);
+    this.authority = Boolean(this.mp?.authority);
+    this.mapDef = getMap(
+      (this.mp?.mapId as string | undefined) ??
+        (this.registry.get("mapId") as string | undefined),
+    );
     this.scoring = new ScoreManager(this.mapDef.matchSeconds);
     this.audio = new AudioManager();
     const prefs = this.registry.get("audioPrefs") as
@@ -283,7 +296,12 @@ export class KitchenScene extends Phaser.Scene {
       this.mapDef.door,
       this.mapDef.menu,
     );
-    this.customers.trySpawn();
+    if (this.authority) {
+      this.customers.setSpawning(false);
+      this.tip("Online co-op · shared kitchen (server)");
+    } else {
+      this.customers.trySpawn();
+    }
 
     // No free items dumped in the aisle — grab everything from crates / plate stack.
 
@@ -420,7 +438,7 @@ export class KitchenScene extends Phaser.Scene {
     });
 
     this.comboHud = this.add
-      .text(12, 48, "", {
+      .text(100, 68, "", {
         fontFamily: "Sora, sans-serif",
         fontSize: "12px",
         color: "#fff8e1",
@@ -431,7 +449,7 @@ export class KitchenScene extends Phaser.Scene {
       .setDepth(51);
 
     this.heldHud = this.add
-      .text(12, this.scale.height - 92, "Hands: empty", {
+      .text(100, 48, "Hands: empty", {
         fontFamily: "Sora, sans-serif",
         fontSize: "12px",
         color: "#2b1d14",
@@ -605,7 +623,7 @@ export class KitchenScene extends Phaser.Scene {
     if (this.helpVisible) {
       this.overlayTitle.setText("Controls");
       this.overlayBody.setText(
-        "WASD / Arrows — Move\nShift — Sprint\nE — Take order / cook / serve\nQ — Drop · Space — Throw\nH — Close help · Esc — Pause",
+        "WASD / Arrows — Move\nShift — Sprint\nE — Take order / cook / serve\nWalk into matching ingredients to assemble\nQ — Drop · Space — Throw\nH — Close help · Esc — Pause",
       );
       this.overlay.setVisible(true);
       return;
@@ -635,6 +653,11 @@ export class KitchenScene extends Phaser.Scene {
       return;
     }
 
+    if (this.authority) {
+      this.updateAuthority(delta);
+      return;
+    }
+
     this.scoring.tick(delta / 1000);
     this.syncTimerHud();
 
@@ -656,6 +679,7 @@ export class KitchenScene extends Phaser.Scene {
     this.syncMultiplayer(delta);
     this.kitchenFx.update(delta);
     this.updateStationGlow();
+    this.tryProximityCombine(delta);
 
     for (const app of this.appliances) {
       const msg = app.update(delta);
@@ -694,12 +718,17 @@ export class KitchenScene extends Phaser.Scene {
     }
 
     for (const item of this.worldItems) {
-      if (!item.isCarried && !item.isAnchored && !item.isFlying) {
-        const body = item.sprite.body as Phaser.Physics.Arcade.Body | null;
-        if (body && body.velocity.length() < 12) item.sprite.setVelocity(0, 0);
+      try {
+        if (!item.sprite?.active) continue;
+        if (!item.isCarried && !item.isAnchored && !item.isFlying) {
+          const body = item.sprite.body as Phaser.Physics.Arcade.Body | null;
+          if (body && body.velocity.length() < 12) item.sprite.setVelocity(0, 0);
+        }
+      } catch {
+        /* destroyed mid-frame */
       }
     }
-    this.worldItems = this.worldItems.filter((i) => i.sprite.active);
+    this.pruneWorldItems();
 
     if (Phaser.Input.Keyboard.JustDown(this.dropKey)) {
       // Near a customer with a finished dish → serve (Q is a common "give" instinct)
@@ -803,7 +832,9 @@ export class KitchenScene extends Phaser.Scene {
   }
 
   private applianceReach(app: Appliance): number {
-    return app.kind === "pantry" || app.kind === "plates" ? PANTRY_RANGE : APPLIANCE_RANGE;
+    if (app.kind === "pantry" || app.kind === "plates") return PANTRY_RANGE;
+    if (app.kind === "pass") return PASS_RANGE;
+    return APPLIANCE_RANGE;
   }
 
   private updateStationGlow() {
@@ -831,36 +862,183 @@ export class KitchenScene extends Phaser.Scene {
     const t = this.add
       .text(x, y, lines.join("\n"), {
         fontFamily: "Sora, sans-serif",
-        fontSize: "14px",
+        fontSize: "16px",
         color,
         fontStyle: "bold",
         align: "center",
         stroke: "#ffffff",
-        strokeThickness: 4,
+        strokeThickness: 5,
+        lineSpacing: 4,
       })
       .setOrigin(0.5)
-      .setDepth(40);
+      .setDepth(40)
+      .setAlpha(0);
+    // Fade in → hold so tips / stars are readable → drift up slowly
     this.tweens.add({
       targets: t,
-      y: y - 48,
-      alpha: 0,
-      duration: 1100,
-      ease: "Cubic.out",
-      onComplete: () => t.destroy(),
+      alpha: 1,
+      duration: 320,
+      onComplete: () => {
+        this.tweens.add({
+          targets: t,
+          y: y - 64,
+          alpha: 0,
+          duration: 2600,
+          delay: 900,
+          ease: "Sine.out",
+          onComplete: () => t.destroy(),
+        });
+      },
     });
   }
 
   private tip(msg: string) {
     this.hudHint.setText(msg).setVisible(true);
-    this.time.delayedCall(2200, () => {
+    this.time.delayedCall(3200, () => {
       if (this.hudHint.text === msg) this.hudHint.setVisible(false);
     });
   }
 
   private trackWorldItem(item: ItemEntity) {
-    if (!item.sprite.active) return;
+    if (!item.sprite?.active) return;
     if (!this.worldItems.includes(item)) this.worldItems.push(item);
     if (!this.itemGroup.contains(item.sprite)) this.itemGroup.add(item.sprite);
+  }
+
+  private untrackWorldItem(item: ItemEntity) {
+    this.worldItems = this.worldItems.filter((i) => i !== item);
+    if (item.sprite?.active && this.itemGroup.contains(item.sprite)) {
+      this.itemGroup.remove(item.sprite);
+    }
+  }
+
+  private pruneWorldItems() {
+    this.worldItems = this.worldItems.filter((i) => {
+      try {
+        return Boolean(i.sprite?.active);
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Walk-up assembly: dough↔tomato, ingredient↔plate (either in hands).
+   * Works with floor items and items parked on prep / pass / hold / sink.
+   */
+  private tryProximityCombine(delta: number) {
+    this.combineCd = Math.max(0, this.combineCd - delta);
+    if (this.combineCd > 0) return;
+    const held = this.player.held;
+    if (!held || !held.sprite.active) return;
+
+    const px = this.player.sprite.x;
+    const py = this.player.sprite.y;
+    const heldSide = { id: held.id, contents: [...held.contents] };
+
+    type Candidate = {
+      item: ItemEntity;
+      dist: number;
+      app?: Appliance;
+    };
+    let best: Candidate | null = null;
+
+    for (const item of this.worldItems) {
+      if (item === held || item.isCarried || item.isFlying || !item.sprite.active) continue;
+      if (item.isAnchored) continue;
+      const d = Phaser.Math.Distance.Between(px, py, item.sprite.x, item.sprite.y);
+      if (d > PICKUP_RANGE) continue;
+      if (!tryHandCombine(heldSide, { id: item.id, contents: [...item.contents] })) continue;
+      if (!best || d < best.dist) best = { item, dist: d };
+    }
+
+    for (const app of this.appliances) {
+      if (
+        app.kind === "pantry" ||
+        app.kind === "plates" ||
+        app.kind === "trash" ||
+        app.kind === "juice" ||
+        app.kind === "icecream" ||
+        app.kind === "flour" ||
+        app.kind === "oven" ||
+        app.kind === "grill" ||
+        app.kind === "fryer" ||
+        app.kind === "grill_panel"
+      ) {
+        continue;
+      }
+      if (app.isBusy) continue;
+      const reach = this.applianceReach(app) + 8;
+      for (const item of app.parked) {
+        if (!item.sprite.active) continue;
+        const dItem = Phaser.Math.Distance.Between(px, py, item.sprite.x, item.sprite.y);
+        const dApp = Phaser.Math.Distance.Between(px, py, app.x, app.y);
+        const d = Math.min(dItem, dApp);
+        if (d > reach) continue;
+        if (!tryHandCombine(heldSide, { id: item.id, contents: [...item.contents] })) continue;
+        if (!best || d < best.dist) best = { item, dist: d, app };
+      }
+    }
+
+    if (!best) return;
+    const result = tryHandCombine(heldSide, {
+      id: best.item.id,
+      contents: [...best.item.contents],
+    });
+    if (!result) return;
+
+    if (best.app) {
+      // Merge onto the station item (dough/plate stays on hold/pass)
+      if (result.kind === "transform_held") {
+        best.item.transform(result.heldId as ItemId);
+        best.item.contents = result.heldContents as ItemId[];
+        this.untrackWorldItem(held);
+        held.destroy();
+        this.player.held = null;
+      } else if (result.kind === "mutate_other_plate") {
+        best.item.transform(result.otherId as ItemId);
+        best.item.contents = result.otherContents as ItemId[];
+        this.untrackWorldItem(held);
+        held.destroy();
+        this.player.held = null;
+      } else {
+        // Plate in hands scoops ingredient
+        if (!best.app.removeItem(best.item)) return;
+        this.untrackWorldItem(best.item);
+        best.item.destroy();
+        held.transform(result.heldId as ItemId);
+        held.contents = result.heldContents as ItemId[];
+        held.updateCarry(this.player.sprite, this.player.facing);
+      }
+      best.app.refreshParked();
+    } else {
+      this.untrackWorldItem(best.item);
+      if (result.kind === "transform_held" || result.kind === "mutate_held_plate") {
+        best.item.destroy();
+        held.transform(result.heldId as ItemId);
+        held.contents = result.heldContents as ItemId[];
+        this.player.held = held;
+        held.updateCarry(this.player.sprite, this.player.facing);
+      } else {
+        this.untrackWorldItem(held);
+        held.destroy();
+        this.player.held = null;
+        best.item.transform(result.otherId as ItemId);
+        best.item.contents = result.otherContents as ItemId[];
+        this.trackWorldItem(best.item);
+      }
+    }
+
+    this.combineCd = 280;
+    this.audio.playInteract();
+    this.tip(result.message);
+    if (result.message.includes("Plated") || result.message.includes("Raw pizza")) {
+      this.audio.playCookDone();
+      this.kitchenFx.sparkBurst(px, py - 12, 8);
+    }
+    this.heldHud.setText(
+      this.player.held ? `Hands: ${this.player.held.label}` : "Hands: empty",
+    );
   }
 
   private findInteractTarget(): {
@@ -928,11 +1106,15 @@ export class KitchenScene extends Phaser.Scene {
       let bestItem: ItemEntity | null = null;
       let bestDist = PICKUP_RANGE;
       for (const item of this.worldItems) {
-        if (item.isCarried || item.isAnchored || item.isFlying || !item.sprite.active) continue;
-        const d = Phaser.Math.Distance.Between(px, py, item.sprite.x, item.sprite.y);
-        if (d < bestDist) {
-          bestDist = d;
-          bestItem = item;
+        try {
+          if (item.isCarried || item.isAnchored || item.isFlying || !item.sprite?.active) continue;
+          const d = Phaser.Math.Distance.Between(px, py, item.sprite.x, item.sprite.y);
+          if (d < bestDist) {
+            bestDist = d;
+            bestItem = item;
+          }
+        } catch {
+          continue;
         }
       }
       if (bestItem) {
@@ -956,7 +1138,7 @@ export class KitchenScene extends Phaser.Scene {
       }
     }
     if (bestApp) {
-      const prompt = bestApp.promptFor(this.player.held);
+      const prompt = bestApp.promptFor(this.player.held, px, py);
       if (!prompt) return null;
       return {
         kind: "appliance",
@@ -1010,11 +1192,22 @@ export class KitchenScene extends Phaser.Scene {
     // Oven: plate a cooked pizza with an empty plate in hand
     if (app.canPlatePizza(this.player.held)) {
       const plate = this.player.held!;
-      const pizza = app.platePizzaFromOven(plate);
-      if (pizza) {
-        this.audio.playCookDone();
-        this.tip("Pizza plated! Deliver to customer");
-        this.kitchenFx.sparkBurst(app.x, app.y - 10, 6);
+      try {
+        const cooked = app.held;
+        if (cooked) this.untrackWorldItem(cooked);
+        const pizza = app.platePizzaFromOven(plate);
+        if (pizza) {
+          // Keep plated pizza in hands
+          if (!this.player.held) this.player.pickUp(pizza);
+          this.untrackWorldItem(pizza);
+          this.audio.playCookDone();
+          this.tip("Pizza plated! Deliver to customer");
+          this.kitchenFx.sparkBurst(app.x, app.y - 10, 6);
+        }
+      } catch (err) {
+        console.error("[kitchen] plate pizza failed", err);
+        if (!this.player.held) this.player.held = plate;
+        this.tip("Couldn't plate pizza — try again");
       }
       return;
     }
@@ -1065,8 +1258,12 @@ export class KitchenScene extends Phaser.Scene {
     }
 
     if (!this.player.held && app.held) {
-      const item = app.take();
+      const item = app.take({
+        px: this.player.sprite.x,
+        py: this.player.sprite.y,
+      });
       if (item && this.player.pickUp(item)) {
+        this.untrackWorldItem(item);
         this.audio.playPickup();
         this.tip(
           app.kind === "pass" && app.capacity > 1
@@ -1087,23 +1284,38 @@ export class KitchenScene extends Phaser.Scene {
         item.id === "tomato_washed" ||
         item.id === "tomato_chopped";
       if (app.place(item)) {
-        if (item.sprite.active) this.trackWorldItem(item);
+        // Plate that scooped an ingredient stays in hands
+        if (item.sprite.active && !item.isAnchored) {
+          this.player.pickUp(item);
+        } else if (item.sprite.active && item.isAnchored) {
+          // Parked on a station — not a free floor item
+          this.untrackWorldItem(item);
+        } else if (item.sprite.active) {
+          this.trackWorldItem(item);
+        }
         this.audio.playInteract();
         if (app.kind === "trash") {
           const burned = item.id.includes("burned");
           this.tip(burned ? "Threw burned food in the trash" : "Trashed item");
           this.kitchenFx.sparkBurst(app.x, app.y - 10, burned ? 10 : 4);
         } else if (toppingPizza && app.held?.id === "pizza_raw") {
-          this.tip("Raw pizza ready — bake it in the Oven");
+          this.tip("Raw pizza ready — take it to the Oven");
+          this.audio.playCookDone();
+          this.kitchenFx.sparkBurst(app.x, app.y - 10, 8);
         } else if (app.kind === "oven") {
           this.tip("Baking pizza… grab a plate while you wait");
         } else if (app.held?.isDish) {
           this.tip(`Plated ${app.held.label}! Deliver to customer`);
           this.audio.playCookDone();
+        } else if (item.sprite.active && item.isDish) {
+          this.tip(`Plated ${item.label}! Deliver to customer`);
+          this.audio.playCookDone();
         } else if (!beforeActive || !item.sprite.active) {
           this.tip("Added to plate");
         } else if (app.kind === "pass") {
-          this.tip(`Parked on pass`);
+          this.tip(`Parked on pass (${app.parked.length}/3)`);
+        } else if (app.kind === "counter") {
+          this.tip(`Parked on hold spot`);
         } else {
           this.tip(`Placed ${item.label} on ${app.def.label}`);
         }
@@ -1203,14 +1415,230 @@ export class KitchenScene extends Phaser.Scene {
     this.kitchenFx.coinBurst(customer.x, customer.y - 20);
     this.kitchenFx.sparkBurst(customer.x, customer.y - 10, 8);
     this.cameras.main.shake(120, 0.007);
-    this.cameras.main.zoomTo(1.06, 100);
-    this.time.delayedCall(140, () => {
-      if (!this.ended) this.cameras.main.zoomTo(1, 220);
+    this.cameras.main.zoomTo(1.04, 160);
+    this.time.delayedCall(280, () => {
+      if (!this.ended) this.cameras.main.zoomTo(1, 360);
     });
 
     dish.transform("dirty_plate");
     dish.detachAt(this.player.sprite.x, this.player.sprite.y + 12);
     this.trackWorldItem(dish);
+  }
+
+  private updateAuthority(delta: number) {
+    const kb = this.input.keyboard;
+    let ax = 0;
+    let ay = 0;
+    if (kb) {
+      // Reuse keys — never re-add every frame (that can break input)
+      const A = kb.addKey(Phaser.Input.Keyboard.KeyCodes.A, false);
+      const D = kb.addKey(Phaser.Input.Keyboard.KeyCodes.D, false);
+      const W = kb.addKey(Phaser.Input.Keyboard.KeyCodes.W, false);
+      const S = kb.addKey(Phaser.Input.Keyboard.KeyCodes.S, false);
+      const L = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT, false);
+      const R = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT, false);
+      const U = kb.addKey(Phaser.Input.Keyboard.KeyCodes.UP, false);
+      const Dn = kb.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN, false);
+      if (A.isDown || L.isDown) ax -= 1;
+      if (D.isDown || R.isDown) ax += 1;
+      if (W.isDown || U.isDown) ay -= 1;
+      if (S.isDown || Dn.isDown) ay += 1;
+    }
+    const sprint = kb?.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT, false).isDown ?? false;
+    const interact = this.interactKey
+      ? Phaser.Input.Keyboard.JustDown(this.interactKey)
+      : false;
+    const drop = this.dropKey ? Phaser.Input.Keyboard.JustDown(this.dropKey) : false;
+
+    let facing: "down" | "left" | "right" | "up" | undefined;
+    if (Math.abs(ax) > Math.abs(ay) && ax !== 0) facing = ax < 0 ? "left" : "right";
+    else if (ay !== 0) facing = ay < 0 ? "up" : "down";
+
+    this.mp?.sendInput?.({ ax, ay, sprint, interact, drop, facing });
+
+    const snap = this.mp?.getSnapshot?.() ?? null;
+    if (snap) {
+      try {
+        this.applyAuthoritySnapshot(snap);
+      } catch (err) {
+        console.error("[kitchen] authority snapshot apply failed", err);
+      }
+      // Server owns position — don't let arcade velocity fight teleports
+      this.player.sprite.setVelocity(0, 0);
+    } else {
+      // No snapshot yet / connection hiccup — keep local control so we never soft-lock
+      this.player.update();
+    }
+
+    this.localNameLabel?.setPosition(this.player.sprite.x, this.player.sprite.y - 34);
+    this.audio.playStep(delta, Math.hypot(ax, ay) > 0.05 || this.player.moving);
+    this.kitchenFx.update(delta);
+    this.updateStationGlow();
+
+    try {
+      const target = this.findInteractTarget();
+      if (target) {
+        this.promptLabel.setText(target.prompt);
+        this.prompt.setVisible(true);
+        this.prompt.setPosition(target.x, target.y);
+      } else {
+        this.prompt.setVisible(false);
+      }
+    } catch (err) {
+      console.error("[kitchen] prompt failed", err);
+      this.prompt.setVisible(false);
+    }
+
+    if (snap?.ended && !this.ended) {
+      this.finishAuthorityMatch(snap);
+    }
+  }
+
+  private applyAuthoritySnapshot(snap: KitchenSnapshot) {
+    if (snap.seq === this.lastSnapSeq) return;
+    this.lastSnapSeq = snap.seq;
+
+    this.scoring.score = snap.score;
+    this.scoring.served = snap.served;
+    this.scoring.walkouts = snap.walkouts;
+    this.scoring.tips = snap.tips;
+    this.scoring.burns = snap.burns;
+    this.scoring.combo = snap.combo;
+    this.scoring.timeLeft = snap.timeLeft;
+    this.refreshScoreHud();
+    this.syncTimerHud();
+
+    const self = snap.players.find((p) => p.id === this.mp?.localId);
+    if (self) {
+      this.player.sprite.setPosition(self.x, self.y);
+      this.player.facing = self.facing;
+      this.heldHud.setText(self.held ? `Hands: ${self.held.id}` : "Hands: empty");
+      if (self.held && self.held.id in ITEMS) {
+        const want = self.held.id as ItemId;
+        if (!this.player.held || this.player.held.id !== want) {
+          this.player.held?.destroy();
+          const ent = new ItemEntity(this, want, self.x, self.y - 18);
+          ent.attachTo(this.player.sprite);
+          this.player.held = ent;
+        } else {
+          this.player.held.updateCarry(this.player.sprite, self.facing);
+        }
+      } else if (this.player.held) {
+        this.player.held.destroy();
+        this.player.held = null;
+      }
+    }
+
+    // Remotes
+    const seen = new Set<string>();
+    for (const p of snap.players) {
+      if (p.id === this.mp?.localId) continue;
+      seen.add(p.id);
+      let chef = this.remotes.get(p.id);
+      if (!chef) {
+        chef = new RemoteChef(this, p.id, p.x, p.y, p.displayName, p.avatarHue);
+        this.remotes.set(p.id, chef);
+      }
+      chef.apply({
+        id: p.id,
+        x: p.x,
+        y: p.y,
+        facing: p.facing,
+        moving: p.moving,
+        sprinting: p.sprinting,
+        heldLabel: p.held?.id ?? null,
+      });
+    }
+    for (const [id, chef] of [...this.remotes]) {
+      if (seen.has(id)) continue;
+      chef.destroy();
+      this.remotes.delete(id);
+    }
+
+    // World items
+    const worldSeen = new Set<string>();
+    for (const it of snap.worldItems) {
+      if (!(it.id in ITEMS)) continue;
+      worldSeen.add(it.uid);
+      let ent = this.authWorld.get(it.uid);
+      if (!ent || !ent.sprite?.active) {
+        ent = new ItemEntity(this, it.id as ItemId, it.x, it.y);
+        this.authWorld.set(it.uid, ent);
+        this.trackWorldItem(ent);
+      } else if (ent.id !== it.id) {
+        ent.transform(it.id as ItemId);
+      }
+      ent.sprite.setPosition(it.x, it.y);
+    }
+    for (const [uid, ent] of [...this.authWorld]) {
+      if (worldSeen.has(uid)) continue;
+      ent.destroy();
+      this.authWorld.delete(uid);
+      this.worldItems = this.worldItems.filter((w) => w !== ent);
+    }
+
+    // Customers
+    const custSeen = new Set<number>();
+    for (const c of snap.customers) {
+      custSeen.add(c.seatId);
+      let vis = this.authCustomers.get(c.seatId);
+      if (!vis) {
+        const body = this.add
+          .image(0, 0, c.vip ? "customer_vip" : "customer")
+          .setOrigin(0.5, 0.85)
+          .setScale(1.2);
+        const bubble = this.add
+          .text(0, -70, c.orderName, {
+            fontFamily: "Sora, sans-serif",
+            fontSize: "11px",
+            color: "#bf360c",
+            backgroundColor: "#fffde7",
+            padding: { x: 5, y: 3 },
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5);
+        const root = this.add.container(c.x, c.y, [body, bubble]).setDepth(12);
+        vis = { root, bubble };
+        this.authCustomers.set(c.seatId, vis);
+      }
+      vis.root.setPosition(c.x, c.y);
+      vis.bubble.setText(
+        c.phase === "ordered" ? c.orderName : c.phase === "entering" ? "…" : "",
+      );
+      vis.bubble.setVisible(c.phase === "ordered" || c.phase === "entering");
+    }
+    for (const [seatId, vis] of [...this.authCustomers]) {
+      if (custSeen.has(seatId)) continue;
+      vis.root.destroy(true);
+      this.authCustomers.delete(seatId);
+    }
+
+    // Stations (pass / hold / cookers) — must sync or parked items vanish in co-op
+    for (const na of snap.appliances ?? []) {
+      const app = this.appliances.find((a) => a.def.id === na.id);
+      if (!app) continue;
+      try {
+        app.reconcileNet(this, na.items ?? [], na.process, na.plateStock);
+      } catch (err) {
+        console.error("[kitchen] appliance reconcile failed", na.id, err);
+      }
+    }
+  }
+
+  private finishAuthorityMatch(snap: KitchenSnapshot) {
+    if (this.ended) return;
+    this.ended = true;
+    this.scoring.score = snap.score;
+    this.scoring.served = snap.served;
+    this.scoring.walkouts = snap.walkouts;
+    this.scoring.tips = snap.tips;
+    this.scoring.burns = snap.burns;
+    this.scoring.ended = true;
+    this.tip("Kitchen closed!");
+    this.audio.playServe();
+    this.time.delayedCall(600, () => {
+      this.scene.start("results", { result: this.scoring.snapshot() });
+    });
   }
 
   private syncMultiplayer(delta: number) {

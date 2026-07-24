@@ -7,7 +7,7 @@ export function MapLobby({ onPlay }) {
         <p className="rsc-kitchen-kicker">Pick a kitchen</p>
         <h2>Environments</h2>
         <p className="map-lobby-lead">
-          Four worlds · five maps each · start with Map 1, more unlock later.
+          Four worlds · five maps each — pick the same kitchen as your partner.
         </p>
       </header>
 

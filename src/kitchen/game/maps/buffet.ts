@@ -33,7 +33,7 @@ const COLLIDERS: Collider[] = [
   { x: 16, y: 270, w: 32, h: 540 },
   { x: 944, y: 270, w: 32, h: 540 },
   // Dining counter top
-  { x: 480, y: 100, w: 700, h: 40 },
+  { x: 480, y: 100, w: 760, h: 40 },
   // U-buffet ring
   { x: 480, y: 250, w: 420, h: 36 },
   { x: 300, y: 290, w: 40, h: 100 },
@@ -59,6 +59,9 @@ const TRAYS: BuffetTrayDef[] = [
 const APPLIANCES: ApplianceDef[] = [
   { id: "fryer_a", x: 220, y: 470, kind: "fryer", label: "Fryer" },
   { id: "fryer_b", x: 320, y: 470, kind: "fryer", label: "Fryer" },
+  // Free hold spots on the fryer line — park any one item each
+  { id: "hold_fryer_l", x: 220, y: 410, kind: "counter", label: "Hold" },
+  { id: "hold_fryer_r", x: 320, y: 410, kind: "counter", label: "Hold" },
   { id: "flour_a", x: 400, y: 470, kind: "flour", label: "Flour" },
   // One grill body — two pan slots
   { id: "grill_panel_a", x: 520, y: 455, kind: "grill_panel", label: "Pan L" },
@@ -77,15 +80,16 @@ const APPLIANCES: ApplianceDef[] = [
   { id: "pantry_pepper", x: 880, y: 470, kind: "pantry", label: "Peppers", dispenses: "pepper" },
 ];
 
-/** Dining stools along the window counter. */
+/** Dining stools along the window counter — 8 seats. */
 const SEATS: CustomerSeat[] = [
-  { id: 0, x: 220, y: 130 },
-  { id: 1, x: 320, y: 125 },
-  { id: 2, x: 420, y: 120 },
-  { id: 3, x: 520, y: 120 },
-  { id: 4, x: 620, y: 125 },
-  { id: 5, x: 720, y: 130 },
-  { id: 6, x: 800, y: 140 },
+  { id: 0, x: 160, y: 135 },
+  { id: 1, x: 250, y: 128 },
+  { id: 2, x: 340, y: 122 },
+  { id: 3, x: 430, y: 120 },
+  { id: 4, x: 520, y: 120 },
+  { id: 5, x: 610, y: 122 },
+  { id: 6, x: 700, y: 128 },
+  { id: 7, x: 790, y: 135 },
 ];
 
 function drawBuffetTraySlot(
@@ -206,13 +210,13 @@ function paint(scene: Phaser.Scene) {
 
     // Dining counter under window
     ctx.fillStyle = "#6d4c41";
-    roundRect(ctx, 120, 70, 720, 55, 12, true);
+    roundRect(ctx, 100, 70, 760, 55, 12, true);
     ctx.fillStyle = "#a1887f";
-    roundRect(ctx, 128, 76, 704, 28, 8, true);
+    roundRect(ctx, 108, 76, 744, 28, 8, true);
     strokeInk(ctx, 4);
-    roundRect(ctx, 120, 70, 720, 55, 12, false);
-    // Place settings
-    for (const sx of [200, 300, 400, 500, 600, 700, 780]) {
+    roundRect(ctx, 100, 70, 760, 55, 12, false);
+    // Place settings — 8 seats
+    for (const sx of [160, 250, 340, 430, 520, 610, 700, 790]) {
       ctx.fillStyle = "#fafafa";
       roundRect(ctx, sx - 12, 82, 24, 16, 3, true);
       ctx.fillStyle = "#e53935";
@@ -282,14 +286,14 @@ export const BUFFET_1: MapDef = {
   unlocked: true,
   /**
    * Stock cook chains + hand plates + eat + dirty wash + crowded groups.
-   * 12s prep gate in BuffetScene before first group.
+   * Longer clocks for cook/wash/walk + mistake buffer.
    */
-  matchSeconds: 285,
-  customerSpawnMs: [4200, 6200],
+  matchSeconds: 320,
+  customerSpawnMs: [5500, 8000],
   spawn: { x: 480, y: 380 },
   door: { x: 900, y: 220 },
   menu: [],
-  plateStock: 7,
+  plateStock: 9,
   colliders: COLLIDERS,
   appliances: APPLIANCES,
   seats: SEATS,

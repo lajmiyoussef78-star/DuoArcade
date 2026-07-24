@@ -1,0 +1,202 @@
+/* Minimal Tailwind-utility shim scoped to Stickman Kart Racing (no Tailwind in repo). */
+
+.arcade-page .skr-wrap,
+.skr-wrap { width: 100%; }
+
+.skr-shell,
+.skr-shell * { box-sizing: border-box; }
+
+.skr-shell {
+  width: 100%;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line, #3D3450);
+}
+
+.skr-shell .relative { position: relative; }
+.skr-shell .absolute { position: absolute; }
+.skr-shell .inset-0 { inset: 0; }
+.skr-shell .top-2\.5 { top: 0.625rem; }
+.skr-shell .top-3 { top: 0.75rem; }
+.skr-shell .left-1\/2 { left: 50%; }
+.skr-shell .left-3\.5 { left: 0.875rem; }
+.skr-shell .right-3\.5 { right: 0.875rem; }
+.skr-shell .-translate-x-1\/2 { transform: translateX(-50%); }
+.skr-shell .z-10 { z-index: 10; }
+.skr-shell .z-20 { z-index: 20; }
+.skr-shell .z-30 { z-index: 30; }
+.skr-shell .z-40 { z-index: 40; }
+
+.skr-shell .flex { display: flex; }
+.skr-shell .inline-flex { display: inline-flex; }
+.skr-shell .inline-block { display: inline-block; }
+.skr-shell .block { display: block; }
+.skr-shell .grid { display: grid; }
+.skr-shell .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.skr-shell .flex-col { flex-direction: column; }
+.skr-shell .flex-wrap { flex-wrap: wrap; }
+.skr-shell .items-center { align-items: center; }
+.skr-shell .justify-center { justify-content: center; }
+.skr-shell .gap-2 { gap: 0.5rem; }
+.skr-shell .gap-3 { gap: 0.75rem; }
+.skr-shell .gap-3\.5 { gap: 0.875rem; }
+
+.skr-shell .w-full { width: 100%; }
+.skr-shell .w-10 { width: 2.5rem; }
+.skr-shell .h-10 { height: 2.5rem; }
+.skr-shell .h-screen { height: min(780px, calc(100vh - 170px)); min-height: 520px; }
+.skr-shell .w-\[min\(760px\,95\%\)\] { width: min(760px, 95%); }
+.skr-shell .min-w-\[260px\] { min-width: 260px; }
+.skr-shell .max-w-\[860px\] { max-width: 860px; }
+
+.skr-shell .overflow-hidden { overflow: hidden; }
+.skr-shell .overflow-auto { overflow: auto; }
+.skr-shell .pointer-events-none { pointer-events: none; }
+.skr-shell .pointer-events-auto { pointer-events: auto; }
+.skr-shell .cursor-pointer { cursor: pointer; }
+
+.skr-shell .rounded { border-radius: 0.25rem; }
+.skr-shell .rounded-md { border-radius: 0.375rem; }
+.skr-shell .rounded-lg { border-radius: 0.5rem; }
+.skr-shell .rounded-xl { border-radius: 0.75rem; }
+.skr-shell .rounded-2xl { border-radius: 1rem; }
+.skr-shell .rounded-3xl { border-radius: 1.5rem; }
+
+.skr-shell .p-2 { padding: 0.5rem; }
+.skr-shell .p-2\.5 { padding: 0.625rem; }
+.skr-shell .p-4 { padding: 1rem; }
+.skr-shell .px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.skr-shell .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.skr-shell .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.skr-shell .px-4 { padding-left: 1rem; padding-right: 1rem; }
+.skr-shell .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.skr-shell .px-7 { padding-left: 1.75rem; padding-right: 1.75rem; }
+.skr-shell .px-11 { padding-left: 2.75rem; padding-right: 2.75rem; }
+.skr-shell .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+.skr-shell .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.skr-shell .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.skr-shell .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.skr-shell .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.skr-shell .py-7 { padding-top: 1.75rem; padding-bottom: 1.75rem; }
+.skr-shell .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.skr-shell .pb-3 { padding-bottom: 0.75rem; }
+.skr-shell .pb-10 { padding-bottom: 2.5rem; }
+.skr-shell .pt-7 { padding-top: 1.75rem; }
+
+.skr-shell .m-0 { margin: 0; }
+.skr-shell .mx-auto { margin-left: auto; margin-right: auto; }
+.skr-shell .mx-px { margin-left: 1px; margin-right: 1px; }
+.skr-shell .ml-1 { margin-left: 0.25rem; }
+.skr-shell .mt-0\.5 { margin-top: 0.125rem; }
+.skr-shell .mt-1 { margin-top: 0.25rem; }
+.skr-shell .-mt-1 { margin-top: -0.25rem; }
+.skr-shell .mt-2 { margin-top: 0.5rem; }
+.skr-shell .mt-3 { margin-top: 0.75rem; }
+.skr-shell .mt-4 { margin-top: 1rem; }
+.skr-shell .mt-5 { margin-top: 1.25rem; }
+.skr-shell .mt-6 { margin-top: 1.5rem; }
+.skr-shell .mb-1 { margin-bottom: 0.25rem; }
+.skr-shell .mb-1\.5 { margin-bottom: 0.375rem; }
+.skr-shell .mb-2 { margin-bottom: 0.5rem; }
+.skr-shell .mb-2\.5 { margin-bottom: 0.625rem; }
+.skr-shell .mb-3 { margin-bottom: 0.75rem; }
+.skr-shell .mb-4 { margin-bottom: 1rem; }
+.skr-shell .mb-5 { margin-bottom: 1.25rem; }
+.skr-shell .my-5 { margin-top: 1.25rem; margin-bottom: 1.25rem; }
+
+.skr-shell .text-left { text-align: left; }
+.skr-shell .text-center { text-align: center; }
+.skr-shell .text-right { text-align: right; }
+.skr-shell .text-white { color: #fff; }
+.skr-shell .uppercase { text-transform: uppercase; }
+.skr-shell .font-bold { font-weight: 700; }
+.skr-shell .font-normal { font-weight: 400; }
+.skr-shell .tracking-widest { letter-spacing: 0.1em; }
+.skr-shell .tracking-\[5px\] { letter-spacing: 5px; }
+.skr-shell .tracking-\[6px\] { letter-spacing: 6px; }
+.skr-shell .leading-relaxed { line-height: 1.625; }
+.skr-shell .leading-loose { line-height: 2; }
+
+.skr-shell .text-\[9px\] { font-size: 9px; }
+.skr-shell .text-\[10px\] { font-size: 10px; }
+.skr-shell .text-\[11px\] { font-size: 11px; }
+.skr-shell .text-\[13px\] { font-size: 13px; }
+.skr-shell .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.skr-shell .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.skr-shell .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.skr-shell .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.skr-shell .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.skr-shell .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.skr-shell .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.skr-shell .text-6xl { font-size: 3.75rem; line-height: 1; }
+.skr-shell .text-\[26px\] { font-size: 26px; }
+
+.skr-shell .bg-black { background: #000; }
+.skr-shell .transition-transform { transition: transform 0.15s ease; }
+.skr-shell .hover\:-translate-y-1:hover { transform: translateY(-0.25rem); }
+.skr-shell .hover\:-translate-y-0\.5:hover { transform: translateY(-0.125rem); }
+.skr-shell .hover\:scale-105:hover { transform: scale(1.05); }
+
+@media (max-width: 640px) {
+  .skr-shell .max-\[640px\]\:grid-cols-1 { grid-template-columns: 1fr; }
+}
+
+.arcade-page .skr-shell .h-screen {
+  height: min(720px, calc(100vh - 200px));
+  min-height: 480px;
+}
+
+.arcade-page .skr-shell canvas {
+  width: min(640px, 92%) !important;
+  height: auto !important;
+  max-height: min(640px, calc(100vh - 220px)) !important;
+  aspect-ratio: 1;
+}
+
+.skr-shell .flex-1 { flex: 1 1 0%; }
+.skr-shell .bottom-3 { bottom: 0.75rem; }
+.skr-shell .left-3 { left: 0.75rem; }
+.skr-shell .right-3 { right: 0.75rem; }
+.skr-shell .top-\[72px\] { top: 72px; }
+.skr-shell .z-\[12\] { z-index: 12; }
+.skr-shell .z-\[15\] { z-index: 15; }
+.skr-shell .select-none { user-select: none; }
+.skr-shell .text-base { font-size: 1rem; line-height: 1.5rem; }
+.skr-shell .text-\[28px\] { font-size: 28px; }
+.skr-shell .min-w-\[280px\] { min-width: 280px; }
+.skr-shell .max-w-\[880px\] { max-width: 880px; }
+.skr-shell .gap-2\.5 { gap: 0.625rem; }
+.skr-shell .mb-3\.5 { margin-bottom: 0.875rem; }
+.skr-shell .pt-6 { padding-top: 1.5rem; }
+.skr-shell .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+
+/* Keep toasts inside the game frame when embedded in DuoArcade */
+.skr-shell .fixed { position: absolute; }
+.skr-shell .bottom-7 { bottom: 1.75rem; }
+.skr-shell .top-16 { top: 4rem; }
+.skr-shell .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.skr-shell .gap-1 { gap: 0.25rem; }
+.skr-shell .gap-1\.5 { gap: 0.375rem; }
+.skr-shell .h-6 { height: 1.5rem; }
+.skr-shell .min-w-0 { min-width: 0; }
+.skr-shell .min-w-\[150px\] { min-width: 150px; }
+.skr-shell .rounded-full { border-radius: 9999px; }
+.skr-shell .leading-tight { line-height: 1.25; }
+.skr-shell .tracking-wide { letter-spacing: 0.025em; }
+.skr-shell .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.skr-shell .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.skr-shell .text-\[9\.5px\] { font-size: 9.5px; }
+.skr-shell .text-\[15px\] { font-size: 15px; }
+.skr-shell .px-0\.5 { padding-left: 0.125rem; padding-right: 0.125rem; }
+.skr-shell .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.skr-shell .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.skr-shell .mt-3\.5 { margin-top: 0.875rem; }
+.skr-shell .my-3 { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+.skr-shell .mb-2\.5 { margin-bottom: 0.625rem; }
+.skr-shell .z-50 { z-index: 50; }
+.skr-shell .hover\:scale-110:hover { transform: scale(1.1); }
+.skr-shell .transition-colors { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+@media (max-width: 560px) {
+  .skr-shell .max-\[560px\]\:grid-cols-1 { grid-template-columns: 1fr; }
+}

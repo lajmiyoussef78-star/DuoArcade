@@ -7,13 +7,15 @@ export class ItemEntity {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   /** Ingredients stacked on a plate before it becomes a dish. */
   contents: ItemId[] = [];
+  /** Server uid when this sprite mirrors an authority snapshot item. */
+  netUid: string | null = null;
   private carried = false;
   private anchored = false;
   private thrownUntil = 0;
 
   constructor(scene: Phaser.Scene, id: ItemId, x: number, y: number) {
-    this._id = id;
-    const def = ITEMS[id];
+    this._id = id in ITEMS ? id : "plate";
+    const def = ITEMS[this._id];
     this.sprite = scene.physics.add.sprite(x, y, def.texture);
     this.sprite.setDepth(8);
     this.sprite.setBounce(0.15);
@@ -166,6 +168,10 @@ export class ItemEntity {
   }
 
   destroy() {
-    this.sprite.destroy();
+    try {
+      if (this.sprite?.active) this.sprite.destroy();
+    } catch {
+      /* already destroyed */
+    }
   }
 }

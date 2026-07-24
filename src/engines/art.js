@@ -1464,6 +1464,53 @@ export const ART = {
      @keyframes nc-hogpulse { 0%,100% { opacity: .45 } 50% { opacity: .85 } }
      ${sparkAnim('nc', 3)}`),
 
+  /* ─── Laser Wall Duel: glowing wall + laser beam + runner ball ─── */
+  laserwall: scene('lw', `
+    <linearGradient id="lw-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b0d1a"/>
+      <stop offset="100%" stop-color="#131629"/>
+    </linearGradient>
+    <linearGradient id="lw-wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#181d33"/>
+      <stop offset="100%" stop-color="#12162a"/>
+    </linearGradient>`, `
+    <rect x="0" y="0" width="240" height="130" fill="url(#lw-sky)"/>
+    <ellipse cx="120" cy="118" rx="86" ry="8" fill="var(--night)" opacity=".45"/>
+    <line x1="18" y1="108" x2="222" y2="108" stroke="#4dff9e" stroke-width="2.5" filter="url(#lw-glow)"/>
+
+    <rect class="lw-wall" x="52" y="18" width="136" height="78" rx="4" fill="url(#lw-wall)"
+      stroke="#38c7ff" stroke-width="2" filter="url(#lw-glow)"/>
+
+    <!-- dashed template star -->
+    <path class="lw-tpl" d="M120 30 L128 52 L152 52 L132 66 L140 90 L120 74 L100 90 L108 66 L88 52 L112 52 Z"
+      fill="none" stroke="#ffcf3f" stroke-width="1.8" stroke-dasharray="5 4" opacity=".9" filter="url(#lw-glow2)"/>
+
+    <!-- artist stick figure -->
+    <g class="lw-art" stroke="#38c7ff" stroke-width="2" fill="none" stroke-linecap="round" filter="url(#lw-glow)">
+      <circle cx="28" cy="86" r="4"/>
+      <path d="M28 90 V100 M28 100 L24 108 M28 100 L32 108 M28 94 L36 90"/>
+    </g>
+
+    <!-- laser beam -->
+    <line class="lw-beam" x1="36" y1="90" x2="120" y2="66" stroke="#ff3c50" stroke-width="2" opacity=".85" filter="url(#lw-glow)"/>
+
+    <!-- runner ball on wall -->
+    <g class="lw-run">
+      <circle cx="168" cy="42" r="9" fill="#ff4d5a" opacity=".85" filter="url(#lw-glow2)"/>
+      <circle cx="168" cy="30" r="3" fill="none" stroke="#ff4d5a" stroke-width="1.5"/>
+    </g>
+
+    ${sparks('lw', [[40, 24, 1.4, '#38c7ff'], [210, 36, 1.4, '#ff4d5a'], [120, 112, 1.3, '#ffcf3f']])}`,
+    `.lw-tpl { animation: lw-dash 2.4s linear infinite; }
+     @keyframes lw-dash { to { stroke-dashoffset: -36 } }
+     .lw-beam { animation: lw-flicker 1.1s ease-in-out infinite; transform-origin: 36px 90px; }
+     @keyframes lw-flicker { 0%,100% { opacity: .55 } 50% { opacity: 1 } }
+     .lw-run { animation: lw-bob 1.8s ease-in-out infinite; }
+     @keyframes lw-bob { 0%,100% { transform: translate(0,0) } 50% { transform: translate(-10px,8px) } }
+     .lw-art { animation: lw-sway 2.2s ease-in-out infinite; }
+     @keyframes lw-sway { 0%,100% { transform: translateX(0) } 50% { transform: translateX(3px) } }
+     ${sparkAnim('lw', 3)}`),
+
   /* ─── Sumo Bomb: ring of alternating sumos + fused bomb ─── */
   sumobomb: scene('sb', `
     <radialGradient id="sb-ring" cx="50%" cy="50%" r="50%">
@@ -1898,6 +1945,88 @@ export const ART = {
      .smr-speed1, .smr-speed2 { animation: smr-zoom 1s ease-in-out infinite; }
      @keyframes smr-zoom { 0%,100% { opacity: .25 } 50% { opacity: .7 } }
      ${sparkAnim('smr', 3)}`),
+
+  /* ─── Stickman Kart Racing: oval track + two karts ─── */
+  stickmankart: scene('skr', `
+    <radialGradient id="skr-ground" cx="50%" cy="55%" r="70%">
+      <stop offset="0%" stop-color="#1a2238"/>
+      <stop offset="100%" stop-color="#07080f"/>
+    </radialGradient>
+    <linearGradient id="skr-road" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#33383d"/>
+      <stop offset="100%" stop-color="#262a30"/>
+    </linearGradient>`, `
+    <rect width="240" height="130" fill="url(#skr-ground)"/>
+    <ellipse cx="120" cy="72" rx="92" ry="46" fill="#2e7a3c" opacity=".55"/>
+    <ellipse cx="120" cy="72" rx="78" ry="38" fill="url(#skr-road)" stroke="#f4a72c" stroke-width="3"/>
+    <ellipse cx="120" cy="72" rx="48" ry="22" fill="#1f6330" opacity=".85"/>
+    <ellipse cx="120" cy="72" rx="78" ry="38" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="6 8" opacity=".55"/>
+
+    <g class="skr-k1" filter="url(#skr-glow)">
+      <rect x="48" y="48" width="22" height="12" rx="3" fill="var(--p1)"/>
+      <circle cx="52" cy="62" r="3" fill="#111"/><circle cx="66" cy="62" r="3" fill="#111"/>
+      <circle cx="59" cy="50" r="3.2" fill="var(--p1)"/>
+      <path d="M59 53 V58 M56 55 H62" stroke="var(--p1)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="skr-k2" filter="url(#skr-glow2)">
+      <rect x="168" y="86" width="22" height="12" rx="3" fill="var(--p2)"/>
+      <circle cx="172" cy="100" r="3" fill="#111"/><circle cx="186" cy="100" r="3" fill="#111"/>
+      <circle cx="179" cy="88" r="3.2" fill="var(--p2)"/>
+      <path d="M179 91 V96 M176 93 H182" stroke="var(--p2)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </g>
+    <circle class="skr-box" cx="150" cy="42" r="5" fill="#ffcf3f" opacity=".9" filter="url(#skr-glow)"/>
+
+    ${sparks('skr', [[36, 24, 1.4, 'var(--p1)'], [210, 30, 1.4, 'var(--p2)'], [120, 18, 1.4, 'var(--candle)']])}`,
+    `.skr-k1 { animation: skr-lap 2.4s linear infinite; transform-origin: 120px 72px; }
+     .skr-k2 { animation: skr-lap 2.4s linear .9s infinite reverse; transform-origin: 120px 72px; }
+     @keyframes skr-lap {
+       0% { transform: rotate(0deg) translateX(0) }
+       25% { transform: rotate(8deg) translate(18px, -6px) }
+       50% { transform: rotate(0deg) translate(36px, 0) }
+       75% { transform: rotate(-8deg) translate(18px, 8px) }
+       100% { transform: rotate(0deg) translateX(0) }
+     }
+     .skr-box { animation: skr-pulse 1s ease-in-out infinite; }
+     @keyframes skr-pulse { 0%,100% { opacity: .55; transform: scale(1) } 50% { opacity: 1; transform: scale(1.15) } }
+     ${sparkAnim('skr', 3)}`),
+
+  /* ─── Stickman Bomb Tag: chase + glowing bomb pass ─── */
+  stickmanbombtag: scene('sbt', `
+    <linearGradient id="sbt-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0a1e"/>
+      <stop offset="100%" stop-color="#1a1033"/>
+    </linearGradient>`, `
+    <rect width="240" height="130" fill="url(#sbt-sky)"/>
+    <ellipse cx="120" cy="118" rx="90" ry="8" fill="var(--night)" opacity=".45"/>
+    <line x1="20" y1="108" x2="220" y2="108" stroke="#a86bff" stroke-width="2.5" filter="url(#sbt-glow)"/>
+    <line x1="48" y1="78" x2="100" y2="78" stroke="#a86bff" stroke-width="2" opacity=".7"/>
+    <line x1="140" y1="78" x2="192" y2="78" stroke="#a86bff" stroke-width="2" opacity=".7"/>
+    <line x1="88" y1="52" x2="152" y2="52" stroke="#a86bff" stroke-width="2" opacity=".55"/>
+
+    <g class="sbt-p1">
+      <circle cx="78" cy="84" r="5" fill="var(--p1)"/>
+      <path d="M78 89 V100 M72 94 H84 M78 100 L74 108 M78 100 L83 108" stroke="var(--p1)" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+      <g class="sbt-bomb">
+        <circle cx="96" cy="92" r="7" fill="#14161f" stroke="#ff4d5a" stroke-width="1.6" filter="url(#sbt-glow2)"/>
+        <path d="M98 86 L102 80" stroke="#c9a055" stroke-width="1.5"/>
+        <circle class="sbt-spark" cx="103" cy="78" r="2" fill="var(--candle)"/>
+      </g>
+    </g>
+
+    <g class="sbt-p2">
+      <circle cx="168" cy="84" r="5" fill="var(--p2)"/>
+      <path d="M168 89 V100 M162 94 H174 M168 100 L163 108 M168 100 L174 108" stroke="var(--p2)" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+    </g>
+
+    ${sparks('sbt', [[36, 28, 1.4, 'var(--p1)'], [210, 34, 1.4, 'var(--p2)'], [120, 24, 1.4, 'var(--candle)']])}`,
+    `.sbt-p1 { animation: sbt-chase 1.6s ease-in-out infinite; }
+     .sbt-p2 { animation: sbt-chase 1.6s ease-in-out .35s infinite reverse; }
+     @keyframes sbt-chase { 0%,100% { transform: translateX(0) } 50% { transform: translateX(10px) } }
+     .sbt-bomb { animation: sbt-pulse 0.7s ease-in-out infinite; transform-origin: 96px 92px; transform-box: fill-box; }
+     @keyframes sbt-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.12) } }
+     .sbt-spark { animation: sbt-flick 0.35s steps(2) infinite; }
+     @keyframes sbt-flick { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+     ${sparkAnim('sbt', 3)}`),
 
   /* ─── Stickman Gunfight: circular arena, real sidearms + muzzle flash ─── */
   stickmangunfight: scene('sgf', `

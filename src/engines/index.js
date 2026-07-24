@@ -51,8 +51,11 @@ import * as SUMOBOMB from './sumobomb.js';
 import * as MAGNETHEARTS from './magnethearts.js';
 import * as WALLMAZE from './wallmaze.js';
 import * as NIGHTCURLING from './nightcurling.js';
+import * as LASERWALL from './laserwall.js';
+import * as SBT from './stickmanbombtag.js';
+import * as SKART from './stickmankart.js';
 
 export const ENGINES = Object.fromEntries(
-  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SAB, SDB, SMR, SGF, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, DOMINOES, WORDGRID, MINUSONE, THINICE, SUMOBOMB, MAGNETHEARTS, WALLMAZE, NIGHTCURLING]
+  [TTT, C4, DOTS, REV, GMK, MEM, PONG, SK, WR, MZ, RX, MAN, SEA, CHK, HEX, PIG, NIM, RACE, CQ, TTL, CB, SS, RSC, SSD, SAB, SDB, SMR, SGF, SR, MSC, MD, FW, AUC, NF, WB, UNO, COUP, CARROT, CHKOBBA, DOMINOES, WORDGRID, MINUSONE, THINICE, SUMOBOMB, MAGNETHEARTS, WALLMAZE, NIGHTCURLING, LASERWALL, SBT, SKART]
     .map(e => [e.meta.id, e])
 );

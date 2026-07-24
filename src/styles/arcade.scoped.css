@@ -621,12 +621,14 @@ html[data-appearance="light"] .arcade-page .home-nav-btn.on{
   .arcade-page section > .card{max-width:none;}
   .arcade-page section.lobby{max-width:min(720px,calc(100vw - 170px));}
   .arcade-page section.lobby .lobby-card{max-width:none;}
+  .arcade-page section.gv-screen,
+  .arcade-page .gv-screen{max-width:min(1100px,calc(100vw - 170px));}
 }
 @media (min-width:1000px){
   /* Clear the fixed side rail and use the viewport instead of a narrow column */
-  .arcade-page section,
+  .arcade-page section{max-width:min(1280px,calc(100vw - 176px));}
   .arcade-page > .gv-screen,
-  .arcade-page section.gv-screen{max-width:min(1280px,calc(100vw - 176px));}
+  .arcade-page section.gv-screen{max-width:min(1400px,calc(100vw - 176px));}
   .arcade-page section > .card{max-width:none;}
   .arcade-page .topbar-inner{max-width:min(1280px,calc(100vw - 176px));padding:12px 24px;}
   /* Profile / duo pages read better slightly narrower than the arcade */
@@ -958,13 +960,13 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 }
 /* game view */
 .arcade-page .gv-screen{
-  width:100%;max-width:520px;
+  width:100%;max-width:min(1280px,calc(100vw - 28px));
   min-height:calc(100vh - 48px);
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;padding:12px 0 40px;}
-.arcade-page .gv-screen.gv-kitchen{max-width:min(980px,calc(100vw - 28px));}
+  display:flex;flex-direction:column;align-items:stretch;
+  justify-content:center;padding:12px 10px 40px;box-sizing:border-box;}
+.arcade-page .gv-screen.gv-kitchen{max-width:min(1280px,calc(100vw - 28px));}
 .arcade-page .gv-stage{
-  width:100%;display:flex;flex-direction:column;align-items:center;
+  width:100%;display:flex;flex-direction:column;align-items:stretch;
   flex:1;justify-content:center;min-height:0;}
 .arcade-page .gv-top{
   display:grid;grid-template-columns:minmax(88px,auto) 1fr minmax(88px,auto);
@@ -1223,17 +1225,23 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   .arcade-page .gv-screen{padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px));}
 }
 .arcade-page .gv-players{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin-bottom:14px;font-size:13px;}
-.arcade-page .gv-board{width:100%;}
-.arcade-page .gv-panel{width:100%;border:1px solid var(--line);border-radius:18px;background:var(--room);
-  padding:28px 22px;text-align:center;}
-.arcade-page .gv-wait{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.arcade-page .gv-board{width:100%;display:flex;flex-direction:column;align-items:stretch;}
+.arcade-page .gv-board > div{width:100%;}
+.arcade-page .gv-panel{
+  width:min(100%,420px);aspect-ratio:1;max-height:min(420px,70vh);
+  margin-left:auto;margin-right:auto;
+  border:1px solid var(--line);border-radius:22px;background:var(--room);
+  padding:28px 22px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  box-sizing:border-box;}
+.arcade-page .gv-wait{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
 .arcade-page .gv-wait-ring{width:48px;height:48px;border-radius:50%;border:2px solid color-mix(in srgb,var(--candle) 55%,transparent);
-  border-top-color:var(--candle);animation:gv-spin 1.1s linear infinite;}
+  border-top-color:var(--candle);animation:gv-spin 1.1s linear infinite;flex:none;}
 @keyframes gv-spin{to{transform:rotate(360deg);}}
 .arcade-page .gv-wait-title{font-family:'Fraunces',serif;font-weight:900;font-size:20px;margin:4px 0 0;}
 .arcade-page .gv-wait-sub{font-size:14px;color:var(--text);margin:0;}
-.arcade-page .gv-wait-hint{font-size:12.5px;color:var(--dim);line-height:1.5;max-width:340px;margin:0;}
-.arcade-page .gv-ready{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.arcade-page .gv-wait-hint{font-size:12.5px;color:var(--dim);line-height:1.5;max-width:280px;margin:0;}
+.arcade-page .gv-ready{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .arcade-page .gv-rules-panel{
   width:100%;border-radius:14px;padding:14px 18px;margin:0 0 12px;text-align:left;
   border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
@@ -1248,7 +1256,41 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   background:color-mix(in srgb,var(--candle) 10%,var(--room));padding:10px 14px;margin-bottom:12px;font-size:13px;}
 .arcade-page .gv-pause-request-actions{display:flex;gap:8px;}
 .arcade-page .gv-board-wrap{position:relative;width:100%;}
+.arcade-page .gv-board-wrap > div{width:100%;}
 .arcade-page .gv-board-wrap.paused{opacity:.55;pointer-events:none;}
+/* Engine mounts fill the play column — only small side gutters remain */
+.arcade-page .wallmaze-wrap,
+.arcade-page .thinice-wrap,
+.arcade-page .nightcurling-wrap,
+.arcade-page .lwd-wrap,
+.arcade-page .sbt-wrap,
+.arcade-page .skr-wrap,
+.arcade-page .dominoes-wrap,
+.arcade-page .wordgrid-wrap,
+.arcade-page .ssd-wrap,
+.arcade-page .sr-wrap,
+.arcade-page .sab-wrap,
+.arcade-page .sdb-wrap,
+.arcade-page .smr-wrap,
+.arcade-page .sgf-wrap,
+.arcade-page .sc-wrap,
+.arcade-page .mo-wrap,
+.arcade-page .fb-wrap,
+.arcade-page .au-wrap,
+.arcade-page .nf-wrap,
+.arcade-page .rsc-wrap,
+.arcade-page .pong-wrap,
+.arcade-page .ss-wrap,
+.arcade-page .chkobba-wrap,
+.arcade-page .uno-wrap,
+.arcade-page .coup-wrap,
+.arcade-page .carrot-wrap,
+.arcade-page .minusone-wrap,
+.arcade-page .sumobomb-wrap,
+.arcade-page .magnethearts-wrap,
+.arcade-page .wordbomb-wrap{
+  width:100%;max-width:none;margin-left:auto;margin-right:auto;
+}
 .arcade-page .gv-pause-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-family:'Fraunces',serif;font-weight:900;font-size:28px;color:var(--candle);
   background:color-mix(in srgb,var(--night) 55%,transparent);border-radius:16px;pointer-events:none;}
@@ -1265,80 +1307,71 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .banner.B{color:var(--p2);}
 .arcade-page .banner.draw{color:var(--candle);}
 .arcade-page #boardHost{background:var(--room);border:1px solid var(--line);border-radius:16px;padding:16px;}
-.arcade-page /* engines */
-  .ttt-grid{display:grid;grid-template-columns:repeat(3,78px);grid-template-rows:repeat(3,78px);gap:8px;}
+.arcade-page .ttt-grid{display:grid;grid-template-columns:repeat(3,minmax(64px,1fr));grid-template-rows:repeat(3,minmax(64px,1fr));gap:8px;width:min(100%,420px);margin-left:auto;margin-right:auto;}
 .arcade-page .ttt-cell{background:var(--room2);border:1px solid var(--line);border-radius:12px;cursor:pointer;
-            font-family:'Fraunces',serif;font-size:34px;font-weight:900;color:var(--text);}
+            font-family:'Fraunces',serif;font-size:clamp(28px,6vw,40px);font-weight:900;color:var(--text);aspect-ratio:1;}
 .arcade-page .ttt-cell.A{color:var(--p1);}
 .arcade-page .ttt-cell.B{color:var(--p2);}
 .arcade-page .ttt-cell:disabled{cursor:default;}
-.arcade-page .c4-grid{display:grid;grid-template-columns:repeat(7,44px);gap:5px;}
-.arcade-page .c4-slot{width:44px;height:44px;border-radius:50%;background:var(--room2);border:1px solid var(--line);cursor:pointer;}
+.arcade-page .c4-grid{display:grid;grid-template-columns:repeat(7,minmax(36px,1fr));gap:5px;width:min(100%,520px);margin-left:auto;margin-right:auto;}
+.arcade-page .c4-slot{width:100%;aspect-ratio:1;border-radius:50%;background:var(--room2);border:1px solid var(--line);cursor:pointer;}
 .arcade-page .c4-slot.A{background:var(--p1);border-color:var(--p1);}
 .arcade-page .c4-slot.B{background:var(--p2);border-color:var(--p2);}
 .arcade-page .c4-slot:disabled{cursor:default;}
-.arcade-page .dots-grid{display:grid;grid-template-columns:repeat(4,10px 46px) 10px;grid-template-rows:repeat(4,10px 46px) 10px;}
+.arcade-page .dots-grid{display:grid;grid-template-columns:repeat(4,10px minmax(36px,1fr)) 10px;grid-template-rows:repeat(4,10px minmax(36px,1fr)) 10px;width:min(100%,420px);margin-left:auto;margin-right:auto;}
 .arcade-page .dots-dot{width:10px;height:10px;border-radius:50%;background:var(--dim);}
 .arcade-page .dots-edge{background:var(--room2);border:none;cursor:pointer;padding:0;}
-.arcade-page .dots-edge.h{height:10px;width:46px;}
-.arcade-page .dots-edge.v{width:10px;height:46px;}
+.arcade-page .dots-edge.h{height:10px;width:100%;}
+.arcade-page .dots-edge.v{width:10px;height:100%;}
 .arcade-page .dots-edge:hover:not(:disabled){background:var(--candles);}
 .arcade-page .dots-edge.on{background:var(--candle);cursor:default;}
 .arcade-page .dots-edge:disabled:not(.on){cursor:default;}
-.arcade-page .dots-box{width:46px;height:46px;}
+.arcade-page .dots-box{width:100%;height:100%;}
 .arcade-page .dots-box.A{background:var(--p1s);}
 .arcade-page .dots-box.B{background:var(--p2s);}
 .arcade-page .dots-score{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);margin-top:10px;text-align:center;}
-.arcade-page .rev-grid{display:grid;grid-template-columns:repeat(8,44px);grid-template-rows:repeat(8,44px);gap:3px;
-            background:var(--room2);padding:8px;border-radius:12px;}
+.arcade-page .rev-grid{display:grid;grid-template-columns:repeat(8,minmax(28px,1fr));grid-template-rows:repeat(8,minmax(28px,1fr));gap:3px;
+            background:var(--room2);padding:8px;border-radius:12px;width:min(100%,520px);margin-left:auto;margin-right:auto;}
 .arcade-page .rev-cell{background:var(--room);border:1px solid var(--line);border-radius:6px;cursor:default;
-            display:flex;align-items:center;justify-content:center;padding:0;}
+            display:flex;align-items:center;justify-content:center;padding:0;aspect-ratio:1;}
 .arcade-page .rev-cell.hint{cursor:pointer;box-shadow:inset 0 0 0 2px var(--candle);}
 .arcade-page .rev-disc{width:70%;height:70%;border-radius:50%;}
 .arcade-page .rev-disc.A{background:var(--p1);}
 .arcade-page .rev-disc.B{background:var(--p2);}
 .arcade-page .pong-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
-.arcade-page .pong-canvas{width:100%;max-width:640px;border-radius:12px;border:1px solid var(--line);touch-action:none;}
+.arcade-page .pong-canvas{width:100%;max-width:none;border-radius:12px;border:1px solid var(--line);touch-action:none;}
 .arcade-page .pong-score{font-family:'Fraunces',serif;font-weight:900;font-size:22px;}
 .arcade-page .pong-score .pA{color:var(--p1);}
 .arcade-page .pong-score .pB{color:var(--p2);}
 .arcade-page .ss-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
-.arcade-page .ss-canvas{width:100%;max-width:800px;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;}
+.arcade-page .ss-canvas{width:100%;max-width:none;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;}
 .arcade-page .rsc-wrap{width:100%;}
-.arcade-page .ssd-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .ssd-wrap .ssd-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
-.arcade-page .dominoes-wrap{width:100%;max-width:720px;margin:0 auto;}
 .arcade-page .dominoes-wrap > div{min-height:0 !important;padding:8px 0 16px !important;}
-.arcade-page .wordgrid-wrap{width:100%;max-width:560px;margin:0 auto;}
 .arcade-page .wordgrid-wrap > div{min-height:0 !important;padding:8px 0 16px !important;}
-.arcade-page .sr-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .sr-wrap .sr-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
-.arcade-page .sab-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .sab-wrap .sab-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
-.arcade-page .sdb-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .sdb-wrap .sdb-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
-.arcade-page .smr-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .smr-wrap .smr-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
-.arcade-page .sgf-wrap{width:100%;max-width:960px;margin:0 auto;}
 .arcade-page .sgf-wrap .sgf-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
-.arcade-page .sc-wrap{width:100%;max-width:860px;margin:0 auto;}
+.arcade-page .lwd-wrap .lwd-shell > div{min-height:0 !important;}
+.arcade-page .sbt-wrap .sbt-shell > div{min-height:0 !important;}
+.arcade-page .skr-wrap .skr-shell > div{min-height:0 !important;}
 .arcade-page .sc-embedded{padding:8px 0 20px;}
-.arcade-page .mo-wrap{width:100%;max-width:620px;margin:0 auto;}
-.arcade-page .fb-wrap{width:100%;max-width:640px;margin:0 auto;}
-.arcade-page .au-wrap{width:100%;max-width:640px;margin:0 auto;}
-.arcade-page .nf-wrap{width:100%;max-width:580px;margin:0 auto;}
-.arcade-page .ss-hint{text-align:center;max-width:640px;line-height:1.45;}
-.arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,32px);grid-template-rows:repeat(11,32px);gap:2px;
-            background:var(--room2);padding:8px;border-radius:12px;}
+.arcade-page .ss-hint{text-align:center;max-width:720px;margin-left:auto;margin-right:auto;line-height:1.45;}
+.arcade-page .pong-canvas{max-width:none;}
+.arcade-page .ss-canvas{max-width:none;}
+.arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,minmax(22px,1fr));grid-auto-rows:1fr;gap:2px;
+            background:var(--room2);padding:8px;border-radius:12px;width:min(100%,560px);margin-left:auto;margin-right:auto;aspect-ratio:1;}
 .arcade-page .gmk-cell{background:var(--room);border:1px solid var(--line);border-radius:5px;cursor:pointer;padding:0;
-            display:flex;align-items:center;justify-content:center;}
+            display:flex;align-items:center;justify-content:center;aspect-ratio:1;}
 .arcade-page .gmk-cell:disabled{cursor:default;}
 .arcade-page .gmk-stone{width:72%;height:72%;border-radius:50%;}
 .arcade-page .gmk-stone.A{background:var(--p1);}
 .arcade-page .gmk-stone.B{background:var(--p2);}
-.arcade-page .mem-grid{display:grid;grid-template-columns:repeat(5,64px);gap:8px;}
-.arcade-page .mem-card{width:64px;height:64px;border-radius:12px;border:1px solid var(--line);background:var(--room2);
-            font-size:28px;cursor:pointer;transition:transform .12s ease;}
+.arcade-page .mem-grid{display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:8px;width:min(100%,480px);margin-left:auto;margin-right:auto;}
+.arcade-page .mem-card{width:100%;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--room2);
+            font-size:clamp(22px,5vw,28px);cursor:pointer;transition:transform .12s ease;}
 .arcade-page .mem-card:hover:not(:disabled){transform:scale(1.05);}
 .arcade-page .mem-card.up{background:var(--room);}
 .arcade-page .mem-card.ownA{border-color:var(--p1);box-shadow:inset 0 0 0 2px var(--p1);}
@@ -1372,7 +1405,7 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .wr-msg{font-size:12.5px;color:var(--candle);min-height:18px;}
 .arcade-page /* maze */
   .mz-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
-.arcade-page .mz-canvas{width:100%;max-width:480px;border-radius:12px;border:1px solid var(--line);}
+.arcade-page .mz-canvas{width:100%;max-width:none;border-radius:12px;border:1px solid var(--line);}
 .arcade-page .mz-pad{display:flex;flex-direction:column;align-items:center;gap:6px;}
 .arcade-page .mz-pad div{display:flex;gap:6px;}
 .arcade-page .mz-b{width:52px;}
@@ -1416,12 +1449,12 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   line-height:1;text-align:center;width:100%;padding:40px 0;
   text-shadow:0 0 40px color-mix(in srgb,var(--candle) 35%,transparent);}
 @media (max-width:460px){
-.arcade-page .gmk-grid{grid-template-columns:repeat(11,26px);grid-template-rows:repeat(11,26px);}
-.arcade-page .mem-grid{grid-template-columns:repeat(5,54px);}
-.arcade-page .mem-card{width:54px;height:54px;font-size:24px;}
+.arcade-page .gmk-grid{width:100%;}
+.arcade-page .mem-grid{width:100%;gap:6px;}
+.arcade-page .mem-card{font-size:22px;}
 }
 @media (max-width:460px){
-.arcade-page .rev-grid{grid-template-columns:repeat(8,36px);grid-template-rows:repeat(8,36px);}
+.arcade-page .rev-grid{width:100%;gap:2px;}
 }
 .arcade-page /* watch view */
   .player-wrap{width:100%;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;border:1px solid var(--line);}
