@@ -278,8 +278,10 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus, onSetAnni
             <span className="ch-loc-dot partner" aria-hidden="true" />
             <span className="ch-loc-label">{partnerName}</span>
             <span className="ch-loc-val">
-              {theirs?.place ? <b>{theirs.place}</b>
-                : theirs?.online ? 'Locating…' : 'Offline'}
+              {theirs?.busyLabel
+                ? <span className="ch-busy">{theirs.busyLabel}</span>
+                : theirs?.place ? <b>{theirs.place}</b>
+                  : theirs?.online ? 'Locating…' : 'Offline'}
             </span>
           </div>
           {distanceLine && (

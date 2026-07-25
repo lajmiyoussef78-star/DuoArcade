@@ -1,0 +1,905 @@
+/* Friends panel + friend match chrome */
+
+.friends-panel {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 0 28px;
+}
+
+.friends-panel h2 {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+}
+
+.friends-lead {
+  margin: 0 0 16px;
+  opacity: 0.72;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.friends-search {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.friends-search input {
+  flex: 1 1 180px;
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid var(--line, #3d3450);
+  background: var(--room2, #1a1625);
+  color: var(--text, #eee);
+  padding: 10px 12px;
+}
+
+/* Compact manage UI inside the side dock */
+.arcade-page .friends-dock-manage-body,
+.friends-dock-manage-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 0 16px 16px;
+}
+
+.arcade-page .friends-panel.compact,
+.friends-panel.compact {
+  max-width: none;
+  margin: 0;
+  padding: 4px 0 8px;
+}
+
+.arcade-page .friends-panel.compact .friends-lead,
+.friends-panel.compact .friends-lead {
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.arcade-page .friends-panel.compact .friends-search,
+.friends-panel.compact .friends-search {
+  margin: 0 0 10px;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+
+.arcade-page .friends-panel.compact .friends-search input,
+.friends-panel.compact .friends-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.arcade-page .friends-panel.compact .friends-section,
+.friends-panel.compact .friends-section {
+  margin-top: 14px;
+}
+
+.arcade-page .friends-panel.compact .friends-section h3,
+.friends-panel.compact .friends-section h3 {
+  font-size: 11px;
+}
+
+.arcade-page .friends-panel.compact .friends-row,
+.friends-panel.compact .friends-row {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.arcade-page .friends-panel.compact .friends-meta strong,
+.friends-panel.compact .friends-meta strong {
+  font-size: 12px;
+}
+
+.arcade-page .friends-panel.compact .friends-meta span,
+.friends-panel.compact .friends-meta span {
+  font-size: 10px;
+}
+
+.friends-hits {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 1px solid var(--line, #3d3450);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.friends-hits li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line, #3d3450) 70%, transparent);
+}
+
+.friends-hits li:first-child { border-top: 0; }
+
+.friends-section {
+  margin-top: 18px;
+}
+
+.friends-section h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.friends-slots {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-left: 8px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.friends-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.friends-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line, #3d3450);
+  background: color-mix(in srgb, var(--room2, #1a1625) 88%, transparent);
+}
+
+.friends-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: #6b7280;
+}
+
+.friends-dot.on { background: var(--good, #4dff9e); box-shadow: 0 0 8px color-mix(in srgb, var(--good, #4dff9e) 55%, transparent); }
+.friends-dot.busy { background: var(--candle, #ffcf3f); box-shadow: 0 0 8px color-mix(in srgb, var(--candle, #ffcf3f) 55%, transparent); }
+
+.friends-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.friends-meta strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.friends-meta span {
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friends-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.friends-empty {
+  opacity: 0.55;
+  font-size: 0.9rem;
+  padding: 8px 2px;
+}
+
+.friends-status {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--candle, #ffcf3f);
+}
+
+.friends-game-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.friends-game-picker button {
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--line, #3d3450);
+  background: var(--room2, #1a1625);
+  color: inherit;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.friends-game-picker button:hover {
+  border-color: var(--p1, #38c7ff);
+}
+
+.friends-game-picker strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.friends-game-picker small {
+  opacity: 0.6;
+  font-size: 0.72rem;
+}
+
+.fm-screen {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 12px 12px 40px;
+}
+
+.fm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.fm-bar h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.fm-lobby {
+  text-align: center;
+  padding: 28px 12px;
+  border: 1px solid var(--line, #3d3450);
+  border-radius: 18px;
+}
+
+.ch-loc-val .ch-busy {
+  color: var(--candle, #ffcf3f);
+  font-weight: 600;
+}
+
+/* ── Right friends dock (DuoArcade theme) ── */
+
+.arcade-page .friends-dock,
+.friends-dock {
+  --fd-w: min(272px, 84vw);
+  --fd-inset: 10px;
+  --fd-tab: 22px;
+  position: fixed;
+  top: 68px;
+  right: var(--fd-inset);
+  bottom: 14px;
+  z-index: 72;
+  display: flex;
+  align-items: stretch;
+  width: var(--fd-w);
+  pointer-events: none;
+  /* Panel + tab slide together as one unit */
+  transform: translateX(0);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.arcade-page .friends-dock.collapsed,
+.friends-dock.collapsed {
+  /* Slide off to the right; tab (stuck on the left) peeks at the edge */
+  transform: translateX(calc(100% + var(--fd-inset)));
+}
+
+.friends-dock > * { pointer-events: auto; }
+
+.arcade-page .friends-dock.collapsed .friends-dock-panel,
+.friends-dock.collapsed .friends-dock-panel {
+  pointer-events: none;
+}
+
+/* Side tab — fixed on the panel’s left; rides with the slide (always ◀) */
+.arcade-page .friends-dock-toggle,
+.friends-dock-toggle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  width: var(--fd-tab);
+  height: 64px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--candle, #ffcf3f) 45%, var(--line, #3d3450));
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--p1, #7dffb3) 16%, var(--room, #12101a)) 0%,
+      var(--room, #12101a) 48%,
+      color-mix(in srgb, var(--p2, #ff6b9d) 14%, var(--room, #12101a)) 100%);
+  color: var(--candle, #ffcf3f);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow:
+    -6px 0 22px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 color-mix(in srgb, var(--candle, #ffcf3f) 18%, transparent);
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  line-height: 0;
+  transition: color 0.15s ease, box-shadow 0.15s ease;
+  z-index: 2;
+}
+
+.arcade-page .friends-dock-toggle:hover,
+.friends-dock-toggle:hover {
+  color: var(--text, #f4f0ff);
+  box-shadow:
+    -8px 0 28px rgba(0, 0, 0, 0.45),
+    0 0 18px color-mix(in srgb, var(--candle, #ffcf3f) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--candle, #ffcf3f) 28%, transparent);
+}
+
+.arcade-page .friends-dock-toggle:focus-visible,
+.friends-dock-toggle:focus-visible {
+  outline: 2px solid var(--candle, #ffcf3f);
+  outline-offset: 2px;
+}
+
+.friends-dock-chevron {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.arcade-page .friends-dock-panel,
+.friends-dock-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px 14px 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--candle, #ffcf3f) 34%, var(--line, #3d3450));
+  background:
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--p1, #7dffb3) 12%, var(--room, #12101a)) 0%,
+      var(--room, #12101a) 42%,
+      color-mix(in srgb, var(--p2, #ff6b9d) 11%, var(--room, #12101a)) 100%);
+  box-shadow:
+    0 22px 48px rgba(0, 0, 0, 0.42),
+    0 0 36px color-mix(in srgb, var(--candle, #ffcf3f) 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--candle, #ffcf3f) 12%, transparent);
+}
+
+.friends-dock-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--candle, #ffcf3f) 50%, transparent), transparent) top / 68% 1.5px no-repeat,
+    radial-gradient(ellipse 50% 40% at 0% 100%, color-mix(in srgb, var(--p1, #7dffb3) 14%, transparent), transparent 70%),
+    radial-gradient(ellipse 42% 36% at 100% 0%, color-mix(in srgb, var(--p2, #ff6b9d) 12%, transparent), transparent 72%);
+  opacity: 0.95;
+  z-index: 0;
+}
+
+.friends-dock-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+.arcade-page .friends-dock-requests,
+.friends-dock-requests {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 10px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line, #3d3450) 70%, transparent);
+  background: color-mix(in srgb, var(--candle, #ffcf3f) 6%, transparent);
+}
+
+.arcade-page .friends-dock-request,
+.friends-dock-request {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--candle, #ffcf3f) 28%, var(--line, #3d3450));
+  background: color-mix(in srgb, var(--room2, #1a1625) 90%, transparent);
+}
+
+.friends-dock-request-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.friends-dock-request-meta strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text, #eee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friends-dock-request-meta span {
+  display: block;
+  font-size: 10px;
+  color: var(--dim, #9a93a8);
+}
+
+.friends-dock-request-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.arcade-page .friends-dock-req-accept,
+.friends-dock-req-accept,
+.arcade-page .friends-dock-req-decline,
+.friends-dock-req-decline {
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.arcade-page .friends-dock-req-accept,
+.friends-dock-req-accept {
+  border: 1px solid var(--candle, #ffcf3f);
+  background: var(--candle, #ffcf3f);
+  color: #2a1e05;
+}
+
+.arcade-page .friends-dock-req-accept:disabled,
+.friends-dock-req-accept:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.arcade-page .friends-dock-req-decline,
+.friends-dock-req-decline {
+  border: 1px solid color-mix(in srgb, var(--line, #3d3450) 85%, transparent);
+  background: transparent;
+  color: var(--dim, #9a93a8);
+}
+
+.arcade-page .friends-dock-head,
+.friends-dock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* Beat .arcade-page * { margin/padding: 0 } */
+  margin: 0;
+  padding: 14px 20px 12px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid color-mix(in srgb, var(--line, #3d3450) 70%, transparent);
+}
+
+.arcade-page .friends-dock-head-actions,
+.friends-dock-head-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .friends-dock-head-actions .friends-dock-manage,
+.friends-dock-head-actions .friends-dock-manage {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.friends-dock-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.friends-dock-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--good, #4dff9e);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--good, #4dff9e) 70%, transparent);
+  flex: 0 0 auto;
+}
+
+.friends-dock-head h2 {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text, #eee) 78%, transparent);
+}
+
+.arcade-page .friends-dock-manage,
+.friends-dock-manage {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--line, #3d3450) 85%, transparent);
+  background: color-mix(in srgb, var(--room2, #1a1625) 80%, transparent);
+  color: var(--dim, #9a93a8);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 5px 9px;
+  border-radius: 999px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.arcade-page .friends-dock-manage:hover,
+.friends-dock-manage:hover {
+  color: var(--text, #eee);
+  border-color: color-mix(in srgb, var(--candle, #ffcf3f) 50%, var(--line, #3d3450));
+  background: color-mix(in srgb, var(--candle, #ffcf3f) 10%, var(--room2, #1a1625));
+}
+
+.arcade-page .friends-dock-list,
+.friends-dock-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px 20px 16px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.arcade-page .friends-dock-card,
+.friends-dock-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--room2, #1a1625) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line, #3d3450) 80%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--candle, #ffcf3f) 6%, transparent);
+}
+
+.friends-dock-card.on {
+  border-color: color-mix(in srgb, var(--good, #4dff9e) 35%, var(--line, #3d3450));
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--good, #4dff9e) 10%, var(--room2, #1a1625)),
+      var(--room2, #1a1625));
+}
+
+.friends-dock-card.busy {
+  border-color: color-mix(in srgb, var(--candle, #ffcf3f) 40%, var(--line, #3d3450));
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--candle, #ffcf3f) 12%, var(--room2, #1a1625)),
+      var(--room2, #1a1625));
+}
+
+.friends-dock-av-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.friends-dock-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--p1, #7dffb3) 55%, #1a1b1e),
+      color-mix(in srgb, var(--p2, #ff6b9d) 40%, #1a1b1e));
+  color: #fff;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--candle, #ffcf3f) 22%, transparent);
+}
+
+.friends-dock-status {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dim, #9a93a8) 80%, #444);
+  border: 2px solid var(--room, #12101a);
+}
+
+.friends-dock-status.on {
+  background: var(--good, #4dff9e);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--good, #4dff9e) 65%, transparent);
+}
+
+.friends-dock-status.busy {
+  background: var(--candle, #ffcf3f);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--candle, #ffcf3f) 65%, transparent);
+}
+
+.friends-dock-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.friends-dock-meta strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #eee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friends-dock-meta span {
+  display: block;
+  font-size: 11px;
+  color: var(--dim, #9a93a8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arcade-page .friends-dock-play,
+.friends-dock-play {
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--candle, #ffcf3f);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--candle, #ffcf3f);
+  color: #2a1e05;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.arcade-page .friends-dock-play:hover,
+.friends-dock-play:hover {
+  filter: brightness(1.06);
+}
+
+.friends-dock-more {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .friends-dock-more-btn,
+.friends-dock-more-btn {
+  margin: 0;
+  padding: 0 6px;
+  min-width: 22px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dim, #9a93a8);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.arcade-page .friends-dock-more-btn:hover,
+.friends-dock-more-btn:hover {
+  color: var(--text, #eee);
+  background: color-mix(in srgb, var(--room, #12101a) 55%, transparent);
+}
+
+.arcade-page .friends-dock-more-menu,
+.friends-dock-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  min-width: 132px;
+  margin: 0;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line, #3d3450) 90%, transparent);
+  background: var(--room, #12101a);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.arcade-page .friends-dock-more-menu button,
+.friends-dock-more-menu button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #ff8a9a;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.arcade-page .friends-dock-more-menu button:hover,
+.friends-dock-more-menu button:hover {
+  background: color-mix(in srgb, #ff6b9d 14%, transparent);
+}
+
+.arcade-page .friends-dock-add-search,
+.friends-dock-add-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.arcade-page .friends-dock-add-search input,
+.friends-dock-add-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #3d3450);
+  background: var(--room2, #1a1625);
+  color: var(--text, #eee);
+  font: inherit;
+  font-size: 12px;
+}
+
+.arcade-page .friends-dock-hits,
+.friends-dock-hits {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.arcade-page .friends-dock-hits li,
+.friends-dock-hits li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--line, #3d3450) 80%, transparent);
+  background: color-mix(in srgb, var(--room2, #1a1625) 88%, transparent);
+  font-size: 12px;
+  color: var(--text, #eee);
+}
+
+.arcade-page .friends-dock-empty,
+.arcade-page .friends-dock-hint,
+.friends-dock-empty,
+.friends-dock-hint {
+  /* .arcade-page * zeroes margin — use padding for side inset */
+  margin: 12px 0 0;
+  padding: 0 20px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--dim, #9a93a8);
+  box-sizing: border-box;
+}
+
+.arcade-page .friends-dock-manage-body .friends-dock-empty,
+.friends-dock-manage-body .friends-dock-empty {
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.arcade-page .friends-dock-manage-body .friends-dock-hint,
+.friends-dock-manage-body .friends-dock-hint {
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.arcade-page .friends-dock-picker,
+.friends-dock-picker {
+  border-top: 1px solid color-mix(in srgb, var(--line, #3d3450) 70%, transparent);
+  margin: 0;
+  padding: 10px 20px 12px;
+  flex: 0 0 auto;
+  max-height: 42%;
+  overflow: auto;
+  background: color-mix(in srgb, var(--night, #0a0810) 35%, transparent);
+}
+
+.friends-dock-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text, #eee);
+}
+
+.friends-dock-games {
+  display: grid;
+  gap: 6px;
+}
+
+.arcade-page .friends-dock-games button,
+.friends-dock-games button {
+  text-align: left;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--line, #3d3450) 85%, transparent);
+  background: var(--room2, #1a1625);
+  color: var(--text, #eee);
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.arcade-page .friends-dock-games button:hover,
+.friends-dock-games button:hover {
+  border-color: color-mix(in srgb, var(--candle, #ffcf3f) 55%, var(--line, #3d3450));
+  background: color-mix(in srgb, var(--candle, #ffcf3f) 8%, var(--room2, #1a1625));
+}
+
+@media (max-width: 720px) {
+  .arcade-page .friends-dock,
+  .friends-dock {
+    --fd-w: min(250px, 78vw);
+    --fd-inset: 6px;
+    top: 58px;
+    bottom: 8px;
+  }
+}

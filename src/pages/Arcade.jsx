@@ -21,9 +21,12 @@ import DuoHomeLayout from '../arcade/DuoHomeLayout.jsx';
 import GameScreen from '../arcade/GameScreen.jsx';
 import WatchScreen from '../arcade/WatchScreen.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
+import FriendMatchInvite from '../arcade/FriendMatchInvite.jsx';
+import FriendsDock from '../arcade/FriendsDock.jsx';
 import { ChallengeProvider } from '../arcade/ChallengeContext.jsx';
 import PartnerChat from '../arcade/PartnerChat.jsx';
 import SettingsMenu from '../arcade/SettingsMenu.jsx';
+import { createFriendsClient } from '../lib/friends.js';
 
 const VERSION = 'v11.0-react';
 const DEFAULT_PRESENCE = {
@@ -707,6 +710,60 @@ export default function Arcade() {
     };
   }, [ctx.code, ctx.myRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ---------- user presence (friends online + partner busy label) ---------- */
+
+  useEffect(() => {
+    const { code, myRole } = ctx;
+    if (!code || !myRole) return undefined;
+    let alive = true;
+    let presenceCtrl = null;
+    let pollTimer = null;
+    let unsubInbox = () => {};
+
+    createFriendsClient().then(api => {
+      if (!alive || !api.user) return;
+      presenceCtrl = api.startPresence({ status: 'online' });
+      const pollPartner = async () => {
+        try {
+          const view = await api.listView();
+          if (!alive) return;
+          const pp = view?.partner_presence;
+          if (!pp) return;
+          const partnerRole = other(myRole);
+          setPresenceState(prev => ({
+            ...prev,
+            [partnerRole]: {
+              ...prev[partnerRole],
+              busyLabel: pp.status === 'busy' ? (pp.busy_label || 'Busy') : null
+            }
+          }));
+        } catch { /* friends schema not applied yet */ }
+      };
+      pollPartner();
+      pollTimer = setInterval(pollPartner, 10000);
+      unsubInbox = api.subscribeInbox(() => pollPartner());
+
+      const onVis = () => {
+        if (document.hidden) presenceCtrl?.setAway?.();
+        else presenceCtrl?.setOnline?.();
+      };
+      document.addEventListener('visibilitychange', onVis);
+      presenceCtrl._onVis = onVis;
+    }).catch(() => {});
+
+    return () => {
+      alive = false;
+      clearInterval(pollTimer);
+      unsubInbox();
+      try {
+        if (presenceCtrl?._onVis) {
+          document.removeEventListener('visibilitychange', presenceCtrl._onVis);
+        }
+        presenceCtrl?.close();
+      } catch { /* */ }
+    };
+  }, [ctx.code, ctx.myRole]);
+
   /* ---------- theme follows the duo (free for everyone) ---------- */
 
   useEffect(() => {
@@ -957,6 +1014,17 @@ export default function Arcade() {
         onAccept={acceptInvite} onDecline={declineInvite}
         onDismiss={dismissInvite}
         onForceClear={onStatus => forceClearSession(code, onStatus)}
+      />
+
+      <FriendMatchInvite enabled={!!(duo && code && myRole && syncRef.current?.auth.user()?.id)} />
+
+      <FriendsDock
+        enabled={!!(duo && code && myRole && syncRef.current?.auth.user()?.id)}
+        partnerName={
+          duo && myRole
+            ? ((myRole === 'A' ? duo.nameB : duo.nameA) || 'Partner')
+            : 'Partner'
+        }
       />
 
       {showDiag && (

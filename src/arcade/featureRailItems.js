@@ -15,6 +15,8 @@ export const FEATURE_RAIL_ITEMS = [
     desc: 'A shared whiteboard you both draw on in real time.' },
   { id: 'sect-list', icon: 'list', label: 'Our list', accent: 'good',
     desc: 'A todo list you build together — movies to watch, places to go, anything.' },
+  { id: 'sect-bucket', icon: 'bucket', label: 'Bucket List', accent: 'candle',
+    desc: 'Write your dreams together, seal them until a date you pick, then open the capsule and see what you made real.' },
   { id: 'sect-week', icon: 'week', label: 'Our week', accent: 'p1',
     desc: 'A shared weekly timetable — plans, calls, and free evenings, live for both of you.' },
   { id: 'sect-snap', icon: 'snap', label: 'Duo Snap', accent: 'candle',

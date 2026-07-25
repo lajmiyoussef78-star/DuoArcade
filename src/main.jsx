@@ -5,6 +5,8 @@ import Landing from './pages/Landing.jsx';
 import Arcade from './pages/Arcade.jsx';
 import Arena from './pages/Arena.jsx';
 import ArenaMatch from './pages/ArenaMatch.jsx';
+import FriendMatchScreen from './pages/FriendMatchScreen.jsx';
+import './styles/friends.css';
 import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
@@ -45,6 +47,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/challenges/:code" element={<ChallengeRedirect />} />
         <Route path="/arena" element={<Arena />} />
         <Route path="/arena/:matchCode" element={<ArenaMatch />} />
+        <Route path="/friend/:matchCode" element={<FriendMatchScreen />} />
         <Route path="/whiteboard/:code" element={<Whiteboard />} />
         <Route path="/snap/:code" element={<Snap />} />
         <Route path="/spark-splash" element={<SparkSplash />} />
