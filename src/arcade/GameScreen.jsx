@@ -65,10 +65,20 @@ function TurnBoard({ eng, session, myRole, onMove, paused }) {
  *  channel, exactly like the original shell. */
 function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paused }) {
   const hostRef = useRef(null);
+  const onFinishRef = useRef(onFinish);
+  useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
   const key = session.game + ':' + (session.startedAt || 0);
   useEffect(() => {
+    const host = hostRef.current;
+    if (!host || !sync?.rt) return undefined;
     const rt = sync.rt(code);
-    eng.mount(hostRef.current, { myRole, rt, names, onFinish, code });
+    eng.mount(host, {
+      myRole,
+      rt,
+      names,
+      code,
+      onFinish: (...args) => onFinishRef.current?.(...args)
+    });
     return () => {
       try { eng.unmount(); } catch { /* engine already gone */ }
       try { rt.close(); } catch { /* channel already closed */ }
@@ -314,13 +324,12 @@ export default function GameScreen({
             <div className="gv-result-score">
               {s.matchScore
                 ? <>{s.matchScore.a} <span>–</span> {s.matchScore.b}</>
-                : isDraw
-                  ? 'Draw'
-                  : <>{rec.a} <span>–</span> {rec.b}</>}
+                : s.game === 'twotruths' && s.gs?.scores
+                  ? <>{s.gs.scores.A} <span>–</span> {s.gs.scores.B}</>
+                  : isDraw
+                    ? 'Draw'
+                    : <>{rec.a} <span>–</span> {rec.b}</>}
             </div>
-            <p className="gv-result-series">
-              Series · {rec.a}–{rec.b}{rec.d ? ` · ${rec.d} draws` : ''}
-            </p>
             <h3 className="gv-result-title">
               {isDraw
                 ? 'A perfectly tied match'
@@ -328,6 +337,39 @@ export default function GameScreen({
                   ? 'You take the match'
                   : `${winnerName} takes the match`}
             </h3>
+            <p className="gv-result-series">
+              Series · {rec.a}–{rec.b}{rec.d ? ` · ${rec.d} draws` : ''}
+            </p>
+            {s.game === 'twotruths' && Array.isArray(s.gs?.roundResults) && s.gs.roundResults.length > 0 && (
+              <table className="ttl-recap" aria-label="Round recap">
+                <thead>
+                  <tr>
+                    <th scope="col" />
+                    {s.gs.roundResults.map((_, i) => (
+                      <th key={i} scope="col">
+                        {i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`} round
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[['A', duo.nameA], ['B', duo.nameB]].map(([role, name]) => (
+                    <tr key={role}>
+                      <th scope="row" className={'ttl-recap-name ' + role}>{name}</th>
+                      {s.gs.roundResults.map((rw, i) => (
+                        <td key={i} className={
+                          rw === role ? 'win ' + role
+                            : rw === 'draw' ? 'draw'
+                              : 'loss'
+                        }>
+                          {rw === role ? '✓' : rw === 'draw' ? 'Draw' : ''}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
             <p className="gv-result-sub">
               {isDraw
                 ? 'This round ended even — check the series line for your record.'

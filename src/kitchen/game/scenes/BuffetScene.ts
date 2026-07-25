@@ -14,6 +14,7 @@ import { calcStars, ScoreManager } from "../systems/ScoreManager";
 import { KitchenFx } from "../systems/KitchenFx";
 import { generateGameAssets } from "../assets/generateAssets";
 import type { MultiplayerBridge } from "../net/MultiplayerBridge";
+import { attachMatchCountdown, type MatchCountdown } from "../ui/matchCountdown";
 
 const CUSTOMER_RANGE = 90;
 
@@ -52,6 +53,8 @@ export class BuffetScene extends Phaser.Scene {
   private paused = false;
   private helpVisible = false;
   private ended = false;
+  private matchLive = false;
+  private countdown: MatchCountdown | null = null;
 
   private prompt!: Phaser.GameObjects.Container;
   private promptLabel!: Phaser.GameObjects.Text;
@@ -75,6 +78,9 @@ export class BuffetScene extends Phaser.Scene {
     this.ended = false;
     this.paused = false;
     this.helpVisible = false;
+    this.matchLive = false;
+    this.countdown?.destroy();
+    this.countdown = null;
     this.worldItems = [];
     this.appliances = [];
     this.trays = [];
@@ -212,8 +218,9 @@ export class BuffetScene extends Phaser.Scene {
     this.buildRecipeRibbon();
     this.buildOverlay();
 
+    // Guests wait for the countdown before any buffet wave starts.
+    this.customers.setSpawning(false);
     if (this.authority) {
-      this.customers.setSpawning(false);
       this.tip("Online co-op · shared buffet (server)");
       const self = this.mp?.peers.find((p) => p.id === this.mp?.localId);
       if (self) {
@@ -230,13 +237,7 @@ export class BuffetScene extends Phaser.Scene {
           .setDepth(30);
       }
     } else {
-      // Prep window so trays can be stocked before the first wave
-      this.tip("Prep time! Stock the buffet — guests arrive soon");
-      this.time.delayedCall(18000, () => {
-        if (this.ended || this.authority) return;
-        this.customers.spawnFirstGroup();
-        this.tip("Group arriving — hand out clean plates!");
-      });
+      this.tip("Get ready — prep starts after the countdown");
     }
 
     const kb = this.input.keyboard;
@@ -249,8 +250,25 @@ export class BuffetScene extends Phaser.Scene {
       console.warn("[buffet] No keyboard — click the game canvas, then use WASD/E");
     }
 
+    this.countdown = attachMatchCountdown(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanup());
+  }
+
+  private onCountdownFinished() {
+    this.matchLive = true;
+    this.countdown = null;
+    if (this.authority) {
+      this.tip("Shift started — cook!");
+      return;
+    }
+    // Prep window so trays can be stocked before the first wave
+    this.tip("Prep time! Stock the buffet — guests arrive soon");
+    this.time.delayedCall(18000, () => {
+      if (this.ended || this.authority) return;
+      this.customers.spawnFirstGroup();
+      this.tip("Group arriving — hand out clean plates!");
+    });
   }
 
   private buildHud() {
@@ -477,6 +495,14 @@ export class BuffetScene extends Phaser.Scene {
   }
 
   update(_t: number, delta: number) {
+    if (this.ended) return;
+
+    if (!this.matchLive) {
+      this.player.sprite.setVelocity(0, 0);
+      if (this.countdown?.tick(delta)) this.onCountdownFinished();
+      return;
+    }
+
     if (this.pauseKey && Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
       this.paused = !this.paused;
       this.helpVisible = false;
@@ -491,7 +517,6 @@ export class BuffetScene extends Phaser.Scene {
       this.player.sprite.setVelocity(0, 0);
       return;
     }
-    if (this.ended) return;
 
     if (this.authority) {
       this.updateAuthority(delta);
@@ -1169,6 +1194,8 @@ export class BuffetScene extends Phaser.Scene {
   }
 
   private cleanup() {
+    this.countdown?.destroy();
+    this.countdown = null;
     this.customers?.destroy();
   }
 }

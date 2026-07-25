@@ -309,14 +309,77 @@ async function supabaseSync() {
     },
 
     rt(code) {
+      /* Shared topic per duo. Wait until SUBSCRIBED before send — otherwise
+         supabase-js falls back to HTTP broadcast (often drops / 500s) and the
+         guest (Splash) looks frozen while the host still plays locally. */
       let rcb = () => {};
-      const ch = sb.channel('rt-' + code, { config: { broadcast: { self: false } } })
-        .on('broadcast', { event: 'm' }, p => rcb(p.payload))
-        .subscribe();
+      const name = 'rt-' + code;
+      try {
+        for (const c of sb.getChannels()) {
+          const topic = c.topic || '';
+          if (topic === name || topic === 'realtime:' + name || topic.endsWith(':' + name)) {
+            sb.removeChannel(c);
+          }
+        }
+      } catch { /* older clients */ }
+
+      let resolveReady;
+      const ready = new Promise(res => {
+        resolveReady = res;
+        setTimeout(res, 2500);
+      });
+      let subscribed = false;
+      const ch = sb.channel(name, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'm' }, p => {
+          try { rcb(p?.payload); } catch (e) { console.warn('rt handler', e); }
+        })
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED' && !subscribed) {
+            subscribed = true;
+            resolveReady();
+          }
+        });
+
+      /* Coalesce high-frequency pose/state to the latest packet only.
+         Never coalesce claims/done/need* — those are one-shot events. */
+      let chain = Promise.resolve();
+      let latestByKind = new Map();
+      let flushScheduled = false;
+      const COALESCE = new Set(['pose', 'state', 'inp']);
+
+      function flushSoon() {
+        if (flushScheduled) return;
+        flushScheduled = true;
+        chain = chain.then(() => ready).then(async () => {
+          flushScheduled = false;
+          const batch = [...latestByKind.values()];
+          latestByKind.clear();
+          for (const p of batch) {
+            try {
+              await ch.send({ type: 'broadcast', event: 'm', payload: p });
+            } catch { /* drop */ }
+          }
+        });
+      }
+
+      function enqueue(payload) {
+        const kind = payload?.k || '_';
+        if (!COALESCE.has(kind)) {
+          chain = chain.then(() => ready).then(() =>
+            ch.send({ type: 'broadcast', event: 'm', payload }).catch(() => {})
+          );
+          return chain;
+        }
+        latestByKind.set(kind, payload);
+        flushSoon();
+        return chain;
+      }
+
       return {
-        send: payload => ch.send({ type: 'broadcast', event: 'm', payload }),
+        ready,
+        send: payload => enqueue(payload),
         on: f => { rcb = f; },
-        close: () => sb.removeChannel(ch)
+        close: () => { try { sb.removeChannel(ch); } catch { /* already gone */ } }
       };
     },
 
@@ -386,6 +449,17 @@ function localSync() {
     },
     onDuo(fn) { cb = fn; },
     async deleteDuo(code) { localStorage.removeItem(key(code)); },
+    rt(code) {
+      let rcb = () => {};
+      const ch = new BroadcastChannel('duoarcade-rt-' + code);
+      ch.onmessage = e => { try { rcb(e.data); } catch { /* ignore */ } };
+      return {
+        ready: Promise.resolve(),
+        send: payload => { try { ch.postMessage(payload); } catch { /* ignore */ } return Promise.resolve(); },
+        on: f => { rcb = f; },
+        close: () => { try { ch.close(); } catch { /* ignore */ } }
+      };
+    },
     async updateDuo(code, patch, { guardTurn = null, force = false } = {}) {
       const duo = read(code);
       if (!duo) return false;

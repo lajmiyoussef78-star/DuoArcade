@@ -1,14 +1,45 @@
 import { ENVIRONMENTS, MAP_LABELS } from './mapMeta.js';
 
-export function MapLobby({ onPlay }) {
+/**
+ * Shared kitchen picker — both players must select the same map.
+ * myPick / partnerPick drive highlight colors so each sees the other's choice.
+ */
+export function MapLobby({
+  myPick,
+  partnerPick,
+  partnerName,
+  myName,
+  onPick,
+  matched,
+  starting
+}) {
   return (
     <div className="map-lobby">
       <header className="map-lobby-head">
-        <p className="rsc-kitchen-kicker">Pick a kitchen</p>
+        <p className="rsc-kitchen-kicker">Pick a kitchen together</p>
         <h2>Environments</h2>
         <p className="map-lobby-lead">
-          Four worlds · five maps each — pick the same kitchen as your partner.
+          Tap a map to vote. When you both pick the <strong>same</strong> kitchen, the shift starts.
         </p>
+        <div className="map-lobby-sync">
+          <span className={'map-sync-pill mine' + (myPick ? ' on' : '')}>
+            You{myPick ? `: ${MAP_LABELS[myPick]?.name || myPick}` : ' — pick a map'}
+          </span>
+          <span className={'map-sync-pill theirs' + (partnerPick ? ' on' : '')}>
+            {partnerName || 'Partner'}
+            {partnerPick ? `: ${MAP_LABELS[partnerPick]?.name || partnerPick}` : ' — choosing…'}
+          </span>
+          {matched && (
+            <span className="map-sync-pill match">
+              {starting ? 'Starting together…' : 'Matched — get ready!'}
+            </span>
+          )}
+        </div>
+        <div className="map-lobby-legend">
+          <span><i className="lg mine" /> Your pick</span>
+          <span><i className="lg theirs" /> {partnerName || 'Partner'}&apos;s pick</span>
+          <span><i className="lg both" /> Same map — play!</span>
+        </div>
       </header>
 
       <div className="map-lobby-grid">
@@ -39,16 +70,29 @@ export function MapLobby({ onPlay }) {
                   );
                 }
                 const map = MAP_LABELS[slotId];
+                const mine = myPick === slotId;
+                const theirs = partnerPick === slotId;
+                const both = mine && theirs;
+                const cls = [
+                  'map-slot',
+                  'playable',
+                  mine ? 'pick-mine' : '',
+                  theirs ? 'pick-theirs' : '',
+                  both ? 'pick-both' : ''
+                ].filter(Boolean).join(' ');
                 return (
                   <button
                     key={slotId}
                     type="button"
-                    className="map-slot playable"
-                    onClick={() => onPlay(slotId)}
+                    className={cls}
+                    onClick={() => onPick(slotId)}
+                    disabled={starting}
                   >
                     <span className="map-slot-num">{map.slot}</span>
                     <span className="map-slot-name">{map.name}</span>
-                    <span className="map-slot-cta">Play</span>
+                    <span className="map-slot-cta">
+                      {both ? 'Together!' : mine ? 'Your pick' : theirs ? (partnerName || 'Partner') : 'Pick'}
+                    </span>
                   </button>
                 );
               })}
@@ -56,6 +100,7 @@ export function MapLobby({ onPlay }) {
           </div>
         ))}
       </div>
+      {myName ? <p className="map-lobby-foot">Playing as {myName}</p> : null}
     </div>
   );
 }

@@ -879,7 +879,8 @@ function drawChef(
   // tiny torso + apron — shirt styles
   const shirtStyle = look.shirtStyle ?? "plain";
   const charEarly = look.characterId ?? "chef";
-  const torsoW = charEarly === "man" ? 20 : charEarly === "kid" ? 15 : 18;
+  const torsoW =
+    charEarly === "man" ? 20 : charEarly === "kid" ? 15 : charEarly === "girl" ? 16.5 : 18;
   const torsoX = cx - torsoW / 2;
   g.fillStyle(OUTLINE);
   g.fillRoundedRect(torsoX, y + 23 + bob, torsoW, 12, 5);
@@ -961,9 +962,14 @@ function drawChef(
   g.fillCircle(cx + armSpread, y + 27 + bob, armFill);
 
   // head size by character
-  const headR = char === "kid" ? 13.5 : char === "elder" ? 12 : 12.5;
-  const faceR = char === "kid" ? 11.5 : 10.5;
-  const headY = y + (char === "kid" ? 15 : 16) + bob;
+  const headR =
+    char === "kid" ? 13.5 : char === "girl" ? 12 : char === "elder" ? 12 : 12.5;
+  const faceR = char === "kid" ? 11.5 : char === "girl" ? 10 : 10.5;
+  const headY = y + (char === "kid" ? 15 : char === "girl" ? 15.5 : 16) + bob;
+
+  // Long hair sits behind the head (girl).
+  if (char === "girl") drawGirlHairBack(g, cx, headY, hat);
+
   g.fillStyle(OUTLINE);
   g.fillCircle(cx, headY, headR);
   g.fillStyle(skin);
@@ -971,28 +977,29 @@ function drawChef(
 
   // blush + eyes
   g.fillStyle(0xffab91, char === "girl" || char === "lady" ? 0.95 : 0.85);
-  g.fillEllipse(cx - 7, headY + 2, char === "girl" ? 4.5 : 4, 2.5);
-  g.fillEllipse(cx + 7, headY + 2, char === "girl" ? 4.5 : 4, 2.5);
+  g.fillEllipse(cx - 7, headY + 2, char === "girl" ? 5 : 4, char === "girl" ? 3 : 2.5);
+  g.fillEllipse(cx + 7, headY + 2, char === "girl" ? 5 : 4, char === "girl" ? 3 : 2.5);
   g.fillStyle(OUTLINE);
   if (facing !== 3) {
-    const ey = headY - 1;
+    const ey = headY - (char === "girl" ? 0.5 : 1);
+    const eyeR = char === "girl" ? 2.35 : 2;
     if (facing === 1) {
-      g.fillCircle(cx - 4, ey, 2);
+      g.fillCircle(cx - 4, ey, eyeR);
       g.fillStyle(0xffffff);
-      g.fillCircle(cx - 4.5, ey - 0.5, 0.7);
+      g.fillCircle(cx - 4.5, ey - 0.5, 0.75);
     } else if (facing === 2) {
-      g.fillCircle(cx + 4, ey, 2);
+      g.fillCircle(cx + 4, ey, eyeR);
       g.fillStyle(0xffffff);
-      g.fillCircle(cx + 3.5, ey - 0.5, 0.7);
+      g.fillCircle(cx + 3.5, ey - 0.5, 0.75);
     } else {
-      g.fillCircle(cx - 4, ey, 2);
-      g.fillCircle(cx + 4, ey, 2);
+      g.fillCircle(cx - 4, ey, eyeR);
+      g.fillCircle(cx + 4, ey, eyeR);
       g.fillStyle(0xffffff);
-      g.fillCircle(cx - 4.5, ey - 0.5, 0.7);
-      g.fillCircle(cx + 3.5, ey - 0.5, 0.7);
+      g.fillCircle(cx - 4.5, ey - 0.5, 0.75);
+      g.fillCircle(cx + 3.5, ey - 0.5, 0.75);
     }
     g.fillStyle(0xe57373);
-    g.fillEllipse(cx, ey + 5, char === "man" ? 4 : 5, 2.5);
+    g.fillEllipse(cx, ey + (char === "girl" ? 5.5 : 5), char === "man" ? 4 : char === "girl" ? 4.5 : 5, 2.5);
   }
 
   // glasses for elder
@@ -1004,7 +1011,78 @@ function drawChef(
     g.lineStyle(1, OUTLINE, 0);
   }
 
-  drawCharacterTop(g, cx, y + bob, char, look.hatStyle, hat, skin, facing);
+  drawCharacterTop(g, cx, y + bob, char, look.hatStyle, hat, skin, facing, headY);
+}
+
+/** Soft long hair behind the girl's head (drawn before the face). */
+function drawGirlHairBack(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  headY: number,
+  hair: number,
+) {
+  // Back dome behind skull
+  g.fillStyle(OUTLINE);
+  g.fillEllipse(cx, headY + 1, 15, 13);
+  g.fillStyle(hair);
+  g.fillEllipse(cx, headY + 1, 13, 11);
+
+  // Long flowing side locks
+  g.fillStyle(OUTLINE);
+  g.fillEllipse(cx - 12, headY + 9, 6.5, 14);
+  g.fillEllipse(cx + 12, headY + 9, 6.5, 14);
+  g.fillStyle(hair);
+  g.fillEllipse(cx - 12, headY + 9, 5, 12);
+  g.fillEllipse(cx + 12, headY + 9, 5, 12);
+
+  // Soft rounded tips
+  g.fillStyle(OUTLINE);
+  g.fillCircle(cx - 12, headY + 21, 4.2);
+  g.fillCircle(cx + 12, headY + 21, 4.2);
+  g.fillStyle(hair);
+  g.fillCircle(cx - 12, headY + 21, 3.2);
+  g.fillCircle(cx + 12, headY + 21, 3.2);
+}
+
+/** Crown, bangs, face frame + bow (drawn after the face). */
+function drawGirlHairFront(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  headY: number,
+  hair: number,
+) {
+  // Rounded crown cap
+  g.fillStyle(OUTLINE);
+  g.fillEllipse(cx, headY - 7.5, 13.5, 8);
+  g.fillStyle(hair);
+  g.fillEllipse(cx, headY - 7.5, 11.5, 6.5);
+
+  // Soft fringe bangs (sit above the eyes)
+  g.fillStyle(OUTLINE);
+  g.fillRoundedRect(cx - 9.5, headY - 8, 6.5, 6.5, 3);
+  g.fillRoundedRect(cx - 2, headY - 9, 4, 5.5, 2.5);
+  g.fillRoundedRect(cx + 3, headY - 8, 6.5, 6.5, 3);
+  g.fillStyle(hair);
+  g.fillRoundedRect(cx - 8.5, headY - 7, 5, 5, 2.5);
+  g.fillRoundedRect(cx - 1.5, headY - 8, 3, 4, 2);
+  g.fillRoundedRect(cx + 3.5, headY - 7, 5, 5, 2.5);
+
+  // Thin side wisps framing the cheeks
+  g.fillStyle(OUTLINE);
+  g.fillEllipse(cx - 10.5, headY + 2, 3, 6.5);
+  g.fillEllipse(cx + 10.5, headY + 2, 3, 6.5);
+  g.fillStyle(hair);
+  g.fillEllipse(cx - 10.5, headY + 2, 2.2, 5);
+  g.fillEllipse(cx + 10.5, headY + 2, 2.2, 5);
+
+  // Cute ribbon bow
+  g.fillStyle(0xc2185b);
+  g.fillTriangle(cx + 7, headY - 9, cx + 13.5, headY - 12.5, cx + 12.5, headY - 6);
+  g.fillTriangle(cx + 7, headY - 9, cx + 13.5, headY - 5.5, cx + 12.5, headY - 11.5);
+  g.fillStyle(0xe91e63);
+  g.fillCircle(cx + 7, headY - 9, 2.2);
+  g.fillStyle(0xf8bbd0);
+  g.fillCircle(cx + 7, headY - 9, 1.1);
 }
 
 function drawCharacterTop(
@@ -1016,6 +1094,7 @@ function drawCharacterTop(
   hairOrHat: number,
   _skin: number,
   facing: number,
+  headYHint?: number,
 ) {
   if (char === "chef") {
     drawHat(g, cx, y, hatStyle, hairOrHat);
@@ -1023,29 +1102,9 @@ function drawCharacterTop(
   }
 
   const hair = hairOrHat;
-  // back hair / silhouette first
   if (char === "girl") {
-    g.fillStyle(OUTLINE);
-    g.fillEllipse(cx - 10, y + 18, 8, 16);
-    g.fillEllipse(cx + 10, y + 18, 8, 16);
-    g.fillStyle(hair);
-    g.fillEllipse(cx - 10, y + 18, 6, 14);
-    g.fillEllipse(cx + 10, y + 18, 6, 14);
-    g.fillStyle(OUTLINE);
-    g.fillEllipse(cx, y + 10, 24, 10);
-    g.fillStyle(hair);
-    g.fillEllipse(cx, y + 10, 20, 8);
-    // bangs
-    g.fillStyle(OUTLINE);
-    g.fillRoundedRect(cx - 9, y + 10, 7, 6, 2);
-    g.fillRoundedRect(cx + 2, y + 10, 7, 6, 2);
-    g.fillStyle(hair);
-    g.fillRoundedRect(cx - 8, y + 11, 5, 4, 1);
-    g.fillRoundedRect(cx + 3, y + 11, 5, 4, 1);
-    // ribbon
-    g.fillStyle(0xe91e63);
-    g.fillTriangle(cx + 8, y + 6, cx + 14, y + 2, cx + 14, y + 10);
-    g.fillCircle(cx + 8, y + 6, 2);
+    const headY = headYHint ?? y + 15.5;
+    drawGirlHairFront(g, cx, headY, hair);
     return;
   }
 

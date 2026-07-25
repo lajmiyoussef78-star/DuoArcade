@@ -730,7 +730,34 @@ export default function Arcade() {
       whoami();
 
       sync.onDuo(remote => {
-        setCtx(s => (s.code ? { ...s, duo: remote } : s));
+        setCtx(s => {
+          if (!s.code || !s.duo) return s.code ? { ...s, duo: remote } : s;
+          // Don't let a stale realtime echo rewind an in-progress session
+          // (was remounting Spark & Splash on the guest and killing input).
+          const localS = s.duo.session;
+          const remoteS = remote.session;
+          if (
+            localS && remoteS &&
+            localS.startedAt && remoteS.startedAt === localS.startedAt &&
+            Date.now() - lastLocalWrite.current < 2000
+          ) {
+            const rank = sess => {
+              if (!sess) return -1;
+              if (sess.winner) return 500;
+              if (sess.phase === 'live') return 400 + (sess.ready?.A && sess.ready?.B ? 1 : 0);
+              if (sess.phase === 'lobby') return 300;
+              if (sess.phase === 'invite') return 100;
+              return 0;
+            };
+            if (rank(localS) > rank(remoteS)) {
+              return {
+                ...s,
+                duo: { ...remote, session: localS, turn: s.duo.turn ?? remote.turn }
+              };
+            }
+          }
+          return { ...s, duo: remote };
+        });
       });
 
       // Global invite watcher: even on the dashboard, incoming fresh invites

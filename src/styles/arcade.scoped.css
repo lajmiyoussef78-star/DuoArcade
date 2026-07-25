@@ -1344,7 +1344,24 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .pong-score .pA{color:var(--p1);}
 .arcade-page .pong-score .pB{color:var(--p2);}
 .arcade-page .ss-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
-.arcade-page .ss-canvas{width:100%;max-width:none;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;}
+.arcade-page .ss-canvas{width:100%;max-width:none;border-radius:12px;border:1px solid var(--line);touch-action:none;background:#150a26;outline:none;}
+.arcade-page .ss-canvas:focus{box-shadow:0 0 0 2px color-mix(in srgb, var(--candle) 45%, transparent);}
+.arcade-page .ss-net{font-size:11px;font-weight:600;color:var(--dim);min-height:16px;letter-spacing:.02em;}
+.arcade-page .ss-net.ok{color:color-mix(in srgb, #6dffa3 70%, var(--dim));}
+.arcade-page .ss-net.bad{color:color-mix(in srgb, var(--p2) 75%, var(--dim));}
+.arcade-page .ss-pad{display:flex;gap:10px;align-items:stretch;justify-content:center;width:100%;max-width:420px;margin-top:2px;}
+.arcade-page .ss-pad-btn{
+  flex:1;min-height:48px;border-radius:14px;border:1px solid var(--line);
+  background:color-mix(in srgb, var(--room2) 90%, transparent);color:var(--text);
+  font-weight:800;font-size:16px;cursor:pointer;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;}
+.arcade-page .ss-pad-btn.jump{flex:1.35;background:color-mix(in srgb, var(--candle) 18%, var(--room2));}
+.arcade-page .ss-pad-btn.held,
+.arcade-page .ss-pad-btn:active{border-color:var(--candle);transform:translateY(1px);
+  background:color-mix(in srgb, var(--candle) 28%, var(--room2));}
+@media (min-width:900px){
+  .arcade-page .ss-pad{opacity:.85;}
+}
 .arcade-page .rsc-wrap{width:100%;}
 .arcade-page .ssd-wrap .ssd-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
 .arcade-page .dominoes-wrap > div{min-height:0 !important;padding:8px 0 16px !important;}
@@ -1546,6 +1563,30 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   color:var(--dim);font-size:11px;padding:6px 10px;cursor:pointer;}
 .arcade-page .ttl-row.lie .ttl-mark{color:var(--p2);border-color:var(--p2);}
 .arcade-page .ttl-err{font-size:12px;color:var(--p2);min-height:16px;text-align:center;}
+.arcade-page .ttl-recap{
+  width:100%;max-width:320px;margin:4px auto 2px;border-collapse:separate;border-spacing:0;
+  font-size:12px;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  background:color-mix(in srgb, var(--room2) 88%, transparent);}
+.arcade-page .ttl-recap th,
+.arcade-page .ttl-recap td{
+  padding:8px 6px;text-align:center;border-bottom:1px solid var(--line);
+  font-weight:600;}
+.arcade-page .ttl-recap tr:last-child th,
+.arcade-page .ttl-recap tr:last-child td{border-bottom:none;}
+.arcade-page .ttl-recap thead th{
+  font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);
+  font-weight:700;background:color-mix(in srgb, var(--room) 70%, transparent);}
+.arcade-page .ttl-recap-name{
+  text-align:left !important;padding-left:12px !important;max-width:96px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800;}
+.arcade-page .ttl-recap-name.A{color:var(--p1);}
+.arcade-page .ttl-recap-name.B{color:var(--p2);}
+.arcade-page .ttl-recap td.win{
+  font-size:16px;font-weight:900;color:var(--candle);}
+.arcade-page .ttl-recap td.win.A{color:var(--p1);}
+.arcade-page .ttl-recap td.win.B{color:var(--p2);}
+.arcade-page .ttl-recap td.draw{color:var(--dim);font-weight:800;font-size:10px;letter-spacing:.02em;}
+.arcade-page .ttl-recap td.loss{color:transparent;}
 
 /* ── Code Break ── */
 .arcade-page .cb-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:520px;}

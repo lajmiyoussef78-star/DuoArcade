@@ -82,10 +82,11 @@ export const RULES = {
   sparksplash: {
     goal: 'Clear all 18 caverns together \u2014 each on your own screen.',
     how: [
-      'Player A is Spark (fire): A/D to move, W to jump.',
-      'Player B is Splash (water): arrow keys to move and jump.',
+      'Player A is Spark (fire): A/D to move, W to jump (or the on-screen pad).',
+      'Player B is Splash (water): arrow keys or A/D/W (or the on-screen pad).',
       'Both of you must stand on your own glowing doors at the same time to finish each level.',
-      'Lava hurts Splash; water hurts Spark; acid hurts both. Buttons, crates, and lifts are shared puzzle state.'
+      'Lava hurts Splash; water hurts Spark; acid hurts both. Buttons, crates, and lifts are shared puzzle state.',
+      'If keys feel stuck, click the game canvas or use the buttons under the screen.'
     ],
     tip: 'Talk to each other \u2014 hold pads, gates, and elevators need coordination.'
   },
@@ -93,7 +94,8 @@ export const RULES = {
   readysetcook: {
     goal: 'Serve as many customers as you can before the kitchen closes.',
     how: [
-      'Pick the same kitchen as your partner (4 worlds \u00d7 5 maps: Diner, Beach, Mall, Buffet).',
+      'In the lobby, vote for a kitchen — your pick turns blue, your partner\u2019s turns pink. When you both choose the same map it lights up green and the shift starts together.',
+      'Use the Character and Store tabs to dress your cook. Earn coins by finishing shifts.',
       'WASD to move \u00b7 E to interact \u00b7 Q to drop \u00b7 Space to throw \u00b7 H for help.',
       'Grab ingredients, prep at stations, plate orders, and serve customers before they walk out.',
       'Buffet maps: stock trays and hand plates to waves of groups.',
@@ -563,7 +565,7 @@ export const RULES = {
       'Write three statements about yourself \u2014 two true, one a lie \u2014 and mark the lie.',
       'Your partner reads them and picks the one they think is the fib.',
       'Catching the lie earns a point. Then you swap roles.',
-      'One point each \u2014 or none \u2014 is a draw: you know each other equally well.'
+      'One game is three rounds. Most points after three rounds wins \u2014 a tie means you know each other equally well.'
     ],
     tip: 'The best lie is a truth with one tiny detail changed.'
   },

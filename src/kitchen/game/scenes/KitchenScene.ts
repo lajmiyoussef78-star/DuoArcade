@@ -15,6 +15,7 @@ import type { MapDef } from "../maps/types";
 import type { MultiplayerBridge } from "../net/MultiplayerBridge";
 import { ScoreManager, calcStars } from "../systems/ScoreManager";
 import { KitchenFx } from "../systems/KitchenFx";
+import { attachMatchCountdown, type MatchCountdown } from "../ui/matchCountdown";
 
 export type { MultiplayerBridge } from "../net/MultiplayerBridge";
 
@@ -58,6 +59,8 @@ export class KitchenScene extends Phaser.Scene {
   private ended = false;
   private paused = false;
   private helpVisible = false;
+  private matchLive = false;
+  private countdown: MatchCountdown | null = null;
   private helpKey!: Phaser.Input.Keyboard.Key;
   private pauseKey!: Phaser.Input.Keyboard.Key;
   private overlay!: Phaser.GameObjects.Container;
@@ -86,6 +89,9 @@ export class KitchenScene extends Phaser.Scene {
     this.ended = false;
     this.paused = false;
     this.helpVisible = false;
+    this.matchLive = false;
+    this.countdown?.destroy();
+    this.countdown = null;
     this.remotes.clear();
     this.worldItems = [];
     this.authWorld.clear();
@@ -300,7 +306,8 @@ export class KitchenScene extends Phaser.Scene {
       this.customers.setSpawning(false);
       this.tip("Online co-op · shared kitchen (server)");
     } else {
-      this.customers.trySpawn();
+      // Customers wait until the 3-2-1 countdown finishes.
+      this.customers.setSpawning(false);
     }
 
     // No free items dumped in the aisle — grab everything from crates / plate stack.
@@ -462,6 +469,7 @@ export class KitchenScene extends Phaser.Scene {
     this.buildRecipeRibbon();
     this.buildOverlay();
     this.refreshScoreHud();
+    this.countdown = attachMatchCountdown(this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanup());
@@ -633,6 +641,21 @@ export class KitchenScene extends Phaser.Scene {
 
   update(_time: number, delta: number) {
     if (this.ended) return;
+
+    if (!this.matchLive) {
+      this.player.sprite.setVelocity(0, 0);
+      if (this.countdown?.tick(delta)) {
+        this.matchLive = true;
+        this.countdown = null;
+        // Solo / non-authority client: open the doors after the countdown.
+        if (!(this.mp && this.authority)) {
+          this.customers.setSpawning(true);
+          this.customers.trySpawn();
+        }
+        this.tip("Shift started — cook!");
+      }
+      return;
+    }
 
     if (Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
       if (this.helpVisible) {
@@ -1685,6 +1708,8 @@ export class KitchenScene extends Phaser.Scene {
   }
 
   private cleanup() {
+    this.countdown?.destroy();
+    this.countdown = null;
     for (const chef of this.remotes.values()) chef.destroy();
     this.remotes.clear();
     this.localNameLabel?.destroy();

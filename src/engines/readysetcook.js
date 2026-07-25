@@ -38,8 +38,10 @@ export function mount(el, ctx) {
   };
 
   ctx.rt.on(msg => {
+    if (!msg || typeof msg !== 'object') return;
     if (msg.k === 'rsc-done') finishCoop(false);
-    else rtForward?.(msg);
+    // Lobby picks / chef state / hello — always forward to KitchenPlay.
+    try { rtForward?.(msg); } catch (e) { console.warn('rsc rt', e); }
   });
 
   const onComplete = () => {

@@ -1,26 +1,40 @@
 // engines/twotruths.js — Two Truths & a Lie.
 // Each partner writes three statements about themselves (two true, one lie).
 // The other partner tries to spot the lie. Catch it = 1 point. Both take a
-// turn writing and a turn guessing; most points wins (a tie means you know
-// each other equally well).
-export const meta = { id: 'twotruths', name: 'Two Truths & a Lie', tag: 'spot the fib', realtime: false };
+// turn writing and a turn guessing each round. One game is three rounds;
+// most points wins (a tie means you know each other equally well).
+export const meta = { id: 'twotruths', name: 'Two Truths & a Lie', tag: 'spot the fib · 3 rounds', realtime: false };
 
+export const ROUNDS = 3;
+
+// Within a round:
 // step 0: first player writes   step 1: partner picks the lie
-// step 2: partner writes        step 3: first player picks   step 4: done
+// step 2: partner writes        step 3: first player picks
 export function initialState() {
   return {
+    round: 0,
     step: 0,
     entries: { A: null, B: null },   // { statements:[3], lie:0..2 }
     picks: { A: null, B: null },     // player's guess at the OTHER's lie
     scores: { A: 0, B: 0 },
+    roundResults: [],                // 'A' | 'B' | 'draw' per finished round
     last: null
   };
 }
 
 const otherOf = p => (p === 'A' ? 'B' : 'A');
 
+/** Who won the round from points earned this round (A's pick just applied). */
+function roundWinner(gs, aCorrect) {
+  const bCorrect = gs.entries.A && gs.picks.B === gs.entries.A.lie;
+  const aPts = aCorrect ? 1 : 0;
+  const bPts = bCorrect ? 1 : 0;
+  return aPts > bPts ? 'A' : bPts > aPts ? 'B' : 'draw';
+}
+
 export function applyMove(gs, m, player) {
   if (!m || typeof m !== 'object') return null;
+  if (gs.round >= ROUNDS) return null;
 
   if (m.t === 'write') {
     if (gs.step !== 0 && gs.step !== 2) return null;
@@ -43,15 +57,43 @@ export function applyMove(gs, m, player) {
     const scores = { ...gs.scores, [player]: gs.scores[player] + (correct ? 1 : 0) };
     const picks = { ...gs.picks, [player]: m.i };
     const last = { correct, lie: entry.statements[entry.lie], guesser: player };
-    // after picking, the same player writes their own three (step 1 -> 2)
-    return { gs: { ...gs, step: gs.step + 1, picks, scores, last }, again: gs.step === 1 };
+
+    // Mid-round: after first pick, same player writes their own three (step 1 -> 2)
+    if (gs.step === 1) {
+      return { gs: { ...gs, step: 2, picks, scores, last }, again: true };
+    }
+
+    // End of round (step 3): record who won the round, then advance or finish
+    const rw = roundWinner(gs, correct);
+    const roundResults = [...(gs.roundResults || []), rw];
+    const nextRound = gs.round + 1;
+    if (nextRound >= ROUNDS) {
+      return {
+        gs: { ...gs, round: ROUNDS, step: 4, picks, scores, roundResults, last },
+        again: false
+      };
+    }
+    // A just finished picking — keep the turn so they write for the next round
+    return {
+      gs: {
+        ...gs,
+        round: nextRound,
+        step: 0,
+        entries: { A: null, B: null },
+        picks: { A: null, B: null },
+        scores,
+        roundResults,
+        last
+      },
+      again: true
+    };
   }
 
   return null;
 }
 
 export function winner(gs) {
-  if (gs.step < 4) return null;
+  if (gs.round < ROUNDS) return null;
   const { A, B } = gs.scores;
   return A > B ? 'A' : B > A ? 'B' : 'draw';
 }
@@ -62,7 +104,7 @@ export function winner(gs) {
 let draft = { key: null, s: ['', '', ''], lie: -1 };
 
 function writeForm(wrap, gs, myRole, onMove) {
-  const key = myRole + ':' + gs.step;
+  const key = myRole + ':' + gs.round + ':' + gs.step;
   if (draft.key !== key) draft = { key, s: ['', '', ''], lie: -1 };
 
   const head = document.createElement('div');
@@ -145,7 +187,9 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
   const score = document.createElement('div');
   score.className = 'quiz-score';
   score.innerHTML =
-    `<span class="qA">${gs.scores.A}</span><em>lies caught</em><span class="qB">${gs.scores.B}</span>`;
+    `<span class="qA">${gs.scores.A}</span>` +
+    `<em>round ${Math.min(gs.round + 1, ROUNDS)} / ${ROUNDS}</em>` +
+    `<span class="qB">${gs.scores.B}</span>`;
   wrap.appendChild(score);
 
   if (gs.last) {
@@ -176,7 +220,8 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
 
   const note = document.createElement('div');
   note.className = 'dots-score';
-  note.textContent = 'catch the lie = 1 point \u00b7 you each write once and guess once';
+  note.textContent =
+    'catch the lie = 1 point \u00b7 each round you both write once and guess once \u00b7 most points after 3 rounds wins';
   wrap.appendChild(note);
   host.appendChild(wrap);
 }

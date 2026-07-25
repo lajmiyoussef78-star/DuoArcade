@@ -329,8 +329,10 @@ import * as CQ from './couplequiz.js';
 import * as TTL from './twotruths.js';
 {
   const entry = { t: 'write', statements: ['I ran a marathon', 'I hate mangoes', 'I met a celebrity'], lie: 1 };
+  const entryB = { t: 'write', statements: ['x', 'y', 'z'], lie: 2 };
   let gs = TTL.initialState();
   t('ttl: no winner at start', TTL.winner(gs) === null);
+  t('ttl: three rounds per game', TTL.ROUNDS === 3);
   t('ttl: pick before write illegal', TTL.applyMove(gs, { t: 'pick', i: 0 }, 'B') === null);
   t('ttl: incomplete statements illegal', TTL.applyMove(gs, { t: 'write', statements: ['a', '', 'c'], lie: 0 }, 'A') === null);
   t('ttl: bad lie index illegal', TTL.applyMove(gs, { t: 'write', statements: ['a', 'b', 'c'], lie: 5 }, 'A') === null);
@@ -344,23 +346,41 @@ import * as TTL from './twotruths.js';
   p = TTL.applyMove(r.gs, { t: 'pick', i: 0 }, 'B');
   t('ttl: fooled scores nothing', p.gs.scores.B === 0 && p.gs.last.correct === false);
 
-  // full game: B catches A's lie, A gets fooled -> B wins
+  // one round finishes, then the match continues for two more
   gs = TTL.initialState();
   gs = TTL.applyMove(gs, entry, 'A').gs;
   gs = TTL.applyMove(gs, { t: 'pick', i: 1 }, 'B').gs;
-  gs = TTL.applyMove(gs, { t: 'write', statements: ['x', 'y', 'z'], lie: 2 }, 'B').gs;
-  t('ttl: not over before last pick', TTL.winner(gs) === null);
-  gs = TTL.applyMove(gs, { t: 'pick', i: 0 }, 'A').gs;
-  t('ttl: B wins the duel', TTL.winner(gs) === 'B');
-  t('ttl: no moves after the end', TTL.applyMove(gs, { t: 'pick', i: 1 }, 'A') === null);
+  gs = TTL.applyMove(gs, entryB, 'B').gs;
+  t('ttl: not over before last pick of round', TTL.winner(gs) === null);
+  r = TTL.applyMove(gs, { t: 'pick', i: 0 }, 'A');
+  t('ttl: after round 1 match continues', r.gs.round === 1 && r.gs.step === 0 && TTL.winner(r.gs) === null);
+  t('ttl: A keeps turn to write next round', r.again === true);
+  t('ttl: B won round 1 (caught, A missed)', r.gs.roundResults.join() === 'B');
 
-  // draw when both catch it
+  // full 3-round game: B catches every time, A never does -> B wins
   gs = TTL.initialState();
-  gs = TTL.applyMove(gs, entry, 'A').gs;
-  gs = TTL.applyMove(gs, { t: 'pick', i: 1 }, 'B').gs;
-  gs = TTL.applyMove(gs, { t: 'write', statements: ['x', 'y', 'z'], lie: 2 }, 'B').gs;
-  gs = TTL.applyMove(gs, { t: 'pick', i: 2 }, 'A').gs;
-  t('ttl: both right is a draw', TTL.winner(gs) === 'draw');
+  for (let n = 0; n < TTL.ROUNDS; n++) {
+    gs = TTL.applyMove(gs, entry, 'A').gs;
+    gs = TTL.applyMove(gs, { t: 'pick', i: 1 }, 'B').gs;
+    gs = TTL.applyMove(gs, entryB, 'B').gs;
+    const last = TTL.applyMove(gs, { t: 'pick', i: 0 }, 'A');
+    gs = last.gs;
+    if (n < TTL.ROUNDS - 1) t(`ttl: still playing after round ${n + 1}`, TTL.winner(gs) === null);
+  }
+  t('ttl: B wins after three rounds', TTL.winner(gs) === 'B' && gs.scores.B === 3 && gs.scores.A === 0);
+  t('ttl: recap marks B for every round', gs.roundResults.join() === 'B,B,B');
+  t('ttl: no moves after the end', TTL.applyMove(gs, { t: 'write', statements: ['a', 'b', 'c'], lie: 0 }, 'A') === null);
+
+  // draw when both catch every lie across three rounds
+  gs = TTL.initialState();
+  for (let n = 0; n < TTL.ROUNDS; n++) {
+    gs = TTL.applyMove(gs, entry, 'A').gs;
+    gs = TTL.applyMove(gs, { t: 'pick', i: 1 }, 'B').gs;
+    gs = TTL.applyMove(gs, entryB, 'B').gs;
+    gs = TTL.applyMove(gs, { t: 'pick', i: 2 }, 'A').gs;
+  }
+  t('ttl: both right across three rounds is a draw', TTL.winner(gs) === 'draw' && gs.scores.A === 3 && gs.scores.B === 3);
+  t('ttl: recap marks draw each round when tied', gs.roundResults.join() === 'draw,draw,draw');
 }
 
 /* ---------- Code Break ---------- */

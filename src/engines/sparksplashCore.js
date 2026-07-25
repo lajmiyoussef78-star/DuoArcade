@@ -127,7 +127,7 @@ const LEVELS = [
 "#........##........#",
 "#........##....###.#",
 "#........##........#",
-"#F.X..S..##.A......#",
+"#F.X..S..##..A.....#",
 "####################"]},
 { name:"Acid Alley", hint:"Green acid hurts EVERYONE. Gems are on the far sides…", map:[
 "####################",
@@ -195,7 +195,7 @@ const LEVELS = [
 "#....####..####....#",
 "#..................#",
 "#....r........b....#",
-"#..####......####..#",
+"#..####...##..####.#",
 "#..................#",
 "#S..WW.....LL.....F#",
 "####################"]},
@@ -211,7 +211,7 @@ const LEVELS = [
 "#..b.........#.....#",
 "#.###........Q.....#",
 "#............Q.....#",
-"#F...W.S..P..Q.LL..#",
+"#F...W.S..P..Q..LL.#",
 "####################"]},
 { name:"The Gauntlet", hint:"Doors are swapped! Grab the gems by each door before crossing.", map:[
 "####################",
@@ -253,7 +253,7 @@ const LEVELS = [
 "#...G..B.....O.U...#",
 "#...G.###...###U...#",
 "#...G..........U...#",
-"#.DrGFLL..SWW..Ubd.#",
+"#.DrG.FLL..SWW.Ubd.#",
 "####################"]},
 { name:"The Grand Temple", hint:"Open the great gate, cross at the TOP, and gather every gem!", map:[
 "####################",
@@ -365,6 +365,13 @@ function applyInput(type, { left, right, jump }) {
   const inp = type === 'fire' ? input.fire : input.water;
   if (jump && !inp.jump) inp.jumpEdge = true;
   inp.left = !!left; inp.right = !!right; inp.jump = !!jump;
+}
+
+/** Force a one-shot jump edge (for remote tap packets that can miss the latch). */
+function pulseJump(type) {
+  const inp = type === 'fire' ? input.fire : input.water;
+  inp.jumpEdge = true;
+  inp.jump = true;
 }
 
 function movePlayerFromInput(p, inp) {
@@ -516,77 +523,163 @@ function kill(p, msg){
   });
 }
 
+/* ================= ELEVATORS ================= */
+/** True if player feet are planted on the lift platform (at liftY). */
+function riderOnLift(p, l, liftY) {
+  if (!p || p.dead) return false;
+  const feet = p.y + p.h;
+  // Allow small upward vy so a rising lift doesn't drop you.
+  return p.vy >= -1.2 &&
+    p.x + p.w > l.x + 4 && p.x < l.x + l.w - 4 &&
+    feet >= liftY - 14 && feet <= liftY + 20;
+}
+
+/** Move lifts and carry any current riders with them (fixes rising-platform slip). */
+function stepLifts(riders) {
+  for (const l of lifts) {
+    const oldY = l.y;
+    const aboard = [];
+    if (riders) {
+      for (const p of riders) {
+        if (riderOnLift(p, l, oldY)) aboard.push(p);
+      }
+    }
+    l.y += l.dir * l.speed;
+    if (l.y < l.top) { l.y = l.top; l.dir = 1; }
+    if (l.y > l.bot) { l.y = l.bot; l.dir = -1; }
+    l.dy = l.y - oldY;
+    for (const p of aboard) {
+      p.y += l.dy;
+      p.vy = 0;
+      p.onGround = true;
+      p.grace = 8;
+      p.coyote = 7;
+    }
+  }
+}
+
+/** Snap standing players onto the lift deck after their own movement step. */
+function stickToLifts(p) {
+  if (!p || p.dead) return false;
+  for (const l of lifts) {
+    if (riderOnLift(p, l, l.y)) {
+      p.y = l.y - p.h;
+      p.vy = 0;
+      p.onGround = true;
+      p.grace = 8;
+      p.coyote = 7;
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ================= CRATES / GATES (shared host + guest) ================= */
+function pushBox(b, dir) {
+  if (!dir) return;
+  b.x += Math.sign(dir) * 1.2;
+  const bc0 = Math.floor(b.x / TILE), bc1 = Math.floor((b.x + b.w - 1) / TILE);
+  const br0 = Math.floor(b.y / TILE), br1 = Math.floor((b.y + b.h - 1) / TILE);
+  for (let r = br0; r <= br1; r++) {
+    if (dir > 0 && isSolid(bc1, r)) b.x = bc1 * TILE - b.w - 0.01;
+    if (dir < 0 && isSolid(bc0, r)) b.x = (bc0 + 1) * TILE + 0.01;
+  }
+  if (tick - pushTick > 9) { AudioSys.push(); pushTick = tick; }
+}
+
+/** Stand on / push / block against crates. poseMode = Splash body from guest pose. */
+function interactBoxes(p, opts = {}) {
+  if (!p || p.dead || !boxes) return;
+  const movePlayer = opts.movePlayer !== false;
+  for (const b of boxes) {
+    if (!rectsOverlap(p, b.x, b.y, b.w, b.h)) continue;
+    const pBottom = p.y + p.h;
+    if (p.vy >= 0 && pBottom - b.y < 14) {
+      if (movePlayer) p.y = b.y - p.h;
+      p.vy = 0;
+      p.onGround = true;
+      p.grace = 8;
+      p.coyote = Math.max(p.coyote, 4);
+    } else if (p.vx !== 0) {
+      pushBox(b, p.vx);
+      if (movePlayer && !opts.poseMode) {
+        if (p.vx > 0) p.x = b.x - p.w - 0.01;
+        else p.x = b.x + b.w + 0.01;
+      }
+    } else if (movePlayer && !opts.poseMode) {
+      if (p.x < b.x) p.x = b.x - p.w - 0.01;
+      else p.x = b.x + b.w + 0.01;
+    }
+  }
+}
+
+function triggerWeighted(g) {
+  return g.triggers.some(t =>
+    overlapTile(spark, t.c, t.r, 4) || overlapTile(splash, t.c, t.r, 4) ||
+    boxes.some(b => b.x + b.w - 6 > t.c * TILE && b.x + 6 < (t.c + 1) * TILE &&
+      b.y + b.h - 4 > t.r * TILE && b.y + 4 < (t.r + 1) * TILE));
+}
+
+/** Open/close latch + hold gates. Guest runs this every frame so pads aren't laggy. */
+function resolveGates(opts = {}) {
+  const sfx = !!opts.sfx;
+  for (const g of groups) {
+    if (!g.cells.length && !g.triggers.length) continue;
+    g.weighted = triggerWeighted(g);
+    if (g.hold) {
+      let want = g.weighted;
+      if (!want) {
+        const occ = g.cells.some(cell =>
+          overlapTile(spark, cell.c, cell.r, 2) || overlapTile(splash, cell.c, cell.r, 2) ||
+          boxes.some(b => rectsOverlap(b, cell.c * TILE, cell.r * TILE, TILE, TILE)));
+        if (occ) want = true;
+      }
+      if (want) {
+        g._off = 0;
+        if (!g.open) {
+          g.open = true;
+          if (sfx) { puffs(g); AudioSys.gate(); }
+        }
+      } else if (g.open) {
+        // Hysteresis: soft-followed Spark can jitter off a pad for a few frames.
+        g._off = (g._off || 0) + 1;
+        if (g._off > 10) {
+          g.open = false;
+          g._off = 0;
+          if (sfx) AudioSys.padOff();
+        }
+      }
+    } else if (g.weighted && !g.open) {
+      g.open = true;
+      if (sfx) { puffs(g); AudioSys.press(); AudioSys.gate(); }
+    }
+    g.anim += ((g.open ? 1 : 0) - g.anim) * 0.15;
+  }
+}
+
 /* ================= UPDATE ================= */
 let readyState = 0; // for door-ready chime
-function update(){
+function update(opts = {}){
   tick++;
   if(state==="play"){
     playFrames++;
-    // elevators
-    for(const l of lifts){
-      const oldY = l.y;
-      l.y += l.dir*l.speed;
-      if(l.y < l.top){ l.y = l.top; l.dir = 1; }
-      if(l.y > l.bot){ l.y = l.bot; l.dir = -1; }
-      l.dy = l.y - oldY;
-    }
+    // Carry anyone standing on a lift before their own movement step.
+    stepLifts(opts.skipSplashMove ? [spark] : [spark, splash]);
     for(const b of boxes) moveBox(b);
     movePlayerFromInput(spark, input.fire);
-    movePlayerFromInput(splash, input.water);
+    // skipSplashMove: legacy pose mode (unused by current net layer).
+    if (!opts.skipSplashMove) movePlayerFromInput(splash, input.water);
     // crates: stand on / push / block
-    for(const b of boxes){
-      for(const p of [spark,splash]){
-        if(!rectsOverlap(p, b.x, b.y, b.w, b.h)) continue;
-        const pBottom = p.y+p.h;
-        if(p.vy>=0 && pBottom - b.y < 14){
-          p.y = b.y - p.h; p.vy = 0; p.onGround = true; p.grace = 8;
-        } else if(p.vx !== 0){
-          b.x += Math.sign(p.vx)*1.2;
-          const bc0=Math.floor(b.x/TILE), bc1=Math.floor((b.x+b.w-1)/TILE);
-          const br0=Math.floor(b.y/TILE), br1=Math.floor((b.y+b.h-1)/TILE);
-          for(let r=br0;r<=br1;r++){
-            if(p.vx>0 && isSolid(bc1,r)) b.x = bc1*TILE - b.w - 0.01;
-            if(p.vx<0 && isSolid(bc0,r)) b.x = (bc0+1)*TILE + 0.01;
-          }
-          if(p.vx>0) p.x = b.x - p.w - 0.01; else p.x = b.x + b.w + 0.01;
-          if(tick - pushTick > 9){ AudioSys.push(); pushTick = tick; }
-        } else {
-          if(p.x < b.x) p.x = b.x - p.w - 0.01; else p.x = b.x + b.w + 0.01;
-        }
-      }
-    }
-    // elevators carry riders (one-way from above)
-    for(const l of lifts){
-      for(const p of [spark,splash]){
-        const feet = p.y+p.h;
-        if(p.vy>=0 && p.x+p.w > l.x+4 && p.x < l.x+l.w-4 &&
-           feet >= l.y-10 && feet <= l.y+16){
-          p.y = l.y - p.h; p.vy = 0; p.onGround = true; p.grace = 8;
-        }
-      }
-    }
-    // gate groups
-    for(const g of groups){
-      if(!g.cells.length && !g.triggers.length) continue;
-      g.weighted = g.triggers.some(t =>
-        overlapTile(spark,t.c,t.r,4) || overlapTile(splash,t.c,t.r,4) ||
-        boxes.some(b => b.x+b.w-6 > t.c*TILE && b.x+6 < (t.c+1)*TILE &&
-                        b.y+b.h-4 > t.r*TILE && b.y+4 < (t.r+1)*TILE));
-      if(g.hold){
-        let want = g.weighted;
-        if(!want){
-          const occ = g.cells.some(cell =>
-            overlapTile(spark,cell.c,cell.r,2) || overlapTile(splash,cell.c,cell.r,2) ||
-            boxes.some(b => rectsOverlap(b, cell.c*TILE, cell.r*TILE, TILE, TILE)));
-          if(occ) want = true;
-        }
-        if(want && !g.open){ g.open = true; puffs(g); AudioSys.gate(); }
-        if(!want && g.open){ g.open = false; AudioSys.padOff(); }
-      } else {
-        if(g.weighted && !g.open){ g.open = true; puffs(g); AudioSys.press(); AudioSys.gate(); }
-      }
-      g.anim += ((g.open?1:0) - g.anim)*0.15;
-    }
+    interactBoxes(spark, { movePlayer: true });
+    interactBoxes(splash, {
+      // Pose-driven Splash: still push/stand using the posed body (levels 8+ crates).
+      movePlayer: !opts.skipSplashMove,
+      poseMode: !!opts.skipSplashMove
+    });
+    // Re-stick after walking/jumping so you don't slip through a moving deck.
+    stickToLifts(spark);
+    if (!opts.skipSplashMove) stickToLifts(splash);
+    resolveGates({ sfx: true });
     // hazards
     const lf = feetLiquid(spark);
     if(lf==="W") kill(spark, "Spark can't swim! Water puts fire out…");
@@ -594,18 +687,9 @@ function update(){
     const lw = feetLiquid(splash);
     if(lw==="L") kill(splash, "Splash can't touch lava — it's too hot!");
     if(lw==="A") kill(splash, "Acid is bad for everyone. Even water.");
-    // gems
-    for(const g of gems){
-      if(g.got) continue;
-      const p = g.type==="fire" ? spark : splash;
-      if(overlapTile(p,g.c,g.r,2)){
-        g.got=true; if(g.type==="fire") fireGems++; else waterGems++;
-        AudioSys.gem();
-        const col = g.type==="fire" ? "#ff5d5d" : "#5db8ff";
-        for(let i=0;i<12;i++) particles.push({x:g.c*TILE+20,y:g.r*TILE+20,
-          vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, life:26, col});
-      }
-    }
+    // gems — generous hitbox so pickup feels instant on contact
+    collectGemsNear(spark, "fire");
+    collectGemsNear(splash, "water");
     // wrong-door helper
     if(onWrongDoor(spark)){ wrongDoorMsg="That door is Splash's — Spark's door glows ORANGE!"; wrongDoorT=90; }
     if(onWrongDoor(splash)){ wrongDoorMsg="That door is Spark's — Splash's door glows BLUE!"; wrongDoorT=90; }
@@ -961,6 +1045,7 @@ function unpackPlayer(p, d) {
 }
 
 function exportState() {
+  if (!gems) return null;
   return {
     v: 1, levelIdx, state, stateTimer, introT, deaths, fireGems, waterGems, playFrames, tick, paused,
     readyState, wrongDoorT, wrongDoorMsg,
@@ -972,17 +1057,263 @@ function exportState() {
   };
 }
 
-function importState(s) {
-  if (s.levelIdx !== levelIdx || !gems) loadLevel(s.levelIdx, false);
-  levelIdx = s.levelIdx; state = s.state; stateTimer = s.stateTimer; introT = s.introT;
-  deaths = s.deaths; fireGems = s.fireGems; waterGems = s.waterGems; playFrames = s.playFrames;
-  tick = s.tick; paused = s.paused; readyState = s.readyState ?? 0;
-  wrongDoorT = s.wrongDoorT ?? 0; wrongDoorMsg = s.wrongDoorMsg ?? '';
-  unpackPlayer(spark, s.spark); unpackPlayer(splash, s.splash);
-  for (let i = 0; i < boxes.length; i++) Object.assign(boxes[i], s.boxes[i]);
-  for (let i = 0; i < gems.length; i++) Object.assign(gems[i], s.gems[i]);
-  for (let i = 0; i < groups.length; i++) Object.assign(groups[i], s.groups[i]);
-  for (let i = 0; i < lifts.length; i++) Object.assign(lifts[i], s.lifts[i]);
+function importState(s, opts = {}) {
+  if (!s || typeof s !== 'object') return { levelChanged: false };
+  // Never fall back to 0 — that reloads level 1 every packet and flashes the guest screen.
+  const idx = Number.isFinite(s.levelIdx) ? (s.levelIdx | 0) : levelIdx;
+  const prevLevel = levelIdx;
+  const prevState = state;
+  const hadGems = !!gems;
+  const levelChanged = !hadGems || idx !== prevLevel;
+  const guest = !!opts.guest || !!opts.keepSplash || !!opts.keepVisuals;
+  if (levelChanged) loadLevel(idx, false);
+  levelIdx = idx;
+  if (s.state) state = s.state;
+  if (s.stateTimer != null) stateTimer = s.stateTimer;
+  if (s.introT != null) introT = s.introT;
+  if (s.deaths != null) deaths = Math.max(deaths, s.deaths);
+  // Never let a stale packet lower gem counts after an optimistic pickup.
+  if (s.fireGems != null) fireGems = Math.max(fireGems, s.fireGems);
+  if (s.waterGems != null) waterGems = Math.max(waterGems, s.waterGems);
+  if (s.playFrames != null) playFrames = Math.max(playFrames, s.playFrames);
+  // Guest advances tick locally for smooth gem/liquid/door animation.
+  if (!guest && s.tick != null) tick = s.tick;
+  paused = !!s.paused;
+  readyState = s.readyState ?? readyState;
+  if (s.wrongDoorMsg) wrongDoorMsg = s.wrongDoorMsg;
+  if (s.wrongDoorT != null) wrongDoorT = Math.max(wrongDoorT, s.wrongDoorT);
+
+  // On a new level, loadLevel() already placed both at spawns. Never overwrite with a
+  // stale "standing on the door" pose from the previous cavern (classic Splash bug).
+  if (s.spark && !levelChanged) {
+    if (guest && state === 'play') {
+      const dx = s.spark.x - spark.x;
+      const dy = s.spark.y - spark.y;
+      // Snap Spark hard when far so guest always sees where host actually is.
+      if (Math.hypot(dx, dy) > 28) {
+        unpackPlayer(spark, s.spark);
+      } else {
+        spark.x += dx * 0.65;
+        spark.y += dy * 0.65;
+        spark.vx = s.spark.vx; spark.vy = s.spark.vy;
+        spark.onGround = s.spark.onGround; spark.face = s.spark.face;
+        spark.dead = s.spark.dead; spark.grace = s.spark.grace;
+        spark.coyote = s.spark.coyote; spark.jbuf = s.spark.jbuf;
+      }
+    } else {
+      unpackPlayer(spark, s.spark);
+    }
+  }
+
+  // Guest owns Splash during play — do not yank back to lagging host positions.
+  const enteringDead = s.state === 'dead' && prevState !== 'dead';
+  const leavingDead = prevState === 'dead' && s.state && s.state !== 'dead';
+  const enteringComplete = s.state === 'complete' && prevState !== 'complete';
+  const deadMismatch = !!(s.splash && (!!s.splash.dead !== !!splash.dead));
+  if (s.splash && !levelChanged) {
+    if (!guest) {
+      unpackPlayer(splash, s.splash);
+    } else if (enteringDead || leavingDead || enteringComplete || deadMismatch) {
+      unpackPlayer(splash, s.splash);
+    }
+    // else: leave local Splash alone (no distance snap — that felt like "1s ago")
+  }
+
+  if (Array.isArray(s.boxes)) {
+    for (let i = 0; i < boxes.length && i < s.boxes.length; i++) {
+      if (!s.boxes[i]) continue;
+      if (guest && !levelChanged) {
+        const bx = boxes[i];
+        const nearSplash = !!splash && !splash.dead &&
+          rectsOverlap(
+            { x: splash.x - 20, y: splash.y - 20, w: splash.w + 40, h: splash.h + 40 },
+            bx.x, bx.y, bx.w, bx.h
+          );
+        const err = Math.hypot((s.boxes[i].x ?? bx.x) - bx.x, (s.boxes[i].y ?? bx.y) - bx.y);
+        // While Splash is shoving/climbing a crate, keep local authority (levels 8–10).
+        if (nearSplash && err < 56) {
+          /* keep local */
+        } else if (err > 48) {
+          Object.assign(bx, s.boxes[i]);
+        } else {
+          bx.x += (s.boxes[i].x - bx.x) * 0.25;
+          bx.y += (s.boxes[i].y - bx.y) * 0.25;
+          bx.vx = s.boxes[i].vx; bx.vy = s.boxes[i].vy;
+        }
+      } else {
+        Object.assign(boxes[i], s.boxes[i]);
+      }
+    }
+  }
+  if (Array.isArray(s.gems)) {
+    for (let i = 0; i < gems.length && i < s.gems.length; i++) {
+      if (s.gems[i]) {
+        // OR — never un-collect an optimistic local pickup from a stale host packet.
+        gems[i].got = gems[i].got || !!s.gems[i].got;
+        gems[i].c = s.gems[i].c; gems[i].r = s.gems[i].r;
+        gems[i].type = s.gems[i].type;
+      }
+    }
+  }
+  if (Array.isArray(s.groups)) {
+    for (let i = 0; i < groups.length && i < s.groups.length; i++) {
+      if (!s.groups[i]) continue;
+      if (guest) {
+        // Latch gates: sticky open once pressed.
+        // Hold gates: ignore host open/weighted — resolveGates() uses live bodies every frame
+        // (stops pad flicker / "gate closes while I'm standing on it" for Splash).
+        if (!groups[i].hold) {
+          groups[i].open = groups[i].open || !!s.groups[i].open;
+          groups[i].weighted = groups[i].weighted || !!s.groups[i].weighted;
+        }
+      } else {
+        groups[i].open = !!s.groups[i].open;
+        groups[i].weighted = !!s.groups[i].weighted;
+        groups[i].anim = s.groups[i].anim;
+      }
+    }
+  }
+  if (Array.isArray(s.lifts)) {
+    for (let i = 0; i < lifts.length && i < s.lifts.length; i++) {
+      if (!s.lifts[i]) continue;
+      if (!guest || levelChanged) {
+        Object.assign(lifts[i], s.lifts[i]);
+      } else {
+        // Very gentle lift clock sync — hard pulls made Splash hitch on elevators.
+        lifts[i].dir = s.lifts[i].dir;
+        const ty = s.lifts[i].y;
+        if (ty == null) continue;
+        const err = ty - lifts[i].y;
+        if (Math.abs(err) > 48) lifts[i].y = ty;
+        else if (Math.abs(err) > 10) lifts[i].y += err * 0.15;
+        lifts[i].dy = s.lifts[i].dy ?? lifts[i].dy;
+      }
+    }
+  }
+  return { levelChanged };
+}
+
+function exportSplash() {
+  return packPlayer(splash);
+}
+function importSplash(d, opts = {}) {
+  if (!d) return;
+  // Never revive Splash from a late guest pose after the host already scored a death.
+  if (opts.ignoreIfDead && (splash.dead || state === 'dead')) return;
+  // Ignore poses from another level / non-play phase (stops door-pose leaking into next cavern).
+  if (opts.levelIdx != null && (opts.levelIdx | 0) !== levelIdx) return;
+  if (opts.requirePlay && state !== 'play') return;
+  unpackPlayer(splash, d);
+}
+
+/** Guest visuals: advance tick/particles/lifts/gates/crates every frame. */
+function tickGuestWorld() {
+  tick++;
+  if (introT > 0) introT--;
+  if (wrongDoorT > 0) wrongDoorT--;
+  if (shake > 0) shake *= 0.85;
+  for (const pt of particles) { pt.x += pt.vx; pt.y += pt.vy; pt.vy += 0.18; pt.life--; }
+  particles = particles.filter(p => p.life > 0);
+  if (paused) return;
+  if (state === 'play') {
+    // Elevators + crate gravity + pads/gates (hold pads must feel instant for Splash).
+    stepLifts([spark, splash]);
+    for (const b of boxes) moveBox(b);
+    resolveGates({ sfx: false });
+  }
+}
+
+/** Shared gem pickup — pad 0 = snappy on contact (was 2, felt late). */
+function collectGemsNear(p, type) {
+  const claims = [];
+  if (!gems || !p || p.dead) return claims;
+  for (const g of gems) {
+    if (g.got || g.type !== type) continue;
+    if (overlapTile(p, g.c, g.r, 0)) {
+      g.got = true;
+      if (g.type === 'fire') fireGems++; else waterGems++;
+      AudioSys.gem();
+      const col = g.type === 'fire' ? '#ff5d5d' : '#5db8ff';
+      for (let i = 0; i < 12; i++) particles.push({
+        x: g.c * TILE + 20, y: g.r * TILE + 20,
+        vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, life: 26, col
+      });
+      claims.push({ c: g.c, r: g.r, type: g.type });
+    }
+  }
+  return claims;
+}
+
+function applyGemClaims(list) {
+  if (!Array.isArray(list) || !gems) return 0;
+  let n = 0;
+  for (const cl of list) {
+    for (const g of gems) {
+      if (g.got || g.c !== cl.c || g.r !== cl.r || g.type !== cl.type) continue;
+      g.got = true;
+      if (g.type === 'fire') fireGems++; else waterGems++;
+      AudioSys.gem();
+      const col = g.type === 'fire' ? '#ff5d5d' : '#5db8ff';
+      for (let i = 0; i < 12; i++) particles.push({
+        x: g.c * TILE + 20, y: g.r * TILE + 20,
+        vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, life: 26, col
+      });
+      n++;
+    }
+  }
+  return n;
+}
+
+/** Optimistic latch-button claims under Splash (hold pads are handled in resolveGates). */
+function guestTouchPads() {
+  const pressed = [];
+  if (!groups || splash.dead || state !== 'play') return pressed;
+  for (let gi = 0; gi < groups.length; gi++) {
+    const g = groups[gi];
+    if (!g.triggers.length || g.hold) continue;
+    const on = g.triggers.some(t => overlapTile(splash, t.c, t.r, 2));
+    if (!on || g.open) continue;
+    g.open = true;
+    g.weighted = true;
+    pressed.push({ gi, c: g.triggers[0].c, r: g.triggers[0].r });
+    AudioSys.press(); AudioSys.gate();
+    puffs(g);
+  }
+  return pressed;
+}
+
+function exportBoxes() {
+  return boxes.map(b => ({ x: b.x, y: b.y, vx: b.vx, vy: b.vy }));
+}
+
+function importBoxes(list, opts = {}) {
+  if (!Array.isArray(list) || !boxes.length) return;
+  if (opts.levelIdx != null && (opts.levelIdx | 0) !== levelIdx) return;
+  for (let i = 0; i < boxes.length && i < list.length; i++) {
+    if (list[i]) Object.assign(boxes[i], list[i]);
+  }
+}
+
+/** Guest: simulate Splash locally every frame for buttery movement. */
+function tickGuestSplash(inp) {
+  const out = { gems: [], pads: [], boxes: null };
+  if (paused || state !== 'play' || splash.dead) return out;
+  applyInput('water', inp);
+  movePlayerFromInput(splash, input.water);
+  // Push / climb crates locally (Crate Expectations, Crate on the Pad, …).
+  interactBoxes(splash, { movePlayer: true });
+  // Re-stick to elevator after walk/jump (rising lifts already carried in tickGuestWorld).
+  stickToLifts(splash);
+  // Re-resolve hold pads after Splash moved onto/off them this frame.
+  resolveGates({ sfx: true });
+  out.gems = collectGemsNear(splash, 'water');
+  out.pads = guestTouchPads();
+  if (boxes.length) out.boxes = exportBoxes();
+  if (onWrongDoor(splash)) {
+    wrongDoorMsg = "That door is Spark's — Splash's door glows BLUE!";
+    wrongDoorT = 90;
+  }
+  return out;
 }
 
 function startRemote(onVictoryCb, names) {
@@ -992,8 +1323,8 @@ function startRemote(onVictoryCb, names) {
   startGame(0);
 }
 
-function tickFrame() {
-  if (!paused) update();
+function tickFrame(opts = {}) {
+  if (!paused) update(opts);
   render();
 }
 
@@ -1003,12 +1334,34 @@ function startGame(atLevel=0){
   loadLevel(atLevel, false); state="play"; paused=false;
 }
 
+function applyPadPress(list) {
+  if (!Array.isArray(list)) return 0;
+  let n = 0;
+  for (const p of list) {
+    const g = groups[p.gi];
+    if (!g || g.hold || g.open) continue;
+    g.open = true; g.weighted = true;
+    AudioSys.press(); AudioSys.gate();
+    puffs(g);
+    n++;
+  }
+  return n;
+}
+
 return {
-  applyInput, exportState, importState, startRemote,
+  applyInput, pulseJump, exportState, importState, startRemote,
+  exportSplash, importSplash, exportBoxes, importBoxes,
+  tickGuestSplash, tickGuestWorld,
+  applyGemClaims, applyPadPress,
   tickFrame, renderFrame: () => render(),
   initAudio: () => AudioSys.init(),
-  setPaused: v => { paused = v; },
+  setPaused: v => { paused = !!v; },
   togglePause: () => { paused = !paused; },
-  restartLevel: () => { if (state === 'play' || state === 'dead') loadLevel(levelIdx, true); state = 'play'; }
+  restartLevel: () => { if (state === 'play' || state === 'dead') loadLevel(levelIdx, true); state = 'play'; },
+  isReady: () => !!gems && state !== 'title',
+  getLevelIdx: () => levelIdx,
+  getState: () => state,
+  isSplashDead: () => !!splash.dead,
+  gemCount: () => fireGems + waterGems
 };
 }
