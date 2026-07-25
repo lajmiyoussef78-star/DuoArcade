@@ -13,6 +13,7 @@ export const HOME_NAV = [
   { id: 'sect-week', label: 'Timetable' },
   { id: 'sect-snap', label: 'DuoSnap' },
   { id: 'sect-list', label: 'TodoList' },
+  { id: 'sect-bucket', label: 'BucketList' },
   { id: 'arena', label: '2v2 Arena', route: '/arena' },
   { id: 'sect-wall', label: 'Whiteboard' },
 ];

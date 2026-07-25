@@ -7,6 +7,7 @@ import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
 import ChallengeHistory from './ChallengeHistory.jsx';
+import BucketListCard from './BucketListCard.jsx';
 import { featureRailItem } from './featureRailItems.js';
 
 function favoriteGameId(duo) {
@@ -140,6 +141,12 @@ export default function PlaceScreen({
       {featureId === 'sect-list' && (
         <div id="sect-list" className="shelf-anchor">
           <TodoShelf code={code} myRole={myRole} duo={duo} />
+        </div>
+      )}
+
+      {featureId === 'sect-bucket' && (
+        <div id="sect-bucket" className="shelf-anchor">
+          <BucketListCard code={code} myRole={myRole} duo={duo} />
         </div>
       )}
 
