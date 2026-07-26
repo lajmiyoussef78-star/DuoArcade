@@ -1,14 +1,16 @@
 // src/pages/SumoBomb.jsx — Sumo Bomb (mounted by the sumobomb engine).
-// Host-authoritative over the shell RT channel. Best of 5.
-// Aim arrow sweeps left↔right and stays inside the dohyo circle.
+// Strict host authority for outcomes; guest predicts own throws instantly,
+// then merges host `ev` without rewinding a landing.
+// Aim arrow only for the local holder.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  recordSumoBomb, sbInitial, sbStep, SB, sumoPos, ownerOf
+  recordSumoBomb, sbInitial, sbStep, SB, sumoPos, ownerOf, predictThrow
 } from '../lib/sumobomb.js';
 import '../styles/sumobomb.css';
 
-const RING_FRAME = SB.RING_R + 46;
+const RING_FRAME = SB.RING_R + 52;
+const TRAIL_MAX = 18;
 
 /** Longest arrow from (x,y) along angle that still ends inside the ring. */
 function arrowLenInRing(x, y, angle, wantLen) {
@@ -59,6 +61,141 @@ function drawAimArrow(g, x, y, angle, mine, color) {
   g.restore();
 }
 
+function packSt(st, evSeq) {
+  return {
+    seed: st.seed,
+    round: st.round,
+    score: { A: st.score.A, B: st.score.B },
+    phase: st.phase,
+    phaseT: st.phaseT,
+    bombAt: st.bombAt,
+    transit: st.transit ? { ...st.transit } : null,
+    aim: st.aim,
+    aimCenter: st.aimCenter,
+    aimVel: st.aimVel,
+    fuse: st.fuse,
+    fuseT: st.fuseT,
+    boomIdx: st.boomIdx,
+    pendingBoom: st.pendingBoom,
+    winner: st.winner,
+    target0: st.target0,
+    evSeq
+  };
+}
+
+/**
+ * Guest visual tick: animate flight + own aim.
+ * May complete a predicted catch locally for snappy UX; host `ev` still wins on conflict.
+ */
+function guestVisualTick(st, dt, me) {
+  if (!st || st.phase === 'over') return st;
+  const s = st;
+  s.phaseT = (s.phaseT || 0) + dt;
+  if (s.phase === 'live') s.fuseT = (s.fuseT || 0) + dt;
+
+  if (s.transit) {
+    s.transit.t = (s.transit.t || 0) + dt;
+    if (s.transit.t >= s.transit.dur) {
+      const arrived = s.transit.toIdx;
+      const wasMiss = s.transit.miss;
+      s.transit = null;
+      s.bombAt = arrived;
+      // Don't explode locally — host decides boom.
+      if (!wasMiss) {
+        // Aim resets when host confirms; keep a facing until then.
+        const p = sumoPos(arrived);
+        s.aimCenter = Math.atan2(SB.CY - p.y, SB.CX - p.x);
+        s.aim = s.aimCenter;
+        s.aimVel = SB.AIM_VEL;
+      }
+    }
+    return s;
+  }
+
+  if (s.phase === 'live' && s.bombAt != null && ownerOf(s.bombAt) === me) {
+    const center = s.aimCenter ?? s.aim;
+    let vel = s.aimVel || SB.AIM_VEL;
+    let aim = s.aim + vel * dt;
+    const hi = center + SB.SWEEP_AMP;
+    const lo = center - SB.SWEEP_AMP;
+    if (aim >= hi) { aim = hi; vel = -Math.abs(SB.AIM_VEL); }
+    else if (aim <= lo) { aim = lo; vel = Math.abs(SB.AIM_VEL); }
+    s.aim = aim;
+    s.aimVel = vel;
+  }
+  return s;
+}
+
+/** Merge host throw state onto a predicted flight without replaying from t=0. */
+function mergeThrowEv(local, remote) {
+  if (!local) return remote;
+
+  // Local already caught at host's flight target — keep landed, sync fuse.
+  if (
+    !local.transit && remote.transit
+    && local.phase === 'live'
+    && local.bombAt === remote.transit.toIdx
+  ) {
+    return {
+      ...local,
+      fuseT: remote.fuseT,
+      fuse: remote.fuse,
+      pendingBoom: remote.pendingBoom,
+      score: remote.score,
+      evSeq: remote.evSeq
+    };
+  }
+
+  // Same flight — keep further progress.
+  if (
+    local.transit && remote.transit
+    && local.transit.toIdx === remote.transit.toIdx
+    && !!local.transit.miss === !!remote.transit.miss
+  ) {
+    const t = Math.max(local.transit.t || 0, remote.transit.t || 0);
+    return {
+      ...remote,
+      transit: { ...remote.transit, t },
+      aim: local.aim,
+      aimVel: local.aimVel,
+      aimCenter: local.aimCenter
+    };
+  }
+
+  // Host already landed where we were flying — snap forward.
+  if (
+    local.transit && !remote.transit
+    && remote.bombAt === local.transit.toIdx
+  ) {
+    return remote;
+  }
+
+  // Local landed from prediction; host still shows old pad — keep local.
+  if (
+    !local.transit && !remote.transit
+    && local.bombAt != null
+    && remote.bombAt != null
+    && local.bombAt !== remote.bombAt
+    && remote.phase === 'live'
+  ) {
+    // Prefer host only if scores/round advanced (real authority event).
+    if (
+      remote.round === local.round
+      && remote.score.A === local.score.A
+      && remote.score.B === local.score.B
+    ) {
+      return {
+        ...local,
+        fuseT: remote.fuseT,
+        fuse: remote.fuse,
+        evSeq: remote.evSeq
+      };
+    }
+  }
+
+  return remote;
+}
+
 export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
   const me = myRole;
   const nm = { A: names.A || 'A', B: names.B || 'B' };
@@ -71,12 +208,17 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
   const meRef = useRef(me);
   const stRef = useRef(null);
   const throwsRef = useRef([]);
-  const dispAimRef = useRef(0);
-  const dispAimVelRef = useRef(SB.AIM_VEL);
   const dustRef = useRef(null);
   const startedRef = useRef(false);
   const finishedRef = useRef(false);
   const phaseRef = useRef('wait');
+  const throwIdRef = useRef(0);
+  const seenThrowsRef = useRef(new Set());
+  const evSeqRef = useRef(0);
+  const pendingTryRef = useRef(null); // guest waiting for host confirm { id, t }
+  const lastThrowAtRef = useRef(0);
+  const trailRef = useRef([]);
+  const localAimRef = useRef(null); // preserve guest aim across host adopts
   meRef.current = me;
   phaseRef.current = phase;
 
@@ -105,11 +247,58 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
     startedRef.current = true;
     finishedRef.current = false;
     stRef.current = sbInitial(seed);
-    dispAimRef.current = stRef.current.aim;
-    dispAimVelRef.current = stRef.current.aimVel || SB.AIM_VEL;
-    throwsRef.current = [];
+    trailRef.current = [];
+    throwIdRef.current = 0;
+    evSeqRef.current = 0;
+    pendingTryRef.current = null;
+    localAimRef.current = null;
+    seenThrowsRef.current = new Set();
     setWinner(null);
     setPhase('game');
+  }, []);
+
+  /** Host: authoritative state after throw / land / phase change. */
+  const pushEv = useCallback((st, throwMeta) => {
+    if (!st || meRef.current !== 'A') return;
+    evSeqRef.current += 1;
+    const seq = evSeqRef.current;
+    // packSt is a plain snapshot — safe for retries (sync.js also deep-clones).
+    const msg = {
+      k: 'ev',
+      seq,
+      id: throwMeta?.id || null,
+      by: throwMeta?.by || null,
+      angle: throwMeta?.angle,
+      st: packSt(st, seq)
+    };
+    rt?.send(msg);
+    setTimeout(() => rt?.send(msg), 120);
+    setTimeout(() => rt?.send(msg), 320);
+  }, [rt]);
+
+  const pushClk = useCallback(() => {
+    const st = stRef.current;
+    if (!st || meRef.current !== 'A' || st.phase === 'over') return;
+    rt?.send({
+      k: 'clk',
+      seq: evSeqRef.current,
+      fuseT: st.fuseT,
+      fuse: st.fuse,
+      phaseT: st.phaseT,
+      phase: st.phase,
+      bombAt: st.bombAt,
+      transitT: st.transit ? st.transit.t : null,
+      aim: st.aim,
+      aimVel: st.aimVel,
+      aimCenter: st.aimCenter
+    });
+  }, [rt]);
+
+  const queueThrow = useCallback((by, angle, id) => {
+    if (!id || seenThrowsRef.current.has(id)) return false;
+    seenThrowsRef.current.add(id);
+    throwsRef.current.push({ by, angle, id });
+    return true;
   }, []);
 
   const fireThrow = useCallback(() => {
@@ -117,13 +306,33 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
     if (!st || phaseRef.current !== 'game') return;
     if (st.phase !== 'live' || st.transit || st.bombAt == null) return;
     if (ownerOf(st.bombAt) !== meRef.current) return;
-    const angle = meRef.current === 'A' ? st.aim : dispAimRef.current;
+    if (pendingTryRef.current) return;
+    const now = performance.now();
+    if (now - lastThrowAtRef.current < 160) return;
+    lastThrowAtRef.current = now;
+
+    const angle = st.aim;
+    const from = st.bombAt;
+    throwIdRef.current += 1;
+    const id = `${meRef.current}-${throwIdRef.current}-${Math.floor(st.fuseT * 1000)}`;
+
     if (meRef.current === 'A') {
-      throwsRef.current.push({ by: 'A', angle });
-    } else {
-      rt?.send({ k: 'throw', by: 'B', angle });
+      queueThrow('A', angle, id);
+      return;
     }
-  }, [rt]);
+
+    // Guest: predict instantly, host confirms in background.
+    const predicted = predictThrow(st, angle);
+    if (!predicted) return;
+    trailRef.current = [];
+    stRef.current = predicted;
+    localAimRef.current = null;
+    pendingTryRef.current = { id, t: now, from, to: predicted.transit?.toIdx, angle };
+    const msg = { k: 'try', by: 'B', angle, id };
+    rt?.send(msg);
+    setTimeout(() => rt?.send(msg), 120);
+    setTimeout(() => rt?.send(msg), 320);
+  }, [rt, queueThrow]);
 
   useEffect(() => {
     const key = e => {
@@ -137,48 +346,163 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
     if (!rt?.on) return undefined;
     rt.on(m => {
       if (!m?.k) return;
+
       if (m.k === 'needstart') {
         if (meRef.current === 'A' && startedRef.current && stRef.current) {
           rt.send({ k: 'start', seed: stRef.current.seed });
+          pushEv(stRef.current, null);
         }
         return;
       }
+
       if (m.k === 'start') {
         begin(m.seed ?? ((Date.now() >>> 0) ^ 0x50B0));
         return;
       }
-      if (m.k === 'st') {
-        stRef.current = m.st;
-        dispAimRef.current = m.st.aim;
-        dispAimVelRef.current = m.st.aimVel || SB.AIM_VEL;
+
+      if (m.k === 'try') {
+        if (meRef.current !== 'A' || m.by !== 'B') return;
+        queueThrow('B', m.angle, m.id || `B-x-${Date.now()}`);
         return;
       }
-      if (m.k === 'throw') {
-        throwsRef.current.push({ by: m.by, angle: m.angle });
+
+      if (m.k === 'ev') {
+        if (meRef.current === 'A' || !m.st) return;
+        const seq = typeof m.seq === 'number' ? m.seq : -1;
+        if (seq >= 0 && seq <= evSeqRef.current && startedRef.current) return;
+
+        if (!startedRef.current) {
+          startedRef.current = true;
+          finishedRef.current = false;
+          setWinner(null);
+          setPhase('game');
+        }
+
+        const remote = { ...m.st, evSeq: seq >= 0 ? seq : m.st.evSeq };
+        const pending = pendingTryRef.current;
+        const confirmsPending = pending && (m.id === pending.id || (m.by === 'B' && remote.transit));
+
+        // Ignore stale host state that puts the bomb back on the pad we threw from.
+        if (
+          pending
+          && remote.bombAt === pending.from
+          && !remote.transit
+          && !confirmsPending
+        ) {
+          evSeqRef.current = Math.max(evSeqRef.current, seq);
+          return;
+        }
+
+        // Clear pending only on a confirming throw/slide ev — not on unrelated phase noise.
+        if (pending && (m.id === pending.id || (remote.transit && m.by === 'B')
+          || (remote.bombAt != null && remote.bombAt === pending.to && !remote.transit))) {
+          pendingTryRef.current = null;
+        }
+        if (m.id) seenThrowsRef.current.add(m.id);
+
+        const merged = mergeThrowEv(stRef.current, remote);
+        // Keep our aim sweep when we still hold the same sumo after merge.
+        if (
+          localAimRef.current
+          && merged.phase === 'live'
+          && merged.bombAt != null
+          && !merged.transit
+          && ownerOf(merged.bombAt) === meRef.current
+          && stRef.current?.bombAt === merged.bombAt
+        ) {
+          merged.aim = localAimRef.current.aim;
+          merged.aimVel = localAimRef.current.aimVel;
+          merged.aimCenter = localAimRef.current.aimCenter ?? merged.aimCenter;
+        }
+        const keepTrail = !!(stRef.current?.transit && merged.transit);
+        if (!keepTrail && !!stRef.current?.transit !== !!merged.transit) {
+          trailRef.current = [];
+        }
+        stRef.current = merged;
+        if (typeof merged.evSeq === 'number') evSeqRef.current = merged.evSeq;
+
+        if (merged.phase === 'over' && merged.winner) finish(merged.winner, false);
         return;
       }
-      if (m.k === 'over') {
-        finish(m.winner, false);
+
+      if (m.k === 'clk') {
+        if (meRef.current === 'A') return;
+        if (!startedRef.current || !stRef.current) return;
+        if ((m.seq ?? 0) < evSeqRef.current) return;
+        if (pendingTryRef.current) return;
+
+        const s = stRef.current;
+        // Fuse / timers only — never move the bomb from a clock packet.
+        if (m.phase === s.phase && m.bombAt === s.bombAt && !!s.transit === (m.transitT != null)) {
+          if (typeof m.fuseT === 'number') s.fuseT = m.fuseT;
+          if (typeof m.fuse === 'number') s.fuse = m.fuse;
+          if (typeof m.phaseT === 'number') s.phaseT = m.phaseT;
+          if (s.transit && typeof m.transitT === 'number') {
+            s.transit.t = Math.max(s.transit.t || 0, m.transitT);
+          }
+          const holder = s.bombAt != null && !s.transit ? ownerOf(s.bombAt) : null;
+          if (holder && holder !== meRef.current) {
+            if (typeof m.aim === 'number') s.aim = m.aim;
+            if (typeof m.aimVel === 'number') s.aimVel = m.aimVel;
+            if (m.aimCenter != null) s.aimCenter = m.aimCenter;
+          }
+        }
+        return;
       }
+
+      if (m.k === 'aim') {
+        if (meRef.current !== 'A') return;
+        const st = stRef.current;
+        if (!st || st.phase !== 'live' || st.transit || st.bombAt == null) return;
+        if (ownerOf(st.bombAt) !== 'B') return;
+        st.aim = m.aim;
+        st.aimVel = m.aimVel;
+        if (m.aimCenter != null) st.aimCenter = m.aimCenter;
+        return;
+      }
+
+      if (m.k === 'over') finish(m.winner, false);
     });
     return undefined;
-  }, [rt, begin, finish]);
+  }, [rt, begin, finish, pushEv, queueThrow]);
 
   useEffect(() => {
-    if (me === 'A') {
-      const seed = (Date.now() >>> 0) ^ 0x50B0;
-      const push = () => rt?.send({ k: 'start', seed });
-      begin(seed);
-      push();
-      const t1 = setTimeout(push, 400);
-      const t2 = setTimeout(push, 1200);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
-    const ask = () => { if (!startedRef.current) rt?.send({ k: 'needstart' }); };
-    ask();
-    const iv = setInterval(ask, 700);
-    return () => clearInterval(iv);
-  }, [me, rt, begin]);
+    let cancelled = false;
+    const timers = [];
+    let askIv = null;
+    (async () => {
+      let ok = false;
+      try { ok = await rt?.whenReady?.(); } catch { /* */ }
+      if (cancelled) return;
+      // If channel still not ready, keep waiting briefly — do not soft-start blind.
+      if (!ok && !rt?.isReady?.()) {
+        for (let i = 0; i < 20 && !cancelled; i++) {
+          await new Promise(r => setTimeout(r, 250));
+          if (rt?.isReady?.()) { ok = true; break; }
+        }
+      }
+      if (cancelled) return;
+      if (me === 'A') {
+        const seed = (Date.now() >>> 0) ^ 0x50B0;
+        const push = () => {
+          rt?.send({ k: 'start', seed });
+          if (stRef.current) pushEv(stRef.current, null);
+        };
+        begin(seed);
+        push();
+        timers.push(setTimeout(push, 400), setTimeout(push, 1200));
+      } else {
+        const ask = () => { if (!startedRef.current) rt?.send({ k: 'needstart' }); };
+        ask();
+        askIv = setInterval(ask, 500);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+      if (askIv) clearInterval(askIv);
+    };
+  }, [me, rt, begin, pushEv]);
 
   const draw = useCallback((now) => {
     const cv = canvasRef.current;
@@ -300,13 +624,10 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
       g.restore();
     }
 
-    if (holder != null) {
+    if (holder != null && ownerOf(holder) === meRef.current) {
       const pos = sumoPos(holder);
       const bob = Math.sin(t * 3.2 + holder * 0.9) * 2.2;
-      const own = ownerOf(holder);
-      const mine = own === meRef.current;
-      const a = mine && meRef.current === 'B' ? dispAimRef.current : st.aim;
-      drawAimArrow(g, pos.x, pos.y + bob, a, mine, CANC);
+      drawAimArrow(g, pos.x, pos.y + bob, st.aim, true, CANC);
     }
 
     let bx = null, by = null;
@@ -315,12 +636,50 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
       const kk = st.transit.miss ? Math.sin(k * Math.PI) : k;
       bx = st.transit.x0 + (st.transit.x1 - st.transit.x0) * (st.transit.miss ? kk : k);
       by = st.transit.y0 + (st.transit.y1 - st.transit.y0) * (st.transit.miss ? kk : k)
-         - Math.sin(k * Math.PI) * 26;
-    } else if (holder != null) {
-      const pos = sumoPos(holder);
-      const bob = Math.sin(t * 3.2 + holder * 0.9) * 2.2;
-      bx = pos.x; by = pos.y + bob - SB.SUMO_R - 12;
+         - Math.sin(k * Math.PI) * 34;
+      const trail = trailRef.current;
+      const last = trail[trail.length - 1];
+      if (!last || Math.hypot(bx - last.x, by - last.y) > 4) {
+        trail.push({ x: bx, y: by, born: now });
+        if (trail.length > TRAIL_MAX) trail.shift();
+      }
+    } else {
+      trailRef.current = [];
+      if (holder != null) {
+        const pos = sumoPos(holder);
+        const bob = Math.sin(t * 3.2 + holder * 0.9) * 2.2;
+        bx = pos.x; by = pos.y + bob - SB.SUMO_R - 12;
+      }
     }
+
+    if (trailRef.current.length > 1 && st.phase !== 'boom') {
+      const trail = trailRef.current;
+      g.save();
+      g.lineCap = 'round';
+      g.lineJoin = 'round';
+      for (let i = 1; i < trail.length; i++) {
+        const a = i / (trail.length - 1);
+        const p0 = trail[i - 1], p1 = trail[i];
+        g.strokeStyle = `rgba(255,198,110,${0.12 + a * 0.55})`;
+        g.lineWidth = 2 + a * 7;
+        g.beginPath();
+        g.moveTo(p0.x, p0.y);
+        g.lineTo(p1.x, p1.y);
+        g.stroke();
+      }
+      for (let i = 0; i < trail.length; i++) {
+        const a = (i + 1) / trail.length;
+        const p = trail[i];
+        g.fillStyle = i % 2 ? CANC : '#FFF3D6';
+        g.globalAlpha = 0.25 + a * 0.55;
+        g.beginPath();
+        g.arc(p.x, p.y, 2 + a * 4.5, 0, 7);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      g.restore();
+    }
+
     if (bx != null && st.phase !== 'boom') {
       const urgency = st.phase === 'live' ? Math.min(1, st.fuseT / 12) : 0;
       const pulseB = 1 + Math.sin(st.fuseT * (5 + urgency * 12)) * 0.14 * (0.5 + urgency);
@@ -374,11 +733,10 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
     if (phase !== 'game') return undefined;
     const isHost = meRef.current === 'A';
     let raf, last = performance.now();
-
-    const net = setInterval(() => {
-      if (!stRef.current || stRef.current.phase === 'over') return;
-      if (isHost) rt?.send({ k: 'st', st: stRef.current });
-    }, 50);
+    let prevPhase = stRef.current?.phase || '';
+    let prevTransit = !!stRef.current?.transit;
+    let clkAcc = 0;
+    let aimAcc = 0;
 
     const loop = now => {
       const dt = Math.min(0.033, (now - last) / 1000);
@@ -386,43 +744,96 @@ export default function SumoBomb({ myRole, names = {}, rt, code, onComplete }) {
       const st = stRef.current;
       if (!st) { raf = requestAnimationFrame(loop); return; }
 
+      let next;
       if (isHost) {
+        const holderNow = st.phase === 'live' && st.bombAt != null && !st.transit
+          ? ownerOf(st.bombAt) : null;
+        const sweep = !holderNow || holderNow === 'A';
         const evs = throwsRef.current; throwsRef.current = [];
-        const next = sbStep(st, evs, dt);
+        next = sbStep(st, evs, dt, { sweep, authority: true });
         stRef.current = next;
+
+        const threw = evs.length && next.transit && !st.transit;
+        const landed = prevTransit && !next.transit && next.phase === 'live';
+        const phaseChanged = next.phase !== prevPhase;
+
+        if (threw) {
+          const th = evs[0];
+          pushEv(next, { id: th.id, by: th.by, angle: th.angle });
+        } else if (landed || phaseChanged) {
+          pushEv(next, null);
+        }
+
+        prevPhase = next.phase;
+        prevTransit = !!next.transit;
+
+        clkAcc += dt;
+        if (clkAcc >= 0.3 && next.phase !== 'over') {
+          clkAcc = 0;
+          pushClk();
+        }
+
         if (next.phase === 'over' && next.winner && !finishedRef.current) {
-          rt?.send({ k: 'st', st: next });
+          pushEv(next, null);
           rt?.send({ k: 'over', winner: next.winner });
           finish(next.winner, true);
         }
       } else {
-        // Guest: mirror the host sweep between snapshots (same left↔right bounce).
-        if (st.phase === 'live' && !st.transit && st.bombAt != null) {
-          const center = st.aimCenter ?? st.aim;
-          let vel = dispAimVelRef.current || SB.AIM_VEL;
-          let aim = dispAimRef.current + vel * dt;
-          const hi = center + SB.SWEEP_AMP;
-          const lo = center - SB.SWEEP_AMP;
-          if (aim >= hi) { aim = hi; vel = -Math.abs(SB.AIM_VEL); }
-          else if (aim <= lo) { aim = lo; vel = Math.abs(SB.AIM_VEL); }
-          dispAimRef.current = aim;
-          dispAimVelRef.current = vel;
+        // Guest: visual-only. Bomb holder only changes via host `ev`.
+        next = guestVisualTick(st, dt, meRef.current);
+        stRef.current = next;
+
+        const hold = next.phase === 'live' && next.bombAt != null && !next.transit
+          && ownerOf(next.bombAt) === 'B';
+        if (hold) {
+          localAimRef.current = {
+            aim: next.aim, aimVel: next.aimVel, aimCenter: next.aimCenter
+          };
+          aimAcc += dt;
+          if (aimAcc >= 0.1) {
+            aimAcc = 0;
+            rt?.send({
+              k: 'aim',
+              aim: next.aim,
+              aimVel: next.aimVel,
+              aimCenter: next.aimCenter
+            });
+          }
+        } else {
+          aimAcc = 0;
+          if (!hold) localAimRef.current = null;
         }
-        if (st.phase === 'over' && st.winner) finish(st.winner, false);
+
+        // Pending too long: ask host for a fresh ev; do not silently unlock into a rewind.
+        const pending = pendingTryRef.current;
+        if (pending) {
+          const age = now - pending.t;
+          if (age > 1800 && age < 2000) rt?.send({ k: 'needstart' });
+          if (age > 5000) {
+            // Last resort — re-send try, keep prediction on screen.
+            const retry = {
+              k: 'try', by: 'B',
+              angle: pending.angle ?? next.aim,
+              id: pending.id
+            };
+            rt?.send(retry);
+            pending.t = now;
+          }
+        }
       }
 
-      const s2 = stRef.current;
       setHud({
-        a: s2.score.A, b: s2.score.B,
-        round: Math.min(s2.round + 1, 5),
-        holderSide: s2.phase === 'live' && s2.bombAt != null && !s2.transit ? ownerOf(s2.bombAt) : null
+        a: next.score.A, b: next.score.B,
+        round: Math.min(next.round + 1, 5),
+        holderSide: next.phase === 'live' && next.bombAt != null && !next.transit
+          ? ownerOf(next.bombAt) : null
       });
       draw(now);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); clearInterval(net); };
-  }, [phase, rt, finish, draw]);
+    return () => { cancelAnimationFrame(raf); };
+  }, [phase, rt, finish, draw, pushEv, pushClk]);
 
   if (!me || phase === 'wait') {
     return <div className="sb-shell"><p className="sb-status">The dohyo is warming up…</p></div>;

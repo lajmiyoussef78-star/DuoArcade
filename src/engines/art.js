@@ -39,27 +39,36 @@ const pulse = (id, cls, dur = 3) => `
 
 export const ART = {
 
-  /* ─── Tic-Tac-Toe: neon duel ─── */
+  /* ─── Ultimate Tic-Tac-Toe: nine boards ─── */
   ttt: scene('ttt', '', `
-    <g stroke="var(--line)" stroke-width="3" opacity=".7">
-      <path d="M96 18 L90 112 M150 18 L144 112 M52 46 H196 M48 82 H192"/>
+    <g stroke="var(--line)" stroke-width="2.5" opacity=".55">
+      <path d="M88 14 V116 M152 14 V116 M28 48 H212 M28 82 H212"/>
+    </g>
+    <g stroke="var(--line)" stroke-width="1.2" opacity=".4">
+      <path d="M48 20 V42 M68 20 V42 M38 28 H78 M38 34 H78"/>
+      <path d="M112 20 V42 M132 20 V42 M102 28 H142 M102 34 H142"/>
+      <path d="M176 20 V42 M196 20 V42 M166 28 H206 M166 34 H206"/>
+      <path d="M48 54 V76 M68 54 V76 M38 62 H78 M38 68 H78"/>
+      <path d="M112 54 V76 M132 54 V76 M102 62 H142 M102 68 H142"/>
+      <path d="M176 54 V76 M196 54 V76 M166 62 H206 M166 68 H206"/>
+      <path d="M48 88 V110 M68 88 V110 M38 96 H78 M38 102 H78"/>
+      <path d="M112 88 V110 M132 88 V110 M102 96 H142 M102 102 H142"/>
+      <path d="M176 88 V110 M196 88 V110 M166 96 H206 M166 102 H206"/>
     </g>
     <g class="ttt-x">
-      <path d="M52 48 L86 84 M86 48 L52 84" stroke="var(--p1)" stroke-width="12" stroke-linecap="round" filter="url(#ttt-glow2)" opacity=".8"/>
-      <path d="M52 48 L86 84 M86 48 L52 84" stroke="var(--p1)" stroke-width="6" stroke-linecap="round"/>
-      <path d="M55 51 L83 81 M83 51 L55 81" stroke="var(--text)" stroke-width="1.6" stroke-linecap="round" opacity=".9"/>
+      <path d="M46 24 L72 38 M72 24 L46 38" stroke="var(--p1)" stroke-width="5" stroke-linecap="round"/>
+      <path d="M108 58 L136 72 M136 58 L108 72" stroke="var(--p1)" stroke-width="6" stroke-linecap="round" filter="url(#ttt-glow2)"/>
     </g>
     <g class="ttt-o">
-      <circle cx="168" cy="64" r="20" stroke="var(--p2)" stroke-width="12" filter="url(#ttt-glow2)" opacity=".8"/>
-      <circle cx="168" cy="64" r="20" stroke="var(--p2)" stroke-width="6"/>
-      <circle cx="168" cy="64" r="20" stroke="var(--text)" stroke-width="1.6" opacity=".9"/>
+      <circle cx="186" cy="30" r="9" stroke="var(--p2)" stroke-width="4" fill="none"/>
+      <circle cx="186" cy="98" r="11" stroke="var(--p2)" stroke-width="5" fill="none" filter="url(#ttt-glow2)"/>
     </g>
-    <path class="ttt-streak" d="M30 108 L210 22" stroke="var(--candle)" stroke-width="3" stroke-linecap="round"
-      stroke-dasharray="200" opacity=".9" filter="url(#ttt-glow)"/>
+    <rect class="ttt-focus" x="100" y="52" width="40" height="28" rx="4" fill="none"
+      stroke="var(--candle)" stroke-width="2" opacity=".85" filter="url(#ttt-glow)"/>
     ${sparks('ttt', [[210, 30, 2, 'var(--candle)'], [30, 100, 1.6, 'var(--p1)'], [120, 14, 1.4, 'var(--p2)']])}`,
     `${pulse('ttt', 'ttt-x', 3.4)} ${pulse('ttt', 'ttt-o', 4.2)}
-     .ttt-streak { animation: ttt-dash 6s ease-in-out infinite; }
-     @keyframes ttt-dash { 0%,100% { stroke-dashoffset: 200 } 50% { stroke-dashoffset: 0 } }
+     .ttt-focus { animation: ttt-pulse 2.8s ease-in-out infinite; }
+     @keyframes ttt-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
      ${sparkAnim('ttt', 3)}`),
 
   /* ─── Connect Four: the drop ─── */

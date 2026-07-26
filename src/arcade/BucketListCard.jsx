@@ -1,9 +1,9 @@
 // src/arcade/BucketListCard.jsx — time-locked couples bucket list.
-// draft -> locked (sealed, blind adds) -> opened (mark achieved) -> archived + new.
+// draft -> locked (hidden, blind adds) -> opened (mark achieved) -> archived + new.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  bucketGet, bucketAddItem, bucketUpdateItem, bucketRemoveItem,
+  bucketGet, bucketAddItem,
   bucketLock, bucketMark, bucketArchive, bucketHistory, bucketChannel
 } from '../lib/bucketlist.js';
 import '../styles/bucketlist.css';
@@ -42,8 +42,6 @@ export default function BucketListCard({ code, myRole, duo }) {
   const [view, setView] = useState(null);
   const [text, setText] = useState('');
   const [status, setStatus] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editText, setEditText] = useState('');
   const [preset, setPreset] = useState(null);
   const [customDate, setCustomDate] = useState('');
   const [confirmLock, setConfirmLock] = useState(false);
@@ -69,8 +67,10 @@ export default function BucketListCard({ code, myRole, duo }) {
       setView(v);
       setStatus('');
       channelRef.current?.send({ k: 'ping' });
+      return v;
     } catch (e) {
       setStatus(e.message);
+      return null;
     }
   }, []);
 
@@ -90,7 +90,6 @@ export default function BucketListCard({ code, myRole, duo }) {
     };
   }, [code, reload]);
 
-  /* Countdown ticker; when the date passes, refetch so the server flips to opened */
   useEffect(() => {
     if (view?.status !== 'locked') return undefined;
     const t = setInterval(() => {
@@ -105,12 +104,6 @@ export default function BucketListCard({ code, myRole, duo }) {
     if (!t) return;
     setText('');
     await apply(() => bucketAddItem(code, t, myRole));
-  };
-
-  const saveEdit = async id => {
-    if (!editText.trim()) return;
-    await apply(() => bucketUpdateItem(code, id, editText));
-    setEditingId(null);
   };
 
   const chosenDate = () => {
@@ -154,20 +147,28 @@ export default function BucketListCard({ code, myRole, duo }) {
   }
 
   const items = view.items || [];
+  const count = view.status === 'locked'
+    ? (view.item_count || 0)
+    : (view.item_count ?? items.length);
   const achieved = items.filter(i => i.achieved === true).length;
   const lockDatePicked = chosenDate();
 
   return (
     <div className="bucket-card">
-      <h3>Bucket List</h3>
+      <header className="bucket-head">
+        <h3>Bucket List</h3>
+        <p className="bucket-sub">
+          Add dreams together, seal them until a date you pick — then open and see what you made real.
+          No peeking and no editing once they&apos;re in.
+        </p>
+      </header>
 
-      {/* ── DRAFT ─────────────────────────────────────────── */}
       {view.status === 'draft' && (
         <>
-          <p className="bucket-sub">
-            Write down targets, wills and dreams together — then seal the list until a date
-            you choose. When it opens, see what you two made real.
-          </p>
+          <div className="bucket-status-pill">
+            <strong>{count}</strong>
+            <span>dream{count === 1 ? '' : 's'} sealed in</span>
+          </div>
 
           <div className="bucket-form">
             <input
@@ -181,42 +182,13 @@ export default function BucketListCard({ code, myRole, duo }) {
             <button className="btn warm small" type="button" onClick={add}>Add</button>
           </div>
 
-          <div className="bucket-list">
-            {items.length === 0 && (
-              <div className="bucket-empty">Nothing here yet — add your first dream above.</div>
-            )}
-            {items.map(item => (
-              <div key={item.id} className="bucket-item">
-                {editingId === item.id ? (
-                  <div className="bucket-edit">
-                    <input
-                      type="text" value={editText} maxLength={280}
-                      onChange={e => setEditText(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
-                    />
-                    <div className="bucket-edit-row">
-                      <button className="btn warm small" type="button" onClick={() => saveEdit(item.id)}>Save</button>
-                      <button className="btn small ghost" type="button" onClick={() => setEditingId(null)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="bucket-text">{item.text}</div>
-                    <div className="bucket-meta">by <b>{nameOf(item.by)}</b></div>
-                    <div className="bucket-actions">
-                      <button type="button" onClick={() => { setEditingId(item.id); setEditText(item.text); }}>Edit</button>
-                      <button type="button" onClick={() => apply(() => bucketRemoveItem(code, item.id))}>Remove</button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {items.length > 0 && (
+          {count > 0 && (
             <div className="bucket-lockpanel">
-              <h4>Seal the capsule</h4>
-              <p>Once locked, neither of you can see the list until the date. You can still drop new dreams in blind.</p>
+              <h4>Seal the list</h4>
+              <p>
+                Lock {count} dream{count === 1 ? '' : 's'} until a date you choose.
+                Neither of you can see what&apos;s inside until then — you can still add more blind.
+              </p>
               <div className="bucket-presets">
                 {PRESETS.map(p => (
                   <button
@@ -244,14 +216,14 @@ export default function BucketListCard({ code, myRole, duo }) {
               )}
               {lockDatePicked && !confirmLock && (
                 <button className="btn warm small" type="button" onClick={() => setConfirmLock(true)}>
-                  Lock until {fmtDate(lockDatePicked.toISOString())}
+                  Seal until {fmtDate(lockDatePicked.toISOString())}
                 </button>
               )}
               {lockDatePicked && confirmLock && (
                 <div className="bucket-confirm">
                   <p>
-                    This seals {items.length} dream{items.length === 1 ? '' : 's'} until{' '}
-                    <b>{fmtDate(lockDatePicked.toISOString())}</b>. No peeking — for either of you. Sure?
+                    Seal until{' '}
+                    <b>{fmtDate(lockDatePicked.toISOString())}</b>? No peeking for either of you.
                   </p>
                   <div className="bucket-edit-row">
                     <button className="btn warm small" type="button" onClick={lock}>Yes, seal it</button>
@@ -264,54 +236,49 @@ export default function BucketListCard({ code, myRole, duo }) {
         </>
       )}
 
-      {/* ── LOCKED ────────────────────────────────────────── */}
       {view.status === 'locked' && (
-        <div className="bucket-sealed" data-tick={tick}>
-          <div className="bucket-seal-mark" aria-hidden>🔒</div>
-          <h4>Sealed until {fmtDate(view.unlock_at)}</h4>
-          <div className="bucket-countdown">
-            {countdown(view.unlock_at) || 'Opening…'}
+        <div className="bucket-locked-wrap" data-tick={tick}>
+          <div className="bucket-status-pill locked">
+            <strong>{countdown(view.unlock_at) || 'Opening…'}</strong>
+            <span>Opens {fmtDate(view.unlock_at)}</span>
+            <em>{count} inside</em>
           </div>
-          <div className="bucket-count">
-            {view.item_count} dream{view.item_count === 1 ? '' : 's'} inside
-          </div>
-          <p className="bucket-sub">
-            Drop a new one in — you won&apos;t see it (or any of them) until the capsule opens.
+          <p className="bucket-sub bucket-locked-hint">
+            Add another dream — it stays hidden until the list opens.
           </p>
           <div className="bucket-form">
             <input
               type="text"
-              placeholder="Slip a dream into the capsule…"
+              placeholder="Slip a dream in…"
               value={text}
               maxLength={280}
               onChange={e => setText(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && add()}
             />
-            <button className="btn warm small" type="button" onClick={add}>Drop in</button>
+            <button className="btn warm small" type="button" onClick={add}>Add</button>
           </div>
         </div>
       )}
 
-      {/* ── OPENED ────────────────────────────────────────── */}
       {view.status === 'opened' && (
         <>
           <div className="bucket-reveal-head">
-            <h4>{'🎉'} The capsule is open</h4>
+            <h4>Your dreams are out</h4>
             <p className="bucket-sub">
               Sealed {fmtDate(view.locked_at)} — opened {fmtDate(view.opened_at)}.
-              How did you two do? Mark each one.
+              Mark what you made real.
             </p>
             <div className="bucket-tally">
               <b>{achieved}</b> / {items.length} achieved
             </div>
           </div>
 
-          <div className="bucket-list">
+          <div className="bucket-reveal-list">
             {items.map(item => (
               <div
                 key={item.id}
                 className={
-                  'bucket-item reveal'
+                  'bucket-reveal-item'
                   + (item.achieved === true ? ' yes' : item.achieved === false ? ' no' : '')
                 }
               >
@@ -323,14 +290,14 @@ export default function BucketListCard({ code, myRole, duo }) {
                     className={'mark-yes' + (item.achieved === true ? ' on' : '')}
                     onClick={() => apply(() => bucketMark(code, item.id, item.achieved === true ? null : true))}
                   >
-                    ✓ Achieved
+                    Achieved
                   </button>
                   <button
                     type="button"
                     className={'mark-no' + (item.achieved === false ? ' on' : '')}
                     onClick={() => apply(() => bucketMark(code, item.id, item.achieved === false ? null : false))}
                   >
-                    ✗ Not yet
+                    Not yet
                   </button>
                 </div>
               </div>
@@ -343,14 +310,13 @@ export default function BucketListCard({ code, myRole, duo }) {
         </>
       )}
 
-      {/* ── HISTORY ───────────────────────────────────────── */}
       <button className="bucket-history-toggle" type="button" onClick={toggleHistory}>
-        {showHistory ? 'Hide past capsules' : 'Past capsules'}
+        {showHistory ? 'Hide past lists' : 'Past lists'}
       </button>
       {showHistory && (
         <div className="bucket-history">
           {(history || []).length === 0 && (
-            <div className="bucket-empty">No opened capsules yet.</div>
+            <div className="bucket-empty">No opened lists yet.</div>
           )}
           {(history || []).map(h => {
             const got = (h.items || []).filter(i => i.achieved === true).length;

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ENGINES } from '../engines/index.js';
 import GameCard from './GameCard.jsx';
+import GameFixModal from './GameFixModal.jsx';
+import { fixIds, fixNoteFor, normalizeFixGames } from '../lib/gameFixes.js';
 import {
   FILTER_CHIPS, SORT_OPTIONS, filterAndSortEngines, getRecentGameIds,
 } from '../lib/gameCatalog.js';
@@ -15,24 +17,30 @@ function SmartRow({ title, children, empty }) {
   );
 }
 
-export default function GamesBrowse({ duo, code, onStartGame, onSetFavoriteGames }) {
+export default function GamesBrowse({
+  duo, code, onStartGame, onSetFavoriteGames, onSetFixGames
+}) {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('default');
   const [recentTick, setRecentTick] = useState(0);
   const [roulette, setRoulette] = useState(null);
+  const [fixEng, setFixEng] = useState(null);
   const rouletteTimer = useRef(null);
 
   const favorites = Array.isArray(duo.favoriteGames) ? duo.favoriteGames : [];
+  const fixGames = useMemo(() => normalizeFixGames(duo.fixGames), [duo.fixGames]);
+  const needsFixIds = useMemo(() => fixIds(fixGames), [fixGames]);
   const records = duo.records || {};
   const filtering = filter !== 'all' || query.trim().length > 0;
   const favFilter = filter === 'favorites';
+  const fixFilter = filter === 'needsfix';
 
   const list = useMemo(
     () => filterAndSortEngines({
-      filter, query, sort, favoriteIds: favorites, records,
+      filter, query, sort, favoriteIds: favorites, records, fixIds: needsFixIds,
     }),
-    [filter, query, sort, favorites, records]
+    [filter, query, sort, favorites, records, needsFixIds]
   );
 
   const recentIds = useMemo(() => {
@@ -87,9 +95,22 @@ export default function GamesBrowse({ duo, code, onStartGame, onSetFavoriteGames
 
   const shelfTitle = favFilter
     ? 'Favorites'
-    : filtering
-      ? `${list.length} match${list.length === 1 ? '' : 'es'}`
-      : 'Play';
+    : fixFilter
+      ? 'Fixed'
+      : filtering
+        ? `${list.length} match${list.length === 1 ? '' : 'es'}`
+        : 'Play';
+
+  const cardProps = eng => ({
+    eng,
+    rec: records[eng.meta.id] || { a: 0, b: 0, d: 0 },
+    favorited: favorites.includes(eng.meta.id),
+    needsFix: needsFixIds.includes(eng.meta.id),
+    fixNote: fixNoteFor(fixGames, eng.meta.id),
+    onStart: onStartGame,
+    onToggleFavorite: toggleFavorite,
+    onFix: setFixEng
+  });
 
   return (
     <div className="games-browse">
@@ -101,7 +122,7 @@ export default function GamesBrowse({ duo, code, onStartGame, onSetFavoriteGames
                 key={chip.id}
                 type="button"
                 role="tab"
-                id={chip.id === 'favorites' ? 'sect-favorites' : undefined}
+                id={chip.id === 'favorites' ? 'sect-favorites' : chip.id === 'needsfix' ? 'sect-needsfix' : undefined}
                 aria-selected={filter === chip.id}
                 className={'games-chip' + (filter === chip.id ? ' on' : '')}
                 onClick={() => setFilter(chip.id)}
@@ -161,13 +182,7 @@ export default function GamesBrowse({ duo, code, onStartGame, onSetFavoriteGames
             const eng = ENGINES[id];
             return (
               <div className="games-smart-item" key={'recent-' + id}>
-                <GameCard
-                  eng={eng}
-                  rec={records[id]}
-                  favorited={favorites.includes(id)}
-                  onStart={onStartGame}
-                  onToggleFavorite={toggleFavorite}
-                />
+                <GameCard {...cardProps(eng)} />
               </div>
             );
           })}
@@ -176,32 +191,37 @@ export default function GamesBrowse({ duo, code, onStartGame, onSetFavoriteGames
 
       <div
         className="shelf-title games-all-title"
-        id={favFilter ? 'sect-favorites' : undefined}
+        id={favFilter ? 'sect-favorites' : fixFilter ? 'sect-needsfix' : undefined}
       >
         {shelfTitle}
       </div>
       {favFilter && !list.length ? (
         <p className="shelf-favs-empty">Tap ★ on a game to add it here — shared for both of you.</p>
+      ) : fixFilter && !list.length ? (
+        <p className="shelf-favs-empty">Tap <b>Fix β</b> on a game to write what’s broken — it shows up here until you tap <b>Fixed</b>.</p>
       ) : (
         <div
-          className={'shelf shelf-browse' + (favFilter ? ' shelf-favs' : '')}
+          className={'shelf shelf-browse' + (favFilter || fixFilter ? ' shelf-favs' : '')}
           key={`${filter}|${sort}`}
         >
           {list.map(eng => (
             <div className="gcard-anim" key={eng.meta.id}>
-              <GameCard
-                eng={eng}
-                rec={records[eng.meta.id] || { a: 0, b: 0, d: 0 }}
-                favorited={favorites.includes(eng.meta.id)}
-                onStart={onStartGame}
-                onToggleFavorite={toggleFavorite}
-              />
+              <GameCard {...cardProps(eng)} />
             </div>
           ))}
           {!list.length && (
             <p className="games-empty">No games match — try another filter or clear search.</p>
           )}
         </div>
+      )}
+
+      {fixEng && (
+        <GameFixModal
+          eng={fixEng}
+          fixGames={fixGames}
+          onSave={onSetFixGames}
+          onClose={() => setFixEng(null)}
+        />
       )}
     </div>
   );

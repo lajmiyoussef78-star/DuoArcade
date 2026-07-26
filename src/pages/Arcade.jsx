@@ -338,11 +338,18 @@ export default function Arcade() {
     const eng = ENGINES[s.game];
     const starter = s.winner && s.winner !== 'draw' ? other(s.winner) : other(s.starter);
     const series = s.series || s.streak || { a: 0, b: 0, d: 0 };
+    // Back to the ready panel — you count as ready; partner still needs to rematch/ready.
     const session = {
       game: s.game, gs: eng.meta.realtime ? {} : eng.initialState(),
       turn: eng.meta.realtime ? '-' : starter, starter, winner: null,
-      phase: 'invite', by: myRole, startedAt: Date.now(),
+      phase: 'lobby',
+      ready: { A: myRole === 'A', B: myRole === 'B' },
+      liveAt: null,
+      by: myRole,
+      rematchBy: myRole,
+      startedAt: Date.now(),
       series,
+      matchScore: null,
       chatPostedStart: true, // already announced this shelf visit
       chatEndedPosted: false
     };
@@ -386,10 +393,15 @@ export default function Arcade() {
     if (!res) return;
     const w = eng.winner(res.gs);
     const series = w ? bumpSeries(s, w) : (s.series || s.streak);
+    const matchScore = !w ? null
+      : w === 'draw' ? { a: 0, b: 0 }
+        : w === 'A' ? { a: 1, b: 0 }
+          : { a: 0, b: 1 };
     const session = {
       ...s, gs: res.gs, winner: w,
       turn: w ? s.turn : (res.again ? myRole : other(myRole)),
-      ...(series ? { series } : {})
+      ...(series ? { series } : {}),
+      ...(matchScore ? { matchScore } : {})
     };
     const patch = { session, turn: w ? '-' : session.turn };
     if (w) {
@@ -616,6 +628,13 @@ export default function Arcade() {
     const next = Array.isArray(ids) ? ids : [];
     patchLocal({ favoriteGames: next });
     await upd(code, { favoriteGames: next }, { force: true });
+  }, [patchLocal, upd]);
+
+  const setFixGames = useCallback(async list => {
+    const { code } = ctxRef.current;
+    const next = Array.isArray(list) ? list : [];
+    patchLocal({ fixGames: next });
+    await upd(code, { fixGames: next }, { force: true });
   }, [patchLocal, upd]);
 
   const redeemCode = useCallback(async codeStr => {
@@ -930,7 +949,7 @@ export default function Arcade() {
         onStartGame: startGame, onStartWatch: startWatch,
         onBack: () => { leaveDuoContext(); enterLobby(); },
         onSetAnniversary: setAnniversary,
-        onSetFavoriteGames: setFavoriteGames, onRedeem: redeemCode,
+        onSetFavoriteGames: setFavoriteGames, onSetFixGames: setFixGames, onRedeem: redeemCode,
         avatarTick,
       };
       inner = (

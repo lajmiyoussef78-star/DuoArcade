@@ -7,13 +7,14 @@ export const RULES = {
   /* ================= turn-based classics ================= */
 
   ttt: {
-    goal: 'Get three of your marks in a row.',
+    goal: 'Win three small boards in a row on the big board.',
     how: [
-      'Take turns placing your mark on the 3\u00d73 grid.',
-      'Three in a row \u2014 across, down, or diagonal \u2014 wins the round.',
-      'If the grid fills with no line, it\u2019s a draw.'
+      'The field is nine tic-tac-toe boards arranged as one big 3\u00d73.',
+      'On your turn, play a mark on any open small board.',
+      'Win a small board with three-in-a-row \u2014 it becomes your mark on the big board.',
+      'Three small-board wins in a row (across, down, or diagonal) wins the match 1\u20130. No path left? Draw.'
     ],
-    tip: 'Take the center. If it\u2019s gone, take a corner.'
+    tip: 'Fight on more than one board at once — threats on two fronts are hard to stop.'
   },
 
   connect4: {

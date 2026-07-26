@@ -4,7 +4,7 @@ export const FEATURE_RAIL_ITEMS = [
   { id: 'sect-favorites', icon: 'star', label: 'Favorites', accent: 'candle', scrollOnPage: true,
     desc: 'Games you both starred — quick access above the full Play shelf.' },
   { id: 'sect-play', icon: 'play', label: 'Games', accent: 'p1', scrollOnPage: true,
-    desc: 'Pick a game and invite your partner — Connect 4, Tic-Tac-Toe, quizzes, and more.' },
+    desc: 'Pick a game and invite your partner — Connect 4, Ultimate Tic-Tac-Toe, quizzes, and more.' },
   { id: 'sect-challenge-history', icon: 'history', label: 'Challenges', accent: 'candle',
     desc: 'Past best-of-threes — games played, stakes owed, and host confirmation when the loser pays up.' },
   { id: 'sect-tonight', icon: 'tonight', label: 'Tonight Engine', accent: 'p1',

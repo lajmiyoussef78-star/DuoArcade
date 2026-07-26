@@ -196,7 +196,7 @@ export function otherRole(role) {
  * home shelf after opening. ADD NEW GAMES HERE when engines are added.
  */
 export const GAME_LIST = [
-  { id: 'ttt', name: 'Tic-Tac-Toe', route: '/app' },
+  { id: 'ttt', name: 'Ultimate Tic-Tac-Toe', route: '/app' },
   { id: 'connect4', name: 'Connect Four', route: '/app' },
   { id: 'dots', name: 'Dots & Boxes', route: '/app' },
   { id: 'reversi', name: 'Reversi', route: '/app' },

@@ -60,20 +60,18 @@ export function winner(gs) {
 
 /* ---------- rendering ---------- */
 
-function grid(cellPx, gapPx) {
-  const g = document.createElement('div');
-  g.style.cssText =
-    `display:grid;grid-template-columns:repeat(${N},${cellPx}px);gap:${gapPx}px;` +
-    'background:var(--room);border:1px solid var(--line);border-radius:14px;padding:8px;';
-  return g;
-}
-
-function title(text) {
+function title(text, kind) {
   const d = document.createElement('div');
-  d.className = 'dots-score';
-  d.style.marginTop = '0';
+  d.className = 'sea-title sea-title-' + kind;
   d.textContent = text;
   return d;
+}
+
+function mark(kind) {
+  const s = document.createElement('span');
+  s.className = 'sea-mark sea-' + kind;
+  s.setAttribute('aria-hidden', 'true');
+  return s;
 }
 
 export function render(host, gs, { myRole, turn, winner: w, onMove }) {
@@ -84,50 +82,73 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
   const enemyCells = fleetCells(gs.fleet[enemy]);
   const myCells = fleetCells(gs.fleet[myRole]);
   const canPlay = !w && turn === myRole;
+  const over = !!w;
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;';
+  wrap.className = 'sea-wrap' + (over ? ' sea-over' : '');
 
   // --- Their waters (you shoot here) ---
   wrap.appendChild(title(
-    `their waters \u00b7 ${sunkCount(gs.fleet[enemy], myShots)}/${FLEET.length} ships sunk`));
-  const target = grid(32, 3);
-  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-    const k = key(r, c);
-    const fired = !!myShots[k];
-    const hit = fired && enemyCells.has(k);
-    const b = document.createElement('button');
-    b.style.cssText =
-      'width:32px;height:32px;border-radius:8px;font-size:15px;display:flex;align-items:center;' +
-      `justify-content:center;border:1px solid var(--line);cursor:${!fired && canPlay ? 'pointer' : 'default'};` +
-      (hit ? 'background:var(--p2s);color:var(--p2);'
-        : fired ? 'background:var(--room2);color:var(--dim);'
-        : 'background:var(--room2);color:transparent;');
-    b.textContent = hit ? '\u2738' : fired ? '\u00b7' : '';
-    b.disabled = fired || !canPlay;
-    b.addEventListener('click', () => onMove({ r, c }));
-    target.appendChild(b);
+    over
+      ? `Their waters · fleet revealed`
+      : `Their waters · ${sunkCount(gs.fleet[enemy], myShots)}/${FLEET.length} ships sunk`,
+    'enemy'));
+  const target = document.createElement('div');
+  target.className = 'sea-grid sea-grid-target';
+  target.setAttribute('aria-label', over ? 'Enemy waters — fleet revealed' : 'Enemy waters — fire here');
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const k = key(r, c);
+      const fired = !!myShots[k];
+      const ship = enemyCells.has(k);
+      const hit = fired && ship;
+      const b = document.createElement('button');
+      b.type = 'button';
+      let cls = 'sea-cell';
+      if (over && ship && hit) cls += ' wreck exploded';
+      else if (over && ship) cls += ' ship revealed';
+      else if (hit) cls += ' hit';
+      else if (fired) cls += ' miss';
+      else cls += ' water' + (canPlay ? ' aim' : '');
+      b.className = cls;
+      b.disabled = fired || !canPlay || over;
+      b.title = hit || (over && ship && hit) ? 'Exploded'
+        : over && ship ? 'Ship'
+          : fired ? 'Miss — splash'
+            : canPlay ? 'Fire' : '';
+      if (hit || (over && ship && hit)) b.appendChild(mark('bomb'));
+      else if (fired) b.appendChild(mark('splash'));
+      b.addEventListener('click', () => onMove({ r, c }));
+      target.appendChild(b);
+    }
   }
   wrap.appendChild(target);
 
   // --- Your fleet (they shoot here) ---
   wrap.appendChild(title(
-    `your fleet \u00b7 ${FLEET.length - sunkCount(gs.fleet[myRole], theirShots)}/${FLEET.length} afloat`));
-  const mine = grid(20, 2);
-  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-    const k = key(r, c);
-    const ship = myCells.has(k);
-    const fired = !!theirShots[k];
-    const d = document.createElement('div');
-    d.style.cssText =
-      'width:20px;height:20px;border-radius:5px;font-size:11px;display:flex;align-items:center;' +
-      'justify-content:center;border:1px solid var(--line);' +
-      (ship && fired ? 'background:var(--p2s);color:var(--p2);'
-        : ship ? `background:${myRole === 'A' ? 'var(--p1s)' : 'var(--p2s)'};`
-        : fired ? 'background:var(--room2);color:var(--dim);'
-        : 'background:var(--room2);');
-    d.textContent = ship && fired ? '\u2738' : (!ship && fired ? '\u00b7' : '');
-    mine.appendChild(d);
+    over
+      ? `Your fleet · ${sunkCount(gs.fleet[myRole], theirShots)}/${FLEET.length} exploded`
+      : `Your fleet · ${FLEET.length - sunkCount(gs.fleet[myRole], theirShots)}/${FLEET.length} afloat`,
+    'mine'));
+  const mine = document.createElement('div');
+  mine.className = 'sea-grid sea-grid-mine';
+  mine.setAttribute('aria-label', 'Your fleet');
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const k = key(r, c);
+      const ship = myCells.has(k);
+      const fired = !!theirShots[k];
+      const d = document.createElement('div');
+      let cls = 'sea-cell sea-cell-sm';
+      if (ship && fired) cls += over ? ' wreck exploded' : ' wreck';
+      else if (ship) cls += over ? ' ship revealed' : ' ship';
+      else if (fired) cls += ' miss';
+      else cls += ' water';
+      d.className = cls;
+      if (ship && fired) d.appendChild(mark('bomb'));
+      else if (!ship && fired) d.appendChild(mark('splash'));
+      mine.appendChild(d);
+    }
   }
   wrap.appendChild(mine);
   host.appendChild(wrap);

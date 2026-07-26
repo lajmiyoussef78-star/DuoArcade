@@ -42,11 +42,11 @@ test('countdown becomes live only when due', () => {
 
 test('strict relay rotates partners across team turns', () => {
   let s = { ...initialArenaState('ttt', TTT), phase: 'live' };
-  s = applyArenaMove(s, 0, 'A1', TTT);
+  s = applyArenaMove(s, { b: 0, c: 0 }, 'A1', TTT);
   assert.equal(s.activeSeat, 'B1');
-  s = applyArenaMove(s, 1, 'B1', TTT);
+  s = applyArenaMove(s, { b: 1, c: 0 }, 'B1', TTT);
   assert.equal(s.activeSeat, 'A2');
-  s = applyArenaMove(s, 2, 'A2', TTT);
+  s = applyArenaMove(s, { b: 2, c: 0 }, 'A2', TTT);
   assert.equal(s.activeSeat, 'B2');
 });
 
@@ -68,8 +68,10 @@ test('dots extra turn stays with team but passes to partner', () => {
 
 test('winner finishes match and rematch swaps starter', () => {
   let s = { ...initialArenaState('ttt', TTT), phase: 'live' };
-  s.gs.cells = ['A', 'A', null, 'B', 'B', null, null, null, null];
-  s = applyArenaMove(s, 2, 'A1', TTT);
+  // A already owns mega boards 0 & 1; one mark on board 2 completes the mega row.
+  s.gs.boardWinners = ['A', 'A', null, null, null, null, null, null, null];
+  s.gs.boards[2] = ['A', 'A', null, 'B', 'B', null, null, null, null];
+  s = applyArenaMove(s, { b: 2, c: 2 }, 'A1', TTT); // completing place ends match
   assert.equal(s.winner, 'A');
   assert.equal(s.phase, 'done');
   const r = rematchState(s, TTT);
