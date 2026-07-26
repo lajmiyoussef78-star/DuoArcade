@@ -39,6 +39,7 @@ function normalize(row) {
     anniversary: row.anniversary ?? null,
     favoriteGames: Array.isArray(row.favorite_games) ? row.favorite_games : [],
     fixGames: Array.isArray(row.fix_games) ? row.fix_games : [],
+    daliGames: Array.isArray(row.dali_games) ? row.dali_games : [],
     turn: row.turn ?? '-'
   };
 }
@@ -58,6 +59,7 @@ function denormalize(patch) {
   if ('anniversary' in patch) out.anniversary = patch.anniversary;
   if ('favoriteGames' in patch) out.favorite_games = patch.favoriteGames;
   if ('fixGames' in patch) out.fix_games = patch.fixGames;
+  if ('daliGames' in patch) out.dali_games = patch.daliGames;
   if ('turn' in patch) out.turn = patch.turn;
   return out;
 }
@@ -428,7 +430,7 @@ function localSync() {
   const blank = (code, nameA, nameB) => ({
     code, nameA, nameB, records: {},
     evenings: 0, streak: 0, bestStreak: 0, tasteAgree: 0, tasteTotal: 0,
-    lastDay: null, session: null, turn: '-', favoriteGames: [], fixGames: []
+    lastDay: null, session: null, turn: '-', favoriteGames: [], fixGames: [], daliGames: []
   });
 
   return {

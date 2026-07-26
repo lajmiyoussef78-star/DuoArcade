@@ -335,6 +335,21 @@ html[data-appearance="light"] .arcade-page .hstat .l{color:#4E566A;}
   font-size:9px;font-weight:800;letter-spacing:.02em;text-transform:none;
   color:var(--candle);opacity:.9;
 }
+.arcade-page .gcard-dali{
+  height:28px;padding:0 8px 0 9px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(20,15,26,.72);
+  color:var(--dim);font-size:11px;font-weight:800;letter-spacing:.04em;
+  text-transform:uppercase;line-height:1;cursor:pointer;
+  display:inline-flex;align-items:center;gap:3px;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  transition:color .15s,border-color .15s,background .15s,transform .12s;
+}
+.arcade-page .gcard-dali:hover{color:var(--candle);border-color:var(--candle);transform:scale(1.04);}
+.arcade-page .gcard-dali.on{
+  color:var(--candle);border-color:var(--candle);
+  background:color-mix(in srgb, var(--candle) 18%, rgba(20,15,26,.8));
+}
+.arcade-page .gcard-dali-active{border-color:color-mix(in srgb, var(--candle) 48%, var(--line));}
 .arcade-page .gcard-fav{
   width:28px;height:28px;border-radius:999px;
   border:1px solid var(--line);background:rgba(20,15,26,.72);
@@ -386,6 +401,7 @@ html[data-appearance="light"] .arcade-page .gcard:hover{
 html[data-appearance="light"] .arcade-page .gcard-veil{
   background:linear-gradient(90deg,rgba(232,235,243,.96) 0%,rgba(232,235,243,.78) 48%,rgba(232,235,243,.2) 100%);}
 html[data-appearance="light"] .arcade-page .gcard-fix,
+html[data-appearance="light"] .arcade-page .gcard-dali,
 html[data-appearance="light"] .arcade-page .gcard-fav{
   background:rgba(232,235,243,.92);box-shadow:0 2px 8px rgba(28,30,42,.1);}
 html[data-appearance="light"] .arcade-page .gcard-fav.on{

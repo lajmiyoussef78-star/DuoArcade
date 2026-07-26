@@ -9,7 +9,7 @@ const MS_KEY = code => 'duoarcade-ms-' + code;
 /** Home body only — chrome lives in DuoHomeLayout so XP bar stays mounted. */
 export default function HomeScreen({
   duo, code, myRole, homeStatus,
-  onStartGame, onSetFavoriteGames, onSetFixGames,
+  onStartGame, onSetFavoriteGames, onSetFixGames, onSetDaliGames,
 }) {
   const [copied, setCopied] = useState(false);
   const [celebrate, setCelebrate] = useState(null);
@@ -64,6 +64,7 @@ export default function HomeScreen({
         onStartGame={onStartGame}
         onSetFavoriteGames={onSetFavoriteGames}
         onSetFixGames={onSetFixGames}
+        onSetDaliGames={onSetDaliGames}
       />
 
       <ChallengeCard />

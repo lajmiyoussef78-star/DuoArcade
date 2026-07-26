@@ -637,6 +637,13 @@ export default function Arcade() {
     await upd(code, { fixGames: next }, { force: true });
   }, [patchLocal, upd]);
 
+  const setDaliGames = useCallback(async ids => {
+    const { code } = ctxRef.current;
+    const next = Array.isArray(ids) ? ids : [];
+    patchLocal({ daliGames: next });
+    await upd(code, { daliGames: next }, { force: true });
+  }, [patchLocal, upd]);
+
   const redeemCode = useCallback(async codeStr => {
     const { code } = ctxRef.current;
     const r = await syncRef.current.redeemPassCode(codeStr, code);
@@ -949,7 +956,8 @@ export default function Arcade() {
         onStartGame: startGame, onStartWatch: startWatch,
         onBack: () => { leaveDuoContext(); enterLobby(); },
         onSetAnniversary: setAnniversary,
-        onSetFavoriteGames: setFavoriteGames, onSetFixGames: setFixGames, onRedeem: redeemCode,
+        onSetFavoriteGames: setFavoriteGames, onSetFixGames: setFixGames,
+        onSetDaliGames: setDaliGames, onRedeem: redeemCode,
         avatarTick,
       };
       inner = (

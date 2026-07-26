@@ -1,14 +1,20 @@
 import { artFor } from '../engines/art.js';
 
-/** Shared shelf game card — same design everywhere (name, tag, record, fix, star). */
+/** Shared shelf game card — same design everywhere (name, tag, record, fix, dali, star). */
 export default function GameCard({
-  eng, rec, favorited, needsFix, fixNote, onStart, onToggleFavorite, onFix
+  eng, rec, favorited, inDali, needsFix, fixNote,
+  onStart, onToggleFavorite, onToggleDali, onFix
 }) {
   const id = eng.meta.id;
   const r = rec || { a: 0, b: 0, d: 0 };
   return (
     <div
-      className={'gcard' + (favorited ? ' gcard-fav-active' : '') + (needsFix ? ' gcard-fix-active' : '')}
+      className={
+        'gcard'
+        + (favorited ? ' gcard-fav-active' : '')
+        + (inDali ? ' gcard-dali-active' : '')
+        + (needsFix ? ' gcard-fix-active' : '')
+      }
       onClick={() => onStart?.(id)}
     >
       {artFor(id) && (
@@ -37,6 +43,15 @@ export default function GameCard({
           onClick={() => onFix?.(eng)}
         >
           Fix<span className="gcard-beta">β</span>
+        </button>
+        <button
+          type="button"
+          className={'gcard-dali' + (inDali ? ' on' : '')}
+          aria-label={inDali ? `Remove ${eng.meta.name} from Dali` : `Add ${eng.meta.name} to Dali`}
+          title={inDali ? 'Remove from Dali' : 'Add to Dali'}
+          onClick={() => onToggleDali?.(id, !inDali)}
+        >
+          Dali<span className="gcard-beta">β</span>
         </button>
         <button
           type="button"
