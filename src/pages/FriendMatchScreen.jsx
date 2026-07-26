@@ -12,7 +12,10 @@ function RealtimeBoard({ eng, session, myRole, names, client, code, onFinish }) 
   useEffect(() => {
     if (!hostRef.current || !eng?.mount) return;
     const rt = client.rt(code);
-    eng.mount(hostRef.current, { myRole, rt, names, onFinish, code });
+    eng.mount(hostRef.current, {
+      myRole, rt, names, onFinish, code,
+      startedAt: session.startedAt || 0,
+    });
     return () => {
       try { eng.unmount(); } catch { /* */ }
       try { rt.close(); } catch { /* */ }
