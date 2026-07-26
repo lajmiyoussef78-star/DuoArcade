@@ -339,8 +339,8 @@ async function supabaseSync() {
       };
 
       /* Soft ticks may coalesce; critical game events never drop. */
-      const COALESCE = new Set(['pose', 'state', 'inp', 'snap', 'start', 'st', 'clk', 'aim']);
-      const CRITICAL = new Set(['try', 'ev', 'throw', 'over', 'nextEnd']);
+      const COALESCE = new Set(['pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim']);
+      const CRITICAL = new Set(['try', 'ev', 'throw', 'over', 'nextEnd', 'grab']);
 
       const ch = sb.channel(name, { config: { broadcast: { ack: false, self: false } } })
         .on('broadcast', { event: 'm' }, p => {

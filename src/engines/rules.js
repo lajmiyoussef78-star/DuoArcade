@@ -28,7 +28,7 @@ export const RULES = {
   },
 
   dots: {
-    goal: 'Claim the most boxes out of 16.',
+    goal: 'Claim the most boxes out of 36.',
     how: [
       'Take turns drawing one edge between two dots.',
       'Complete the fourth side of a box \u2014 it\u2019s yours, and you go again.',
