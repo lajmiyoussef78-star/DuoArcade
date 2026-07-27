@@ -16,7 +16,7 @@ function turnPlan() {
   return plan;
 }
 
-export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
+export default function Forbidden({ myRole, names = {}, rt, onComplete, onProceed }) {
   const role = myRole;
   const [phase, setPhase] = useState('topic');
   const [topic, setTopic] = useState('');
@@ -31,6 +31,7 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
   const [draftA, setDraftA] = useState('');
   const [result, setResult] = useState(null);
   const [myWords, setMyWords] = useState([]); // words I must avoid (shown while playing)
+  const [ended, setEnded] = useState(false);
 
   const myForbiddenRef = useRef([]);
   const myPicksRef = useRef([]);
@@ -186,6 +187,17 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
   const answeredCount = exchanges.filter(e => e && (e.answeredMine || e.answerHidden)).length;
   const allAnswered = answeredCount >= plan.length;
 
+  function endRound() {
+    if (ended) return;
+    setEnded(true);
+    onProceed?.();
+  }
+
+  const myForbiddenWords = role === 'A' ? (result?.wordsA || []) : (result?.wordsB || []);
+  const theirForbiddenWords = role === 'A' ? (result?.wordsB || []) : (result?.wordsA || []);
+  const mySlips = role === 'A' ? result?.totalA : result?.totalB;
+  const theirSlips = role === 'A' ? result?.totalB : result?.totalA;
+
   return (
     <div className="fb-page fb-embedded">
       {phase === 'topic' && (
@@ -338,41 +350,66 @@ export default function Forbidden({ myRole, names = {}, rt, onComplete }) {
       )}
 
       {phase === 'done' && result && (
-        <div className="fb-done">
-          <div className="fb-winline">
-            {result.w === 'draw' ? 'A perfect tie!' : `${result.w === 'A' ? names.A : names.B} wins!`}
+        <div className="fb-results">
+          <div className="fb-wait-title">
+            {result.w === 'draw'
+              ? 'A perfect tie!'
+              : result.w === role
+                ? 'You win!'
+                : `${names[result.w]} wins!`}
           </div>
-          <div className="fb-final">
-            {names.A} said {result.totalA} forbidden {result.totalA === 1 ? 'word' : 'words'} ·
-            {' '}{names.B} said {result.totalB} (fewer wins{result.totalA === result.totalB ? '; tie broken by who stayed clean longer' : ''})
+          <div className="fb-wait-sub">
+            You said {mySlips} forbidden {mySlips === 1 ? 'word' : 'words'} ·
+            {' '}{partnerName} said {theirSlips}
+            {result.totalA === result.totalB ? ' · tie broken by who stayed clean longer' : ''}
           </div>
-          <div className="fb-reveal">
-            <div className="fb-reveal-col">
-              <div className="fb-reveal-h pA">{names.A}'s forbidden words</div>
-              <div className="fb-reveal-words">
-                {(result.wordsA || []).map(w => <span key={w}>{w}</span>)}
-              </div>
+
+          <div className="fb-wait-codes">
+            <div className="fb-wait-code">
+              Your forbidden words:
+              <b>{myForbiddenWords.length ? myForbiddenWords.join(' · ') : '—'}</b>
             </div>
-            <div className="fb-reveal-col">
-              <div className="fb-reveal-h pB">{names.B}'s forbidden words</div>
-              <div className="fb-reveal-words">
-                {(result.wordsB || []).map(w => <span key={w}>{w}</span>)}
-              </div>
+            <div className="fb-wait-code">
+              {partnerName}&apos;s forbidden words:
+              <b>{theirForbiddenWords.length ? theirForbiddenWords.join(' · ') : '—'}</b>
             </div>
           </div>
-          <div className="fb-transcript">
-            {result.scored.map((m, i) => (
-              <div key={i} className="fb-tr">
-                <div className="fb-tr-head">
-                  <span className="fb-qa-no">Q{m.qNo}</span>
-                  <span className={m.asker === 'A' ? 'pA' : 'pB'}>{names[m.asker]} → {names[m.answerer]}</span>
-                  {m.slips.length > 0 && <span className="fb-slip-tag">{'\u26A0\uFE0F'} {m.slips.map(w => `"${w}"`).join(', ')}</span>}
+
+          <div className="fb-answers">
+            <div className="fb-answers-title">What you each said</div>
+            {result.scored.map((m, i) => {
+              const mine = m.answerer === role;
+              const who = mine ? 'You' : partnerName;
+              return (
+                <div key={i} className={'fb-answer-row' + (mine ? ' mine' : ' theirs') + (m.slips.length ? ' slipped' : '')}>
+                  <div className="fb-answer-meta">
+                    <span className="fb-qa-no">Response {i + 1}</span>
+                    <span className={m.answerer === 'A' ? 'pA' : 'pB'}>
+                      {who} answered {names[m.asker]}&apos;s Q{m.qNo}
+                    </span>
+                    {m.slips.length > 0 && (
+                      <span className="fb-slip-tag">
+                        slipped {m.slips.map(w => `"${w}"`).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="fb-answer-prompt">Q: {m.question}</div>
+                  <div className="fb-answer-said">
+                    <span className="fb-answer-who">{who} said:</span> {m.answer}
+                  </div>
                 </div>
-                <div className="fb-tr-q">{m.question}</div>
-                <div className={'fb-tr-a' + (m.slips.length ? ' slipped' : '')}>{m.answer}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          <button
+            type="button"
+            className="btn warm fb-end"
+            onClick={endRound}
+            disabled={ended}
+          >
+            End round
+          </button>
         </div>
       )}
     </div>

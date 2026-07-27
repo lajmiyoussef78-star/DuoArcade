@@ -216,10 +216,13 @@ function advanceAfterResolution(st) {
 }
 
 function beginExchange(st, p) {
-  const drawn = [st.deck.shift(), st.deck.shift()];
+  // Politician draws as many as they still hold (3 / 2 / 1), then keeps that many.
+  const n = Math.min(alive(st, p).length, st.deck.length);
+  const drawn = [];
+  for (let i = 0; i < n; i++) drawn.push(st.deck.shift());
   st.pending = { type: 'exchange', by: p, drawn };
   st.phase = 'exchange';
-  st.log.push(`${p} draws 2 for exchange.`);
+  st.log.push(`${p} draws ${n} for exchange.`);
 }
 
 // Resolve the pending main action's effect (post any challenge/block).
@@ -319,6 +322,9 @@ function applyMoveInner(state, move, by) {
       if (a.cost > st.coins[by]) return fail('Not enough coins');
       if (move.action === 'tax' && st.coins[opp] < TAX_RICH_AT) {
         return fail(`They need ${TAX_RICH_AT}+ coins to be taxed`);
+      }
+      if (move.action === 'steal' && st.coins[opp] < 2) {
+        return fail('They need at least 2 coins to steal from');
       }
       st.coins[by] -= a.cost;                        // paid on declaration
       st.pending = { type: 'main', by, action: move.action, claim: a.claim, accuseRole: move.accuseRole || null };

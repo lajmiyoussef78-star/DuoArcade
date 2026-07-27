@@ -13,14 +13,57 @@
 .arcade-page .ti-dock,
 .arcade-page .ti-toolbar { box-sizing: border-box; }
 
-.arcade-page .ti-shell { padding: 4px 0 8px; }
-.arcade-page .ti-table { padding: 14px 12px 16px; }
-.arcade-page .ti-lake { padding: 14px; }
+.arcade-page .ti-shell { padding: 0; }
+.arcade-page .ti-table { padding: 10px 10px 12px; }
+.arcade-page .ti-lake { padding: 10px; }
 .arcade-page .ti-tile { padding: 0; }
-.arcade-page .ti-dock { padding: 12px 10px 4px; }
-.arcade-page .ti-status { padding: 20px; }
-.arcade-page .ti-toolbar { padding: 0 0 4px; }
-.arcade-page .ti-dock .btn { padding: 10px 16px; }
+.arcade-page .ti-dock { padding: 8px 8px 2px; }
+.arcade-page .ti-status { padding: 16px; }
+.arcade-page .ti-toolbar { padding: 0; }
+.arcade-page .ti-dock .btn { padding: 9px 14px; }
+
+/* UIfriendly: full-width shell, board sized to avoid heavy vertical scroll */
+.arcade-page .ti-shell {
+  width: 100%;
+  max-width: none;
+}
+.arcade-page .ti-game {
+  gap: 8px;
+}
+.arcade-page .ti-brand {
+  display: none; /* GameScreen header already names the game */
+}
+.arcade-page .ti-toolbar {
+  gap: 4px;
+}
+.arcade-page .ti-pname {
+  font-size: 13px;
+}
+.arcade-page .ti-statusline {
+  min-height: 18px;
+  font-size: 12.5px;
+}
+.arcade-page .ti-roundmsg {
+  font-size: 14px;
+}
+.arcade-page .ti-lake {
+  /* Keep square lake ≤ available viewport height (header/players/chrome ≈ 260px) */
+  width: min(100%, min(560px, calc(100dvh - 260px)));
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.arcade-page .ti-board {
+  gap: 5px;
+}
+.arcade-page .ti-orb {
+  width: 22px;
+  height: 22px;
+}
+.arcade-page .ti-note {
+  margin-top: 2px;
+  font-size: 11px;
+}
 
 .ti-shell {
   width: 100%; max-width: none; margin-left: auto; margin-right: auto;
@@ -50,7 +93,7 @@
   overflow: hidden;
 }
 
-.ti-game { display: flex; flex-direction: column; align-items: center; gap: 14px; position: relative; z-index: 1; }
+.ti-game { display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; z-index: 1; }
 
 .ti-toolbar {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%;
@@ -336,7 +379,18 @@
 
 @media (max-width: 440px) {
   .ti-board { gap: 4px; }
-  .ti-orb { width: 20px; height: 20px; }
-  .arcade-page .ti-table { padding: 12px 10px 14px; }
-  .arcade-page .ti-lake { padding: 10px; }
+  .ti-orb { width: 18px; height: 18px; }
+  .arcade-page .ti-table { padding: 8px 8px 10px; }
+  .arcade-page .ti-lake {
+    padding: 8px;
+    width: min(100%, calc(100dvh - 240px));
+  }
+}
+
+@media (max-height: 720px) {
+  .arcade-page .ti-lake {
+    width: min(100%, min(480px, calc(100dvh - 230px)));
+  }
+  .arcade-page .ti-table { padding: 8px 8px 10px; }
+  .arcade-page .ti-game { gap: 6px; }
 }

@@ -49,15 +49,21 @@ function PlayIcon() {
 }
 
 /** Turn-based boards keep the exact same DOM engine interface as before:
- *  eng.render(hostEl, gs, { myRole, turn, winner, onMove }) */
-function TurnBoard({ eng, session, myRole, onMove, paused }) {
+ *  eng.render(hostEl, gs, { myRole, turn, winner, onMove, names, onProceed }) */
+function TurnBoard({ eng, session, myRole, onMove, paused, names, onProceed }) {
   const hostRef = useRef(null);
+  const onProceedRef = useRef(onProceed);
+  useEffect(() => { onProceedRef.current = onProceed; }, [onProceed]);
+  const nameA = names?.A || 'A';
+  const nameB = names?.B || 'B';
   useEffect(() => {
     eng.render(hostRef.current, session.gs, {
       myRole, turn: session.turn, winner: session.winner,
-      onMove: paused ? () => {} : onMove
+      names: { A: nameA, B: nameB },
+      onMove: paused ? () => {} : onMove,
+      onProceed: () => onProceedRef.current?.()
     });
-  }, [eng, session, myRole, onMove, paused]);
+  }, [eng, session, myRole, onMove, paused, nameA, nameB]);
   return <div ref={hostRef} className={paused ? 'gv-board-paused' : undefined} />;
 }
 
@@ -145,7 +151,7 @@ export default function GameScreen({
       const t = setTimeout(() => setRevealResult(true), 2200);
       return () => clearTimeout(t);
     }
-    if (s.game === 'wordrace') {
+    if (s.game === 'wordrace' || s.game === 'codebreak' || s.game === 'forbiddenwords') {
       // Manual End round only — do not auto-open or wipe a prior click.
       return;
     }
@@ -246,7 +252,9 @@ export default function GameScreen({
     // Keep the live board up during result delay so Word Race / Sea Battle
     // can show their end reveal before the summary panel.
     if (!s.winner || !revealResult) {
-      const endFreeze = !!s.winner && !revealResult && s.game !== 'wordrace';
+      const endFreeze = !!s.winner && !revealResult
+        && s.game !== 'wordrace'
+        && s.game !== 'forbiddenwords';
       board = (
         <RealtimeBoard eng={eng} session={s} myRole={myRole} sync={sync} code={code}
           names={{ A: duo.nameA, B: duo.nameB }} paused={paused} frozen={endFreeze}
@@ -262,7 +270,11 @@ export default function GameScreen({
       showRematch = !inChallenge;
     }
   } else {
-    board = <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} paused={paused} />;
+    board = (
+      <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} paused={paused}
+        names={{ A: duo.nameA, B: duo.nameB }}
+        onProceed={() => setRevealResult(true)} />
+    );
     bannerClass = 'banner' + (s.winner && revealResult ? ' ' + s.winner : '');
     banner = paused
       ? 'Game paused'
@@ -356,15 +368,22 @@ export default function GameScreen({
         )}
 
         {!showResult && (
-          <div className="gv-players">
-            <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
-              <div className="dot" /><span>{duo.nameA}</span>
+          <>
+            <div className="gv-players">
+              <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
+                <div className="dot" /><span>{duo.nameA}</span>
+              </div>
+              <div className="tally">{series.a} {'–'} {series.b}</div>
+              <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
+                <div className="dot" /><span>{duo.nameB}</span>
+              </div>
             </div>
-            <div className="tally">{series.a} {'–'} {series.b}</div>
-            <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
-              <div className="dot" /><span>{duo.nameB}</span>
-            </div>
-          </div>
+            {s.game === 'codebreak' && s.gs?.secrets?.[myRole] && (
+              <div className="cb-secret-title">
+                Your secret code is : <span>{s.gs.secrets[myRole]}</span>
+              </div>
+            )}
+          </>
         )}
 
         {pausePending === partnerRole && !paused && (

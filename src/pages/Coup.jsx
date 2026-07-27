@@ -75,12 +75,14 @@ const SHEET = [
   },
   {
     id: 'ambassador',
-    your: ['Exchanges cards with others from the deck.'],
+    your: [
+      'Draws from the deck as many cards as they still hold (3, 2, or 1), then keeps that many and returns the rest under the deck.'
+    ],
     other: []
   },
   {
     id: 'thief',
-    your: ['Steals 2 coins from another player.'],
+    your: ['Steals 2 coins from another player (only if they have at least 2).'],
     other: ['Blocks theft.']
   },
   {
@@ -599,7 +601,7 @@ function ActionDock({ st, me, opp, dispatch, accusePick, setAccusePick }) {
             </button>
           ))}
         </div>
-        <button type="button" className="btn small ghost" onClick={() => setAccusePick(false)}>cancel</button>
+        <button type="button" className="cp-cancel" onClick={() => setAccusePick(false)}>Cancel</button>
       </div>
     );
   }
@@ -613,7 +615,8 @@ function ActionDock({ st, me, opp, dispatch, accusePick, setAccusePick }) {
         {ORDER.map(a => {
           const A = ACTIONS[a];
           const richBlock = a === 'tax' && st.coins[opp] < TAX_RICH_AT;
-          const off = mustCoup ? a !== 'coup' : (A.cost > st.coins[me] || richBlock);
+          const stealBlock = a === 'steal' && st.coins[opp] < 2;
+          const off = mustCoup ? a !== 'coup' : (A.cost > st.coins[me] || richBlock || stealBlock);
           const honest = A.claim && st.hands[me].some(c => !c.dead && c.role === A.claim);
           const tone = honest ? ROLES[A.claim].color : undefined;
           return (

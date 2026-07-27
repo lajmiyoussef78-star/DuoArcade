@@ -1759,25 +1759,102 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .ttl-recap td.draw{color:var(--dim);font-weight:800;font-size:10px;letter-spacing:.02em;}
 .arcade-page .ttl-recap td.loss{color:transparent;}
 
-/* ── Code Break ── */
-.arcade-page .cb-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:520px;}
-.arcade-page .cb-legend{font-size:11.5px;color:var(--dim);text-align:center;line-height:1.45;}
-.arcade-page .cb-cols{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;}
-.arcade-page .cb-side{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:200px;}
-.arcade-page .cb-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;}
-.arcade-page .cb-board{display:flex;flex-direction:column;gap:8px;width:100%;}
-.arcade-page .cb-row{display:flex;align-items:center;gap:12px;justify-content:space-between;}
-.arcade-page .cb-row.hint{font-size:11px;color:var(--dim);justify-content:center;padding:8px 0;}
-.arcade-page .cb-code{display:flex;gap:6px;}
-.arcade-page .cb-cell{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--room2);
-  display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:var(--text);}
-.arcade-page .cb-hint{flex:1;font-size:12.5px;color:var(--candle);text-align:right;line-height:1.35;min-width:120px;}
-.arcade-page .cb-form{display:flex;gap:10px;align-items:center;margin-top:4px;}
-.arcade-page .cb-input{width:120px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:.2em;
-  background:var(--room2);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:10px 12px;}
+/* ── Code Break (full-width ≈ gv-top, compact vertically) ── */
+.arcade-page .cb-root{
+  display:flex;flex-direction:column;align-items:stretch;width:100%;gap:12px;
+  box-sizing:border-box;
+}
+.arcade-page .cb-wrap{
+  display:flex;gap:48px;justify-content:center;align-items:stretch;
+  flex-wrap:nowrap;width:100%;box-sizing:border-box;
+}
+.arcade-page .cb-side{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  flex:1 1 0;min-width:0;max-width:440px;
+}
+.arcade-page .cb-label{
+  font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;font-weight:700;
+}
+.arcade-page .cb-secret-title{
+  width:100%;text-align:center;margin:0 0 8px;
+  font-family:'Fraunces',serif;font-size:clamp(18px,2.6vw,26px);font-weight:800;
+  color:var(--ink);line-height:1.2;
+}
+.arcade-page .cb-secret-title span{
+  font-family:'JetBrains Mono',monospace;letter-spacing:.22em;color:#fff;padding-left:.12em;
+}
+.arcade-page .cb-board{display:flex;flex-direction:column;gap:8px;width:100%;align-items:center;}
+.arcade-page .cb-row{
+  display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;
+}
+.arcade-page .cb-row.empty{
+  min-height:48px;justify-content:center;font-size:13px;color:var(--dim);
+}
+.arcade-page .cb-code{display:flex;gap:8px;justify-content:center;}
+.arcade-page .cb-cell{
+  width:50px;height:50px;border-radius:10px;border:1px solid var(--line);background:var(--room2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:21px;color:var(--text);
+}
+.arcade-page .cb-hint{
+  font-size:13px;font-weight:600;color:var(--candle);text-align:center;line-height:1.25;min-height:16px;
+  width:100%;max-width:none;
+}
+.arcade-page .cb-form{
+  display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap;justify-content:center;width:100%;
+}
+.arcade-page .cb-form .btn{min-width:110px;padding:10px 16px;font-size:15px;font-weight:800;}
+.arcade-page .cb-input{
+  width:min(200px,100%);text-align:center;font-family:'JetBrains Mono',monospace;
+  font-size:22px;letter-spacing:.18em;
+  background:var(--room2);border:1px solid var(--line);border-radius:12px;color:var(--text);
+  padding:10px 12px;
+}
 .arcade-page .cb-input:focus{outline:none;border-color:var(--candle);}
-.arcade-page .cb-reveal{font-size:13px;color:var(--candle);text-align:center;margin-top:4px;}
-@media (max-width:460px){
-.arcade-page .cb-cell{width:38px;height:38px;font-size:17px;}
-.arcade-page .cb-cols{gap:12px;}
+.arcade-page .cb-side-msg{font-size:13px;color:var(--candle);text-align:center;min-height:18px;margin-top:4px;}
+.arcade-page .cb-foot{
+  width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  box-sizing:border-box;
+}
+.arcade-page .cb-legend{font-size:12px;color:var(--dim);text-align:center;line-height:1.4;max-width:720px;}
+.arcade-page .cb-reveal{font-size:16px;color:#fff;font-weight:700;}
+.arcade-page .cb-wait{
+  width:100%;max-width:none;padding:10px 8px 4px;
+  text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+}
+.arcade-page .cb-wait-title{
+  font-family:'Fraunces',serif;font-size:clamp(22px,3.2vw,30px);font-weight:800;line-height:1.15;
+  color:var(--candle);letter-spacing:.01em;margin-bottom:18px;
+}
+.arcade-page .cb-wait-codes{
+  display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:baseline;
+  width:100%;max-width:720px;gap:24px;padding:0 12px;box-sizing:border-box;
+}
+.arcade-page .cb-wait-code{
+  flex:1 1 0;text-align:center;
+  font-size:clamp(15px,2vw,18px);font-weight:600;color:var(--ink);line-height:1.35;
+  white-space:nowrap;
+}
+.arcade-page .cb-wait-code b{
+  font-family:'JetBrains Mono',monospace;font-size:clamp(20px,2.6vw,26px);font-weight:800;
+  letter-spacing:.18em;color:#fff;padding-left:.1em;
+}
+.arcade-page .cb-end{
+  min-width:168px;font-size:15px;font-weight:800;padding:12px 22px;margin-top:28px;
+}
+@media (max-width:640px){
+  .arcade-page .cb-wait-codes{flex-wrap:wrap;justify-content:center;gap:12px 20px;}
+  .arcade-page .cb-wait-code{flex:1 1 100%;white-space:normal;}
+  .arcade-page .cb-end{margin-top:22px;}
+}
+.arcade-page .cb-wrap.cb-ended{pointer-events:none;}
+.arcade-page .cb-wrap.cb-ended + .cb-foot .cb-end,
+.arcade-page .cb-foot .cb-end{pointer-events:auto;}
+@media (max-width:560px){
+  .arcade-page .cb-wrap{flex-wrap:wrap;gap:20px;}
+  .arcade-page .cb-side{flex:1 1 100%;max-width:100%;}
+  .arcade-page .cb-cell{width:46px;height:46px;font-size:19px;border-radius:9px;}
+  .arcade-page .cb-code{gap:7px;}
+  .arcade-page .cb-input{font-size:20px;padding:10px 12px;}
+  .arcade-page .cb-secret-title{font-size:clamp(16px,4.5vw,22px);margin-bottom:6px;}
 }

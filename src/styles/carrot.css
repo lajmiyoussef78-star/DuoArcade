@@ -2,7 +2,12 @@
 /* Beat arcade-page * { padding:0 } reset */
 
 .arcade-page .carrot-wrap,
-.carrot-wrap { width: 100%; }
+.carrot-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
 
 .arcade-page .ca-shell,
 .arcade-page .ca-table,
@@ -16,23 +21,76 @@
 .arcade-page .ca-chat-input input,
 .arcade-page .ca-bo5 { box-sizing: border-box; }
 
-.arcade-page .ca-shell { padding: 4px 0 8px; }
-.arcade-page .ca-table { padding: 14px 12px 16px; }
-.arcade-page .ca-zone { padding: 10px 12px; }
-.arcade-page .ca-felt { padding: 14px 16px; }
-.arcade-page .ca-dock { padding: 12px 10px 14px; }
-.arcade-page .ca-chat { padding: 10px; }
-.arcade-page .ca-msg-text { padding: 6px 11px; }
-.arcade-page .ca-quickbtn { padding: 5px 11px; }
-.arcade-page .ca-chat-input input { padding: 9px 12px; }
-.arcade-page .ca-status { padding: 20px; }
-.arcade-page .ca-toolbar { padding: 0 0 4px; }
+.arcade-page .ca-shell { padding: 0; }
+.arcade-page .ca-table { padding: 12px 14px 14px; }
+.arcade-page .ca-zone { padding: 6px 10px; }
+.arcade-page .ca-felt { padding: 10px 14px; }
+.arcade-page .ca-dock { padding: 10px 10px 12px; }
+.arcade-page .ca-chat { padding: 8px 10px; }
+.arcade-page .ca-msg-text { padding: 5px 10px; }
+.arcade-page .ca-quickbtn { padding: 4px 10px; }
+.arcade-page .ca-chat-input input { padding: 8px 10px; }
+.arcade-page .ca-status { padding: 16px; }
+.arcade-page .ca-toolbar { padding: 0; }
 .arcade-page .ca-peekbtn { padding: 8px 14px; }
 .arcade-page .ca-choicebtn { padding: 8px 12px; }
 .arcade-page .ca-roundno { padding: 0 2px; }
 
+/* UIfriendly: full-width shell, centered in the stage, less vertical scroll */
+.arcade-page .ca-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 0;
+}
+.arcade-page .ca-brand {
+  display: none; /* GameScreen header already names Carrot in a Box */
+}
+.arcade-page .ca-board {
+  gap: 8px;
+  align-items: center;
+}
+.arcade-page .ca-toolbar {
+  gap: 4px;
+  width: 100%;
+}
+.arcade-page .ca-zone {
+  gap: 6px;
+  width: 100%;
+}
+.arcade-page .ca-felt {
+  min-height: 56px;
+  gap: 6px;
+  width: 100%;
+}
+.arcade-page .ca-box {
+  width: 100px;
+  height: 90px;
+}
+.arcade-page .ca-box-lid { font-size: 28px; }
+.arcade-page .ca-box-content { font-size: 36px; }
+.arcade-page .ca-box-content.priv { font-size: 32px; }
+.arcade-page .ca-chat {
+  margin-top: 8px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+.arcade-page .ca-chat-msgs {
+  max-height: 96px;
+  min-height: 44px;
+}
+.arcade-page .ca-dock {
+  margin-top: 8px;
+  max-width: 560px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .ca-shell {
-  width: 100%; max-width: 680px; margin: 0 auto;
+  width: 100%; max-width: none; margin: 0 auto;
   color: var(--text); font-family: 'Inter', sans-serif;
   position: relative;
 }
@@ -41,6 +99,9 @@
 /* Full table — same night/room/candle language as Veilcourt */
 .ca-table {
   position: relative;
+  width: 100%;
+  max-width: 940px;
+  margin: 0 auto;
   border-radius: 28px;
   padding: 14px 12px 16px;
   min-width: 0;
@@ -59,8 +120,10 @@
 .ca-board {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
   min-width: 0;
+  width: 100%;
   position: relative;
   z-index: 1;
 }
@@ -315,6 +378,19 @@
 }
 
 @media (max-width: 560px) {
-  .ca-box { width: 100px; height: 92px; }
+  .arcade-page .ca-box,
+  .ca-box { width: 88px; height: 80px; }
   .ca-brand { letter-spacing: .1em; font-size: 12px; }
+  .arcade-page .ca-table { padding: 10px 8px 12px; }
+}
+
+@media (max-height: 720px) {
+  .arcade-page .ca-table { padding: 8px 10px 10px; }
+  .arcade-page .ca-board { gap: 6px; }
+  .arcade-page .ca-zone { padding: 4px 8px; }
+  .arcade-page .ca-felt { min-height: 44px; padding: 8px 10px; }
+  .arcade-page .ca-box { width: 84px; height: 76px; }
+  .arcade-page .ca-chat { margin-top: 6px; }
+  .arcade-page .ca-chat-msgs { max-height: 72px; min-height: 36px; }
+  .arcade-page .ca-dock { margin-top: 6px; padding: 8px; }
 }

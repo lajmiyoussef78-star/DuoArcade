@@ -111,10 +111,10 @@ function boardCompact(history) {
   const el = document.createElement('div');
   el.className = 'cb-board';
   if (!history.length) {
-    const row = document.createElement('div');
-    row.className = 'cb-row hint';
-    row.textContent = 'no guesses yet';
-    el.appendChild(row);
+    const empty = document.createElement('div');
+    empty.className = 'cb-row empty';
+    empty.textContent = 'no guesses yet';
+    el.appendChild(empty);
     return el;
   }
   for (const entry of history) {
@@ -138,140 +138,148 @@ function boardCompact(history) {
   return el;
 }
 
+function makeForm({ placeholder, buttonLabel, draftValue, onDraft, onSubmit }) {
+  const form = document.createElement('div');
+  form.className = 'cb-form';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'cb-input';
+  input.inputMode = 'numeric';
+  input.maxLength = LEN;
+  input.placeholder = placeholder;
+  input.autocomplete = 'off';
+  if (draftValue != null) input.value = draftValue;
+  input.addEventListener('input', () => {
+    const v = input.value.replace(/\D/g, '').slice(0, LEN);
+    input.value = v;
+    onDraft?.(v);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') btn.click();
+  });
+  const btn = document.createElement('button');
+  btn.className = 'btn warm';
+  btn.textContent = buttonLabel;
+  btn.addEventListener('click', () => {
+    const code = input.value;
+    if (code.length !== LEN) return;
+    onSubmit(code);
+    input.value = '';
+  });
+  form.appendChild(input);
+  form.appendChild(btn);
+  return form;
+}
+
 let draft = '';
 
-export function render(host, gs, { myRole, turn, winner: w, onMove }) {
+export function render(host, gs, { myRole, turn, winner: w, onMove, names, onProceed }) {
   host.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.className = 'cb-wrap';
+  const partnerRole = other(myRole);
+  const partnerName = names?.[partnerRole] || 'partner';
 
-  const legend = document.createElement('div');
-  legend.className = 'cb-legend';
-  legend.textContent =
-    'you only get totals — never which digit is which. crack all 4 in the right order to win.';
-  wrap.appendChild(legend);
+  const root = document.createElement('div');
+  root.className = 'cb-root';
 
   if (gs.phase === 'setA' || gs.phase === 'setB') {
     const setting = gs.phase === 'setA' ? 'A' : 'B';
     const head = document.createElement('div');
-    head.className = 'dots-score';
-    head.style.marginTop = '0';
+    head.className = 'cb-legend';
     if (turn === myRole && myRole === setting && !gs.secrets[setting]) {
-      head.textContent = 'pick your secret 4-digit code — your partner won\u2019t see it';
+      head.textContent = 'pick your secret 4-digit code — your partner won’t see it';
     } else if (myRole === setting) {
-      head.textContent = 'lock in your secret code\u2026';
+      head.textContent = 'lock in your secret code…';
     } else {
-      head.textContent = 'your partner is choosing their secret code\u2026';
+      head.textContent = `${partnerName} is choosing their secret code…`;
     }
-    wrap.appendChild(head);
+    root.appendChild(head);
 
     if (turn === myRole && myRole === setting && !gs.secrets[setting]) {
-      const form = document.createElement('div');
-      form.className = 'cb-form';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'cb-input';
-      input.inputMode = 'numeric';
-      input.maxLength = LEN;
-      input.placeholder = '####';
-      input.autocomplete = 'off';
-      input.value = draft;
-      input.addEventListener('input', () => {
-        draft = input.value.replace(/\D/g, '').slice(0, LEN);
-        input.value = draft;
-      });
-      const btn = document.createElement('button');
-      btn.className = 'btn warm';
-      btn.textContent = 'Lock code';
-      btn.addEventListener('click', () => {
-        if (draft.length !== LEN) return;
-        onMove({ t: 'set', code: draft });
-        draft = '';
-      });
-      form.appendChild(input);
-      form.appendChild(btn);
-      wrap.appendChild(form);
+      root.appendChild(makeForm({
+        placeholder: '####',
+        buttonLabel: 'Lock code',
+        draftValue: draft,
+        onDraft: v => { draft = v; },
+        onSubmit: code => {
+          onMove({ t: 'set', code });
+          draft = '';
+        }
+      }));
     }
-    host.appendChild(wrap);
+    host.appendChild(root);
     return;
   }
 
   const mine = gs.guesses[myRole];
-  const theirs = gs.guesses[other(myRole)];
+  const theirs = gs.guesses[partnerRole];
   const canGuess = !w && turn === myRole && mine.length < MAX;
 
-  const cols = document.createElement('div');
-  cols.className = 'cb-cols';
+  const wrap = document.createElement('div');
+  wrap.className = 'cb-wrap' + (w ? ' cb-ended' : '');
+
+  // Left: you — guesses + form
   const left = document.createElement('div');
-  left.className = 'cb-side';
+  left.className = 'cb-side mine';
   left.appendChild(Object.assign(document.createElement('div'), {
-    className: 'cb-label', textContent: 'your guesses'
+    className: 'cb-label', textContent: 'you'
   }));
   left.appendChild(boardCompact(mine));
+  if (canGuess) {
+    left.appendChild(makeForm({
+      placeholder: '####',
+      buttonLabel: 'Guess',
+      onSubmit: code => onMove({ t: 'guess', code })
+    }));
+  } else if (!w && turn === myRole) {
+    left.appendChild(Object.assign(document.createElement('div'), {
+      className: 'cb-side-msg', textContent: `out of guesses (${MAX})`
+    }));
+  }
 
+  // Right: partner guesses only (never their secret until end)
   const right = document.createElement('div');
-  right.className = 'cb-side';
+  right.className = 'cb-side theirs';
   right.appendChild(Object.assign(document.createElement('div'), {
-    className: 'cb-label', textContent: 'partner\u2019s guesses'
+    className: 'cb-label', textContent: partnerName
   }));
   right.appendChild(boardCompact(theirs));
-  cols.appendChild(left);
-  cols.appendChild(right);
-  wrap.appendChild(cols);
 
-  if (gs.last) {
-    const note = document.createElement('div');
-    note.className = 'dots-score';
-    const who = gs.last.by === myRole ? 'You' : 'Partner';
-    note.textContent = isWin(gs.last.score)
-      ? `${who} cracked the code!`
-      : `${who}: ${gs.last.code} → ${formatHint(gs.last.score)}`;
-    wrap.appendChild(note);
-  }
+  wrap.appendChild(left);
+  wrap.appendChild(right);
+  root.appendChild(wrap);
 
-  if (canGuess) {
-    const form = document.createElement('div');
-    form.className = 'cb-form';
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'cb-input';
-    input.inputMode = 'numeric';
-    input.maxLength = LEN;
-    input.placeholder = 'guess ####';
-    input.autocomplete = 'off';
-    input.addEventListener('input', () => {
-      input.value = input.value.replace(/\D/g, '').slice(0, LEN);
-    });
-    const btn = document.createElement('button');
-    btn.className = 'btn warm';
-    btn.textContent = 'Guess';
-    btn.addEventListener('click', () => {
-      const code = input.value;
-      if (code.length !== LEN) return;
-      onMove({ t: 'guess', code });
-      input.value = '';
-    });
-    form.appendChild(input);
-    form.appendChild(btn);
-    wrap.appendChild(form);
-  } else if (!w) {
+  const foot = document.createElement('div');
+  foot.className = 'cb-foot';
+
+  if (w) {
+    let title = 'Draw';
+    if (w === myRole) title = 'You cracked it!';
+    else if (w !== 'draw') title = `${partnerName} cracked it!`;
+
     const wait = document.createElement('div');
-    wait.className = 'dots-score';
-    wait.textContent = turn === myRole
-      ? `out of guesses (${MAX})`
-      : 'partner\u2019s turn\u2026';
-    wrap.appendChild(wait);
+    wait.className = 'cb-wait';
+    wait.innerHTML =
+      `<div class="cb-wait-title">${title}</div>`
+      + `<div class="cb-wait-codes">`
+      + `<div class="cb-wait-code">Your code was: <b>${gs.secrets[myRole] || '????'}</b></div>`
+      + `<div class="cb-wait-code">${partnerName}’s code was: <b>${gs.secrets[partnerRole] || '????'}</b></div>`
+      + `</div>`
+      + `<button type="button" class="btn warm cb-end">End round</button>`;
+    foot.appendChild(wait);
+    const btn = wait.querySelector('.cb-end');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        btn.disabled = true;
+        onProceed?.();
+      });
+    }
+  } else {
+    foot.appendChild(Object.assign(document.createElement('div'), {
+      className: 'cb-legend',
+      textContent: 'you only get totals — never which digit is which. crack all 4 in the right order to win.'
+    }));
   }
 
-  if (w && w !== 'draw') {
-    const reveal = document.createElement('div');
-    reveal.className = 'cb-reveal';
-    const opp = other(myRole);
-    reveal.textContent = w === myRole
-      ? `you won — their code was ${gs.secrets[opp]}`
-      : `they got it — your code was ${gs.secrets[myRole]}`;
-    wrap.appendChild(reveal);
-  }
-
-  host.appendChild(wrap);
+  root.appendChild(foot);
+  host.appendChild(root);
 }
