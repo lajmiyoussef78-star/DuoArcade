@@ -12,7 +12,7 @@ let finished = false;
 export const meta = {
   id: 'stickmanracing',
   name: 'Stickman Racing',
-  tag: 'same keyboard · co-op · parkour · first to the flag',
+  tag: 'online duo · parkour · first to the flag',
   accent: 'p1',
   realtime: true
 };
@@ -35,6 +35,9 @@ export function mount(el, ctx) {
 
   root = createRoot(wrap);
   root.render(createElement(StickmanRacingShell, {
+    myRole: ctx.myRole,
+    rt: ctx.rt,
+    names: ctx.names,
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

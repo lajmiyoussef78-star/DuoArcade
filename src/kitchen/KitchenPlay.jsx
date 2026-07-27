@@ -1,53 +1,88 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Phaser from 'phaser';
 import { createKitchenGame } from './game/createGame';
 import { MapLobby } from './MapLobby.jsx';
-import { KitchenDress } from './KitchenDress.jsx';
-import {
-  addRewards,
-  loadKitchenProgress,
-  saveKitchenProgress
-} from './kitchenProgress.js';
+import { ChefCustomizePanel } from './ChefCustomizePanel';
+import { ThemePicker } from './ThemePicker';
+import { useGamePrefs, getGamePrefs } from './gamePrefs';
+import { useKitchenProgress } from './kitchenProgressStore';
 
-/** Native Ready, Set, Cook — shared map pick, cosmetics hub, co-op Phaser kitchen. */
+/** Ready, Set, Cook — original gastronomica play-home shell inside DuoArcade. */
 export default function KitchenPlay({ names, myRole, rt, onComplete }) {
-  const [hubTab, setHubTab] = useState('maps'); // maps | character | store
-  const [progress, setProgress] = useState(() => loadKitchenProgress());
+  const [mapId, setMapId] = useState(null);
+  const [customizing, setCustomizing] = useState(false);
   const [myPick, setMyPick] = useState(null);
   const [partnerPick, setPartnerPick] = useState(null);
-  const [mapId, setMapId] = useState(null);
+  const [myReady, setMyReady] = useState(false);
+  const [partnerReady, setPartnerReady] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [lastEarn, setLastEarn] = useState({ coins: 0, xp: 0 });
 
   const hostRef = useRef(null);
   const gameRef = useRef(null);
   const remotesRef = useRef({});
   const myPickRef = useRef(null);
+  const myReadyRef = useRef(false);
   const startTimer = useRef(null);
+
+  const siteTheme = useGamePrefs(s => s.siteTheme);
+  const coins = useKitchenProgress(s => s.coins);
+  const applyMatch = useKitchenProgress(s => s.applyMatch);
 
   const partnerRole = myRole === 'A' ? 'B' : 'A';
   const partnerName = names[partnerRole] || 'Partner';
-  const myName = names[myRole] || 'You';
   const matched = !!(myPick && partnerPick && myPick === partnerPick);
+  const bothReady = matched && myReady && partnerReady;
 
-  const persist = useCallback(next => {
-    const saved = saveKitchenProgress(next);
-    setProgress(saved);
-    return saved;
-  }, []);
+  // Apply site theme on the kitchen root only (not whole DuoArcade).
+  useEffect(() => {
+    const root = document.querySelector('.arcade-page .rsc-kitchen');
+    if (root) root.setAttribute('data-theme', siteTheme);
+  }, [siteTheme]);
 
   const broadcastPick = useCallback((pick) => {
     if (!rt) return;
     rt.send({ k: 'rsc-pick', role: myRole, mapId: pick || null });
   }, [rt, myRole]);
 
+  const broadcastReady = useCallback((ready) => {
+    if (!rt) return;
+    rt.send({ k: 'rsc-ready', role: myRole, ready: !!ready, mapId: myPickRef.current || null });
+  }, [rt, myRole]);
+
+  const clearLobby = useCallback(() => {
+    setMapId(null);
+    setStarting(false);
+    setMyPick(null);
+    setPartnerPick(null);
+    setMyReady(false);
+    setPartnerReady(false);
+    myPickRef.current = null;
+    myReadyRef.current = false;
+    broadcastPick(null);
+    broadcastReady(false);
+    setCustomizing(false);
+  }, [broadcastPick, broadcastReady]);
+
   const pickMap = useCallback((id) => {
     if (starting || mapId) return;
     setMyPick(id);
     myPickRef.current = id;
+    // Changing map clears ready for both sides locally; partner clears when they see the new pick.
+    setMyReady(false);
+    myReadyRef.current = false;
+    setPartnerReady(false);
     broadcastPick(id);
-  }, [starting, mapId, broadcastPick]);
+    broadcastReady(false);
+  }, [starting, mapId, broadcastPick, broadcastReady]);
 
-  // RT: partner map picks + hello handshake
+  const toggleReady = useCallback(() => {
+    if (starting || mapId || !matched) return;
+    const next = !myReadyRef.current;
+    myReadyRef.current = next;
+    setMyReady(next);
+    broadcastReady(next);
+  }, [starting, mapId, matched, broadcastReady]);
+
   useEffect(() => {
     if (!rt) return undefined;
     const onMsg = msg => {
@@ -60,44 +95,59 @@ export default function KitchenPlay({ names, myRole, rt, onComplete }) {
 
       if (msg.k === 'rsc-pick' && msg.role && msg.role !== myRole) {
         setPartnerPick(msg.mapId || null);
+        setPartnerReady(false);
+        // Partner changed map — our ready no longer counts until we press again if maps diverge.
+        if (msg.mapId && myPickRef.current && msg.mapId !== myPickRef.current) {
+          setMyReady(false);
+          myReadyRef.current = false;
+        }
+        return;
+      }
+
+      if (msg.k === 'rsc-ready' && msg.role && msg.role !== myRole) {
+        setPartnerReady(!!msg.ready);
         return;
       }
 
       if (msg.k === 'rsc-hello' && msg.role && msg.role !== myRole) {
-        // Partner joined lobby — resend our vote so they see the highlight.
         if (myPickRef.current) broadcastPick(myPickRef.current);
+        if (myReadyRef.current) broadcastReady(true);
         return;
       }
 
       if (msg.k === 'rsc-start' && msg.mapId && !mapId) {
-        // Partner already matched — join the same kitchen.
         setMyPick(msg.mapId);
         setPartnerPick(msg.mapId);
         myPickRef.current = msg.mapId;
+        setMyReady(true);
+        setPartnerReady(true);
+        myReadyRef.current = true;
         setStarting(true);
+        setCustomizing(false);
         setMapId(msg.mapId);
       }
     };
     rt.on(onMsg);
     rt.send({ k: 'rsc-hello', role: myRole });
     if (myPickRef.current) broadcastPick(myPickRef.current);
+    if (myReadyRef.current) broadcastReady(true);
     return undefined;
-  }, [rt, myRole, broadcastPick, mapId]);
+  }, [rt, myRole, broadcastPick, broadcastReady, mapId]);
 
-  // When both pick the same map → start together
+  // Both same map + both Ready → open the kitchen
   useEffect(() => {
-    if (!matched || mapId || starting) return undefined;
+    if (!bothReady || mapId || starting) return undefined;
     setStarting(true);
+    setCustomizing(false);
     rt?.send({ k: 'rsc-start', mapId: myPick, role: myRole });
     startTimer.current = setTimeout(() => {
       setMapId(myPick);
-    }, 700);
+    }, 500);
     return () => {
       if (startTimer.current) clearTimeout(startTimer.current);
     };
-  }, [matched, myPick, mapId, starting, rt, myRole]);
+  }, [bothReady, myPick, mapId, starting, rt, myRole]);
 
-  // Phaser match
   useEffect(() => {
     if (!mapId || !hostRef.current) return undefined;
 
@@ -120,6 +170,7 @@ export default function KitchenPlay({ names, myRole, rt, onComplete }) {
     } : undefined;
 
     let awarded = false;
+    const prefs = getGamePrefs();
     const game = createKitchenGame({
       parent: hostRef.current,
       mapId,
@@ -127,138 +178,133 @@ export default function KitchenPlay({ names, myRole, rt, onComplete }) {
       onMatchComplete: result => {
         if (awarded) return;
         awarded = true;
-        const coins = result?.coinsEarned || 0;
-        const xp = result?.xpEarned || 0;
-        if (coins > 0 || xp > 0) {
-          setProgress(p => {
-            const next = addRewards(p, { coins, xp });
-            setLastEarn({ coins, xp });
-            return next;
-          });
-        }
+        applyMatch({
+          mapId,
+          coinsEarned: result?.coinsEarned || 0,
+          xpEarned: result?.xpEarned || 0,
+          performancePercent: result?.performancePercent || 0,
+          stars: result?.stars || 0
+        });
         onComplete?.();
       },
       onReturnToLobby: () => {
-        setMapId(null);
-        setStarting(false);
-        setMyPick(null);
-        setPartnerPick(null);
-        myPickRef.current = null;
-        broadcastPick(null);
-        setHubTab('maps');
+        clearLobby();
       },
-      audioPrefs: { masterVolume: 0.85, sfxVolume: 0.9 },
-      chefLook: progress.look
+      audioPrefs: {
+        masterVolume: (prefs.masterVolume || 80) / 100,
+        sfxVolume: (prefs.sfxVolume || 70) / 100
+      },
+      chefLook: prefs.chefLook
     });
     gameRef.current = game;
 
+    const isBrowserFullscreen = () => !!(
+      document.fullscreenElement || document.webkitFullscreenElement
+    );
+
+    const refreshScale = () => {
+      try {
+        // Windowed: fit in the normal host. Fullscreen: cover the whole display.
+        game.scale.scaleMode = isBrowserFullscreen()
+          ? Phaser.Scale.ENVELOP
+          : Phaser.Scale.FIT;
+        game.scale.refresh();
+      } catch { /* game gone */ }
+    };
+    const refreshSoon = () => {
+      refreshScale();
+      requestAnimationFrame(refreshScale);
+      setTimeout(refreshScale, 50);
+      setTimeout(refreshScale, 200);
+    };
+    refreshSoon();
+    window.addEventListener('resize', refreshScale);
+    document.addEventListener('fullscreenchange', refreshSoon);
+    document.addEventListener('webkitfullscreenchange', refreshSoon);
+
     return () => {
+      window.removeEventListener('resize', refreshScale);
+      document.removeEventListener('fullscreenchange', refreshSoon);
+      document.removeEventListener('webkitfullscreenchange', refreshSoon);
       game.destroy(true);
       gameRef.current = null;
     };
-    // Intentionally only remount when mapId changes — not on every look tweak mid-match.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapId]);
 
   const inMatch = !!mapId;
 
   return (
-    <div className="rsc-kitchen">
-      <div className={'rsc-kitchen-bar' + (inMatch ? ' compact' : '')}>
-        {!inMatch ? (
-          <>
-            <div className="rsc-bar-top">
-              <div>
-                <p className="rsc-kitchen-kicker">Ready, Set, Cook</p>
-                <h2 className="rsc-kitchen-title">{names.A} & {names.B}</h2>
-              </div>
-              <div className="rsc-stat-badges">
-                <div className="rsc-coin-badge" title="Kitchen coins">
-                  <span className="rsc-coin-icon" aria-hidden>◉</span>
-                  <span className="rsc-coin-count">{progress.coins}</span>
-                  <span className="rsc-coin-label">coins</span>
-                </div>
-                <div className="rsc-coin-badge rsc-xp-badge" title="Kitchen XP">
-                  <span className="rsc-coin-icon" aria-hidden>★</span>
-                  <span className="rsc-coin-count">{progress.xp || 0}</span>
-                  <span className="rsc-coin-label">xp</span>
-                </div>
-              </div>
-            </div>
-            <p className="rsc-kitchen-hint">
-              Vote the same kitchen · Character themes &amp; outfits · Store · WASD · E · Q · Space
-            </p>
-            {(lastEarn.coins > 0 || lastEarn.xp > 0) && (
-              <p className="rsc-earn-toast">
-                +{lastEarn.coins} coins{lastEarn.xp ? ` · +${lastEarn.xp} XP` : ''} from your last shift!
-              </p>
-            )}
-            <div className="rsc-hub-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                className={'rsc-hub-tab' + (hubTab === 'maps' ? ' on' : '')}
-                onClick={() => setHubTab('maps')}
-              >
-                Kitchens
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className={'rsc-hub-tab' + (hubTab === 'character' ? ' on' : '')}
-                onClick={() => setHubTab('character')}
-              >
-                Character
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className={'rsc-hub-tab' + (hubTab === 'store' ? ' on' : '')}
-                onClick={() => setHubTab('store')}
-              >
-                Store
-              </button>
-            </div>
-          </>
-        ) : (
-          <button
-            type="button"
-            className="btn small ghost"
-            onClick={() => {
-              setMapId(null);
-              setStarting(false);
-              setMyPick(null);
-              setPartnerPick(null);
-              myPickRef.current = null;
-              broadcastPick(null);
-            }}
-          >
-            ← Back to kitchens
-          </button>
-        )}
-      </div>
+    <div className="rsc-kitchen" data-theme={siteTheme}>
+      <div className="play-home">
+        <ThemePicker />
 
-      {!inMatch ? (
-        hubTab === 'maps' ? (
-          <MapLobby
-            myPick={myPick}
-            partnerPick={partnerPick}
-            partnerName={partnerName}
-            myName={myName}
-            onPick={pickMap}
-            matched={matched}
-            starting={starting}
-          />
-        ) : (
-          <KitchenDress
-            progress={progress}
-            onProgress={persist}
-            tab={hubTab === 'store' ? 'store' : 'character'}
-          />
-        )
-      ) : (
-        <div ref={hostRef} className="rsc-phaser-host" />
-      )}
+        <div className="play-home-hero">
+          <p className="embed-kicker">DuoArcade kitchen</p>
+          <h1>Ready, Set, Cook</h1>
+          <p className="play-home-lead">
+            Chaotic co-op cooking — pick the same kitchen, then both press Ready to start.
+          </p>
+          <div className="play-home-actions">
+            {!inMatch && !customizing ? (
+              <a className="rsc-btn" href="#lobby">
+                Choose map
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="rsc-btn ghost"
+                onClick={() => {
+                  if (inMatch) clearLobby();
+                  else setCustomizing(false);
+                }}
+              >
+                Back to lobby
+              </button>
+            )}
+            {!inMatch && (
+              <button
+                type="button"
+                className={'rsc-btn' + (customizing ? '' : ' ghost')}
+                onClick={() => setCustomizing(v => !v)}
+              >
+                {customizing ? 'Hide outfit' : 'Change outfit'}
+              </button>
+            )}
+            <span className="kitchen-coins-pill" title="Kitchen coins">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="12" cy="12" r="9" fill="#f9a825" stroke="#ef6c00" strokeWidth="2" />
+                <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="800" fill="#5d4037">¢</text>
+              </svg>
+              {' '}{coins.toLocaleString()}
+            </span>
+          </div>
+          <p className="play-home-meta">
+            {names.A} & {names.B} · DuoArcade names · shared kitchen
+          </p>
+        </div>
+
+        <div id="lobby" className={'play-home-game' + (inMatch ? ' rsc-match-stage' : '')}>
+          {inMatch ? (
+            <div ref={hostRef} className="rsc-phaser-host play-home-canvas" />
+          ) : customizing ? (
+            <ChefCustomizePanel onDone={() => setCustomizing(false)} />
+          ) : (
+            <MapLobby
+              myPick={myPick}
+              partnerPick={partnerPick}
+              partnerName={partnerName}
+              myRole={myRole}
+              onPick={pickMap}
+              matched={matched}
+              myReady={myReady}
+              partnerReady={partnerReady}
+              onReady={toggleReady}
+              starting={starting}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

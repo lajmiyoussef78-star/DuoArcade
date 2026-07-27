@@ -12,7 +12,7 @@ let finished = false;
 export const meta = {
   id: 'stickmanmotorace',
   name: 'Stickman Moto Race',
-  tag: 'same keyboard · co-op · split-screen · neon moto',
+  tag: 'online duo · neon moto · first to finish',
   accent: 'p1',
   realtime: true
 };
@@ -35,6 +35,9 @@ export function mount(el, ctx) {
 
   root = createRoot(wrap);
   root.render(createElement(StickmanMotoRaceShell, {
+    myRole: ctx.myRole,
+    rt: ctx.rt,
+    names: ctx.names,
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

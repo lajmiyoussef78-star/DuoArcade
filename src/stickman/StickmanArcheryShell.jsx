@@ -6,7 +6,7 @@ import './stickmanarchery.css';
  * Thin DuoArcade adapter — renders the original archery game unchanged.
  * Watches the match-end banner to report the winner to the shell.
  */
-export default function StickmanArcheryShell({ onComplete, pausedRef }) {
+export default function StickmanArcheryShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -31,7 +31,7 @@ export default function StickmanArcheryShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="sab-shell">
-      <StickmanArcheryBattle />
+      <StickmanArcheryBattle myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

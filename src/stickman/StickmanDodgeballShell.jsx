@@ -5,7 +5,7 @@ import StickmanDodgeball from './StickmanDodgeball.jsx';
  * Thin DuoArcade adapter — renders the original dodgeball game unchanged.
  * Watches the champion banner to report the winner to the shell.
  */
-export default function StickmanDodgeballShell({ onComplete, pausedRef }) {
+export default function StickmanDodgeballShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -30,7 +30,7 @@ export default function StickmanDodgeballShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="sdb-shell">
-      <StickmanDodgeball />
+      <StickmanDodgeball myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

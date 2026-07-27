@@ -105,26 +105,22 @@ export const RULES = {
   },
 
   stickmanswordduel: {
-    goal: 'Win three rounds in a neon sword duel on the same keyboard.',
+    goal: 'Win three rounds in a neon sword duel — online duo, one fighter each.',
     how: [
-      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the winner.',
-      'Pick an arena, then fight best of 5 (first to 3).',
-      'P1: A/D move \u00b7 W jump \u00b7 S dash \u00b7 F attack \u00b7 G block \u00b7 H kick.',
-      'P2: \u2190/\u2192 move \u00b7 \u2191 jump \u00b7 \u2193 dash \u00b7 K attack \u00b7 L block \u00b7 J kick.',
-      'Tap attack up to three times for a combo; hold attack to charge a heavy; dash+attack lunges; air+attack plunges.',
-      'Perfect-timed block = parry. Kick breaks a raised guard.'
+      'Online duo: Host (A) is Player 1, Guest (B) is Player 2. Host picks the arena.',
+      'Guest uses the same WASD layout as P1 (remapped online). Best of 5 (first to 3).',
+      'Move · jump · dash · attack · block · kick. Tap attack for combos; hold for heavy.',
+      'Dash+attack lunges; air+attack plunges. Perfect block = parry. Kick breaks guard.'
     ],
     tip: 'Don\u2019t spam heavies \u2014 a parry beats everything, including a charged swing.'
   },
 
   stickmanarchery: {
-    goal: 'Win a best-of-3 neon archery duel on the same keyboard.',
+    goal: 'Win a best-of-3 neon archery duel — online duo, one archer each.',
     how: [
-      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the winner.',
-      'Pick a map: Moonlit Meadow, Fortress Walls, or Storm Peaks.',
-      'P1: A/D move \u00b7 W jump \u00b7 R/F aim \u00b7 SPACE hold-draw, release-fire.',
-      'P2: \u2190/\u2192 move \u00b7 \u2191 jump \u00b7 K/J aim \u00b7 ENTER hold-draw, release-fire.',
-      'Move and jump anytime to dodge. Balloons grant triple, explosive, or ice arrows.'
+      'Online duo: Host (A) is P1, Guest (B) is P2. Host picks the map.',
+      'Guest uses the P1 key layout online. Hold-draw, release-fire. Move anytime to dodge.',
+      'Balloons grant triple, explosive, or ice arrows.'
     ],
     tip: 'Arc over barriers \u2014 and release in the green power zone for max range.'
   },
@@ -132,11 +128,8 @@ export const RULES = {
   stickmandodgeball: {
     goal: 'Be the last stickman standing in a neon hazard storm.',
     how: [
-      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the winner.',
-      'Pick Quick, Best of 3, or Best of 5, then choose one of 6 arenas.',
-      'P1: A/D move \u00b7 W jump (double) \u00b7 S slide \u00b7 F dash.',
-      'P2: \u2190/\u2192 move \u00b7 \u2191 jump (double) \u00b7 \u2193 slide \u00b7 / dash.',
-      'Dodge falling hazards, grab power-ups, survive arena events every 20 seconds.'
+      'Online duo: Host (A) is P1, Guest (B) is P2. Host picks mode + arena.',
+      'Guest uses the P1 key layout online. Dodge hazards, grab power-ups, survive events.'
     ],
     tip: 'Slide under low hazards and dash through tight gaps \u2014 the storm only gets worse.'
   },
@@ -144,11 +137,8 @@ export const RULES = {
   stickmanmotorace: {
     goal: 'Cross the finish line first on a split-screen neon moto track.',
     how: [
-      'Couch co-op: both players on one device / one screen. Host (A) starts the race and reports the winner.',
-      'Pick one of 10 tracks from Sunny Hills to Inferno Circuit.',
-      'P1 (top): W gas \u00b7 S brake \u00b7 A/D lean.',
-      'P2 (bottom): \u2191 gas \u00b7 \u2193 brake \u00b7 \u2190/\u2192 lean.',
-      'First to the flag wins. Crashes cost time \u2014 lean through jumps and loops.'
+      'Online duo: Host (A) rides top (P1), Guest (B) rides bottom (P2). Host picks the track.',
+      'Guest uses the P1 key layout online. First to the flag wins.'
     ],
     tip: 'Ease off the gas before big drops \u2014 landing flat keeps you racing.'
   },
@@ -156,11 +146,8 @@ export const RULES = {
   stickmangunfight: {
     goal: 'Win a neon circular-arena gunfight \u2014 Quick Match or Full Session.',
     how: [
-      'Couch co-op: both players on one device / one screen. Host (A) starts the match and reports the result.',
-      'Quick Match: pick one weapon category, best of 3. Full Session: all 5 weapon levels \u00d7 3 rounds.',
-      'P1 (upper): A/D move \u00b7 W jump \u00b7 S crouch \u00b7 Q/E aim \u00b7 Space fire \u00b7 R reload.',
-      'P2 (lower): \u2190/\u2192 move \u00b7 \u2191 jump \u00b7 \u2193 crouch \u00b7 O/P aim \u00b7 Enter fire \u00b7 / reload.',
-      'Use cover, utilities, and timing \u2014 last alive wins the round.'
+      'Online duo: Host (A) is P1, Guest (B) is P2. Host starts Quick or Full Session.',
+      'Guest uses the P1 key layout online. Last alive wins the round.'
     ],
     tip: 'Reload behind cover. Crouch shrinks your hitbox when bullets fly.'
   },
@@ -168,11 +155,8 @@ export const RULES = {
   stickmanbombtag: {
     goal: 'Pass the bomb before it blows \u2014 the survivor wins the round.',
     how: [
-      'Couch co-op: both players on one device. Host (A) starts the match and reports the winner.',
-      'Pick match length (1 / best of 3 / best of 5), bomb fuse (30\u201360s), and a themed arena.',
-      'P1: A/D move \u00b7 W jump (double-jump) \u00b7 E pass bomb. P2: arrows move/jump \u00b7 M pass.',
-      'You must be close to your partner to pass. Whoever holds it when the fuse hits zero loses the round.',
-      'On phones, on-screen buttons appear; you can also tap the other stickman to pass.'
+      'Online duo: Host (A) is P1, Guest (B) is P2. Host starts the match.',
+      'Guest uses WASD + E online (pass). Stay close to pass. Fuse hits zero = you lose the round.'
     ],
     tip: 'Hold the bomb near a platform edge so a double-jump pass is hard to dodge.'
   },
@@ -180,11 +164,8 @@ export const RULES = {
   stickmankart: {
     goal: 'Finish first in a neon stickman kart race \u2014 first across the line wins.',
     how: [
-      'Couch co-op: both players on one keyboard. Host (A) starts the race and reports the winner.',
-      'Garage: pick kart type + color, track (6 themes with different grip), lap count, and power-ups on/off.',
-      'P1: W accelerate \u00b7 S brake/reverse \u00b7 A/D steer \u00b7 Space use item.',
-      'P2: \u2191 accelerate \u00b7 \u2193 brake/reverse \u00b7 \u2190/\u2192 steer \u00b7 Enter use item.',
-      'Items: boost, missile, banana, oil slick, shield, lightning. Esc pauses.'
+      'Online duo: Host (A) is P1, Guest (B) is P2. Each picks their own kart; host starts.',
+      'Guest uses WASD + Space online. Items: boost, missile, banana, oil, shield, lightning.'
     ],
     tip: 'Save a shield for the last lap \u2014 a late missile or oil can erase a clean lead.'
   },
@@ -192,11 +173,8 @@ export const RULES = {
   stickmanracing: {
     goal: 'Reach the finish flag first on a long neon parkour track.',
     how: [
-      'Couch co-op: both players on one device / one screen. Host (A) starts the race and reports the winner.',
-      'Pick one of 10 tracks. Split view: blue (P1) on top, pink (P2) on bottom.',
-      'P1 (top): A/D run \u00b7 W jump / wall-jump / rope release \u00b7 S slide \u00b7 F turbo.',
-      'P2 (bottom): \u2190/\u2192 run \u00b7 \u2191 jump / wall-jump / rope release \u00b7 \u2193 slide \u00b7 K turbo.',
-      'Jump hurdles, slide under bars, clear spikes, swing ropes, use springs. Fall? You respawn at the last checkpoint.',
+      'Online duo: Host (A) is P1 (top), Guest (B) is P2 (bottom). Host picks the track.',
+      'Guest uses the P1 key layout online. Fall? Respawn at the last checkpoint.',
       'First to the checkered flag wins the race.'
     ],
     tip: 'Pace your turbo \u2014 it needs at least 35% to fire and recharges slowly.'
@@ -329,13 +307,11 @@ export const RULES = {
   },
 
   laserwall: {
-    goal: 'Trace glowing outlines with a laser while your partner tries to block you on the wall. Highest artist accuracy wins.',
+    goal: 'Trace glowing outlines with a laser while your partner blocks you on the wall. Highest artist accuracy wins.',
     how: [
-      'Same keyboard, two roles that swap after round 1. Match = 2 rounds.',
-      'Laser Artist (A/D walk, mouse aim, hold click to fire): stay ON the dashed outline — off-line drawing tanks your score. Reach 80%+ to win the round.',
-      'Wall Runner (arrow keys on the wall, Shift to leap): wear the inflatable suit and body-block the beam so the artist gets zero progress.',
-      'Pick a themed map (or a custom drawing set) and a round timer (45s / 60s) from the menu.',
-      'Final winner = whoever scored the higher tracing accuracy as the artist.'
+      'Online duo: Host (A) starts as artist, Guest (B) as wall runner — roles swap after round 1.',
+      'Artist: A/D walk, mouse aim, hold click to fire — stay ON the outline. Runner: arrows + Shift leap to body-block.',
+      'Guest uses WASD online when running. Host picks map + timer. Final winner = higher artist accuracy.'
     ],
     tip: 'As runner, camp the corners of hard shapes. As artist, short controlled strokes beat wild scribbling.'
   },

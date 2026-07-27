@@ -1,7 +1,10 @@
 /* Minimal Tailwind-utility shim scoped to Stickman Bomb Tag (no Tailwind in repo). */
 
 .arcade-page .sbt-wrap,
-.sbt-wrap { width: 100%; }
+.sbt-wrap {
+  width: 100%;
+  background: #07080f !important;
+}
 
 .sbt-shell,
 .sbt-shell * { box-sizing: border-box; }
@@ -10,8 +13,53 @@
   width: 100%;
   position: relative;
   border-radius: 18px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--line, #3D3450);
+  background: #07080f !important;
+}
+.arcade-page .sbt-shell,
+.arcade-page .sbt-shell .sbt-root-menu,
+.arcade-page .sbt-shell .sbt-root-play,
+.arcade-page .sbt-shell .sbt-lobby {
+  background: #07080f !important;
+}
+
+/* Lobby grows with content — no clipped height / inner scrollbar */
+.arcade-page .sbt-shell .sbt-root-menu,
+.sbt-shell .sbt-root-menu {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  align-items: flex-start;
+}
+.arcade-page .sbt-shell .sbt-lobby,
+.sbt-shell .sbt-lobby {
+  position: relative;
+  inset: auto;
+  overflow: visible;
+  width: 100%;
+}
+
+/* Play: canvas fills the board width; height follows aspect ratio */
+.arcade-page .sbt-shell .sbt-root-play,
+.sbt-shell .sbt-root-play {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  width: 100%;
+  padding: 0;
+}
+.arcade-page .sbt-shell .sbt-canvas,
+.sbt-shell .sbt-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 600;
+  margin: 0 auto;
+}
+.arcade-page .sbt-shell .sbt-canvas-hidden,
+.sbt-shell .sbt-canvas-hidden {
+  display: none !important;
 }
 
 .sbt-shell .relative { position: relative; }
@@ -45,7 +93,7 @@
 .sbt-shell .w-full { width: 100%; }
 .sbt-shell .w-10 { width: 2.5rem; }
 .sbt-shell .h-10 { height: 2.5rem; }
-.sbt-shell .h-screen { height: min(780px, calc(100vh - 170px)); min-height: 520px; }
+.sbt-shell .h-screen { height: auto; min-height: 0; }
 .sbt-shell .w-\[min\(760px\,95\%\)\] { width: min(760px, 95%); }
 .sbt-shell .min-w-\[260px\] { min-width: 260px; }
 .sbt-shell .max-w-\[860px\] { max-width: 860px; }
@@ -143,8 +191,96 @@
 }
 
 .arcade-page .sbt-shell .h-screen {
-  height: min(720px, calc(100vh - 200px));
-  min-height: 480px;
+  height: auto;
+  min-height: 0;
+}
+
+/*
+ * Fullscreen: every wrapper is a full-bleed centered stage.
+ * Canvas is absolutely centered so it cannot stick left/right.
+ */
+.arcade-page .gv-fs-root.is-fullscreen,
+.arcade-page .gv-fs-root:fullscreen,
+.arcade-page .gv-fs-root:-webkit-full-screen {
+  overflow: hidden !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board,
+.arcade-page .gv-fs-root:fullscreen .gv-board,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap,
+.arcade-page .gv-fs-root:fullscreen .gv-board-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap > div,
+.arcade-page .gv-fs-root:fullscreen .gv-board-wrap > div,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board-wrap > div,
+.arcade-page .gv-fs-root.is-fullscreen .sbt-wrap,
+.arcade-page .gv-fs-root:fullscreen .sbt-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-menu,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-root-menu,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-root-menu {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: auto !important;
+  background: #07080f !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-play,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-root-play,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-root-play {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+/* Dead-center the playfield — fill as much of the screen as aspect allows */
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-canvas,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-canvas {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  display: block !important;
+  margin: 0 !important;
+  width: min(100%, calc(100vh * 1000 / 600)) !important;
+  height: min(100%, calc(100vw * 600 / 1000)) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: 1000 / 600 !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-lobby,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-lobby,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-lobby {
+  width: min(960px, 100%) !important;
+  margin: 0 auto !important;
+  background: #07080f !important;
 }
 
 .sbt-shell .flex-1 { flex: 1 1 0%; }

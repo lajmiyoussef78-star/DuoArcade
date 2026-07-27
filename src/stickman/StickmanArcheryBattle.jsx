@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 // ========== STICKMAN ARCHERY BATTLE 🏹 — NEON EDITION v2 ==========
 // Turn-based shooting, LIVE movement: both archers can run & jump on their
@@ -279,7 +280,7 @@ function MapCardPreview({ map, colors, index }) {
   );
 }
 
-export default function StickmanArcheryBattle() {
+export default function StickmanArcheryBattle({ myRole, rt } = {}) {
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu");
   const [mapIdx, setMapIdx] = useState(0);
@@ -287,14 +288,38 @@ export default function StickmanArcheryBattle() {
   const [matchWinner, setMatchWinner] = useState(0);
   const [muted, setMuted] = useState(false);
   const stateRef = useRef({});
+  const duoNetRef = useRef(null);
 
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
 
+  useEffect(() => {
+    if (!rt || !myRole) return;
+    const net = createDuoStickmanNet({
+      rt, myRole,
+      p1Codes: Object.values(KEYS.p1),
+      p2Codes: Object.values(KEYS.p2),
+      remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    net.onUi((m) => {
+      if (m?.type === "start" && typeof m.mapIdx === "number") {
+        SFX.unlock();
+        setMapIdx(m.mapIdx); setScore([0, 0]); setMatchWinner(0);
+        setPhase("playing");
+        stateRef.current.launch = { mapIdx: m.mapIdx };
+      }
+    });
+    return () => { duoNetRef.current = null; };
+  }, [rt, myRole]);
+
   const startMatch = (mi) => {
+    const net = duoNetRef.current;
+    if (net?.online && !net.isHost) return;
     SFX.unlock();
     setMapIdx(mi); setScore([0, 0]); setMatchWinner(0);
     setPhase("playing");
     stateRef.current.launch = { mapIdx: mi };
+    net?.sendUi({ type: "start", mapIdx: mi });
   };
 
   useEffect(() => {
@@ -357,18 +382,58 @@ export default function StickmanArcheryBattle() {
     };
     resetRound();
 
-    const down = (e) => {
-      if (ALL_KEYS.includes(e.code)) e.preventDefault();
-      if (!S.keys[e.code]) S.pressed[e.code] = true;
-      S.keys[e.code] = true;
+    const p1Codes = Object.values(KEYS.p1);
+    const p2Codes = Object.values(KEYS.p2);
+    const net = duoNetRef.current || createDuoStickmanNet({
+      rt, myRole, p1Codes, p2Codes, remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    let netAcc = 0;
+
+    const packState = () => ({
+      mode: S.mode, modeT: S.modeT, turn: S.turn, t: S.t,
+      charging: S.charging, chargeT: S.chargeT, power: S.power,
+      shotClock: S.shotClock, wind: S.wind, round: S.round, wins: S.wins,
+      roundWinner: S.roundWinner, banner: S.banner, bannerT: S.bannerT,
+      bannerCol: S.bannerCol, done: S.done,
+      players: S.players.map((p) => ({
+        id: p.id, x: p.x, y: p.y, vx: p.vx, vy: p.vy, facing: p.facing,
+        hp: p.hp, angle: p.angle, onGround: p.onGround, dead: p.dead,
+        pup: p.pup, invuln: p.invuln,
+      })),
+      arrows: S.arrows.map((a) => ({ ...a })),
+      balloons: S.balloons.map((b) => ({ ...b })),
+    });
+    const applyState = (st) => {
+      if (!st) return;
+      Object.assign(S, {
+        mode: st.mode, modeT: st.modeT, turn: st.turn, t: st.t,
+        charging: st.charging, chargeT: st.chargeT, power: st.power,
+        shotClock: st.shotClock, wind: st.wind, round: st.round,
+        wins: st.wins, roundWinner: st.roundWinner, banner: st.banner,
+        bannerT: st.bannerT, bannerCol: st.bannerCol, done: st.done,
+      });
+      if (st.players) st.players.forEach((sp, i) => { if (S.players[i]) Object.assign(S.players[i], sp); });
+      if (st.arrows) S.arrows = st.arrows;
+      if (st.balloons) S.balloons = st.balloons;
+      if (st.wins) setScore([...st.wins]);
     };
-    const up = (e) => {
-      S.keys[e.code] = false;
-      // release fire
+
+    const tryFireRelease = (code) => {
       [0, 1].forEach((id) => {
         const k = id === 0 ? KEYS.p1 : KEYS.p2;
-        if (e.code === k.fire && S.charging && S.mode === "aim" && S.turn === id) fire();
+        if (code === k.fire && S.charging && S.mode === "aim" && S.turn === id) fire();
       });
+    };
+
+    const down = (e) => {
+      if (ALL_KEYS.includes(e.code)) e.preventDefault();
+      net.onKeyDown(e.code, S);
+    };
+    const up = (e) => {
+      const resolved = net.onKeyUp(e.code, S);
+      if (resolved) tryFireRelease(resolved);
+      else tryFireRelease(e.code);
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -1209,11 +1274,29 @@ export default function StickmanArcheryBattle() {
     const loop = (now) => {
       const dt = Math.min((now - last) / 1000, 0.033);
       last = now;
-      S.t += dt;
-      if (S.bannerT > 0) S.bannerT -= dt;
-      if (S.flash > 0) S.flash -= dt;
+      const guest = net.online && !net.isHost;
 
-      update(dt);
+      if (guest) {
+        netAcc += dt;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(); }
+        const st = net.peekState();
+        if (st) {
+          applyState(st);
+          if (st.done) {
+            setMatchWinner(st.wins?.[0] >= 2 ? 1 : 2);
+            setPhase("matchEnd");
+          }
+        }
+      } else {
+        const released = net.mergeRemoteInto(S) || [];
+        released.forEach(tryFireRelease);
+        S.t += dt;
+        if (S.bannerT > 0) S.bannerT -= dt;
+        if (S.flash > 0) S.flash -= dt;
+        update(dt);
+        netAcc += dt;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(packState); }
+      }
 
       ctx.save();
       if (S.shake > 0) {
@@ -1229,7 +1312,7 @@ export default function StickmanArcheryBattle() {
         ctx.rotate(st.angle);
         ctx.strokeStyle = "#c9d2dd"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
         ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(0, 0); ctx.stroke();
-        ctx.strokeStyle = S.players[st.owner].neon; ctx.lineWidth = 2;
+        ctx.strokeStyle = S.players[st.owner]?.neon || "#fff"; ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(-16, 0); ctx.lineTo(-20, -4);
         ctx.moveTo(-16, 0); ctx.lineTo(-20, 4);
@@ -1276,7 +1359,7 @@ export default function StickmanArcheryBattle() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [phase]);
+  }, [phase, myRole, rt]);
 
   // ================= UI =================
   const wrap = {

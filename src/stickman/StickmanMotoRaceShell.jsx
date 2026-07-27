@@ -5,7 +5,7 @@ import StickmanMotoRace from './StickmanMotoRace.jsx';
  * Thin DuoArcade adapter — renders the original moto race unchanged.
  * Watches the champion banner to report the winner to the shell.
  */
-export default function StickmanMotoRaceShell({ onComplete, pausedRef }) {
+export default function StickmanMotoRaceShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -30,7 +30,7 @@ export default function StickmanMotoRaceShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="smr-shell">
-      <StickmanMotoRace />
+      <StickmanMotoRace myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

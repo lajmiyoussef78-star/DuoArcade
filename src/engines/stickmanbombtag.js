@@ -13,9 +13,11 @@ let finished = false;
 export const meta = {
   id: 'stickmanbombtag',
   name: 'Stickman Bomb Tag',
-  tag: 'same keyboard · bomb tag · arena · best of',
+  tag: 'online duo · bomb tag · arena',
   accent: 'candle',
-  realtime: true
+  realtime: true,
+  /** Stay inside the game lobby after a win — no DuoArcade "Back to shelf" panel */
+  keepInGame: true
 };
 
 export function mount(el, ctx) {
@@ -36,6 +38,9 @@ export function mount(el, ctx) {
 
   root = createRoot(wrap);
   root.render(createElement(StickmanBombTagShell, {
+    myRole: ctx.myRole,
+    rt: ctx.rt,
+    names: ctx.names,
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

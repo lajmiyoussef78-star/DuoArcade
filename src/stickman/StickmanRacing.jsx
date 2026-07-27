@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 // ============ STICKMAN RACING 🏁 — NEON EDITION v3 · 10 TRACKS ============
 // Split-screen duel race: each player sees the world from THEIR OWN camera.
@@ -288,16 +289,82 @@ function makeRacer(id) {
   };
 }
 
-export default function StickmanRacing() {
+export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
+  const duoNetRef = useRef(null);
+  const nameA = (names?.A || names?.a || "Player A").trim() || "Player A";
+  const nameB = (names?.B || names?.b || "Player B").trim() || "Player B";
+  const nameOf = (slot) => (slot === 0 ? nameA : nameB);
+  const namesRef = useRef({ A: nameA, B: nameB });
+  namesRef.current = { A: nameA, B: nameB };
+
+  // Normalize role — invited account is always B
+  const role = String(myRole || "").toUpperCase() === "B" ? "B"
+    : String(myRole || "").toUpperCase() === "A" ? "A" : null;
+  const isHost = role === "A";
+  const isGuest = role === "B";
+  // Duo mode if realtime channel exists (don't hide buttons when role is slow to arrive)
+  const online = !!rt;
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu");
   const [mapIdx, setMapIdx] = useState(0);
   const [result, setResult] = useState(null);
   const [muted, setMuted] = useState(false);
   const [touchUI, setTouchUI] = useState(false);
+  const [guestReady, setGuestReady] = useState(false);
+  const [netOk, setNetOk] = useState(false);
   const stateRef = useRef({});
+  const mapIdxRef = useRef(0);
+  mapIdxRef.current = mapIdx;
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
-  // show on-screen buttons only on touch devices (phones / tablets)
+  const beginMatch = (mi) => {
+    const idx = typeof mi === "number" && MAPS[mi] ? mi : (mapIdxRef.current || 0);
+    setGuestReady(false);
+    setMapIdx(idx);
+    setResult(null);
+    stateRef.current.launch = { mapIdx: idx };
+    setPhase("playing");
+    try { SFX.unlock(); } catch { /* ignore */ }
+  };
+
+  useEffect(() => {
+    if (!rt || !role) {
+      setNetOk(false);
+      return undefined;
+    }
+    const net = createDuoStickmanNet({
+      rt, myRole: role,
+      p1Codes: Object.values(KEYS.p1),
+      p2Codes: Object.values(KEYS.p2),
+      remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    setNetOk(true);
+
+    const onLobby = (m) => {
+      if (!m) return;
+      const type = m.type || m.k;
+      if (type === "start") {
+        beginMatch(typeof m.mapIdx === "number" ? m.mapIdx : 0);
+      } else if (type === "ready") {
+        setGuestReady(!!m.ready);
+      } else if ((type === "sel") && m.key === "map" && typeof m.val === "number") {
+        setMapIdx(m.val);
+      }
+    };
+    net.onUi(onLobby);
+    const unsub = typeof rt.subscribe === "function" ? rt.subscribe(onLobby) : null;
+
+    return () => {
+      setNetOk(false);
+      try { unsub?.(); } catch { /* ignore */ }
+      try { net.dispose?.(); } catch { /* ignore */ }
+      if (duoNetRef.current === net) duoNetRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rt, role]);
+
   useEffect(() => {
     const touch = typeof window !== "undefined" &&
       (("ontouchstart" in window) || (navigator.maxTouchPoints || 0) > 0);
@@ -306,42 +373,148 @@ export default function StickmanRacing() {
 
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
 
-  const startRace = (mi) => {
-    SFX.unlock();
-    setMapIdx(mi); setResult(null);
-    setPhase("playing");
-    stateRef.current.launch = { mapIdx: mi };
+  const selectMap = (mi) => {
+    if (online && isGuest) return;
+    setMapIdx(mi);
+    if (online) {
+      duoNetRef.current?.sendUi({ type: "sel", key: "map", val: mi });
+      return;
+    }
+    startRace(mi);
+  };
+
+  const setReady = (ready) => {
+    if (!isGuest) return;
+    setGuestReady(!!ready);
+    duoNetRef.current?.sendUi({ type: "ready", ready: !!ready });
+    try { rt?.send?.({ k: "ready", type: "ready", ready: !!ready }); } catch { /* ignore */ }
+  };
+
+  const startRace = (mi = mapIdx) => {
+    if (isGuest) return;
+    if (online && !guestReady && phaseRef.current === "menu") return;
+    const idx = typeof mi === "number" ? mi : mapIdx;
+    beginMatch(idx);
+    const payload = { type: "start", mapIdx: idx };
+    const blast = () => {
+      try { duoNetRef.current?.sendUi(payload); } catch { /* ignore */ }
+      try { rt?.send?.({ k: "start", ...payload }); } catch { /* ignore */ }
+    };
+    blast();
+    setTimeout(blast, 120);
+    setTimeout(blast, 350);
+    setTimeout(blast, 800);
+  };
+
+  const backToMenu = () => {
+    setPhase("menu");
+    setGuestReady(false);
+    if (isGuest) {
+      try { duoNetRef.current?.sendUi({ type: "ready", ready: false }); } catch { /* ignore */ }
+    }
   };
 
   useEffect(() => {
-    if (phase !== "playing") return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const mi = stateRef.current.launch.mapIdx;
-    const map = MAPS[mi];
-    const T = map.make();
+    if (phase !== "playing") return undefined;
+    let cancelled = false;
+    let raf = 0;
+    let roving = 0;
+    let teardown = () => {};
 
-    const S = {
-      T, players: [makeRacer(0), makeRacer(1)],
-      keys: {}, pressed: {},
-      t: 0, raceT: 0, mode: "countdown", modeT: 0, lastBeep: -1,
-      particles: [], texts: [],
-      done: false,
+    const boot = () => {
+      if (cancelled) return;
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        roving = requestAnimationFrame(boot);
+        return;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        roving = requestAnimationFrame(boot);
+        return;
+      }
+      const mi = stateRef.current.launch?.mapIdx ?? mapIdxRef.current ?? 0;
+      const map = MAPS[mi] || MAPS[0];
+      const T = map.make();
+
+      const S = {
+        T, players: [makeRacer(0), makeRacer(1)],
+        keys: {}, pressed: {},
+        t: 0, raceT: 0, mode: "countdown", modeT: 0, lastBeep: -1,
+        particles: [], texts: [],
+        done: false,
+      };
+      // Seed cameras so first frame isn't blank
+      S.players.forEach((p) => {
+        p.camX = p.x - 220;
+        p.camY = p.y - VIEW_H * 0.62;
+      });
+
+      const net = duoNetRef.current || {
+        online: false, isHost: true,
+        onKeyDown: (code, st) => { st.keys = st.keys || {}; st.pressed = st.pressed || {}; st.keys[code] = true; st.pressed[code] = true; },
+        onKeyUp: (code, st) => { if (st.keys) st.keys[code] = false; },
+        mergeRemoteInto: () => [],
+        takeState: () => null, peekState: () => null,
+        netTick: () => {},
+        touchSet: (code, isDown, st) => {
+          st.keys = st.keys || {}; st.pressed = st.pressed || {};
+          if (isDown && !st.keys[code]) st.pressed[code] = true;
+          st.keys[code] = isDown;
+        },
+      };
+
+    let netAcc = 0;
+    const packPlayer = (p) => ({
+      id: p.id, x: p.x, y: p.y, vx: p.vx, vy: p.vy,
+      onGround: p.onGround, sliding: p.sliding, slideFx: p.slideFx,
+      wallDir: p.wallDir, stumbleT: p.stumbleT, respawnT: p.respawnT,
+      turbo: p.turbo, turboT: p.turboT,
+      finished: p.finished, finishTime: p.finishTime,
+      runPhase: p.runPhase, facing: p.facing, airT: p.airT,
+      camX: p.camX, camY: p.camY,
+      ropeTh: p.ropeTh, ropeW: p.ropeW, ropeLen: p.ropeLen, ropeCd: p.ropeCd,
+      checkpoint: p.checkpoint ? { x: p.checkpoint.x, y: p.checkpoint.y } : null,
+      rope: p.rope ? { ax: p.rope.ax, ay: p.rope.ay } : null,
+      neon: p.neon, glow: p.glow,
+    });
+    const packDuoState = () => ({
+      t: S.t, raceT: S.raceT, mode: S.mode, modeT: S.modeT, done: S.done,
+      players: S.players.map(packPlayer),
+    });
+    const applyDuoState = (st) => {
+      if (!st) return;
+      if (st.t != null) S.t = st.t;
+      if (st.raceT != null) S.raceT = st.raceT;
+      if (st.mode != null) S.mode = st.mode;
+      if (st.modeT != null) S.modeT = st.modeT;
+      if (st.done != null) S.done = st.done;
+      if (Array.isArray(st.players)) {
+        st.players.forEach((sp, i) => {
+          if (!S.players[i] || !sp) return;
+          const rope = sp.rope;
+          Object.assign(S.players[i], sp);
+          // restore rope handle as plain anchor (not a live track ref)
+          S.players[i].rope = rope ? { ax: rope.ax, ay: rope.ay } : null;
+        });
+      }
     };
 
     const down = (e) => {
       if (ALL_KEYS.includes(e.code)) e.preventDefault();
-      if (!S.keys[e.code]) S.pressed[e.code] = true;
-      S.keys[e.code] = true;
+      net.onKeyDown(e.code, S);
     };
-    const up = (e) => { S.keys[e.code] = false; };
+    const up = (e) => { net.onKeyUp(e.code, S); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
 
-    // touch-control bridge — on-screen buttons drive the exact same key states
+    // touch-control bridge — goes through net so guest inputs sync
     stateRef.current.setKey = (code, isDown) => {
-      if (isDown && !S.keys[code]) S.pressed[code] = true;
-      S.keys[code] = isDown;
+      if (net.online && net.touchSet) net.touchSet(code, isDown, S);
+      else {
+        if (isDown && !S.keys[code]) S.pressed[code] = true;
+        S.keys[code] = isDown;
+      }
     };
 
     const spark = (x, y, color, n = 8, spd = 220) => {
@@ -1359,31 +1532,45 @@ export default function StickmanRacing() {
 
     let raf, last = performance.now();
     const loop = (now) => {
+      const __guest = !!(net.online && !net.isHost);
       const dt = Math.min((now - last) / 1000, 0.033);
       last = now;
-      S.t += dt;
 
-      if (S.mode === "countdown") {
-        S.modeT += dt;
-        const n = Math.ceil(3 - S.modeT);
-        if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
-        if (S.modeT >= 3) { S.mode = "race"; }
-      } else if (S.mode === "race") {
-        S.raceT += dt;
+      if (__guest) {
+        net.netTick();
+        const fresh = net.takeState?.() || null;
+        if (fresh) applyDuoState(fresh);
+        else {
+          const peek = net.peekState?.();
+          if (peek) applyDuoState(peek);
+        }
+        S.players.forEach((p) => updateCam(p, dt));
+      } else {
+        if (net.online) net.mergeRemoteInto(S);
+        S.t += dt;
+
+        if (S.mode === "countdown") {
+          S.modeT += dt;
+          const n = Math.ceil(3 - S.modeT);
+          if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
+          if (S.modeT >= 3) { S.mode = "race"; }
+        } else if (S.mode === "race") {
+          S.raceT += dt;
+        }
+
+        S.players.forEach((p) => {
+          updateRacer(p, dt);
+          updateCam(p, dt);
+        });
+
+        S.particles = S.particles.filter((pt) => {
+          pt.life -= dt;
+          pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
+          pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+          return pt.life > 0;
+        });
+        S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
       }
-
-      S.players.forEach((p) => {
-        updateRacer(p, dt);
-        updateCam(p, dt);
-      });
-
-      S.particles = S.particles.filter((pt) => {
-        pt.life -= dt;
-        pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
-        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
-        return pt.life > 0;
-      });
-      S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
 
       ctx.clearRect(0, 0, CW, CH);
       drawWorld(S.players[0], 0);
@@ -1406,19 +1593,32 @@ export default function StickmanRacing() {
         ctx.save();
         ctx.shadowColor = fin.neon; ctx.shadowBlur = 22;
         ctx.fillStyle = fin.neon; ctx.font = "bold 44px monospace"; ctx.textAlign = "center";
-        ctx.fillText(`P${fin.id + 1} FINISHES — ${fin.finishTime.toFixed(2)}s`, CW / 2, CH / 2);
+        const finName = fin.id === 0 ? namesRef.current.A : namesRef.current.B;
+        ctx.fillText(`${finName} FINISHES — ${fin.finishTime.toFixed(2)}s`, CW / 2, CH / 2);
         ctx.restore();
       }
 
+      if (!__guest && net.online) {
+        netAcc += dt;
+        if (netAcc >= 0.025) { netAcc = 0; net.netTick(packDuoState); }
+      }
       S.pressed = {};
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+      raf = requestAnimationFrame(loop);
+      teardown = () => {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("keydown", down);
+        window.removeEventListener("keyup", up);
+      };
+    }; // end boot
+
+    boot();
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
+      cancelled = true;
+      cancelAnimationFrame(roving);
+      teardown();
     };
   }, [phase]);
 
@@ -1676,61 +1876,170 @@ export default function StickmanRacing() {
           <span style={{ opacity: 0.9 }}>🏁</span>{" "}
           <span style={neonText("#ff3b4d")}>RACING</span>
         </h1>
-        <p style={{ opacity: 0.65, marginTop: 4 }}>10 tracks · split-screen duel · long parkour marathons</p>
+        <p style={{ opacity: 0.65, marginTop: 4 }}>
+          {online
+            ? `${nameA} vs ${nameB} · same track · race together`
+            : "10 tracks · split-screen duel · long parkour marathons"}
+        </p>
 
         {phase === "matchEnd" && result && (
-          <div style={{
-            margin: "8px 0 16px", padding: "14px 36px", borderRadius: 10,
-            background: result.winner === 1 ? "rgba(58,160,255,0.12)" : "rgba(255,59,77,0.12)",
-            border: `2px solid ${result.winner === 1 ? "#3aa0ff" : "#ff3b4d"}`,
-            boxShadow: `0 0 24px ${result.winner === 1 ? "rgba(58,160,255,0.35)" : "rgba(255,59,77,0.35)"}`,
-            fontSize: 22, fontWeight: "bold", textAlign: "center",
-          }}>
-            🏆 PLAYER {result.winner} WINS — {result.time.toFixed(2)}s
+          <div
+            data-sr-winner={result.winner === 1 ? "A" : "B"}
+            style={{
+              margin: "8px 0 16px", padding: "14px 36px", borderRadius: 10,
+              background: result.winner === 1 ? "rgba(58,160,255,0.12)" : "rgba(255,59,77,0.12)",
+              border: `2px solid ${result.winner === 1 ? "#3aa0ff" : "#ff3b4d"}`,
+              boxShadow: `0 0 24px ${result.winner === 1 ? "rgba(58,160,255,0.35)" : "rgba(255,59,77,0.35)"}`,
+              fontSize: 22, fontWeight: "bold", textAlign: "center",
+            }}
+          >
+            🏆 {nameOf(result.winner - 1).toUpperCase()} WINS — {result.time.toFixed(2)}s
             <div style={{ fontSize: 13, opacity: 0.75, fontWeight: "normal", marginTop: 4 }}>
               rival was {result.gap}m behind
             </div>
           </div>
         )}
 
-        <p style={{ marginBottom: 8, opacity: 0.85 }}>Pick a track (roughly easiest → hardest):</p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", maxWidth: 940 }}>
-          {MAPS.map((m, i) => (
-            <button key={m.name} onClick={() => startRace(i)}
-              style={{
-                cursor: "pointer", width: 168, padding: 0, borderRadius: 10, overflow: "hidden",
-                border: "2px solid rgba(255,255,255,0.18)", background: "#10141d", color: "#e8eef5",
-                fontFamily: "monospace", transition: "transform .15s, box-shadow .15s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(120,180,255,0.25)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-              <div style={{ height: 78, background: `linear-gradient(${m.card.top}, ${m.card.bot})`, position: "relative", overflow: "hidden" }}>
-                <CardFx accent={m.card.acc} theme={m.theme} seed={i + 1} />
-                <div style={{ position: "absolute", top: 5, left: 7, fontSize: 16, zIndex: 2 }}>{m.card.emoji}</div>
-                {/* ground track */}
-                <div style={{
-                  position: "absolute", bottom: 8, left: 8, right: 8, height: 4, zIndex: 2,
-                  background: m.card.acc, borderRadius: 2, boxShadow: `0 0 10px ${m.card.acc}`,
-                }} />
-                {/* racing duo */}
-                <div style={{
-                  position: "absolute", left: 22, bottom: 10, zIndex: 3,
-                  display: "flex", alignItems: "flex-end", gap: 2,
-                  animation: `msChase 1.35s ease-in-out ${(i * 0.07).toFixed(2)}s infinite alternate`,
-                }}>
-                  <MenuStickman color="#3aa0ff" delay="0s" />
-                  <MenuStickman color="#ff3b4d" delay="0.07s" />
-                </div>
-                <div style={{
-                  position: "absolute", bottom: 10, right: 8, fontSize: 13, zIndex: 3,
-                  transformOrigin: "bottom center",
-                  animation: "msFlag 0.9s ease-in-out infinite",
-                }}>🏁</div>
+        {/* Big lobby CTA — host: Start Match · invited guest: I'm Ready (same slot) */}
+        <div style={{
+          margin: "18px 0 16px", width: "min(520px, 100%)",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+          padding: "16px 18px", borderRadius: 14,
+          background: "#10141d", border: "1px solid rgba(255,255,255,0.12)",
+        }}>
+          {online ? (
+            <>
+              <div style={{
+                fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+                color: isGuest ? "#ff3b4d" : "#3aa0ff",
+              }}>
+                YOU ARE {isGuest ? nameB.toUpperCase() : nameA.toUpperCase()}
+                {isGuest ? " · INVITED" : " · HOST"}
               </div>
-              <div style={{ padding: "8px 0 2px", fontWeight: "bold", letterSpacing: 0.5, fontSize: 13 }}>{m.name}</div>
-              <div style={{ padding: "0 6px 9px", fontSize: 9, opacity: 0.55 }}>{m.desc}</div>
-            </button>
-          ))}
+              <div style={{ fontSize: 13, opacity: 0.8, textAlign: "center", lineHeight: 1.5 }}>
+                {isHost
+                  ? (guestReady
+                    ? `${nameB} is ready — choose a track, then start`
+                    : `Waiting for ${nameB} to press I'm Ready`)
+                  : (guestReady
+                    ? `You're ready — waiting for ${nameA} to start the match`
+                    : "Press I'm Ready when you want to race")}
+              </div>
+              {isHost ? (
+                <button
+                  type="button"
+                  onClick={() => startRace(mapIdx)}
+                  disabled={!guestReady}
+                  style={{
+                    cursor: guestReady ? "pointer" : "not-allowed",
+                    width: "100%", maxWidth: 360,
+                    padding: "14px 28px", borderRadius: 12, border: "none",
+                    fontFamily: "monospace", fontWeight: "bold", fontSize: 16, letterSpacing: 2,
+                    color: "#fff",
+                    background: guestReady
+                      ? "linear-gradient(90deg,#3aa0ff,#ff3b4d)"
+                      : "linear-gradient(90deg,#3a4558,#4a5568)",
+                    opacity: guestReady ? 1 : 0.6,
+                    boxShadow: guestReady ? "0 0 22px rgba(90,160,255,.45)" : "none",
+                  }}
+                >
+                  {guestReady ? "START MATCH ▶" : `WAITING FOR ${nameB.toUpperCase()}…`}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setReady(!guestReady)}
+                  style={{
+                    cursor: "pointer",
+                    width: "100%", maxWidth: 360,
+                    padding: "14px 28px", borderRadius: 12, border: "none",
+                    fontFamily: "monospace", fontWeight: "bold", fontSize: 16, letterSpacing: 2,
+                    color: "#fff",
+                    background: guestReady
+                      ? "linear-gradient(90deg,#1f9e58,#4dff9e)"
+                      : "linear-gradient(90deg,#ff3b4d,#ff8090)",
+                    boxShadow: guestReady
+                      ? "0 0 22px rgba(77,255,158,.5)"
+                      : "0 0 22px rgba(255,59,77,.45)",
+                  }}
+                >
+                  {guestReady ? "READY ✓  (tap to cancel)" : "I'M READY ▶"}
+                </button>
+              )}
+              <div style={{ fontSize: 12, opacity: 0.75 }}>
+                Shared track: <b style={{ color: "#ffe97a" }}>{MAPS[mapIdx]?.name}</b>
+                {isGuest ? ` · picked by ${nameA}` : " · tap a card below to choose"}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 13, opacity: 0.75 }}>Tap a track below to start (local 2P)</div>
+          )}
+        </div>
+
+        <p style={{ marginBottom: 8, opacity: 0.85 }}>
+          {online
+            ? (isHost ? "Choose the track (same for both):" : `Track (${nameA} picks):`)
+            : "Pick a track (roughly easiest → hardest):"}
+        </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", maxWidth: 940 }}>
+          {MAPS.map((m, i) => {
+            const selected = mapIdx === i;
+            const canPick = !online || isHost;
+            return (
+              <button
+                key={m.name}
+                type="button"
+                disabled={!canPick}
+                onClick={() => selectMap(i)}
+                style={{
+                  cursor: canPick ? "pointer" : "default",
+                  width: 168, padding: 0, borderRadius: 10, overflow: "hidden",
+                  border: selected
+                    ? "2px solid #ffe97a"
+                    : "2px solid rgba(255,255,255,0.18)",
+                  boxShadow: selected ? "0 0 16px rgba(255,233,122,.35)" : "none",
+                  background: "#10141d", color: "#e8eef5",
+                  fontFamily: "monospace", transition: "transform .15s, box-shadow .15s",
+                  opacity: !canPick && !selected ? 0.65 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (!canPick) return;
+                  e.currentTarget.style.transform = "translateY(-3px)";
+                  e.currentTarget.style.boxShadow = selected
+                    ? "0 0 16px rgba(255,233,122,.45)"
+                    : "0 6px 24px rgba(120,180,255,0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "";
+                  e.currentTarget.style.boxShadow = selected ? "0 0 16px rgba(255,233,122,.35)" : "";
+                }}
+              >
+                <div style={{ height: 78, background: `linear-gradient(${m.card.top}, ${m.card.bot})`, position: "relative", overflow: "hidden" }}>
+                  <CardFx accent={m.card.acc} theme={m.theme} seed={i + 1} />
+                  <div style={{ position: "absolute", top: 5, left: 7, fontSize: 16, zIndex: 2 }}>{m.card.emoji}</div>
+                  <div style={{
+                    position: "absolute", bottom: 8, left: 8, right: 8, height: 4, zIndex: 2,
+                    background: m.card.acc, borderRadius: 2, boxShadow: `0 0 10px ${m.card.acc}`,
+                  }} />
+                  <div style={{
+                    position: "absolute", left: 22, bottom: 10, zIndex: 3,
+                    display: "flex", alignItems: "flex-end", gap: 2,
+                    animation: `msChase 1.35s ease-in-out ${(i * 0.07).toFixed(2)}s infinite alternate`,
+                  }}>
+                    <MenuStickman color="#3aa0ff" delay="0s" />
+                    <MenuStickman color="#ff3b4d" delay="0.07s" />
+                  </div>
+                  <div style={{
+                    position: "absolute", bottom: 10, right: 8, fontSize: 13, zIndex: 3,
+                    transformOrigin: "bottom center",
+                    animation: "msFlag 0.9s ease-in-out infinite",
+                  }}>🏁</div>
+                </div>
+                <div style={{ padding: "8px 0 2px", fontWeight: "bold", letterSpacing: 0.5, fontSize: 13 }}>{m.name}</div>
+                <div style={{ padding: "0 6px 9px", fontSize: 9, opacity: 0.55 }}>{m.desc}</div>
+              </button>
+            );
+          })}
         </div>
 
         <div style={{
@@ -1739,14 +2048,15 @@ export default function StickmanRacing() {
           borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
         }}>
           <div>
-            <b style={neonText("#3aa0ff")}>PLAYER 1 — top screen</b><br />
+            <b style={neonText("#3aa0ff")}>{nameA} — top</b><br />
             A / D — run · W — jump<br />
             S — slide · <b>F — TURBO 🔥</b>
           </div>
           <div>
-            <b style={neonText("#ff3b4d")}>PLAYER 2 — bottom screen</b><br />
-            ← / → — run · ↑ — jump<br />
-            ↓ — slide · <b>K — TURBO 🔥</b>
+            <b style={neonText("#ff3b4d")}>{nameB} — bottom{online ? " (WASD)" : ""}</b><br />
+            {online
+              ? <>W A S D — run / jump / slide · <b>F — TURBO 🔥</b></>
+              : <>← / → — run · ↑ — jump<br />↓ — slide · <b>K — TURBO 🔥</b></>}
           </div>
         </div>
 
@@ -1796,7 +2106,7 @@ export default function StickmanRacing() {
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 10px", fontFamily: "monospace", fontSize: 12 }}>
           {muted ? "🔇" : "🔊"}
         </button>
-        <button onClick={() => setPhase("menu")}
+        <button onClick={backToMenu}
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 12px", fontFamily: "monospace", fontSize: 12 }}>
           quit to menu
         </button>
@@ -1823,8 +2133,10 @@ export default function StickmanRacing() {
       </div>
       <p style={{ opacity: 0.5, fontSize: 12, marginTop: 8 }}>
         {touchUI
-          ? "P1 = blue buttons (top screen) · P2 = red buttons (bottom screen) · ⭡ jump/rope · ⭣ slide · 🔥 turbo"
-          : "top = P1 (WASD + F turbo) · bottom = P2 (arrows + K turbo) · long tracks — pace your turbo!"}
+          ? `${nameA} = blue · ${nameB} = red · ⭡ jump/rope · ⭣ slide · 🔥 turbo`
+          : online
+            ? `top = ${nameA} · bottom = ${nameB} (WASD) · same track — pace your turbo!`
+            : `top = ${nameA} (WASD + F) · bottom = ${nameB} (arrows + K) · pace your turbo!`}
       </p>
     </div>
   );

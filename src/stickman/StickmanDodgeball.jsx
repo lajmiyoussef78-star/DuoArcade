@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 // ============ STICKMAN DODGEBALL 🎯 — NEON EDITION ============
 // Survive the falling-hazard storm. Last stickman standing wins the round.
@@ -182,7 +183,7 @@ function makePlayer(id) {
   };
 }
 
-export default function StickmanDodgeball() {
+export default function StickmanDodgeball({ myRole, rt } = {}) {
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu"); // menu | playing | matchEnd
   const [mode, setMode] = useState("bo3");
@@ -192,6 +193,7 @@ export default function StickmanDodgeball() {
   const [muted, setMuted] = useState(false);
   const [touchUI, setTouchUI] = useState(false);
   const stateRef = useRef({});
+  const duoNetRef = useRef(null);
 
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
   useEffect(() => {
@@ -200,14 +202,40 @@ export default function StickmanDodgeball() {
     setTouchUI(touch);
   }, []);
 
+  useEffect(() => {
+    if (!rt || !myRole) return;
+    const net = createDuoStickmanNet({
+      rt, myRole,
+      p1Codes: Object.values(KEYS.p1),
+      p2Codes: Object.values(KEYS.p2),
+      remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    net.onUi((m) => {
+      if (m?.type === "start") {
+        SFX.unlock();
+        const md = m.mode || "bo3";
+        const ai = m.arenaIdx ?? 0;
+        setMode(md); setArenaIdx(ai);
+        setScore([0, 0]); setMatchWinner(0);
+        setPhase("playing");
+        stateRef.current.launch = { mode: md, arenaIdx: ai };
+      }
+    });
+    return () => { duoNetRef.current = null; };
+  }, [rt, myRole]);
+
   const targetWins = mode === "quick" ? 1 : mode === "bo3" ? 2 : 3;
 
   const startMatch = (m = mode, ai = arenaIdx) => {
+    const net = duoNetRef.current;
+    if (net?.online && !net.isHost) return;
     SFX.unlock();
     setMode(m); setArenaIdx(ai);
     setScore([0, 0]); setMatchWinner(0);
     setPhase("playing");
     stateRef.current.launch = { mode: m, arenaIdx: ai };
+    net?.sendUi({ type: "start", mode: m, arenaIdx: ai });
   };
 
   useEffect(() => {
@@ -257,18 +285,40 @@ export default function StickmanDodgeball() {
     };
     resetRound();
 
+    const p1Codes = Object.values(KEYS.p1);
+    const p2Codes = Object.values(KEYS.p2);
+    const net = duoNetRef.current || createDuoStickmanNet({
+      rt, myRole, p1Codes, p2Codes, remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    let netAcc = 0;
+    const packState = () => ({
+      t: S.t, mode: S.mode, modeT: S.modeT, wins: [...S.wins], round: S.round,
+      roundWinner: S.roundWinner, done: S.done, roundT: S.roundT,
+      banner: S.banner, bannerT: S.bannerT,
+      players: S.players.map((p) => ({ ...p })),
+      hazards: S.hazards.map((h) => ({ ...h })),
+      pups: S.pups.map((pu) => ({ ...pu })),
+    });
+    const applyState = (st) => {
+      if (!st) return;
+      S.t = st.t; S.mode = st.mode; S.modeT = st.modeT; S.wins = st.wins;
+      S.round = st.round; S.roundWinner = st.roundWinner; S.done = st.done;
+      S.roundT = st.roundT; S.banner = st.banner; S.bannerT = st.bannerT;
+      if (st.players) st.players.forEach((sp, i) => { if (S.players[i]) Object.assign(S.players[i], sp); });
+      if (st.hazards) S.hazards = st.hazards;
+      if (st.pups) S.pups = st.pups;
+      if (st.wins) setScore([...st.wins]);
+    };
+
     const down = (e) => {
       if (ALL_KEYS.includes(e.code)) e.preventDefault();
-      if (!S.keys[e.code]) S.pressed[e.code] = true;
-      S.keys[e.code] = true;
+      net.onKeyDown(e.code, S);
     };
-    const up = (e) => { S.keys[e.code] = false; };
+    const up = (e) => { net.onKeyUp(e.code, S); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-    stateRef.current.setKey = (code, isDown) => {
-      if (isDown && !S.keys[code]) S.pressed[code] = true;
-      S.keys[code] = isDown;
-    };
+    stateRef.current.setKey = (code, isDown) => net.touchSet(code, isDown, S);
 
     // ---------------- fx ----------------
     const spark = (x, y, color, n = 10, spd = 240, upBias = 60) => {
@@ -1487,6 +1537,20 @@ export default function StickmanDodgeball() {
     const loop = (now) => {
       let dt = Math.min((now - last) / 1000, 0.033);
       last = now;
+      const guest = net.online && !net.isHost;
+      if (guest) {
+        netAcc += dt;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(); }
+        const st = net.peekState();
+        if (st) {
+          applyState(st);
+          if (st.done) {
+            setMatchWinner(st.wins?.[0] > st.wins?.[1] ? 1 : 2);
+            setPhase("matchEnd");
+          }
+        }
+      } else {
+      net.mergeRemoteInto(S);
       if (S.globalSlowT > 0) { S.globalSlowT -= dt; }
       const hazardDt = S.globalSlowT > 0 ? dt * 0.35 : dt;
       S.t += dt;
@@ -1526,8 +1590,7 @@ export default function StickmanDodgeball() {
           else S.roundWinner = d0 ? 1 : 0;
           if (S.roundWinner >= 0) {
             S.wins[S.roundWinner]++;
-            setScore([...S.wins]);
-            SFX.win();
+            setScore([...S.wins]);            SFX.win();
             setBanner(`P${S.roundWinner + 1} WINS THE ROUND!`, S.players[S.roundWinner].neon, 1.2);
           }
           S.mode = "roundEnd"; S.modeT = 0;
@@ -1563,6 +1626,10 @@ export default function StickmanDodgeball() {
       });
       S.rings = S.rings.filter((r) => { r.life -= dt; r.r += (r.max - r.r) * 10 * dt; return r.life > 0; });
       S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
+
+      netAcc += dt;
+      if (netAcc >= 0.05) { netAcc = 0; net.netTick(packState); }
+      } // end host sim
 
       // ---- render ----
       ctx.save();
@@ -1614,7 +1681,7 @@ export default function StickmanDodgeball() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [phase]);
+  }, [phase, myRole, rt]);
 
   // ================= UI =================
   const wrap = {

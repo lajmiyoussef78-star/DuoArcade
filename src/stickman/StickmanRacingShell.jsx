@@ -5,7 +5,7 @@ import StickmanRacing from './StickmanRacing.jsx';
  * Thin DuoArcade adapter — renders the original racing game unchanged.
  * Watches the match-end banner to report the winner to the shell.
  */
-export default function StickmanRacingShell({ onComplete, pausedRef }) {
+export default function StickmanRacingShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -15,11 +15,19 @@ export default function StickmanRacingShell({ onComplete, pausedRef }) {
 
     const check = () => {
       if (doneRef.current || pausedRef?.current) return;
-      const text = root.textContent || '';
-      const m = text.match(/PLAYER\s+([12])\s+WINS/);
-      if (!m) return;
+      const el = root.querySelector('[data-sr-winner]');
+      const role = el?.getAttribute('data-sr-winner');
+      if (role !== 'A' && role !== 'B') {
+        // fallback for in-canvas finish text during race
+        const text = root.textContent || '';
+        const m = text.match(/PLAYER\s+([12])\s+WINS/);
+        if (!m) return;
+        doneRef.current = true;
+        onComplete?.(m[1] === '1' ? 'A' : 'B');
+        return;
+      }
       doneRef.current = true;
-      onComplete?.(m[1] === '1' ? 'A' : 'B');
+      onComplete?.(role);
     };
 
     const mo = new MutationObserver(check);
@@ -30,7 +38,7 @@ export default function StickmanRacingShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="sr-shell">
-      <StickmanRacing />
+      <StickmanRacing myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

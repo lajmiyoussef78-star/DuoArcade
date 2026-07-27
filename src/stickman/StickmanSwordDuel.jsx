@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 // ============ STICKMAN SWORD DUEL — NEON EDITION v3 ============
 // ATTACK MOVESET:
@@ -271,7 +272,7 @@ function makePlayer(id, x, facing) {
   };
 }
 
-export default function StickmanSwordDuel() {
+export default function StickmanSwordDuel({ myRole, rt } = {}) {
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu");
   const [mapIdx, setMapIdx] = useState(0);
@@ -279,14 +280,44 @@ export default function StickmanSwordDuel() {
   const [matchWinner, setMatchWinner] = useState(0);
   const [muted, setMuted] = useState(false);
   const stateRef = useRef({});
+  const duoNetRef = useRef(null);
 
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
 
+  // Online lobby: guest waits for host arena pick.
+  useEffect(() => {
+    if (!rt || !myRole) return;
+    const p1Codes = Object.values(KEYS.p1);
+    const p2Codes = Object.values(KEYS.p2);
+    const net = createDuoStickmanNet({
+      rt,
+      myRole,
+      p1Codes,
+      p2Codes,
+      remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    net.onUi((m) => {
+      if (m?.type === "start" && typeof m.mapIdx === "number") {
+        SFX.unlock();
+        setMapIdx(m.mapIdx);
+        setScore([0, 0]);
+        setMatchWinner(0);
+        setPhase("playing");
+        stateRef.current.launch = { mapIdx: m.mapIdx };
+      }
+    });
+    return () => { duoNetRef.current = null; };
+  }, [rt, myRole]);
+
   const startMatch = (mi) => {
+    const net = duoNetRef.current;
+    if (net?.online && !net.isHost) return; // guest waits for host
     SFX.unlock();
     setMapIdx(mi); setScore([0, 0]); setMatchWinner(0);
     setPhase("playing");
     stateRef.current.launch = { mapIdx: mi };
+    net?.sendUi({ type: "start", mapIdx: mi });
   };
 
   useEffect(() => {
@@ -315,13 +346,62 @@ export default function StickmanSwordDuel() {
     };
     resetRound();
 
-    const down = (e) => {
-      const all = [...Object.values(KEYS.p1), ...Object.values(KEYS.p2)];
-      if (all.includes(e.code)) e.preventDefault();
-      if (!S.keys[e.code]) S.pressed[e.code] = true;
-      S.keys[e.code] = true;
+    const p1Codes = Object.values(KEYS.p1);
+    const p2Codes = Object.values(KEYS.p2);
+    const net = duoNetRef.current || createDuoStickmanNet({
+      rt,
+      myRole,
+      p1Codes,
+      p2Codes,
+      remap: remapFromKeys(KEYS.p1, KEYS.p2),
+    });
+    duoNetRef.current = net;
+    let netAcc = 0;
+
+    const packState = () => ({
+      mode: S.mode,
+      modeT: S.modeT,
+      wins: S.wins,
+      round: S.round,
+      roundWinner: S.roundWinner,
+      done: S.done,
+      t: S.t,
+      banner: S.banner,
+      bannerT: S.bannerT,
+      bannerCol: S.bannerCol,
+      players: S.players.map((p) => ({
+        id: p.id, x: p.x, y: p.y, vx: p.vx, vy: p.vy, facing: p.facing,
+        hp: p.hp, onGround: p.onGround, groundVX: p.groundVX,
+        atk: p.atk, attackCd: p.attackCd, chargeT: p.chargeT, chargeTicked: p.chargeTicked,
+        chainT: p.chainT, chainNext: p.chainNext,
+        kickT: p.kickT, kickCd: p.kickCd, kickHit: p.kickHit,
+        plunging: p.plunging, blocking: p.blocking, blockStart: p.blockStart,
+        guardBreakT: p.guardBreakT, stunT: p.stunT, dashT: p.dashT, dashCd: p.dashCd,
+        hurtFlash: p.hurtFlash, runPhase: p.runPhase, dead: p.dead, deathT: p.deathT,
+        victory: p.victory,
+      })),
+    });
+
+    const applyState = (st) => {
+      if (!st) return;
+      S.mode = st.mode; S.modeT = st.modeT; S.wins = st.wins;
+      S.round = st.round; S.roundWinner = st.roundWinner; S.done = st.done;
+      S.t = st.t; S.banner = st.banner; S.bannerT = st.bannerT; S.bannerCol = st.bannerCol;
+      if (Array.isArray(st.players)) {
+        st.players.forEach((sp, i) => {
+          if (!S.players[i]) return;
+          Object.assign(S.players[i], sp);
+        });
+      }
+      if (S.done && S.wins) setScore([...S.wins]);
     };
-    const up = (e) => { S.keys[e.code] = false; };
+
+    const down = (e) => {
+      const all = [...p1Codes, ...p2Codes];
+      if (all.includes(e.code) || Object.keys(remapFromKeys(KEYS.p1, KEYS.p2)).includes(e.code)) e.preventDefault();
+      net.onKeyDown(e.code, S);
+    };
+    const up = (e) => { net.onKeyUp(e.code, S); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
 
@@ -1151,77 +1231,109 @@ export default function StickmanSwordDuel() {
       let dt = Math.min((now - last) / 1000, 0.033);
       last = now;
       if (S.slowmo > 0) { S.slowmo -= dt; dt *= 0.35; }
-      S.t += dt;
-      if (S.bannerT > 0) S.bannerT -= dt;
-      if (S.flash > 0) S.flash -= dt;
 
-      S.map.platforms.forEach((pl, i) => {
-        const o = S.platOffsets[i];
-        o.pdx = 0; o.pdy = 0;
-        if (pl.move) {
-          const v = Math.sin(S.t * pl.move.speed + pl.move.phase) * pl.move.range;
-          if (pl.move.axis === "x") { o.pdx = v - o.dx; o.dx = v; }
-          else { o.pdy = v - o.dy; o.dy = v; }
-        }
-      });
-
-      if (S.mode === "countdown") {
-        S.modeT += dt;
-        const n = Math.ceil(3 - S.modeT);
-        if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
-        if (S.modeT >= 3) { S.mode = "fight"; S.modeT = 0; }
-      } else if (S.mode === "fight") {
-        const d0 = S.players[0].hp <= 0 || S.players[0].dead;
-        const d1 = S.players[1].hp <= 0 || S.players[1].dead;
-        if (d0 || d1) {
-          S.roundWinner = d0 ? 1 : 0;
-          S.wins[S.roundWinner]++;
-          S.players[S.roundWinner].victory = true;
-          setScore([...S.wins]);
-          SFX.win();
-          S.mode = "roundEnd"; S.modeT = 0;
-        }
-      } else if (S.mode === "roundEnd") {
-        S.modeT += dt;
-        if (Math.random() < 0.3) {
-          const p = S.players[S.roundWinner];
-          spark(p.x, p.y - 90, p.neon, 3, 200, 160);
-        }
-        if (S.modeT >= 2.4) {
-          if (S.wins[0] >= 3 || S.wins[1] >= 3) {
-            if (!S.done) {
-              S.done = true;
-              SFX.fanfare();
-              setMatchWinner(S.wins[0] >= 3 ? 1 : 2);
-              setPhase("matchEnd");
-            }
-          } else {
-            S.round++;
-            resetRound();
+      const guest = net.online && !net.isHost;
+      if (guest) {
+        netAcc += dt;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(); }
+        const st = net.peekState();
+        if (st) {
+          applyState(st);
+          if (st.done && st.wins) {
+            setMatchWinner(st.wins[0] >= 3 ? 1 : 2);
+            setPhase("matchEnd");
           }
         }
+      } else {
+        net.mergeRemoteInto(S);
+        S.t += dt;
+        if (S.bannerT > 0) S.bannerT -= dt;
+        if (S.flash > 0) S.flash -= dt;
+
+        S.map.platforms.forEach((pl, i) => {
+          const o = S.platOffsets[i];
+          o.pdx = 0; o.pdy = 0;
+          if (pl.move) {
+            const v = Math.sin(S.t * pl.move.speed + pl.move.phase) * pl.move.range;
+            if (pl.move.axis === "x") { o.pdx = v - o.dx; o.dx = v; }
+            else { o.pdy = v - o.dy; o.dy = v; }
+          }
+        });
+
+        if (S.mode === "countdown") {
+          S.modeT += dt;
+          const n = Math.ceil(3 - S.modeT);
+          if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
+          if (S.modeT >= 3) { S.mode = "fight"; S.modeT = 0; }
+        } else if (S.mode === "fight") {
+          const d0 = S.players[0].hp <= 0 || S.players[0].dead;
+          const d1 = S.players[1].hp <= 0 || S.players[1].dead;
+          if (d0 || d1) {
+            S.roundWinner = d0 ? 1 : 0;
+            S.wins[S.roundWinner]++;
+            S.players[S.roundWinner].victory = true;
+            setScore([...S.wins]);
+            SFX.win();
+            S.mode = "roundEnd"; S.modeT = 0;
+          }
+        } else if (S.mode === "roundEnd") {
+          S.modeT += dt;
+          if (Math.random() < 0.3) {
+            const p = S.players[S.roundWinner];
+            spark(p.x, p.y - 90, p.neon, 3, 200, 160);
+          }
+          if (S.modeT >= 2.4) {
+            if (S.wins[0] >= 3 || S.wins[1] >= 3) {
+              if (!S.done) {
+                S.done = true;
+                SFX.fanfare();
+                setMatchWinner(S.wins[0] >= 3 ? 1 : 2);
+                setPhase("matchEnd");
+              }
+            } else {
+              S.round++;
+              resetRound();
+            }
+          }
+        }
+
+        S.players.forEach((p, i) =>
+          updatePlayer(p, S.players[1 - i], dt, i === 0 ? KEYS.p1 : KEYS.p2)
+        );
+        resolveHits();
+
+        S.particles = S.particles.filter((pt) => {
+          pt.life -= dt;
+          pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
+          pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+          return pt.life > 0;
+        });
+        S.rings = S.rings.filter((r) => {
+          r.life -= dt;
+          r.r += (r.max - r.r) * 12 * dt;
+          return r.life > 0;
+        });
+        S.texts = S.texts.filter((tx) => {
+          tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94;
+          return tx.life > 0;
+        });
+
+        netAcc += dt;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(packState); }
       }
 
-      S.players.forEach((p, i) =>
-        updatePlayer(p, S.players[1 - i], dt, i === 0 ? KEYS.p1 : KEYS.p2)
-      );
-      resolveHits();
-
-      S.particles = S.particles.filter((pt) => {
-        pt.life -= dt;
-        pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
-        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
-        return pt.life > 0;
-      });
-      S.rings = S.rings.filter((r) => {
-        r.life -= dt;
-        r.r += (r.max - r.r) * 12 * dt;
-        return r.life > 0;
-      });
-      S.texts = S.texts.filter((tx) => {
-        tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94;
-        return tx.life > 0;
-      });
+      // Guest still advances cosmetic timers from last state for draw
+      if (guest) {
+        S.map.platforms.forEach((pl, i) => {
+          const o = S.platOffsets[i];
+          o.pdx = 0; o.pdy = 0;
+          if (pl.move && typeof S.t === "number") {
+            const v = Math.sin(S.t * pl.move.speed + pl.move.phase) * pl.move.range;
+            if (pl.move.axis === "x") { o.pdx = v - o.dx; o.dx = v; }
+            else { o.pdy = v - o.dy; o.dy = v; }
+          }
+        });
+      }
 
       ctx.save();
       if (S.shake > 0) {
@@ -1266,7 +1378,7 @@ export default function StickmanSwordDuel() {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [phase]);
+  }, [phase, myRole, rt]);
 
   // ================= UI =================
   const wrap = {
@@ -1284,7 +1396,9 @@ export default function StickmanSwordDuel() {
           <span style={{ opacity: 0.9 }}>⚔️</span>{" "}
           <span style={neonText("#ff3b4d")}>SWORD DUEL</span>
         </h1>
-        <p style={{ opacity: 0.65, marginTop: 4 }}>neon edition · local 2-player · best of 5</p>
+        <p style={{ opacity: 0.65, marginTop: 4 }}>
+          neon edition · {rt ? (myRole === "A" ? "you are Player 1 (host)" : "you are Player 2 — wait for host arena") : "local 2-player"} · best of 5
+        </p>
 
         {phase === "matchEnd" && (
           <div style={{
@@ -1328,10 +1442,11 @@ export default function StickmanSwordDuel() {
             G — block <span style={{ opacity: 0.6 }}>(perfect timing = parry)</span>
           </div>
           <div>
-            <b style={neonText("#ff3b4d")}>PLAYER 2</b><br />
+            <b style={neonText("#ff3b4d")}>PLAYER 2{rt ? " (online: same keys as P1)" : ""}</b><br />
+            {rt ? <>A / D — move · W — jump<br />S — dash · F — attack · H — kick<br />G — block</> : <>
             ← / → — move · ↑ — jump<br />
             ↓ — dash · K — attack · J — kick<br />
-            L — block <span style={{ opacity: 0.6 }}>(perfect timing = parry)</span>
+            L — block <span style={{ opacity: 0.6 }}>(perfect timing = parry)</span></>}
           </div>
         </div>
 

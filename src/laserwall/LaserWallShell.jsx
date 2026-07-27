@@ -6,7 +6,7 @@ import './laserwall.css';
  * Thin DuoArcade adapter — renders Laser Wall Duel as-is (same keyboard).
  * Watches the final-results banner to report the winner to the shell.
  */
-export default function LaserWallShell({ onComplete, pausedRef }) {
+export default function LaserWallShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -36,7 +36,7 @@ export default function LaserWallShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="lwd-shell">
-      <LaserWallDuel />
+      <LaserWallDuel myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 /* ═══════════════════ CONSTANTS ═══════════════════ */
 const W = 1000, H = 600, GROUND = 520;
@@ -94,7 +95,19 @@ function ArenaCard({ i, selected, onSelect }) {
 }
 
 /* ═══════════════════ MAIN GAME ═══════════════════ */
-export default function StickmanBombTag() {
+export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
+  const duoNetRef = useRef(null);
+  const nameA = (names?.A || names?.a || "Player A").trim() || "Player A";
+  const nameB = (names?.B || names?.b || "Player B").trim() || "Player B";
+  const nameOf = (slot) => (slot === 0 ? nameA : nameB);
+  const namesRef = useRef({ A: nameA, B: nameB });
+  namesRef.current = { A: nameA, B: nameB };
+  const role = String(myRole || "").toUpperCase() === "B" ? "B"
+    : String(myRole || "").toUpperCase() === "A" ? "A" : null;
+  const online = !!(rt && role);
+  const isHost = !online || role === "A";
+  const isGuest = online && role === "B";
+
   const canvasRef = useRef(null);
   const [screen, setScreen] = useState("menu"); // menu | play
   const [settings, setSettings] = useState({ rounds: 3, fuse: 45, arena: 0 });
@@ -107,17 +120,19 @@ export default function StickmanBombTag() {
   const [centerHtml, setCenterHtml] = useState(null);
   const [banner, setBanner] = useState(null);
   const [results, setResults] = useState(null);
+  const [guestReady, setGuestReady] = useState(false);
   const [isTouch] = useState(() => typeof window !== "undefined" && "ontouchstart" in window);
 
   const settingsRef = useRef(settings); settingsRef.current = settings;
   const mutedRef = useRef(muted); mutedRef.current = muted;
   const pausedRef = useRef(paused); pausedRef.current = paused;
+  const screenRef = useRef(screen); screenRef.current = screen;
 
   const E = useRef({
     state: "menu", players: [], bombHolder: 0, bombT: 45, round: 1, scores: [0, 0], startHolder: 0,
     parts: [], debris: [], shock: [], flashA: 0, shakeT: 0, shakeAmp: 0, slowMo: 1,
     fxItems: [], lightT: 0, quakeT: 0, countT: 0, bannerT: 0, lastCn: 0,
-    passLockUntil: 0, now: 0, keys: {}, tickAt: 0,
+    passLockUntil: 0, now: 0, keys: {}, pressed: {}, tickAt: 0,
   }).current;
   const audio = useRef({ AC: null, master: null }).current;
 
@@ -131,6 +146,70 @@ export default function StickmanBombTag() {
     }
     if (audio.AC.state === "suspended") audio.AC.resume();
   }, [audio]);
+
+  const beginOnlineMatch = useCallback((payload = {}) => {
+    const next = payload.settings || settingsRef.current;
+    if (payload.settings) setSettings(payload.settings);
+    settingsRef.current = next;
+    setGuestReady(false);
+    setResults(null);
+    setPaused(false);
+    setBanner(null);
+    setCenterHtml(null);
+    setScreen("play");
+    try { initAudio(); } catch { /* ignore */ }
+    E.scores = [0, 0];
+    E.round = 1;
+    E.startHolder = typeof payload.startHolder === "number" ? payload.startHolder : (Math.random() < 0.5 ? 0 : 1);
+    setScores([0, 0]);
+    // ensure players exist before first paint (fixes black guest canvas)
+    E.players = [makePlayer(0), makePlayer(1)];
+    E.bombHolder = E.startHolder;
+    E.bombT = next.fuse;
+    E.parts = []; E.debris = []; E.shock = []; E.flashA = 0; E.shakeAmp = 0; E.slowMo = 1;
+    E.fxItems = []; E.quakeT = 0; E.passLockUntil = 0; E.lastCn = 0;
+    setRound(1);
+    setTimerTxt(Number(next.fuse).toFixed(1));
+    setDanger(false);
+    E.state = "countdown"; E.countT = 3;
+  }, [E, initAudio]);
+
+  useEffect(() => {
+    if (!rt || !role) return undefined;
+    const p1Codes = ["KeyA", "KeyD", "KeyW", "KeyE"];
+    const p2Codes = ["ArrowLeft", "ArrowRight", "ArrowUp", "KeyM"];
+    const net = createDuoStickmanNet({
+      rt, myRole: role, p1Codes, p2Codes,
+      remap: { KeyA: "ArrowLeft", KeyD: "ArrowRight", KeyW: "ArrowUp", KeyE: "KeyM" },
+    });
+    duoNetRef.current = net;
+    net.onUi((m) => {
+      if (!m) return;
+      const type = m.type || m.k;
+      if (type === "start") {
+        beginOnlineMatch({
+          settings: m.settings,
+          startHolder: m.startHolder,
+        });
+      } else if (type === "ready") {
+        setGuestReady(!!m.ready);
+      } else if (type === "menu") {
+        setScreen("menu"); setPaused(false); setResults(null); setBanner(null); setCenterHtml(null);
+        setGuestReady(false);
+        E.state = "menu"; E.bannerMsg = null; E.resultsMsg = null;
+      } else if (type === "sel" && m.key && m.val != null) {
+        setSettings((s) => {
+          const next = { ...s, [m.key]: m.val };
+          settingsRef.current = next;
+          return next;
+        });
+      }
+    });
+    return () => {
+      try { net.dispose?.(); } catch { /* ignore */ }
+      if (duoNetRef.current === net) duoNetRef.current = null;
+    };
+  }, [rt, role, beginOnlineMatch]);
   useEffect(() => { if (audio.master) audio.master.gain.value = muted ? 0 : 1; }, [muted, audio]);
   const beep = useCallback((f, d = 0.08, v = 0.05, type = "sine") => {
     if (!audio.AC || mutedRef.current) return;
@@ -191,7 +270,13 @@ export default function StickmanBombTag() {
   const afterBanner = useCallback(() => {
     if (E.scores[0] >= needWins() || E.scores[1] >= needWins()) {
       const w = E.scores[0] > E.scores[1] ? 0 : 1;
-      setResults({ winner: w, color: w === 0 ? "#38c7ff" : "#ff4d5a", score: E.scores[0] + " — " + E.scores[1] });
+      const msg = {
+        winner: w,
+        color: w === 0 ? "#38c7ff" : "#ff4d5a",
+        score: E.scores[0] + " — " + E.scores[1],
+      };
+      E.resultsMsg = msg;
+      setResults(msg);
       E.state = "done";
     } else { E.round++; E.startHolder = 1 - E.startHolder; startRound(); }
   }, [E, startRound]);
@@ -201,7 +286,10 @@ export default function StickmanBombTag() {
     E.scores[survivor]++;
     setScores([...E.scores]);
     E.state = "banner"; E.bannerT = 2.2;
-    setBanner({ text: "PLAYER " + (survivor + 1) + " SURVIVES!", color: survivor === 0 ? "#38c7ff" : "#ff4d5a" });
+    const nm = (survivor === 0 ? namesRef.current.A : namesRef.current.B).toUpperCase();
+    const msg = { text: nm + " SURVIVES!", color: survivor === 0 ? "#38c7ff" : "#ff4d5a" };
+    E.bannerMsg = msg;
+    setBanner(msg);
   }, [E]);
 
   const explode = useCallback(() => {
@@ -283,7 +371,10 @@ export default function StickmanBombTag() {
     ctx.strokeStyle = "#c9a055"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(3, -10); ctx.quadraticCurveTo(8, -16, 12, -14); ctx.stroke();
     ctx.restore();
-    E.parts.push({ x: x + 12, y: y - 14, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 40, life: 0.25, color: Math.random() < 0.5 ? "#ffcf3f" : "#ff8a3c", size: 1.5 + Math.random() * 1.5 });
+    // Guest draws quiet — host owns spark FX (avoids mismatched arena haze)
+    if (!E.drawQuiet) {
+      E.parts.push({ x: x + 12, y: y - 14, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 40, life: 0.25, color: Math.random() < 0.5 ? "#ffcf3f" : "#ff8a3c", size: 1.5 + Math.random() * 1.5 });
+    }
   }, [E]);
 
   const drawStickman = useCallback((ctx, p, t) => {
@@ -414,12 +505,135 @@ export default function StickmanBombTag() {
 
   /* ---------- main loop ---------- */
   useEffect(() => {
-    let raf, last = 0;
+    let raf, last = 0, netAcc = 0, lastGuestPoseT = -1;
+    const applyGuestPose = (p, pose) => {
+      if (!p || !pose) return;
+      p.x = pose.x; p.y = pose.y;
+      p.vx = pose.vx ?? 0;
+      p.vy = pose.vy ?? 0;
+      if (pose.face != null) p.face = pose.face;
+      if (pose.onGround != null) p.onGround = pose.onGround;
+      if (pose.jumps != null) p.jumps = pose.jumps;
+      if (pose.run != null) p.run = pose.run;
+      if (pose.dead != null) p.dead = pose.dead;
+    };
+    const extrapP1 = (p, dt) => {
+      if (!p || p.dead) return;
+      // Only coast horizontally a little — kill vy coast (stops float drift)
+      p.x += (p.vx || 0) * dt;
+      p.x = Math.max(24, Math.min(W - 24, p.x));
+    };
+    const uiTimer = (bombT) => {
+      const ttxt = Math.max(0, bombT).toFixed(1);
+      if (E._uiTimer !== ttxt) { E._uiTimer = ttxt; setTimerTxt(ttxt); }
+      const dang = bombT < 10;
+      if (E._uiDanger !== dang) { E._uiDanger = dang; setDanger(dang); }
+    };
     const loop = (ts) => {
       raf = requestAnimationFrame(loop);
       const rdt = Math.min(0.033, (ts - last) / 1000 || 0.016); last = ts;
       const t = ts / 1000; E.now = t;
       if (pausedRef.current || E.state === "menu" || E.state === "done") return;
+      const net = duoNetRef.current;
+      const guest = !!(net?.online && !net.isHost);
+
+      /* ── Guest (red / P2): full local authority — never pull P2 from host ── */
+      if (guest) {
+        if (!E.players?.length) E.players = [makePlayer(0), makePlayer(1)];
+        E.drawQuiet = true;
+        const st = net.takeState?.();
+        if (st) {
+          if (st.arena != null && st.arena !== settingsRef.current.arena) {
+            const next = { ...settingsRef.current, arena: st.arena };
+            if (st.fuse != null) next.fuse = st.fuse;
+            if (st.rounds != null) next.rounds = st.rounds;
+            settingsRef.current = next;
+            setSettings(next);
+          }
+          // P1 only from host
+          if (st.players?.[0]) {
+            if (!E.players[0]) E.players[0] = makePlayer(0);
+            Object.assign(E.players[0], st.players[0]);
+            if (st.players[0].face == null && st.players[0].facing != null) {
+              E.players[0].face = st.players[0].facing;
+            }
+          }
+          // P2: only death flag from host (explosion) — never x/y/vx (ghost fix)
+          if (st.players?.[1]?.dead && E.players[1]) E.players[1].dead = true;
+          if (st.bombHolder != null) E.bombHolder = st.bombHolder;
+          if (st.bombT != null) E.bombT = st.bombT;
+          if (st.state) E.state = st.state;
+          if (st.countT != null) E.countT = st.countT;
+          if (st.round != null && st.round !== E.round) { E.round = st.round; setRound(st.round); }
+          if (st.scores && (st.scores[0] !== E.scores[0] || st.scores[1] !== E.scores[1])) {
+            E.scores = st.scores; setScores([...st.scores]);
+          }
+          uiTimer(E.bombT);
+          if (st.state === "countdown" && st.countT != null) {
+            const n = Math.ceil(st.countT);
+            if (E.lastCn !== n) {
+              E.lastCn = n;
+              if (n > 0) setCenterHtml({ big: String(n) });
+              else {
+                const nm = (E.bombHolder === 0 ? namesRef.current.A : namesRef.current.B).toUpperCase();
+                setCenterHtml({ big: "GO!", small: `💣 ${nm} HAS THE BOMB` });
+              }
+            }
+          } else if (st.state === "play" && E.lastCn !== -1) {
+            E.lastCn = -1; setCenterHtml(null);
+          } else if (st.state === "banner" && st.banner) {
+            if (E._uiBanner !== st.banner.text) { E._uiBanner = st.banner.text; setBanner(st.banner); }
+          } else if (st.state === "done" && st.results) {
+            setResults(st.results);
+          }
+        } else if (E.players[0]) {
+          extrapP1(E.players[0], rdt);
+        }
+
+        // Drive red only from local keys — if nothing held, friction stops them
+        if (E.state === "play" && !pausedRef.current && E.players[1] && !E.players[1].dead) {
+          const k = E.keys || {};
+          if (!k.ArrowLeft && !k.ArrowRight && !k.KeyA && !k.KeyD) {
+            // hard-stop horizontal ghost if keys already released
+            if (Math.abs(E.players[1].vx) < 40) E.players[1].vx = 0;
+          }
+          updatePlayer(E.players[1], rdt);
+        }
+
+        const p2 = E.players[1];
+        net.netTick(null, () => (p2 ? {
+          pose: {
+            t: performance.now(),
+            x: p2.x, y: p2.y, vx: p2.vx, vy: p2.vy,
+            face: p2.face, onGround: p2.onGround, jumps: p2.jumps,
+            run: p2.run, dead: p2.dead,
+          },
+        } : null));
+
+        E.fxItems = E.fxItems || [];
+        draw(t);
+        return;
+      }
+
+      /* ── Host / local ── */
+      E.drawQuiet = false;
+      let usedGuestPose = false;
+      if (net?.online) {
+        net.mergeRemoteInto(E);
+        if (!E.pressed) E.pressed = {};
+        const pose = net.takeRemoteExtra?.()?.pose;
+        if (pose && E.players[1] && pose.t !== lastGuestPoseT) {
+          lastGuestPoseT = pose.t;
+          applyGuestPose(E.players[1], pose);
+          usedGuestPose = true;
+        } else if (lastGuestPoseT >= 0 && E.players[1]) {
+          // HOLD last snapped pose — never coast on old vx (that caused ghost walk)
+          usedGuestPose = true;
+          E.players[1].vx = 0;
+        }
+        if (E.pressed.KeyM) tryPass(1);
+        if (!usedGuestPose && E.pressed.ArrowUp) tryJump(E.players[1]);
+      }
       const dt = rdt * E.slowMo;
       if (E.shakeT > 0) { E.shakeT -= rdt; E.shakeAmp *= 0.94; }
       if (E.flashA > 0) E.flashA -= rdt * 2.4;
@@ -430,7 +644,8 @@ export default function StickmanBombTag() {
           const n = Math.ceil(E.countT);
           if (E.lastCn !== n) { E.lastCn = n; beep(440, 0.1, 0.05); setCenterHtml({ big: String(n) }); }
         } else {
-          setCenterHtml({ big: "GO!", small: "💣 PLAYER " + (E.bombHolder + 1) + " HAS THE BOMB" });
+          const holderName = (E.bombHolder === 0 ? namesRef.current.A : namesRef.current.B).toUpperCase();
+          setCenterHtml({ big: "GO!", small: `💣 ${holderName} HAS THE BOMB` });
           beep(880, 0.25, 0.06);
           setTimeout(() => setCenterHtml(null), 900);
           E.state = "play";
@@ -438,18 +653,42 @@ export default function StickmanBombTag() {
       }
       if (E.state === "play") {
         E.bombT -= dt;
-        setTimerTxt(Math.max(0, E.bombT).toFixed(1));
-        setDanger(E.bombT < 10);
+        uiTimer(E.bombT);
         const rate = E.bombT > 15 ? 1 : E.bombT > 7 ? 0.5 : E.bombT > 3 ? 0.25 : 0.12;
         if (t - E.tickAt > rate) { E.tickAt = t; beep(E.bombT < 7 ? 1100 : 800, 0.04, 0.04, "square"); }
         if (E.bombT <= 0) { E.bombT = 0; explode(); }
-        for (const p of E.players) updatePlayer(p, dt);
+        updatePlayer(E.players[0], dt);
+        if (!usedGuestPose) updatePlayer(E.players[1], dt);
       }
-      if (E.state === "explode") for (const p of E.players) updatePlayer(p, dt);
+      if (E.state === "explode") {
+        updatePlayer(E.players[0], dt);
+        if (!usedGuestPose) updatePlayer(E.players[1], dt);
+      }
       if (E.state === "banner") {
         E.bannerT -= rdt;
-        for (const p of E.players) updatePlayer(p, dt);
+        updatePlayer(E.players[0], dt);
+        if (!usedGuestPose) updatePlayer(E.players[1], dt);
         if (E.bannerT <= 0) afterBanner();
+      }
+      if (net?.online) {
+        netAcc += rdt;
+        if (netAcc >= 0.02) {
+          netAcc = 0;
+          net.netTick(() => ({
+            state: E.state, bombHolder: E.bombHolder, bombT: E.bombT, scores: E.scores,
+            round: E.round, countT: E.countT,
+            arena: settingsRef.current.arena,
+            fuse: settingsRef.current.fuse,
+            rounds: settingsRef.current.rounds,
+            banner: E.bannerMsg || null,
+            results: E.resultsMsg || null,
+            players: E.players.map((p) => ({
+              x: p.x, y: p.y, vx: p.vx, vy: p.vy, face: p.face, onGround: p.onGround,
+              jumps: p.jumps, run: p.run, dead: p.dead, color: p.color,
+            })),
+          }));
+        }
+        E.pressed = {};
       }
       for (let i = E.debris.length - 1; i >= 0; i--) {
         const d = E.debris[i];
@@ -467,14 +706,26 @@ export default function StickmanBombTag() {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [E, beep, draw, explode, afterBanner, updateFX, updatePlayer]);
+  }, [E, beep, draw, explode, afterBanner, updateFX, updatePlayer, tryJump, tryPass]);
 
-  /* ---------- keyboard ---------- */
+  /* ---------- keyboard (online: A=P1 host, B=P2 guest; guest may use WASD) ---------- */
   useEffect(() => {
     const dn = (e) => {
-      E.keys[e.code] = true;
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
       if (e.code === "Escape") setPaused((p) => (E.state === "play" || E.state === "countdown" ? !p : p));
+      const net = duoNetRef.current;
+      if (net?.online) {
+        const code = net.onKeyDown(e.code, E);
+        if (!code) return;
+        if (E.state === "play" && !pausedRef.current) {
+          if (code === "KeyW" && net.isHost) tryJump(E.players[0]);
+          if (code === "ArrowUp" && !net.isHost) tryJump(E.players[1]);
+          if (code === "KeyE" && net.isHost) tryPass(0);
+          // Guest pass: host-authoritative via inp pressed — don't flip locally
+        }
+        return;
+      }
+      E.keys[e.code] = true;
       if (E.state === "play" && !pausedRef.current) {
         if (e.code === "KeyW") tryJump(E.players[0]);
         if (e.code === "ArrowUp") tryJump(E.players[1]);
@@ -482,7 +733,11 @@ export default function StickmanBombTag() {
         if (e.code === "KeyM") tryPass(1);
       }
     };
-    const up = (e) => (E.keys[e.code] = false);
+    const up = (e) => {
+      const net = duoNetRef.current;
+      if (net?.online) net.onKeyUp(e.code, E);
+      else E.keys[e.code] = false;
+    };
     addEventListener("keydown", dn); addEventListener("keyup", up);
     return () => { removeEventListener("keydown", dn); removeEventListener("keyup", up); };
   }, [E, tryJump, tryPass]);
@@ -490,26 +745,48 @@ export default function StickmanBombTag() {
   /* ---------- canvas tap-to-pass (phones) ---------- */
   const onCanvasTouch = (e) => {
     if (E.state !== "play") return;
-    const r = canvasRef.current.getBoundingClientRect();
+    const cvs = canvasRef.current; if (!cvs) return;
+    const r = cvs.getBoundingClientRect();
+    const net = duoNetRef.current;
+    const mySlot = net?.online ? (net.isHost ? 0 : 1) : null;
     for (const t of e.changedTouches) {
       const x = ((t.clientX - r.left) / r.width) * W, y = ((t.clientY - r.top) / r.height) * H;
       const other = E.players[1 - E.bombHolder];
-      if (Math.abs(x - other.x) < 45 && Math.abs(y - (other.y - 34)) < 55) tryPass(E.bombHolder);
+      if (!other || Math.abs(x - other.x) >= 45 || Math.abs(y - (other.y - 34)) >= 55) continue;
+      // online: only the bomb holder can pass, and guest must route via net input
+      if (net?.online) {
+        if (mySlot !== E.bombHolder) continue;
+        const code = net.isHost ? "KeyE" : "KeyM";
+        net.touchSet?.(code, true, E);
+        if (net.isHost) tryPass(0);
+        setTimeout(() => net.touchSet?.(code, false, E), 40);
+      } else {
+        tryPass(E.bombHolder);
+      }
     }
   };
 
   /* ---------- touch button helper ---------- */
   const touchBtn = (k, label, style = {}) => {
     const press = (e) => {
-      e.preventDefault(); E.keys[k] = true;
+      e.preventDefault();
+      const net = duoNetRef.current;
+      if (net?.online && net.touchSet) net.touchSet(k, true, E);
+      else E.keys[k] = true;
       if (E.state === "play") {
         if (k === "KeyW") tryJump(E.players[0]);
         if (k === "ArrowUp") tryJump(E.players[1]);
         if (k === "KeyE") tryPass(0);
-        if (k === "KeyM") tryPass(1);
+        // KeyM pass resolved on host when online
+        if (k === "KeyM" && !(duoNetRef.current?.online)) tryPass(1);
       }
     };
-    const release = (e) => { e.preventDefault(); E.keys[k] = false; };
+    const release = (e) => {
+      e.preventDefault();
+      const net = duoNetRef.current;
+      if (net?.online && net.touchSet) net.touchSet(k, false, E);
+      else E.keys[k] = false;
+    };
     return (
       <div key={k}
         onTouchStart={press} onTouchEnd={release} onTouchCancel={release}
@@ -521,12 +798,54 @@ export default function StickmanBombTag() {
     );
   };
 
-  const startMatchUI = () => { setScreen("play"); initAudio(); startMatch(); };
+  const syncSetting = (key, val, { anyone = false } = {}) => {
+    // Match length / fuse stay host-only; arena can be picked by either player
+    if (isGuest && !anyone) return;
+    setSettings((s) => {
+      const next = { ...s, [key]: val };
+      settingsRef.current = next;
+      return next;
+    });
+    if (online) duoNetRef.current?.sendUi({ type: "sel", key, val });
+  };
+
+  const setReady = (ready) => {
+    if (!isGuest) return;
+    setGuestReady(!!ready);
+    duoNetRef.current?.sendUi({ type: "ready", ready: !!ready });
+  };
+
+  const startMatchUI = () => {
+    if (isGuest) return;
+    if (online && !guestReady && screenRef.current === "menu") return;
+    const startHolder = Math.random() < 0.5 ? 0 : 1;
+    const payload = { type: "start", settings: settingsRef.current, startHolder };
+    beginOnlineMatch({ settings: settingsRef.current, startHolder });
+    const blast = () => {
+      try { duoNetRef.current?.sendUi(payload); } catch { /* ignore */ }
+    };
+    blast();
+    setTimeout(blast, 120);
+    setTimeout(blast, 350);
+    setTimeout(blast, 800);
+  };
+
   const backToMenu = () => {
     setScreen("menu"); setPaused(false); setResults(null); setBanner(null); setCenterHtml(null);
-    E.state = "menu";
+    setGuestReady(false);
+    E.state = "menu"; E.bannerMsg = null; E.resultsMsg = null;
+    if (isGuest) duoNetRef.current?.sendUi({ type: "ready", ready: false });
+    else if (online) duoNetRef.current?.sendUi({ type: "menu" });
     const c = canvasRef.current; if (c) c.getContext("2d").clearRect(0, 0, W, H);
   };
+
+  // After a match win: short celebration, then lobby — never the shelf panel
+  useEffect(() => {
+    if (!results) return undefined;
+    const t = setTimeout(() => backToMenu(), 2200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results]);
 
   const dim = "#8b93ab", line = "#1c2236", card = "#0e111c";
   const pillStyle = (sel) => ({
@@ -536,20 +855,26 @@ export default function StickmanBombTag() {
   });
 
   return (
-    <div className="w-full h-screen overflow-hidden relative flex items-center justify-center" style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5" }}>
+    <div
+      className={"w-full relative flex items-center justify-center " + (screen === "menu" ? "sbt-root-menu" : "sbt-root-play")}
+      style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5" }}
+    >
       <canvas ref={canvasRef} width={W} height={H} onTouchStart={onCanvasTouch}
-        className="block rounded-xl"
-        style={{ width: "min(98vw, calc(98vh * " + (W / H) + "))", aspectRatio: W + "/" + H, touchAction: "none", boxShadow: screen === "play" ? "0 0 50px rgba(56,199,255,.12)" : "none" }} />
+        className={"block rounded-xl sbt-canvas" + (screen === "menu" ? " sbt-canvas-hidden" : "")}
+        style={{
+          touchAction: "none",
+          boxShadow: screen === "play" ? "0 0 50px rgba(56,199,255,.12)" : "none",
+        }} />
 
       {/* HUD */}
       {screen === "play" && (
         <div className="absolute inset-0 pointer-events-none z-10">
           <div className="absolute top-3 left-3.5 rounded-2xl px-4 py-2 font-bold" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#38c7ff", boxShadow: "0 0 16px rgba(56,199,255,.25)" }}>
-            <div className="text-[10px] tracking-widest" style={{ color: dim }}>PLAYER 1</div>
+            <div className="text-[10px] tracking-widest" style={{ color: dim }}>{nameA.toUpperCase()}</div>
             <div className="text-2xl">{scores[0]}</div>
           </div>
           <div className="absolute top-3 right-3.5 rounded-2xl px-4 py-2 font-bold text-right" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#ff4d5a", boxShadow: "0 0 16px rgba(255,77,90,.25)" }}>
-            <div className="text-[10px] tracking-widest" style={{ color: dim }}>PLAYER 2</div>
+            <div className="text-[10px] tracking-widest" style={{ color: dim }}>{nameB.toUpperCase()}</div>
             <div className="text-2xl">{scores[1]}</div>
           </div>
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 rounded-2xl px-6 font-bold"
@@ -579,36 +904,102 @@ export default function StickmanBombTag() {
         </div>
       )}
 
-      {/* touch controls */}
+      {/* touch controls — online: only your own pad */}
       {isTouch && screen === "play" && (
         <>
-          <div className="absolute bottom-3 left-3 flex gap-2.5 z-[12]">
-            {touchBtn("KeyA", "◀")}{touchBtn("KeyD", "▶")}{touchBtn("KeyW", "⤒")}{touchBtn("KeyE", "PASS", { borderColor: "#38c7ff" })}
-          </div>
-          <div className="absolute bottom-3 right-3 flex gap-2.5 z-[12]">
-            {touchBtn("KeyM", "PASS", { borderColor: "#ff4d5a" })}{touchBtn("ArrowUp", "⤒")}{touchBtn("ArrowLeft", "◀")}{touchBtn("ArrowRight", "▶")}
-          </div>
+          {(!online || role === "A") && (
+            <div className="absolute bottom-3 left-3 flex gap-2.5 z-[12]">
+              {touchBtn("KeyA", "◀")}{touchBtn("KeyD", "▶")}{touchBtn("KeyW", "⤒")}{touchBtn("KeyE", "PASS", { borderColor: "#38c7ff" })}
+            </div>
+          )}
+          {(!online || role === "B") && (
+            <div className="absolute bottom-3 right-3 flex gap-2.5 z-[12]">
+              {touchBtn("KeyM", "PASS", { borderColor: "#ff4d5a" })}{touchBtn("ArrowUp", "⤒")}{touchBtn("ArrowLeft", "◀")}{touchBtn("ArrowRight", "▶")}
+            </div>
+          )}
         </>
       )}
 
-      {/* MENU */}
+      {/* MENU — natural height, no nested scrollbar */}
       {screen === "menu" && (
-        <div className="absolute inset-0 z-20 overflow-auto flex justify-center" style={{ background: "#07080fee" }}>
+        <div className="sbt-lobby z-20 flex justify-center" style={{ background: "#07080f" }}>
           <div className="w-full max-w-[880px] px-3 pt-6 pb-10 text-center">
             <h1 className="text-4xl font-bold mb-1" style={{ letterSpacing: 9 }}>
               <span style={{ color: "#38c7ff", textShadow: "0 0 14px #38c7ff,0 0 40px rgba(56,199,255,.4)" }}>STICKMAN</span>{" 💣 "}
               <span style={{ color: "#ff4d5a", textShadow: "0 0 14px #ff4d5a,0 0 40px rgba(255,77,90,.4)" }}>BOMB TAG</span>
             </h1>
-            <div className="text-[13px] mb-3.5" style={{ color: dim, letterSpacing: 2 }}>pass the bomb before it blows · survivor wins the round</div>
-            <button onClick={startMatchUI} className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
-              style={{ padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", background: "linear-gradient(90deg,#3a7bfd,#ff4d5a)", boxShadow: "0 0 26px rgba(90,120,255,.45)", fontFamily: "inherit" }}>
-              START MATCH ▶
-            </button>
+            <div className="text-[13px] mb-3.5" style={{ color: dim, letterSpacing: 2 }}>
+              {online
+                ? `${nameA} vs ${nameB} · pass the bomb · survivor wins`
+                : "pass the bomb before it blows · survivor wins the round"}
+            </div>
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Match length:</div>
+            {/* Lobby CTA — host Start / guest I'm Ready */}
+            <div className="mx-auto mb-4 rounded-2xl px-4 py-4" style={{ maxWidth: 420, background: card, border: `1.5px solid ${line}` }}>
+              {online ? (
+                <>
+                  <div className="text-[11px] font-bold mb-2" style={{ letterSpacing: 1.5, color: isGuest ? "#ff4d5a" : "#38c7ff" }}>
+                    YOU ARE {isGuest ? nameB.toUpperCase() : nameA.toUpperCase()}
+                    {isGuest ? " · INVITED" : " · HOST"}
+                  </div>
+                  <div className="text-[13px] mb-3" style={{ color: dim, lineHeight: 1.45 }}>
+                    {isHost
+                      ? (guestReady
+                        ? `${nameB} is ready — pick settings, then start`
+                        : `Waiting for ${nameB} to press I'm Ready`)
+                      : (guestReady
+                        ? `You're ready — waiting for ${nameA} to start`
+                        : "Press I'm Ready when you want to play")}
+                  </div>
+                  {isHost ? (
+                    <button
+                      type="button"
+                      onClick={startMatchUI}
+                      disabled={!guestReady}
+                      className="cursor-pointer rounded-2xl font-bold text-white w-full"
+                      style={{
+                        padding: "14px 28px", fontSize: 18, letterSpacing: 4, border: "none", fontFamily: "inherit",
+                        background: guestReady ? "linear-gradient(90deg,#3a7bfd,#ff4d5a)" : "linear-gradient(90deg,#3a4558,#4a5568)",
+                        opacity: guestReady ? 1 : 0.6,
+                        boxShadow: guestReady ? "0 0 26px rgba(90,120,255,.45)" : "none",
+                        cursor: guestReady ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {guestReady ? "START MATCH ▶" : `WAITING FOR ${nameB.toUpperCase()}…`}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setReady(!guestReady)}
+                      className="cursor-pointer rounded-2xl font-bold text-white w-full"
+                      style={{
+                        padding: "14px 28px", fontSize: 18, letterSpacing: 4, border: "none", fontFamily: "inherit",
+                        background: guestReady
+                          ? "linear-gradient(90deg,#1f9e58,#4dff9e)"
+                          : "linear-gradient(90deg,#ff4d5a,#ff8090)",
+                        boxShadow: guestReady
+                          ? "0 0 22px rgba(77,255,158,.5)"
+                          : "0 0 22px rgba(255,77,90,.45)",
+                      }}
+                    >
+                      {guestReady ? "READY ✓  (tap to cancel)" : "I'M READY ▶"}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button onClick={startMatchUI} className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
+                  style={{ padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", background: "linear-gradient(90deg,#3a7bfd,#ff4d5a)", boxShadow: "0 0 26px rgba(90,120,255,.45)", fontFamily: "inherit" }}>
+                  START MATCH ▶
+                </button>
+              )}
+            </div>
+
+            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>
+              Match length:{isGuest ? ` (${nameA} picks)` : ""}
+            </div>
             <div className="flex gap-3 justify-center flex-wrap">
               {[{ r: 1, n: "Quick Match", s: "1 round" }, { r: 3, n: "Best of 3", s: "first to 2" }, { r: 5, n: "Best of 5", s: "first to 3" }].map((o) => (
-                <button key={o.r} onClick={() => setSettings((s) => ({ ...s, rounds: o.r }))} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={pillStyle(settings.rounds === o.r)}>
+                <button key={o.r} disabled={isGuest} onClick={() => syncSetting("rounds", o.r)} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={{ ...pillStyle(settings.rounds === o.r), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
                   <b style={{ letterSpacing: 1 }}>{o.n}</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{o.s}</small>
                 </button>
               ))}
@@ -617,28 +1008,41 @@ export default function StickmanBombTag() {
             <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Bomb timer:</div>
             <div className="flex gap-3 justify-center flex-wrap">
               {[{ f: 30, s: "frantic" }, { f: 45, s: "classic" }, { f: 60, s: "long fuse" }].map((o) => (
-                <button key={o.f} onClick={() => setSettings((s) => ({ ...s, fuse: o.f }))} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={pillStyle(settings.fuse === o.f)}>
+                <button key={o.f} disabled={isGuest} onClick={() => syncSetting("fuse", o.f)} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={{ ...pillStyle(settings.fuse === o.f), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
                   <b>{o.f} s</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{o.s}</small>
                 </button>
               ))}
             </div>
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Choose your arena:</div>
+            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>
+              {online ? "Choose arena (either of you can pick):" : "Choose your arena:"}
+            </div>
             <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
               {ARENAS.map((_, i) => (
-                <ArenaCard key={i} i={i} selected={settings.arena === i} onSelect={(a) => setSettings((s) => ({ ...s, arena: a }))} />
+                <ArenaCard
+                  key={i}
+                  i={i}
+                  selected={settings.arena === i}
+                  onSelect={(a) => syncSetting("arena", a, { anyone: true })}
+                />
               ))}
             </div>
 
             <div className="flex gap-3.5 justify-center flex-wrap mt-6">
-              <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
-                <b style={{ color: "#38c7ff", letterSpacing: 2 }}>PLAYER 1</b><br />
-                <Key>A</Key>/<Key>D</Key> — move · <Key>W</Key> — jump (again = double) · <Key>E</Key> — pass bomb
-              </div>
-              <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
-                <b style={{ color: "#ff4d5a", letterSpacing: 2 }}>PLAYER 2</b><br />
-                <Key>←</Key>/<Key>→</Key> — move · <Key>↑</Key> — jump (again = double) · <Key>M</Key> — pass bomb
-              </div>
+              {(!online || role === "A") && (
+                <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
+                  <b style={{ color: "#38c7ff", letterSpacing: 2 }}>{online ? `YOU · ${nameA.toUpperCase()}` : nameA.toUpperCase()}</b><br />
+                  <Key>A</Key>/<Key>D</Key> — move · <Key>W</Key> — jump (again = double) · <Key>E</Key> — pass bomb
+                </div>
+              )}
+              {(!online || role === "B") && (
+                <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
+                  <b style={{ color: "#ff4d5a", letterSpacing: 2 }}>{online ? `YOU · ${nameB.toUpperCase()}` : nameB.toUpperCase()}</b><br />
+                  {online
+                    ? <><Key>A</Key>/<Key>D</Key> or <Key>←</Key>/<Key>→</Key> — move · <Key>W</Key>/<Key>↑</Key> — jump · <Key>E</Key>/<Key>M</Key> — pass</>
+                    : <><Key>←</Key>/<Key>→</Key> — move · <Key>↑</Key> — jump (again = double) · <Key>M</Key> — pass bomb</>}
+                </div>
+              )}
             </div>
             <div className="text-[13px] mt-3" style={{ color: dim, letterSpacing: 2 }}>
               📱 on phones: touch buttons appear · you can also tap the other stickman to pass<br />you must be CLOSE to the other player to pass the bomb!
@@ -659,18 +1063,15 @@ export default function StickmanBombTag() {
         </Modal>
       )}
 
-      {/* RESULTS */}
+      {/* RESULTS — brief win flash, then auto lobby (no shelf panel) */}
       {results && (
         <Modal>
-          <div className="text-6xl mb-1.5">🏆</div>
+          <div data-sbt-winner={results.winner === 0 ? "A" : "B"} className="text-6xl mb-1.5">🏆</div>
           <div className="text-[28px] font-bold mb-1.5" style={{ letterSpacing: 3, color: results.color, textShadow: `0 0 16px ${results.color}` }}>
-            PLAYER {results.winner + 1} WINS!
+            {nameOf(results.winner).toUpperCase()} WINS!
           </div>
-          <div className="mb-4" style={{ color: dim, letterSpacing: 2 }}>{results.score}</div>
-          <div className="flex flex-col gap-3 min-w-[260px]">
-            <GradBtn onClick={() => { setResults(null); startMatch(); }}>REMATCH ▶</GradBtn>
-            <GhostBtn onClick={backToMenu}>BACK TO MENU</GhostBtn>
-          </div>
+          <div className="mb-2" style={{ color: dim, letterSpacing: 2 }}>{results.score}</div>
+          <div style={{ color: dim, fontSize: 12, letterSpacing: 1 }}>Returning to lobby…</div>
         </Modal>
       )}
     </div>

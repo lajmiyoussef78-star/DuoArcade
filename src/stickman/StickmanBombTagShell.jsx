@@ -6,7 +6,7 @@ import './stickmanbombtag.css';
  * Thin DuoArcade adapter — renders Stickman Bomb Tag as-is (same keyboard).
  * Watches the results banner to report the winner to the shell.
  */
-export default function StickmanBombTagShell({ onComplete, pausedRef }) {
+export default function StickmanBombTagShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -16,6 +16,13 @@ export default function StickmanBombTagShell({ onComplete, pausedRef }) {
 
     const check = () => {
       if (doneRef.current || pausedRef?.current) return;
+      const el = root.querySelector('[data-sbt-winner]');
+      const role = el?.getAttribute('data-sbt-winner');
+      if (role === 'A' || role === 'B') {
+        doneRef.current = true;
+        onComplete?.(role);
+        return;
+      }
       const text = root.textContent || '';
       const m = text.match(/PLAYER\s+([12])\s+WINS!/i);
       if (!m) return;
@@ -31,7 +38,7 @@ export default function StickmanBombTagShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="sbt-shell">
-      <StickmanBombTag />
+      <StickmanBombTag myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

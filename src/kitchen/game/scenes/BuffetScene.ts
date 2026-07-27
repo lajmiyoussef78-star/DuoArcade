@@ -66,8 +66,12 @@ export class BuffetScene extends Phaser.Scene {
   private hudHint!: Phaser.GameObjects.Text;
   private waveHud!: Phaser.GameObjects.Text;
   private overlay!: Phaser.GameObjects.Container;
+  private overlayDim!: Phaser.GameObjects.Rectangle;
+  private overlayPanel!: Phaser.GameObjects.Graphics;
   private overlayTitle!: Phaser.GameObjects.Text;
   private overlayBody!: Phaser.GameObjects.Text;
+  private overlayResumeBtn!: Phaser.GameObjects.Text;
+  private overlayLeaveBtn!: Phaser.GameObjects.Text;
   private stationGlow!: Phaser.GameObjects.Graphics;
 
   constructor() {
@@ -448,47 +452,119 @@ export class BuffetScene extends Phaser.Scene {
     });
   }
 
+  private drawOverlayPanel(panelW: number, panelH: number) {
+    const x = -panelW / 2;
+    const y = -panelH / 2;
+    this.overlayPanel.clear();
+    this.overlayPanel.fillStyle(0xc9a06e, 0.98);
+    this.overlayPanel.fillRoundedRect(x, y, panelW, panelH, 18);
+    this.overlayPanel.lineStyle(3, 0x6d4c2b, 1);
+    this.overlayPanel.strokeRoundedRect(x, y, panelW, panelH, 18);
+    this.overlayPanel.fillStyle(0xb8895a, 1);
+    this.overlayPanel.fillRoundedRect(x + 3, y + 3, panelW - 6, 48, { tl: 15, tr: 15, bl: 0, br: 0 });
+  }
+
   private buildOverlay() {
+    const { width, height } = this.scale;
+    this.overlayDim = this.add.rectangle(0, 0, width * 2, height * 2, 0x3e2723, 0.45);
+    this.overlayPanel = this.add.graphics();
+    this.drawOverlayPanel(480, 260);
+
     this.overlayTitle = this.add
-      .text(0, -40, "", {
+      .text(0, 0, "", {
         fontFamily: "Sora, sans-serif",
-        fontSize: "22px",
+        fontSize: "24px",
         color: "#fff8e1",
+        stroke: "#3e2723",
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
     this.overlayBody = this.add
-      .text(0, 20, "", {
+      .text(0, 0, "", {
         fontFamily: "Sora, sans-serif",
-        fontSize: "13px",
-        color: "#cfd8dc",
+        fontSize: "14px",
+        color: "#2b1d14",
         align: "center",
+        lineSpacing: 7,
+        wordWrap: { width: 420 },
       })
       .setOrigin(0.5);
-    const bg = this.add.rectangle(0, 0, 420, 200, 0x004d40, 0.94);
+    this.overlayResumeBtn = this.add
+      .text(0, 0, " Resume ", {
+        fontFamily: "Sora, sans-serif",
+        fontSize: "15px",
+        color: "#fff8e1",
+        backgroundColor: "#43a047",
+        padding: { x: 16, y: 9 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.overlayLeaveBtn = this.add
+      .text(0, 0, " Leave kitchen ", {
+        fontFamily: "Sora, sans-serif",
+        fontSize: "15px",
+        color: "#fff8e1",
+        backgroundColor: "#e64a19",
+        padding: { x: 16, y: 9 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.overlayResumeBtn.on("pointerdown", () => {
+      this.paused = false;
+      this.helpVisible = false;
+      this.refreshOverlay();
+    });
+    this.overlayLeaveBtn.on("pointerdown", () => this.leaveKitchen());
     this.overlay = this.add
-      .container(this.scale.width / 2, this.scale.height / 2, [
-        bg,
+      .container(width / 2, height / 2, [
+        this.overlayDim,
+        this.overlayPanel,
         this.overlayTitle,
         this.overlayBody,
+        this.overlayResumeBtn,
+        this.overlayLeaveBtn,
       ])
       .setScrollFactor(0)
-      .setDepth(60)
+      .setDepth(80)
       .setVisible(false);
   }
 
+  private leaveKitchen() {
+    const cb = this.registry.get("onReturnToLobby") as (() => void) | undefined;
+    this.paused = false;
+    this.helpVisible = false;
+    cb?.();
+  }
+
   private refreshOverlay() {
+    const { width, height } = this.scale;
+    this.overlay.setPosition(width / 2, height / 2);
+    this.overlayDim.setSize(width * 2, height * 2);
+
     if (this.paused) {
+      const panelH = 260;
+      this.drawOverlayPanel(480, panelH);
+      this.overlayTitle.setPosition(0, -panelH / 2 + 27).setText("Paused");
+      this.overlayBody
+        .setPosition(0, 4)
+        .setText(
+          "Esc or Resume to continue · H for controls\nHand plates · stock trays · wash dirty plates",
+        );
+      this.overlayResumeBtn.setPosition(-100, panelH / 2 - 42).setVisible(true);
+      this.overlayLeaveBtn.setPosition(100, panelH / 2 - 42).setVisible(true);
       this.overlay.setVisible(true);
-      this.overlayTitle.setText("Paused");
-      this.overlayBody.setText(
-        "Esc to resume · H for controls\nHand plates · stock trays · wash dirty plates",
-      );
     } else if (this.helpVisible) {
+      const panelH = 280;
+      this.drawOverlayPanel(500, panelH);
+      this.overlayTitle.setPosition(0, -panelH / 2 + 27).setText("Buffet controls");
+      this.overlayBody
+        .setPosition(0, 14)
+        .setText(
+          "WASD move · E interact · Q drop\n1) Stock trays  2) Hand plates to guests\n3) Wash dirty plates  4) Serve juice requests\nH — Close help · Esc — Pause",
+        );
+      this.overlayResumeBtn.setVisible(false);
+      this.overlayLeaveBtn.setVisible(false);
       this.overlay.setVisible(true);
-      this.overlayTitle.setText("Buffet controls");
-      this.overlayBody.setText(
-        "WASD move · E interact · Q drop\n1) Stock trays  2) Hand plates to guests\n3) Wash dirty plates  4) Serve juice requests",
-      );
     } else {
       this.overlay.setVisible(false);
     }

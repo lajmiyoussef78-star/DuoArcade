@@ -13,9 +13,10 @@ let finished = false;
 export const meta = {
   id: 'laserwall',
   name: 'Laser Wall Duel',
-  tag: 'same keyboard · laser · wall runner · 2 rounds',
+  tag: 'online duo · laser · wall runner',
   accent: 'p1',
-  realtime: true
+  realtime: true,
+  keepInGame: true
 };
 
 export function mount(el, ctx) {
@@ -27,6 +28,13 @@ export function mount(el, ctx) {
   wrap.className = 'lwd-wrap';
   el.appendChild(wrap);
 
+  // Online duo REQUIRES rt + role — without these both tabs play alone.
+  if (!ctx?.rt || !ctx?.myRole) {
+    console.error('[laserwall] missing rt/myRole — online sync disabled', {
+      hasRt: !!ctx?.rt, myRole: ctx?.myRole,
+    });
+  }
+
   const isHost = ctx.myRole === 'A';
   const finish = w => {
     if (finished) return;
@@ -36,6 +44,9 @@ export function mount(el, ctx) {
 
   root = createRoot(wrap);
   root.render(createElement(LaserWallShell, {
+    myRole: ctx.myRole,
+    rt: ctx.rt,
+    names: ctx.names,
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

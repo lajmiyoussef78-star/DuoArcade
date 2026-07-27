@@ -64,8 +64,12 @@ export class KitchenScene extends Phaser.Scene {
   private helpKey!: Phaser.Input.Keyboard.Key;
   private pauseKey!: Phaser.Input.Keyboard.Key;
   private overlay!: Phaser.GameObjects.Container;
+  private overlayDim!: Phaser.GameObjects.Rectangle;
+  private overlayPanel!: Phaser.GameObjects.Graphics;
   private overlayTitle!: Phaser.GameObjects.Text;
   private overlayBody!: Phaser.GameObjects.Text;
+  private overlayResumeBtn!: Phaser.GameObjects.Text;
+  private overlayLeaveBtn!: Phaser.GameObjects.Text;
   private mp: MultiplayerBridge | null = null;
   private remotes = new Map<string, RemoteChef>();
   private netAcc = 0;
@@ -588,51 +592,120 @@ export class KitchenScene extends Phaser.Scene {
     this.recipeTooltip.setVisible(true);
   }
 
+  private drawOverlayPanel(panelW: number, panelH: number) {
+    const x = -panelW / 2;
+    const y = -panelH / 2;
+    this.overlayPanel.clear();
+    // Match the kitchen’s light-brown camera wash
+    this.overlayPanel.fillStyle(0xc9a06e, 0.98);
+    this.overlayPanel.fillRoundedRect(x, y, panelW, panelH, 18);
+    this.overlayPanel.lineStyle(3, 0x6d4c2b, 1);
+    this.overlayPanel.strokeRoundedRect(x, y, panelW, panelH, 18);
+    this.overlayPanel.fillStyle(0xb8895a, 1);
+    this.overlayPanel.fillRoundedRect(x + 3, y + 3, panelW - 6, 48, { tl: 15, tr: 15, bl: 0, br: 0 });
+  }
+
   private buildOverlay() {
     const { width, height } = this.scale;
-    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x2b1d14, 0.72);
+    this.overlayDim = this.add.rectangle(0, 0, width * 2, height * 2, 0x3e2723, 0.45);
+    this.overlayPanel = this.add.graphics();
+    this.drawOverlayPanel(460, 260);
+
     this.overlayTitle = this.add
-      .text(width / 2, height / 2 - 70, "Paused", {
+      .text(0, 0, "Paused", {
         fontFamily: "Georgia, serif",
         fontSize: "28px",
-        color: "#f3efe6",
+        color: "#fff8e1",
+        stroke: "#3e2723",
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
     this.overlayBody = this.add
-      .text(
-        width / 2,
-        height / 2 + 10,
-        "WASD move · Shift sprint · E interact\nQ drop · Space throw · H help · Esc pause",
-        {
-          fontFamily: "sans-serif",
-          fontSize: "14px",
-          color: "#a8b5a4",
-          align: "center",
-          lineSpacing: 6,
-        },
-      )
+      .text(0, 0, "", {
+        fontFamily: "Sora, sans-serif",
+        fontSize: "14px",
+        color: "#2b1d14",
+        align: "center",
+        lineSpacing: 7,
+        wordWrap: { width: 400 },
+      })
       .setOrigin(0.5);
+    this.overlayResumeBtn = this.add
+      .text(0, 0, " Resume ", {
+        fontFamily: "Sora, sans-serif",
+        fontSize: "15px",
+        color: "#fff8e1",
+        backgroundColor: "#43a047",
+        padding: { x: 16, y: 9 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.overlayLeaveBtn = this.add
+      .text(0, 0, " Leave kitchen ", {
+        fontFamily: "Sora, sans-serif",
+        fontSize: "15px",
+        color: "#fff8e1",
+        backgroundColor: "#e64a19",
+        padding: { x: 16, y: 9 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.overlayResumeBtn.on("pointerdown", () => {
+      this.paused = false;
+      this.helpVisible = false;
+      this.refreshOverlay();
+    });
+    this.overlayLeaveBtn.on("pointerdown", () => this.leaveKitchen());
     this.overlay = this.add
-      .container(0, 0, [dim, this.overlayTitle, this.overlayBody])
+      .container(width / 2, height / 2, [
+        this.overlayDim,
+        this.overlayPanel,
+        this.overlayTitle,
+        this.overlayBody,
+        this.overlayResumeBtn,
+        this.overlayLeaveBtn,
+      ])
       .setScrollFactor(0)
       .setDepth(80)
       .setVisible(false);
   }
 
+  private leaveKitchen() {
+    const cb = this.registry.get("onReturnToLobby") as (() => void) | undefined;
+    this.paused = false;
+    this.helpVisible = false;
+    cb?.();
+  }
+
   private refreshOverlay() {
+    const { width, height } = this.scale;
+    this.overlay.setPosition(width / 2, height / 2);
+    this.overlayDim.setSize(width * 2, height * 2);
+
     if (this.paused) {
-      this.overlayTitle.setText("Paused");
-      this.overlayBody.setText(
-        "Esc to resume · H for controls\nTimer is frozen while paused",
-      );
+      const panelH = 260;
+      this.drawOverlayPanel(460, panelH);
+      // Title centered in the light-brown header strip
+      this.overlayTitle.setPosition(0, -panelH / 2 + 27).setText("Paused");
+      this.overlayBody
+        .setPosition(0, 4)
+        .setText("Esc or Resume to continue\nH for controls · Timer is frozen while paused");
+      this.overlayResumeBtn.setPosition(-100, panelH / 2 - 42).setVisible(true);
+      this.overlayLeaveBtn.setPosition(100, panelH / 2 - 42).setVisible(true);
       this.overlay.setVisible(true);
       return;
     }
     if (this.helpVisible) {
-      this.overlayTitle.setText("Controls");
-      this.overlayBody.setText(
-        "WASD / Arrows — Move\nShift — Sprint\nE — Take order / cook / serve\nWalk into matching ingredients to assemble\nQ — Drop · Space — Throw\nH — Close help · Esc — Pause",
-      );
+      const panelH = 300;
+      this.drawOverlayPanel(500, panelH);
+      this.overlayTitle.setPosition(0, -panelH / 2 + 27).setText("Controls");
+      this.overlayBody
+        .setPosition(0, 18)
+        .setText(
+          "WASD / Arrows — Move\nShift — Sprint\nE — Take order / cook / serve\nWalk into matching ingredients to assemble\nQ — Drop · Space — Throw\nH — Close help · Esc — Pause",
+        );
+      this.overlayResumeBtn.setVisible(false);
+      this.overlayLeaveBtn.setVisible(false);
       this.overlay.setVisible(true);
       return;
     }

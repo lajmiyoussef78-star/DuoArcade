@@ -6,7 +6,7 @@ import './stickmangunfight.css';
  * Thin DuoArcade adapter — renders the original gunfight game unchanged.
  * Watches the champion / draw banner to report the result to the shell.
  */
-export default function StickmanGunfightShell({ onComplete, pausedRef }) {
+export default function StickmanGunfightShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -36,7 +36,7 @@ export default function StickmanGunfightShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="sgf-shell">
-      <StickmanGunfight />
+      <StickmanGunfight myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

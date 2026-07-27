@@ -312,7 +312,15 @@ async function supabaseSync() {
       /* Shared topic per duo. Wait until SUBSCRIBED before send — otherwise
          supabase-js falls back to HTTP broadcast (often drops / 500s) and the
          guest (Splash) looks frozen while the host still plays locally. */
+      /** Sole replace-handler (legacy rt.on) + additive subscribers (rt.subscribe). */
       let rcb = () => {};
+      const listeners = new Set();
+      const dispatch = (payload) => {
+        try { rcb(payload); } catch (e) { console.warn('rt handler', e); }
+        for (const f of listeners) {
+          try { f(payload); } catch (e) { console.warn('rt listener', e); }
+        }
+      };
       const name = 'rt-' + code;
       try {
         for (const c of sb.getChannels()) {
@@ -331,7 +339,7 @@ async function supabaseSync() {
       let subscribed = false;
       const ch = sb.channel(name, { config: { broadcast: { self: false } } })
         .on('broadcast', { event: 'm' }, p => {
-          try { rcb(p?.payload); } catch (e) { console.warn('rt handler', e); }
+          dispatch(p?.payload);
         })
         .subscribe(status => {
           if (status === 'SUBSCRIBED' && !subscribed) {
@@ -345,20 +353,27 @@ async function supabaseSync() {
       let chain = Promise.resolve();
       let latestByKind = new Map();
       let flushScheduled = false;
-      const COALESCE = new Set(['pose', 'state', 'inp']);
+      /* st = stickman/soccer snapshots; state/pose = older aliases; inp = guest input */
+      const COALESCE = new Set(['pose', 'state', 'st', 'inp', 'in', 'trail']);
 
       function flushSoon() {
         if (flushScheduled) return;
         flushScheduled = true;
-        chain = chain.then(() => ready).then(async () => {
+        // Don't await prior sends — that serialized lag into every inp/st packet.
+        // Coalesce already keeps only the latest; fire-and-forget after ready.
+        const kick = typeof requestAnimationFrame === 'function'
+          ? (fn) => requestAnimationFrame(fn)
+          : (fn) => setTimeout(fn, 0);
+        kick(() => {
           flushScheduled = false;
           const batch = [...latestByKind.values()];
           latestByKind.clear();
-          for (const p of batch) {
-            try {
-              await ch.send({ type: 'broadcast', event: 'm', payload: p });
-            } catch { /* drop */ }
-          }
+          if (!batch.length) return;
+          ready.then(() => {
+            for (const p of batch) {
+              ch.send({ type: 'broadcast', event: 'm', payload: p }).catch(() => {});
+            }
+          });
         });
       }
 
@@ -378,8 +393,17 @@ async function supabaseSync() {
       return {
         ready,
         send: payload => enqueue(payload),
-        on: f => { rcb = f; },
-        close: () => { try { sb.removeChannel(ch); } catch { /* already gone */ } }
+        on: f => { rcb = f || (() => {}); },
+        subscribe: f => {
+          if (typeof f !== 'function') return () => {};
+          listeners.add(f);
+          return () => listeners.delete(f);
+        },
+        close: () => {
+          listeners.clear();
+          rcb = () => {};
+          try { sb.removeChannel(ch); } catch { /* already gone */ }
+        }
       };
     },
 
@@ -451,13 +475,29 @@ function localSync() {
     async deleteDuo(code) { localStorage.removeItem(key(code)); },
     rt(code) {
       let rcb = () => {};
+      const listeners = new Set();
+      const dispatch = (payload) => {
+        try { rcb(payload); } catch { /* ignore */ }
+        for (const f of listeners) {
+          try { f(payload); } catch { /* ignore */ }
+        }
+      };
       const ch = new BroadcastChannel('duoarcade-rt-' + code);
-      ch.onmessage = e => { try { rcb(e.data); } catch { /* ignore */ } };
+      ch.onmessage = e => { dispatch(e.data); };
       return {
         ready: Promise.resolve(),
         send: payload => { try { ch.postMessage(payload); } catch { /* ignore */ } return Promise.resolve(); },
-        on: f => { rcb = f; },
-        close: () => { try { ch.close(); } catch { /* ignore */ } }
+        on: f => { rcb = f || (() => {}); },
+        subscribe: f => {
+          if (typeof f !== 'function') return () => {};
+          listeners.add(f);
+          return () => listeners.delete(f);
+        },
+        close: () => {
+          listeners.clear();
+          rcb = () => {};
+          try { ch.close(); } catch { /* ignore */ }
+        }
       };
     },
     async updateDuo(code, patch, { guardTurn = null, force = false } = {}) {

@@ -12,7 +12,7 @@ let finished = false;
 export const meta = {
   id: 'stickmanarchery',
   name: 'Stickman Archery Battle',
-  tag: 'same keyboard · co-op · neon archery · best of 3',
+  tag: 'online duo · neon archery · best of 3',
   accent: 'p1',
   realtime: true
 };
@@ -35,6 +35,9 @@ export function mount(el, ctx) {
 
   root = createRoot(wrap);
   root.render(createElement(StickmanArcheryShell, {
+    myRole: ctx.myRole,
+    rt: ctx.rt,
+    names: ctx.names,
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

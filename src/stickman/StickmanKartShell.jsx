@@ -6,7 +6,7 @@ import './stickmankart.css';
  * Thin DuoArcade adapter — renders Stickman Kart Racing as-is (same keyboard).
  * Watches the results banner to report the winner to the shell.
  */
-export default function StickmanKartShell({ onComplete, pausedRef }) {
+export default function StickmanKartShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -16,11 +16,11 @@ export default function StickmanKartShell({ onComplete, pausedRef }) {
 
     const check = () => {
       if (doneRef.current || pausedRef?.current) return;
-      const text = root.textContent || '';
-      const m = text.match(/PLAYER\s+([12])\s+WINS!/i);
-      if (!m) return;
+      const el = root.querySelector('[data-skr-winner]');
+      const role = el?.getAttribute('data-skr-winner');
+      if (role !== 'A' && role !== 'B') return;
       doneRef.current = true;
-      onComplete?.(m[1] === '1' ? 'A' : 'B');
+      onComplete?.(role);
     };
 
     const mo = new MutationObserver(check);
@@ -31,7 +31,7 @@ export default function StickmanKartShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="skr-shell">
-      <StickmanKartRacing />
+      <StickmanKartRacing myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

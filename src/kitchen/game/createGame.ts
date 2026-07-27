@@ -37,8 +37,12 @@ export function createKitchenGame(options: CreateGameOptions): Phaser.Game {
       },
     },
     scale: {
+      // Normal window: fit inside the host. Fullscreen switches to ENVELOP in KitchenPlay.
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      parent: options.parent,
+      expandParent: false,
+      fullscreenTarget: options.parent,
     },
     input: {
       keyboard: true,

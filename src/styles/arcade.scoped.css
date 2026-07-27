@@ -1023,6 +1023,135 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 .arcade-page .gv-rules-icon{width:22px;height:22px;display:block;flex:none;}
 .arcade-page .gv-pause{width:42px;height:42px;min-width:42px;padding:0;border-radius:12px;}
 .arcade-page .gv-pause-icon{width:20px;height:20px;display:block;flex:none;}
+.arcade-page .gv-fullscreen{width:42px;height:42px;min-width:42px;padding:0;border-radius:12px;}
+.arcade-page .gv-fs-icon{width:20px;height:20px;display:block;flex:none;}
+.arcade-page .gv-fs-root{width:100%;position:relative;}
+/* True game-only fullscreen — no website chrome inside this element */
+.arcade-page .gv-fs-root.is-fullscreen,
+.arcade-page .gv-fs-root:fullscreen,
+.arcade-page .gv-fs-root:-webkit-full-screen{
+  width:100%;
+  height:100%;
+  max-width:none;
+  box-sizing:border-box;
+  padding:0;
+  margin:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  /* Match dark game shells — cream letterboxing looked like a white strip */
+  background:#07080f;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board,
+.arcade-page .gv-fs-root:fullscreen .gv-board,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board{
+  width:100%;
+  flex:1;
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  background:#07080f;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board > *,
+.arcade-page .gv-fs-root:fullscreen .gv-board > *,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board > *{
+  width:100%;
+  flex:1;
+  min-height:100%;
+  background:#07080f;
+}
+/* Stickman / kart shells fill fullscreen with the same dark stage */
+.arcade-page .gv-fs-root.is-fullscreen .skr-wrap,
+.arcade-page .gv-fs-root:fullscreen .skr-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell,
+.arcade-page .gv-fs-root:fullscreen .skr-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell{
+  width:100%;
+  height:100%;
+  min-height:100%;
+  border:none;
+  border-radius:0;
+  background:#07080f;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell .h-screen,
+.arcade-page .gv-fs-root:fullscreen .skr-shell .h-screen,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell .h-screen,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell .skr-root-menu,
+.arcade-page .gv-fs-root:fullscreen .skr-shell .skr-root-menu,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell .skr-root-menu{
+  height:100%;
+  min-height:100%;
+  background:#07080f;
+}
+/* Fullscreen + kitchen match only: hide chrome and let the canvas fill */
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home-hero,
+.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .play-home-hero,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .play-home-hero,
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .theme-picker,
+.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .theme-picker,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .theme-picker{
+  display:none !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .rsc-kitchen,
+.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .rsc-kitchen,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .rsc-kitchen,
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home,
+.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .play-home,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .play-home,
+.arcade-page .gv-fs-root.is-fullscreen .play-home-game.rsc-match-stage,
+.arcade-page .gv-fs-root:fullscreen .play-home-game.rsc-match-stage,
+.arcade-page .gv-fs-root:-webkit-full-screen .play-home-game.rsc-match-stage{
+  width:100%;
+  height:100%;
+  min-height:100%;
+  margin:0;
+  padding:0;
+  border-radius:0 !important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#0f1a14;
+}
+.arcade-page .gv-fs-root.is-fullscreen .rsc-phaser-host,
+.arcade-page .gv-fs-root:fullscreen .rsc-phaser-host,
+.arcade-page .gv-fs-root:-webkit-full-screen .rsc-phaser-host{
+  flex:1 1 auto;
+  width:100% !important;
+  height:100% !important;
+  min-height:100% !important;
+  border-radius:0 !important;
+  background:#0f1a14;
+}
+.arcade-page .gv-fs-root.is-fullscreen .rsc-phaser-host canvas,
+.arcade-page .gv-fs-root:fullscreen .rsc-phaser-host canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .rsc-phaser-host canvas{
+  border-radius:0 !important;
+}
+.arcade-page .gv-fs-exit{
+  position:fixed;
+  top:max(12px, env(safe-area-inset-top));
+  right:max(12px, env(safe-area-inset-right));
+  z-index:100;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:2px solid rgba(255,255,255,0.45);
+  background:rgba(20, 16, 28, 0.72);
+  color:#fff8e1;
+  font:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  backdrop-filter:blur(8px);
+}
+.arcade-page .gv-fs-exit:hover{background:rgba(20, 16, 28, 0.9);}
+.arcade-page .gv-fs-exit .gv-fs-icon{width:16px;height:16px;}
 .arcade-page .gv-rules-note{margin:0 0 12px;text-align:center;font-size:12px;line-height:1.45;color:var(--dim);width:100%;}
 @media (max-width:420px){
   .arcade-page .gv-back span{display:none;}
@@ -1372,7 +1501,25 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .smr-wrap .smr-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
 .arcade-page .sgf-wrap .sgf-shell > div{min-height:0 !important;padding:8px 0 12px !important;}
 .arcade-page .lwd-wrap .lwd-shell > div{min-height:0 !important;}
+.arcade-page .lwd-wrap,
+.arcade-page .lwd-wrap .lwd-shell,
+.arcade-page .lwd-wrap .lwd-root-menu,
+.arcade-page .lwd-wrap .lwd-root-play{background:#07080f !important;}
+.arcade-page .lwd-wrap .lwd-shell{overflow:visible;}
+.arcade-page .gv-fs-root:not(.is-fullscreen):not(:fullscreen) .lwd-wrap .lwd-canvas{
+  width:100%;height:auto;aspect-ratio:1000/600;background:#07080f;
+}
 .arcade-page .sbt-wrap .sbt-shell > div{min-height:0 !important;}
+.arcade-page .sbt-wrap,
+.arcade-page .sbt-wrap .sbt-shell,
+.arcade-page .sbt-wrap .sbt-root-menu,
+.arcade-page .sbt-wrap .sbt-root-play,
+.arcade-page .sbt-wrap .sbt-lobby{background:#07080f !important;}
+.arcade-page .sbt-wrap .sbt-shell{overflow:visible;}
+/* Embedded (not fullscreen): full column width */
+.arcade-page .gv-fs-root:not(.is-fullscreen):not(:fullscreen) .sbt-wrap .sbt-canvas{
+  width:100%;height:auto;aspect-ratio:1000/600;background:#07080f;
+}
 .arcade-page .skr-wrap .skr-shell > div{min-height:0 !important;}
 .arcade-page .sc-embedded{padding:8px 0 20px;}
 .arcade-page .ss-hint{text-align:center;max-width:720px;margin-left:auto;margin-right:auto;line-height:1.45;}

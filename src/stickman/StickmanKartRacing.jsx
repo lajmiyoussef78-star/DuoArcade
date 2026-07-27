@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 /* ═══════════════════ GAME DATA ═══════════════════ */
 const KART_TYPES = [
@@ -138,7 +139,7 @@ function createNet(onMessage, onPeer) {
 }
 
 /* ═══════════════════ MINI TRACK CARD ═══════════════════ */
-function TrackCard({ i, selected, onSelect, flash }) {
+function TrackCard({ i, selected, onSelect, flash, disabled }) {
   const ref = useRef(null);
   useEffect(() => {
     const cvs = ref.current; if (!cvs) return;
@@ -181,11 +182,12 @@ function TrackCard({ i, selected, onSelect, flash }) {
   const th = THEMES[i];
   return (
     <div
-      onClick={() => onSelect(i)}
-      className="cursor-pointer rounded-2xl p-2.5 pb-3 transition-transform hover:-translate-y-1"
+      onClick={() => { if (!disabled) onSelect?.(i); }}
+      className={"rounded-2xl p-2.5 pb-3 transition-transform " + (disabled ? "" : "cursor-pointer hover:-translate-y-1")}
       style={{
         background: "#0e111c", border: "1.5px solid #1c2236",
         boxShadow: selected ? `0 0 18px ${th.glow}, inset 0 0 24px rgba(56,199,255,.05)` : flash ? `0 0 30px ${th.glow}` : "none",
+        opacity: disabled ? 0.75 : 1,
       }}
     >
       <canvas ref={ref} width={220} height={120} className="w-full rounded-xl block bg-black" />
@@ -195,47 +197,121 @@ function TrackCard({ i, selected, onSelect, flash }) {
   );
 }
 
-/* ═══════════════════ GARAGE PANEL ═══════════════════ */
-function GaragePanel({ slot, pick, onPick, animT }) {
+/* ═══════════════════ GARAGE PANEL — sharp preview, own section ═══════════════════ */
+function GaragePanel({ slot, pick, onPick, animT, label }) {
   const prevRef = useRef(null);
+  // Display size; internal buffer is much denser so the kart stays sharp
+  const CW = 280, CH = 168;
   useEffect(() => {
     const c = prevRef.current; if (!c) return;
-    const g = c.getContext("2d");
-    g.clearRect(0, 0, 130, 74);
-    g.fillStyle = "#232733"; g.fillRect(0, 22, 130, 32);
-    g.strokeStyle = slot === 0 ? "#38c7ff" : "#ff4d5a"; g.lineWidth = 2.5;
-    g.shadowColor = g.strokeStyle; g.shadowBlur = 8;
-    g.beginPath(); g.moveTo(0, 22); g.lineTo(130, 22); g.moveTo(0, 54); g.lineTo(130, 54); g.stroke();
-    g.shadowBlur = 0;
-    g.save(); g.translate(65, 38); g.scale(1.7, 1.7);
+    const dpr = Math.max(2, Math.min(3, window.devicePixelRatio || 2));
+    const bw = Math.round(CW * dpr);
+    const bh = Math.round(CH * dpr);
+    if (c.width !== bw || c.height !== bh) {
+      c.width = bw;
+      c.height = bh;
+    }
+    const g = c.getContext("2d", { alpha: false, desynchronized: true });
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, bw, bh);
+
+    // draw everything in buffer pixels (no fractional CSS upscale)
+    const s = dpr;
+
+    // stage
+    const grd = g.createLinearGradient(0, 0, 0, bh);
+    grd.addColorStop(0, "#12161f");
+    grd.addColorStop(1, "#0a0d14");
+    g.fillStyle = grd;
+    g.fillRect(0, 0, bw, bh);
+
+    // road strip (no glow blur — that softens the whole preview)
+    g.fillStyle = "#2a303c";
+    g.fillRect(0, Math.round(bh * 0.42), bw, Math.round(bh * 0.28));
+    const accent = slot === 0 ? "#38c7ff" : "#ff4d5a";
+    g.strokeStyle = accent;
+    g.lineWidth = Math.max(2, Math.round(2 * s));
+    g.beginPath();
+    g.moveTo(Math.round(12 * s), Math.round(bh * 0.42));
+    g.lineTo(bw - Math.round(12 * s), Math.round(bh * 0.42));
+    g.moveTo(Math.round(12 * s), Math.round(bh * 0.7));
+    g.lineTo(bw - Math.round(12 * s), Math.round(bh * 0.7));
+    g.stroke();
+
+    // integer-scaled kart in buffer space → sharp edges
+    const kartScale = 5 * s;
+    g.save();
+    g.translate(bw / 2, bh * 0.56);
+    g.scale(kartScale, kartScale);
+    g.lineJoin = "round";
+    g.lineCap = "round";
     drawKartShape(g, KART_TYPES[pick.type].id, COLORS[pick.col], DARKS[pick.col], animT);
     g.restore();
   }, [pick, slot, animT]);
+
   const accent = slot === 0 ? "#38c7ff" : "#ff4d5a";
   return (
-    <div className="rounded-2xl p-2.5 min-w-0" style={{ background: "#0e111c", border: "1.5px solid #1c2236", boxShadow: `inset 0 0 30px ${slot === 0 ? "rgba(56,199,255,.05)" : "rgba(255,77,90,.05)"}` }}>
-      <h3 className="text-xs font-bold mb-1.5" style={{ color: accent, letterSpacing: 3, textShadow: `0 0 8px ${accent}99` }}>PLAYER {slot + 1}</h3>
-      <canvas ref={prevRef} width={130} height={74} className="block mx-auto rounded-xl" style={{ width: 110, height: 62, background: "#0a0d17" }} />
-      <div className="text-[10px] tracking-widest mt-2 mb-1" style={{ color: "#8b93ab" }}>KART TYPE</div>
-      <div className="grid grid-cols-4 gap-1">
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 420,
+        margin: "0 auto",
+        padding: "14px 16px 16px",
+        borderRadius: 16,
+        background: "linear-gradient(165deg, #121722 0%, #0c1018 100%)",
+        border: `1.5px solid ${accent}66`,
+        boxShadow: `0 0 28px ${accent}18, inset 0 1px 0 rgba(255,255,255,0.04)`,
+      }}
+    >
+      <div style={{ color: accent, fontSize: 11, fontWeight: 800, letterSpacing: 2.5, textAlign: "center", marginBottom: 10, textShadow: `0 0 12px ${accent}88` }}>
+        {label || `YOUR KART · P${slot + 1}`}
+      </div>
+
+      <canvas
+        ref={prevRef}
+        width={CW * 2}
+        height={CH * 2}
+        style={{
+          display: "block",
+          margin: "0 auto 12px",
+          width: CW,
+          height: CH,
+          borderRadius: 12,
+          background: "#0a0d14",
+          border: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+          imageRendering: "auto",
+        }}
+      />
+
+      <div style={{ color: "#8b93ab", fontSize: 10, letterSpacing: 2, textAlign: "center", marginBottom: 6 }}>KART TYPE</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
         {KART_TYPES.map((k, i) => (
-          <button key={k.id} onClick={() => onPick(slot, { ...pick, type: i })}
-            className="rounded-lg py-1 px-0.5 text-[9.5px] leading-tight cursor-pointer transition-transform hover:-translate-y-0.5"
+          <button key={k.id} type="button" onClick={() => onPick(slot, { ...pick, type: i })}
             style={{
-              background: i === pick.type ? "#0e2231" : "#0e111c", color: "#dfe6f5", fontFamily: "inherit",
-              border: `1.5px solid ${i === pick.type ? "#38c7ff" : "#1c2236"}`,
-              boxShadow: i === pick.type ? "0 0 10px rgba(56,199,255,.4)" : "none",
+              padding: "6px 4px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+              fontSize: 10, lineHeight: 1.2, color: "#e8eef8",
+              background: i === pick.type ? "#0e2231" : "#0a0d17",
+              border: `1.5px solid ${i === pick.type ? accent : "#1c2236"}`,
+              boxShadow: i === pick.type ? `0 0 12px ${accent}44` : "none",
+              transition: "transform .12s ease",
             }}>
-            <span className="block text-[15px]">{k.ic}</span>{k.name}
+            <span style={{ display: "block", fontSize: 16, lineHeight: 1.1, marginBottom: 2 }}>{k.ic}</span>
+            {k.name}
           </button>
         ))}
       </div>
-      <div className="text-[10px] tracking-widest mt-2 mb-1" style={{ color: "#8b93ab" }}>COLOR</div>
-      <div className="flex gap-1.5 justify-center flex-wrap">
+
+      <div style={{ color: "#8b93ab", fontSize: 10, letterSpacing: 2, textAlign: "center", marginTop: 12, marginBottom: 6 }}>COLOR</div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
         {COLORS.map((c, i) => (
-          <div key={c} onClick={() => onPick(slot, { ...pick, col: i })}
-            className="rounded-full cursor-pointer transition-transform hover:scale-110"
-            style={{ width: 22, height: 22, background: c, border: `2.5px solid ${i === pick.col ? "#fff" : "transparent"}`, boxShadow: i === pick.col ? "0 0 10px #fff" : "none" }} />
+          <button key={c} type="button" aria-label={`color ${i + 1}`} onClick={() => onPick(slot, { ...pick, col: i })}
+            style={{
+              width: 22, height: 22, borderRadius: "50%", cursor: "pointer", padding: 0, background: c,
+              border: `2.5px solid ${i === pick.col ? "#fff" : "rgba(255,255,255,0.12)"}`,
+              boxShadow: i === pick.col ? `0 0 12px ${c}` : "none",
+            }} />
         ))}
       </div>
     </div>
@@ -243,12 +319,59 @@ function GaragePanel({ slot, pick, onPick, animT }) {
 }
 
 /* ═══════════════════ MAIN APP ═══════════════════ */
-export default function StickmanKartRacing() {
+export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
+  const duoNetRef = useRef(null);
+  const nameA = (names?.A || names?.a || "Player A").trim() || "Player A";
+  const nameB = (names?.B || names?.b || "Player B").trim() || "Player B";
+  const nameOf = (slot) => (slot === 0 ? nameA : nameB);
+  const namesRef = useRef({ A: nameA, B: nameB });
+  namesRef.current = { A: nameA, B: nameB };
+
+  useEffect(() => {
+    if (!rt || !myRole) return;
+    const p1Codes = ["KeyA", "KeyD", "KeyW", "KeyS", "Space"];
+    const p2Codes = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"];
+    const net = createDuoStickmanNet({
+      rt, myRole, p1Codes, p2Codes,
+      remap: {
+        KeyA: "ArrowLeft", KeyD: "ArrowRight", KeyW: "ArrowUp", KeyS: "ArrowDown", Space: "Enter",
+      },
+    });
+    duoNetRef.current = net;
+    setPeer(true);
+    net.onUi((m) => {
+      if (!m) return;
+      if (m.type === "start") {
+        if (m.settings) setSettings(m.settings);
+        if (m.picks) setPicks(m.picks);
+        setGuestReady(false);
+        setResults(null); setPaused(false); setScreen("race");
+        initAudio();
+        // setupRace reads latest picks/settings via refs below — kick next tick
+        setTimeout(() => {
+          setupRace();
+          E.state = "countdown"; E.countT = 3; E._cn = 0;
+        }, 0);
+      } else if (m.type === "sel") {
+        if (m.key === "track") setSettings((s) => ({ ...s, track: m.val }));
+        if (m.key === "laps") setSettings((s) => ({ ...s, laps: m.val }));
+        if (m.key === "pu") setSettings((s) => ({ ...s, pu: !!m.val }));
+      } else if (m.type === "garage" && m.pick) {
+        setPicks((p) => { const np = [...p]; np[m.slot] = m.pick; return np; });
+      } else if (m.type === "ready") {
+        setGuestReady(!!m.ready);
+        if (m.ready) toast(`${namesRef.current.B} is ready ✓`);
+        else toast(`${namesRef.current.B} is not ready`);
+      }
+    });
+    return () => { duoNetRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rt, myRole]);
   const canvasRef = useRef(null);
   const [screen, setScreen] = useState("menu"); // menu | race
   const [settings, setSettings] = useState({ track: 0, laps: 3, pu: false });
   const [picks, setPicks] = useState([{ type: 0, col: 0 }, { type: 1, col: 1 }]);
-  const [hud, setHud] = useState({ pos1: "1st", pos2: "2nd", lap1: "", lap2: "", item1: "", item2: "", timer: "0:00.0", n1: "PLAYER 1", n2: "PLAYER 2", c1: COLORS[0], c2: COLORS[1] });
+  const [hud, setHud] = useState({ pos1: "1st", pos2: "2nd", lap1: "", lap2: "", item1: "", item2: "", timer: "0:00.0", n1: nameA, n2: nameB, c1: COLORS[0], c2: COLORS[1] });
   const [centerText, setCenterText] = useState("");
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -258,12 +381,17 @@ export default function StickmanKartRacing() {
   const [peer, setPeer] = useState(false);
   const [flashTrack, setFlashTrack] = useState(-1);
   const [animT, setAnimT] = useState(0);
+  const [garageOpen, setGarageOpen] = useState(false);
+  /** Online: guest must ready-up before host can start */
+  const [guestReady, setGuestReady] = useState(false);
 
   const settingsRef = useRef(settings); settingsRef.current = settings;
   const picksRef = useRef(picks); picksRef.current = picks;
   const mutedRef = useRef(muted); mutedRef.current = muted;
   const pausedRef = useRef(paused); pausedRef.current = paused;
-  const E = useRef({ state: "menu", path: [], N: 0, players: [], boxes: [], items: [], parts: [], confetti: [], missiles: [], raceT: 0, countT: 0, slowMo: 1, winner: null, fastLap: Infinity, curTrack: 0, ROAD_HALF: 46, WALL: 37, decoSeed: 1, keys: {}, marks: null, bg: null }).current;
+  const E = useRef({ state: "menu", path: [], N: 0, players: [], boxes: [], items: [], parts: [], confetti: [], missiles: [], raceT: 0, countT: 0, slowMo: 1, winner: null, fastLap: Infinity, curTrack: 0, ROAD_HALF: 46, WALL: 37, decoSeed: 1, keys: {}, pressed: {}, marks: null, bg: null }).current;
+  const online = !!(rt && myRole);
+  const mySlot = online ? (myRole === "A" ? 0 : 1) : null;
   const audio = useRef({ AC: null, master: null, eng: [] }).current;
   const netRef = useRef(null);
   const toastTimer = useRef(null);
@@ -426,7 +554,9 @@ export default function StickmanKartRacing() {
     setTimeout(showResults, 3200);
   }, [E, beep, showResults]);
 
-  const updatePlayer = useCallback((p, dt) => {
+  const updatePlayer = useCallback((p, dt, opts = {}) => {
+    // quiet: guest prediction — skip permanent skids / spammy wall sparks (online desync was littering the track)
+    const quiet = !!opts.quiet;
     if (p.done) { p.speed *= 0.97; p.x += Math.cos(p.angle) * p.speed; p.y += Math.sin(p.angle) * p.speed; return; }
     const th = THEMES[E.curTrack], k = E.keys;
     const up = p.i === 0 ? k["KeyW"] : k["ArrowUp"];
@@ -439,8 +569,10 @@ export default function StickmanKartRacing() {
     let maxS = MAX_SPEED;
     if (p.boost > 0) {
       p.boost -= dt; maxS = BOOST_SPEED;
-      const a = p.angle + Math.PI;
-      E.parts.push({ x: p.x + Math.cos(a) * 16, y: p.y + Math.sin(a) * 16, vx: Math.cos(a) * 2 + (Math.random() - 0.5), vy: Math.sin(a) * 2 + (Math.random() - 0.5), life: 0.3, color: Math.random() < 0.5 ? "#ff8c00" : "#ffd23f", size: 4 });
+      if (!quiet) {
+        const a = p.angle + Math.PI;
+        E.parts.push({ x: p.x + Math.cos(a) * 16, y: p.y + Math.sin(a) * 16, vx: Math.cos(a) * 2 + (Math.random() - 0.5), vy: Math.sin(a) * 2 + (Math.random() - 0.5), life: 0.3, color: Math.random() < 0.5 ? "#ff8c00" : "#ffd23f", size: 4 });
+      }
     }
     if (frozen) maxS = 0.7;
     if (!p.spin && !frozen) {
@@ -450,12 +582,17 @@ export default function StickmanKartRacing() {
       const steer = STEER * th.grip * (0.45 + 0.55 * Math.min(1, Math.abs(p.speed) / 2.6)) * dt;
       if (lf) p.angle -= steer * Math.sign(p.speed || 1);
       if (rt) p.angle += steer * Math.sign(p.speed || 1);
+      // Gray = tire smoke + skid marks (only while you steer hard at speed)
       if ((lf || rt) && Math.abs(p.speed) > 2.5) {
-        const m = E.marks.getContext("2d"); m.fillStyle = "rgba(20,20,20,0.28)";
-        const a = p.angle + Math.PI / 2;
-        m.fillRect(p.x + Math.cos(a) * 8 - 1, p.y + Math.sin(a) * 8 - 1, 2.5, 2.5);
-        m.fillRect(p.x - Math.cos(a) * 8 - 1, p.y - Math.sin(a) * 8 - 1, 2.5, 2.5);
-        if (Math.random() < 0.3) E.parts.push({ x: p.x, y: p.y, vx: Math.random() - 0.5, vy: Math.random() - 0.5, life: 0.5, color: "rgba(220,220,220,0.6)", size: 5 });
+        if (!quiet && E.marks) {
+          const m = E.marks.getContext("2d"); m.fillStyle = "rgba(20,20,20,0.28)";
+          const a = p.angle + Math.PI / 2;
+          m.fillRect(p.x + Math.cos(a) * 8 - 1, p.y + Math.sin(a) * 8 - 1, 2.5, 2.5);
+          m.fillRect(p.x - Math.cos(a) * 8 - 1, p.y - Math.sin(a) * 8 - 1, 2.5, 2.5);
+        }
+        if (Math.random() < (quiet ? 0.06 : 0.22)) {
+          E.parts.push({ x: p.x, y: p.y, vx: Math.random() - 0.5, vy: Math.random() - 0.5, life: 0.35, color: "rgba(220,220,220,0.55)", size: 4 });
+        }
       }
     }
     p.speed = Math.max(REVERSE, Math.min(maxS, p.speed));
@@ -468,8 +605,13 @@ export default function StickmanKartRacing() {
       p.x = cx + nx * E.WALL; p.y = cy + ny * E.WALL;
       if (Math.abs(p.speed) > 1.2) {
         p.speed *= 0.72;
-        spawnParts(p.x, p.y, "#ffcf3f", 4, 2);
-        if (Math.random() < 0.3) beep(110, 0.05, 0.03, "triangle");
+        // Yellow = wall sparks — throttle so online rubber-band doesn't carpet the track
+        const now = performance.now();
+        if (!quiet && (!p._sparkAt || now - p._sparkAt > 220)) {
+          p._sparkAt = now;
+          spawnParts(p.x, p.y, "#ffcf3f", 3, 1.6);
+          if (Math.random() < 0.25) beep(110, 0.05, 0.03, "triangle");
+        }
       }
     }
     const idx = p.idx, prev = p.prevIdx;
@@ -556,39 +698,215 @@ export default function StickmanKartRacing() {
         item1: P[0].item ? P[0].item.icon : "",
         item2: P[1].item ? P[1].item.icon : "",
         timer: fmt(E.raceT),
-        n1: "P1 · " + KART_TYPES[picksRef.current[0].type].name.toUpperCase(),
-        n2: "P2 · " + KART_TYPES[picksRef.current[1].type].name.toUpperCase(),
+        n1: namesRef.current.A + " · " + KART_TYPES[picksRef.current[0].type].name.toUpperCase(),
+        n2: namesRef.current.B + " · " + KART_TYPES[picksRef.current[1].type].name.toUpperCase(),
         c1: COLORS[picksRef.current[0].col], c2: COLORS[picksRef.current[1].col],
       };
       setHud((h) => (JSON.stringify(h) === JSON.stringify(next) ? h : next));
     };
+    let netAcc = 0;
+    let lastGuestPose = null;
+    let lastGuestPoseT = -1;
+    const packKartState = () => ({
+      state: E.state,
+      raceT: E.raceT,
+      countT: E.countT,
+      players: E.players.map((p) => ({
+        x: p.x, y: p.y, angle: p.angle, speed: p.speed, lap: p.lap,
+        item: p.item, shield: p.shield, spin: p.spin, boost: p.boost,
+        freeze: p.freeze, done: p.done, idx: p.idx, halfway: p.halfway,
+        kart: p.kart, color: p.color, dark: p.dark, finishT: p.finishT,
+      })),
+    });
+    const packGuestPose = () => {
+      const p = E.players[1];
+      if (!p) return null;
+      return {
+        pose: {
+          t: performance.now(),
+          x: p.x, y: p.y, angle: p.angle, speed: p.speed,
+          lap: p.lap, idx: p.idx, halfway: p.halfway,
+          item: p.item, shield: p.shield, spin: p.spin, boost: p.boost,
+          freeze: p.freeze, done: p.done, finishT: p.finishT,
+        },
+      };
+    };
+    const angLerp = (a, b, t) => {
+      let d = b - a;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return a + d * t;
+    };
+    /** Guest: P1 from host only. P2 transform is NEVER touched (guest owns their kart). */
+    const applyKartStateGuest = (st) => {
+      if (!st || !E.players?.length) return;
+      if (st.raceT != null) E.raceT = st.raceT;
+      if (st.countT != null) E.countT = st.countT;
+      if (st.state) E.state = st.state;
+      const remote = st.players;
+      if (!remote?.length) return;
+
+      if (remote[0] && E.players[0]) {
+        const p = E.players[0], sp = remote[0];
+        const err = Math.hypot((p.x ?? sp.x) - sp.x, (p.y ?? sp.y) - sp.y);
+        if (err > 40 || p.x == null) Object.assign(p, sp);
+        else {
+          const k = 0.65;
+          p.x += (sp.x - p.x) * k;
+          p.y += (sp.y - p.y) * k;
+          p.angle = angLerp(p.angle, sp.angle, k);
+          p.speed = sp.speed;
+          p.lap = sp.lap; p.item = sp.item; p.shield = sp.shield; p.spin = sp.spin;
+          p.boost = sp.boost; p.freeze = sp.freeze; p.done = sp.done; p.idx = sp.idx;
+          p.halfway = sp.halfway;
+          if (sp.kart) p.kart = sp.kart;
+          if (sp.color) p.color = sp.color;
+          if (sp.dark) p.dark = sp.dark;
+        }
+      }
+
+      // P2: only host-forced status (missile hit etc). Never overwrite drive pose.
+      if (remote[1] && E.players[1]) {
+        const p = E.players[1], sp = remote[1];
+        if (sp.spin > (p.spin || 0)) p.spin = sp.spin;
+        if (sp.freeze > (p.freeze || 0)) p.freeze = sp.freeze;
+        if (sp.shield) p.shield = true;
+      }
+    };
+    /** Host: show guest-authored P2 pose (smooth + extrapolate between packets). */
+    const applyGuestPoseOnHost = (p, sp, dt) => {
+      if (!p || !sp || sp.x == null) return false;
+      lastGuestPose = sp;
+      const err = Math.hypot((p.x ?? sp.x) - sp.x, (p.y ?? sp.y) - sp.y);
+      if (err > 35 || p.x == null) {
+        p.x = sp.x; p.y = sp.y; p.angle = sp.angle; p.speed = sp.speed;
+      } else {
+        const k = 0.85; // snappy follow — guest is authority
+        p.x += (sp.x - p.x) * k;
+        p.y += (sp.y - p.y) * k;
+        p.angle = angLerp(p.angle, sp.angle, k);
+        p.speed = sp.speed;
+      }
+      if (sp.idx != null) p.idx = sp.idx;
+      if (sp.lap != null) p.lap = sp.lap;
+      if (sp.halfway != null) p.halfway = sp.halfway;
+      p.item = sp.item;
+      p.shield = !!sp.shield;
+      if (sp.boost != null) p.boost = sp.boost;
+      if (sp.spin != null) p.spin = sp.spin;
+      if (sp.freeze != null) p.freeze = sp.freeze;
+      if (sp.done && !p.done) {
+        p.done = true;
+        p.finishT = sp.finishT ?? E.raceT;
+        onFinish(p);
+      }
+      return true;
+    };
+    const extrapGuestPose = (p, dt) => {
+      if (!p || p.done) return;
+      const step = (p.speed || 0) * 60 * dt * (E.slowMo || 1);
+      p.x += Math.cos(p.angle) * step;
+      p.y += Math.sin(p.angle) * step;
+    };
     const loop = (ts) => {
       raf = requestAnimationFrame(loop);
       const dt = Math.min(0.033, (ts - last) / 1000 || 0.016); last = ts;
+      const net = duoNetRef.current;
+      const guest = !!(net?.online && !net.isHost);
+
+      /* ── Guest (P2): full local drive + stream pose. Feels like offline. ── */
+      if (guest) {
+        const fresh = net.takeState();
+        if (fresh) applyKartStateGuest(fresh);
+        else if (E.state === "race" && E.players[0]) {
+          const p = E.players[0];
+          const step = (p.speed || 0) * 60 * dt * (E.slowMo || 1);
+          p.x += Math.cos(p.angle) * step;
+          p.y += Math.sin(p.angle) * step;
+        }
+        if (E.state === "countdown" && E.countT > 0) {
+          const n = Math.ceil(E.countT);
+          if (E._cn !== n) { E._cn = n; setCenterText(String(n)); }
+        } else if (E.state === "race" && E._cn !== 0) {
+          E._cn = 0; setCenterText("GO!"); setTimeout(() => setCenterText(""), 700);
+        }
+        if (E.state === "race" && !pausedRef.current && E.players[1]) {
+          updatePlayer(E.players[1], dt * (E.slowMo || 1), { quiet: true });
+        }
+        // Stream pose every frame (coalesced) — this is what makes P2 smooth for everyone
+        net.netTick(null, packGuestPose);
+        if (E.players?.length) { pushHud(); draw(); }
+        return;
+      }
+
+      if (net?.online) {
+        if (!E.keys) E.keys = {};
+        if (!E.pressed) E.pressed = {};
+        net.mergeRemoteInto(E);
+        if (E.state === "race" && !pausedRef.current && E.pressed.Enter && E.players[1]) {
+          useItem(E.players[1]);
+        }
+      }
+
       if (E.state === "countdown") {
         E.countT -= dt;
         if (E.countT > 0) {
           const n = Math.ceil(E.countT);
           if (E._cn !== n) { E._cn = n; beep(440, 0.12, 0.05); setCenterText(String(n)); }
-        } else if (E.state === "countdown") {
+        } else {
           setCenterText("GO!"); beep(880, 0.3, 0.06);
           setTimeout(() => setCenterText(""), 700);
           E.state = "race";
         }
-        draw(); return;
+        if (net?.online) {
+          netAcc += dt;
+          if (netAcc >= 0.02) { netAcc = 0; net.netTick(packKartState); }
+        }
+        draw();
+        return;
       }
-      if (pausedRef.current) return;
+      if (pausedRef.current) {
+        if (net?.online && (E.state === "race" || E.state === "finish")) {
+          netAcc += dt;
+          if (netAcc >= 0.02) { netAcc = 0; net.netTick(packKartState); }
+        }
+        return;
+      }
       if (E.state !== "race" && E.state !== "finish") return;
       E.raceT += dt * E.slowMo;
-      for (const p of E.players) updatePlayer(p, dt * E.slowMo);
-      // kart collision
+
+      // P1 = host sim. P2 online = guest pose (joiner drives locally).
+      updatePlayer(E.players[0], dt * E.slowMo);
+      if (E.players[1]) {
+        if (net?.online) {
+          const pose = net.peekRemoteExtra()?.pose;
+          if (pose && pose.t !== lastGuestPoseT) {
+            lastGuestPoseT = pose.t;
+            applyGuestPoseOnHost(E.players[1], pose, dt);
+          } else if (lastGuestPose) {
+            extrapGuestPose(E.players[1], dt * E.slowMo);
+          } else {
+            updatePlayer(E.players[1], dt * E.slowMo);
+          }
+        } else {
+          updatePlayer(E.players[1], dt * E.slowMo);
+        }
+      }
+
+      // kart collision (host resolves; guest will see via P1 state + own local P2)
       const a = E.players[0], b = E.players[1];
       if (a && b) {
         const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
         if (d < 26 && d > 0.01) {
           const nx = dx / d, ny = dy / d, push = (26 - d) / 2;
-          a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
-          const t = a.speed; a.speed = a.speed * 0.6 + b.speed * 0.3; b.speed = b.speed * 0.6 + t * 0.3;
+          a.x -= nx * push; a.y -= ny * push;
+          // Don't shove guest-owned P2 hard — nudge only so host P1 feels contact
+          if (!(net?.online && lastGuestPose)) {
+            b.x += nx * push; b.y += ny * push;
+            const t = a.speed; a.speed = a.speed * 0.6 + b.speed * 0.3; b.speed = b.speed * 0.6 + t * 0.3;
+          } else {
+            a.speed *= 0.85;
+          }
           spawnParts((a.x + b.x) / 2, (a.y + b.y) / 2, "#fff", 6, 2);
         }
       }
@@ -614,25 +932,46 @@ export default function StickmanKartRacing() {
       if (audio.AC && E.state === "race" && !mutedRef.current) {
         E.players.forEach((p, i) => { if (audio.eng[i]) { audio.eng[i].o.frequency.value = 42 + Math.abs(p.speed) * 18; audio.eng[i].g.gain.value = 0.006; } });
       } else engineGain(0);
+      if (net?.online) {
+        netAcc += dt;
+        if (netAcc >= 0.02) {
+          netAcc = 0;
+          net.netTick(packKartState);
+        }
+        E.pressed = {};
+      }
       pushHud();
       draw();
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [E, audio, beep, updatePlayer, spawnParts, engineGain]);
+  }, [E, audio, beep, updatePlayer, spawnParts, engineGain, useItem, onFinish]);
 
   /* ---------- keyboard ---------- */
   useEffect(() => {
     const dn = (e) => {
-      E.keys[e.code] = true;
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
       if (e.code === "Escape") setPaused((p) => (E.state === "race" ? !p : p));
+      const net = duoNetRef.current;
+      if (net?.online) {
+        const code = net.onKeyDown(e.code, E);
+        if (E.state === "race" && !pausedRef.current && code) {
+          if (code === "Space" && net.isHost) useItem(E.players[0]);
+          if (code === "Enter" && !net.isHost) useItem(E.players[1]);
+        }
+        return;
+      }
+      E.keys[e.code] = true;
       if (E.state === "race" && !pausedRef.current) {
-        if (e.code === "KeyQ") useItem(E.players[0]);
-        if (e.code === "KeyM") useItem(E.players[1]);
+        if (e.code === "KeyQ" || e.code === "Space") useItem(E.players[0]);
+        if (e.code === "KeyM" || e.code === "Enter") useItem(E.players[1]);
       }
     };
-    const up = (e) => (E.keys[e.code] = false);
+    const up = (e) => {
+      const net = duoNetRef.current;
+      if (net?.online) net.onKeyUp(e.code, E);
+      else E.keys[e.code] = false;
+    };
     addEventListener("keydown", dn); addEventListener("keyup", up);
     return () => { removeEventListener("keydown", dn); removeEventListener("keyup", up); };
   }, [E, useItem]);
@@ -655,31 +994,49 @@ export default function StickmanKartRacing() {
     switch (m.type) {
       case "hello": netRef.current?.send({ type: "present" }); break;
       case "sel":
-        if (m.key === "track") { setSettings((s) => ({ ...s, track: m.val })); setFlashTrack(m.val); setTimeout(() => setFlashTrack(-1), 700); toast("Other player picked " + THEMES[m.val].name); }
-        if (m.key === "laps") { setSettings((s) => ({ ...s, laps: m.val })); toast("Other player set " + m.val + " lap" + (m.val > 1 ? "s" : "")); }
-        if (m.key === "pu") { setSettings((s) => ({ ...s, pu: !!m.val })); toast("Other player turned power-ups " + (m.val ? "ON" : "OFF")); }
+        if (m.key === "track") { setSettings((s) => ({ ...s, track: m.val })); setFlashTrack(m.val); setTimeout(() => setFlashTrack(-1), 700); toast(`${namesRef.current.A} picked ` + THEMES[m.val].name); }
+        if (m.key === "laps") { setSettings((s) => ({ ...s, laps: m.val })); toast(`${namesRef.current.A} set ` + m.val + " lap" + (m.val > 1 ? "s" : "")); }
+        if (m.key === "pu") { setSettings((s) => ({ ...s, pu: !!m.val })); toast(`${namesRef.current.A} turned power-ups ` + (m.val ? "ON" : "OFF")); }
         break;
       case "garage":
         setPicks((p) => { const np = [...p]; np[m.slot] = m.pick; return np; });
-        toast("Other player updated Player " + (m.slot + 1) + "'s kart");
+        toast(`${nameOf(m.slot)} updated their kart`);
         break;
       case "rndreq": pendingRnd.current = m.payload; setRndModal(true); break;
       case "rndok": toast("Random accepted! 🎲"); applyRandom(m.payload); break;
-      case "rndno": toast("Other player refused the random 🎲"); break;
+      case "rndno": toast("Random refused 🎲"); break;
       default: break;
     }
   };
   useEffect(() => {
+    // Prefer DuoArcade realtime when mounted in the arcade; else same-tab BroadcastChannel.
+    if (rt && myRole) {
+      netRef.current = {
+        peer: true,
+        send: (m) => duoNetRef.current?.sendUi(m),
+        close: () => {},
+      };
+      setPeer(true);
+      return () => { netRef.current = null; };
+    }
     const net = createNet((m) => netHandler.current(m), () => setPeer(true));
     netRef.current = net;
     return () => net.close();
-  }, []);
+  }, [rt, myRole]);
 
   /* ---------- actions ---------- */
   const selectTrack = (i) => { setSettings((s) => ({ ...s, track: i })); netRef.current?.send({ type: "sel", key: "track", val: i }); };
   const selectLaps = (v) => { setSettings((s) => ({ ...s, laps: v })); netRef.current?.send({ type: "sel", key: "laps", val: v }); };
   const selectPU = (v) => { setSettings((s) => ({ ...s, pu: v })); netRef.current?.send({ type: "sel", key: "pu", val: v ? 1 : 0 }); };
-  const onPick = (slot, pick) => { setPicks((p) => { const np = [...p]; np[slot] = pick; return np; }); netRef.current?.send({ type: "garage", slot, pick }); };
+  const onPick = (slot, pick) => {
+    // Online: each seat only edits their own kart (A→slot0, B→slot1)
+    if (rt && myRole) {
+      const mySlot = myRole === "A" ? 0 : 1;
+      if (slot !== mySlot) return;
+    }
+    setPicks((p) => { const np = [...p]; np[slot] = pick; return np; });
+    netRef.current?.send({ type: "garage", slot, pick });
+  };
   const randomizeAll = () => {
     const pl = {
       picks: [
@@ -692,14 +1049,29 @@ export default function StickmanKartRacing() {
     if (netRef.current?.peer) { netRef.current.send({ type: "rndreq", payload: pl }); toast("🎲 Waiting for the other player to accept…"); }
     else applyRandom(pl);
   };
+  const setReady = (ready) => {
+    if (!online || myRole !== "B") return;
+    setGuestReady(!!ready);
+    duoNetRef.current?.sendUi({ type: "ready", ready: !!ready });
+  };
   const startRace = () => {
+    if (rt && myRole === "B") return; // guest waits for host start
+    // Lobby only: host must wait for invited player ready (rematch can start freely)
+    if (online && !guestReady && screen === "menu") {
+      toast(`Wait for ${nameB} to press I'm Ready`);
+      return;
+    }
     setResults(null); setPaused(false); setScreen("race");
+    setGuestReady(false);
     initAudio();
     setupRace();
     E.state = "countdown"; E.countT = 3; E._cn = 0;
+    duoNetRef.current?.sendUi({ type: "start", settings, picks });
   };
   const backToMenu = () => {
     setResults(null); setPaused(false); setScreen("menu");
+    setGuestReady(false);
+    if (online && myRole === "B") duoNetRef.current?.sendUi({ type: "ready", ready: false });
     E.state = "menu"; E.bg = null; engineGain(0);
     const c = canvasRef.current; if (c) c.getContext("2d").clearRect(0, 0, W, H);
   };
@@ -713,9 +1085,16 @@ export default function StickmanKartRacing() {
   });
 
   return (
-    <div className="w-full h-screen overflow-hidden relative flex items-center justify-center" style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5" }}>
+    <div
+      className={"w-full relative flex items-center justify-center " + (screen === "menu" ? "skr-root-menu" : "h-screen overflow-hidden")}
+      style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5", minHeight: screen === "menu" ? 520 : undefined }}
+    >
       <canvas ref={canvasRef} width={W} height={H} className="block rounded-xl"
-        style={{ width: "min(98vh,98vw)", height: "min(98vh,98vw)", boxShadow: screen === "race" ? "0 0 50px rgba(56,199,255,.12),0 0 120px rgba(0,0,0,.8)" : "none" }} />
+        style={{
+          display: screen === "menu" ? "none" : "block",
+          width: "min(98vh,98vw)", height: "min(98vh,98vw)",
+          boxShadow: screen === "race" ? "0 0 50px rgba(56,199,255,.12),0 0 120px rgba(0,0,0,.8)" : "none",
+        }} />
 
       {/* ── HUD ── */}
       {screen === "race" && (
@@ -747,70 +1126,188 @@ export default function StickmanKartRacing() {
 
       {/* ── MENU ── */}
       {screen === "menu" && (
-        <div className="absolute inset-0 z-20 overflow-auto flex justify-center" style={{ background: "#07080fee" }}>
-          <div className="w-full max-w-[880px] px-3 pt-6 pb-10 text-center">
-            <h1 className="text-4xl font-bold mb-1" style={{ letterSpacing: 10 }}>
-              <span style={{ color: "#38c7ff", textShadow: "0 0 14px #38c7ff,0 0 40px rgba(56,199,255,.4)" }}>STICKMAN</span>{" 🏁 "}
-              <span style={{ color: "#ff4d5a", textShadow: "0 0 14px #ff4d5a,0 0 40px rgba(255,77,90,.4)" }}>KART RACING</span>
+        <div className="skr-lobby z-20 flex justify-center" style={{ background: "#07080fee", width: "100%", minHeight: "100%" }}>
+          <div className="w-full max-w-[880px] px-3 pt-4 pb-10 text-center">
+            <h1 className="text-2xl font-bold mb-0.5" style={{ letterSpacing: 6 }}>
+              <span style={{ color: "#38c7ff", textShadow: "0 0 10px #38c7ff" }}>STICKMAN</span>{" 🏁 "}
+              <span style={{ color: "#ff4d5a", textShadow: "0 0 10px #ff4d5a" }}>KART</span>
             </h1>
-            <div className="text-sm mb-3" style={{ color: dim, letterSpacing: 2 }}>head-to-head neon kart battles · first across the line wins</div>
-
-            <button onClick={startRace} className="cursor-pointer rounded-2xl font-bold text-white mb-3 transition-transform hover:scale-105"
-              style={{ padding: "14px 56px", fontSize: 20, letterSpacing: 5, border: "none", background: "linear-gradient(90deg,#3a7bfd,#ff4d5a)", boxShadow: "0 0 26px rgba(90,120,255,.45)", fontFamily: "inherit" }}>
-              START RACE ▶
-            </button>
-            <div className="flex justify-center mb-1.5">
-              <button onClick={randomizeAll} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5"
-                style={{ ...pillStyle(false), border: "1.5px solid #a86bff", boxShadow: "0 0 12px rgba(168,107,255,.35)" }}>
-                <b style={{ letterSpacing: 1 }}>🎲 RANDOMIZE ALL</b>
-                <small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>random karts · colors · track · laps</small>
-              </button>
+            <div className="text-xs mb-2" style={{ color: dim, letterSpacing: 1 }}>
+              {online
+                ? (myRole === "A"
+                  ? (guestReady
+                    ? `${nameB} is ready · you can start`
+                    : `you are ${nameA} · wait for ${nameB} to ready up`)
+                  : (guestReady
+                    ? `you're ready · waiting for ${nameA} to start`
+                    : `you are ${nameB} · pick your kart, then ready up`))
+                : `${nameA} vs ${nameB} · first across the line`}
             </div>
-            {peer && <div className="text-sm mb-2" style={{ color: "#4dff9e", letterSpacing: 2 }}>🔗 other player connected — choices are synced</div>}
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Match length:</div>
-            <div className="flex gap-3 justify-center flex-wrap">
-              {[{ l: 1, n: "Sprint" }, { l: 3, n: "Classic" }, { l: 5, n: "Endurance" }].map((o) => (
-                <button key={o.l} onClick={() => selectLaps(o.l)} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={pillStyle(settings.laps === o.l)}>
-                  <b style={{ letterSpacing: 1 }}>{o.n}</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{o.l} lap{o.l > 1 ? "s" : ""}</small>
+            {(!online || myRole === "A") && (
+              <button
+                onClick={startRace}
+                disabled={online && !guestReady}
+                className="cursor-pointer rounded-xl font-bold text-white mb-2 transition-transform hover:scale-105"
+                style={{
+                  padding: "10px 36px", fontSize: 15, letterSpacing: 3, border: "none", fontFamily: "inherit",
+                  background: online && !guestReady
+                    ? "linear-gradient(90deg,#3a4558,#4a5568)"
+                    : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
+                  boxShadow: online && !guestReady ? "none" : "0 0 18px rgba(90,120,255,.4)",
+                  opacity: online && !guestReady ? 0.55 : 1,
+                  cursor: online && !guestReady ? "not-allowed" : "pointer",
+                }}
+              >
+                {online && !guestReady ? `WAITING FOR ${nameB.toUpperCase()}…` : "START RACE ▶"}
+              </button>
+            )}
+            {online && myRole === "B" && (
+              <button
+                type="button"
+                onClick={() => setReady(!guestReady)}
+                className="cursor-pointer rounded-xl font-bold text-white mb-2 transition-transform hover:scale-105"
+                style={{
+                  padding: "10px 36px", fontSize: 15, letterSpacing: 3, border: "none", fontFamily: "inherit",
+                  background: guestReady
+                    ? "linear-gradient(90deg,#1f9e58,#4dff9e)"
+                    : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
+                  boxShadow: guestReady
+                    ? "0 0 18px rgba(77,255,158,.45)"
+                    : "0 0 18px rgba(90,120,255,.4)",
+                }}
+              >
+                {guestReady ? "READY ✓  (tap to cancel)" : "I'M READY ▶"}
+              </button>
+            )}
+            {online && myRole === "A" && !guestReady && (
+              <div className="text-xs mb-2" style={{ color: "#ffcf3f", letterSpacing: 1 }}>
+                {nameB} must press I'm Ready
+              </div>
+            )}
+            {online && myRole === "B" && guestReady && (
+              <div className="text-xs mb-2" style={{ color: "#4dff9e", letterSpacing: 1 }}>
+                Waiting for {nameA} to start…
+              </div>
+            )}
+            <div className="flex justify-center gap-2 flex-wrap mb-2">
+              <button
+                type="button"
+                onClick={() => setGarageOpen(true)}
+                className="cursor-pointer rounded-xl font-bold transition-transform hover:scale-105"
+                style={{
+                  padding: "10px 28px", fontSize: 14, letterSpacing: 3, fontFamily: "inherit",
+                  color: "#e8eef8",
+                  background: "linear-gradient(165deg, #1a2438 0%, #0e1524 100%)",
+                  border: "1.5px solid #38c7ff",
+                  boxShadow: "0 0 18px rgba(56,199,255,.35)",
+                }}
+              >
+                🏎️ GARAGE
+              </button>
+              {(!online || myRole === "A") && (
+                <button onClick={randomizeAll} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] transition-transform hover:-translate-y-0.5"
+                  style={{ ...pillStyle(false), border: "1px solid #a86bff" }}>
+                  🎲 Randomize
                 </button>
-              ))}
+              )}
             </div>
-
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Garage — pick your kart:</div>
-            <div className="grid grid-cols-2 gap-2.5 max-[560px]:grid-cols-1">
-              <GaragePanel slot={0} pick={picks[0]} onPick={onPick} animT={animT} />
-              <GaragePanel slot={1} pick={picks[1]} onPick={onPick} animT={animT} />
+            <div className="text-[11px] mb-2" style={{ color: dim, letterSpacing: 1 }}>
+              {online
+                ? `${KART_TYPES[picks[mySlot].type].ic} ${KART_TYPES[picks[mySlot].type].name}`
+                : `${KART_TYPES[picks[0].type].ic} ${nameA} · ${KART_TYPES[picks[0].type].name}  ·  ${KART_TYPES[picks[1].type].ic} ${nameB} · ${KART_TYPES[picks[1].type].name}`}
             </div>
+            {peer && <div className="text-[10px] mb-1" style={{ color: "#4dff9e", letterSpacing: 1 }}>🔗 duo connected — your kart syncs</div>}
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Choose your track:</div>
-            <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
-              {THEMES.map((_, i) => (
-                <TrackCard key={i} i={i} selected={settings.track === i} flash={flashTrack === i} onSelect={selectTrack} />
-              ))}
-            </div>
-
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Power-ups:</div>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => selectPU(true)} className="cursor-pointer rounded-xl px-5 py-3 text-sm" style={pillStyle(settings.pu)}>
-                <b>ON</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>item boxes spawn</small>
-              </button>
-              <button onClick={() => selectPU(false)} className="cursor-pointer rounded-xl px-5 py-3 text-sm" style={pillStyle(!settings.pu)}>
-                <b>OFF</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>pure racing</small>
-              </button>
-            </div>
-
-            <div className="flex gap-3.5 justify-center flex-wrap mt-6">
-              <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
-                <b style={{ color: "#38c7ff", letterSpacing: 2 }}>PLAYER 1</b><br />
-                <Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> — drive · <Key>Q</Key> — use item
+            {(!online || myRole === "A") && (
+              <div className="flex gap-2 justify-center flex-wrap mb-4">
+                {[{ l: 1, n: "Sprint" }, { l: 3, n: "Classic" }, { l: 5, n: "Endurance" }].map((o) => (
+                  <button key={o.l} onClick={() => selectLaps(o.l)} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px]" style={pillStyle(settings.laps === o.l)}>
+                    <b>{o.n}</b> <span style={{ color: dim }}>{o.l}L</span>
+                  </button>
+                ))}
+                <button onClick={() => selectPU(true)} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px]" style={pillStyle(settings.pu)}><b>Items ON</b></button>
+                <button onClick={() => selectPU(false)} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px]" style={pillStyle(!settings.pu)}><b>Items OFF</b></button>
               </div>
-              <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
-                <b style={{ color: "#ff4d5a", letterSpacing: 2 }}>PLAYER 2</b><br />
-                <Key>↑</Key><Key>←</Key><Key>↓</Key><Key>→</Key> — drive · <Key>M</Key> — use item
+            )}
+
+            {/* Maps */}
+            <div className="skr-menu-block" style={{ margin: "8px auto 24px", maxWidth: 880 }}>
+              <div style={{
+                fontSize: 13, fontWeight: 800, letterSpacing: 3, color: "#dfe6f5",
+                marginBottom: 12, textAlign: "center",
+              }}>
+                {online && myRole === "B" ? `TRACK (${nameA} picks)` : "CHOOSE TRACK"}
+              </div>
+              <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
+                {THEMES.map((_, i) => (
+                  <TrackCard
+                    key={i}
+                    i={i}
+                    selected={settings.track === i}
+                    flash={flashTrack === i}
+                    onSelect={selectTrack}
+                    disabled={online && myRole === "B"}
+                  />
+                ))}
               </div>
             </div>
-            <div className="text-sm mt-3.5" style={{ color: dim, letterSpacing: 2 }}>⏸ pause anytime with <Key>Esc</Key> · 🔊 sound toggle in the top bar</div>
+
+            <div className="flex gap-2 justify-center flex-wrap mt-2">
+              {(!online || myRole === "A") && (
+                <div className="rounded-lg px-3 py-2 text-[11px] leading-relaxed" style={{ background: card, border: `1px solid ${line}`, color: dim, maxWidth: 280 }}>
+                  <b style={{ color: "#38c7ff", letterSpacing: 1 }}>{online ? `YOU · ${nameA}` : nameA}</b><br />
+                  <Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> drive · <Key>Space</Key> item
+                </div>
+              )}
+              {(!online || myRole === "B") && (
+                <div className="rounded-lg px-3 py-2 text-[11px] leading-relaxed" style={{ background: card, border: `1px solid ${line}`, color: dim, maxWidth: 280 }}>
+                  <b style={{ color: "#ff4d5a", letterSpacing: 1 }}>{online ? `YOU · ${nameB}` : nameB}</b><br />
+                  {online
+                    ? <><Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> drive · <Key>Space</Key> item</>
+                    : <><Key>↑</Key><Key>←</Key><Key>↓</Key><Key>→</Key> drive · <Key>M</Key> item</>}
+                </div>
+              )}
+            </div>
+            <div className="text-xs mt-2.5" style={{ color: dim, letterSpacing: 1 }}>
+              ⏸ <Key>Esc</Key> pause{online ? ` · ${nameA} starts the race` : ""}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GARAGE (opens from button) — click outside panel to close ── */}
+      {garageOpen && screen === "menu" && (
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center overflow-auto"
+          style={{ background: "rgba(5,7,14,0.92)", padding: "24px 12px 40px", cursor: "pointer" }}
+          onClick={() => setGarageOpen(false)}
+        >
+          <div
+            className="w-full"
+            style={{ maxWidth: online ? 440 : 880, margin: "0 auto", cursor: "default" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: 4, color: "#dfe6f5", textAlign: "center", marginBottom: 8 }}>
+              🏎️ GARAGE
+            </div>
+            <div style={{ fontSize: 11, color: dim, letterSpacing: 1, marginBottom: 14, textAlign: "center" }}>
+              Pick your kart · tap outside to close
+            </div>
+            {online ? (
+              <GaragePanel
+                slot={mySlot}
+                pick={picks[mySlot]}
+                onPick={onPick}
+                animT={animT}
+                label={`YOUR KART · ${myRole === "A" ? nameA : nameB}`}
+              />
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+                <GaragePanel slot={0} pick={picks[0]} onPick={onPick} animT={animT} label={`${nameA}'S KART`} />
+                <GaragePanel slot={1} pick={picks[1]} onPick={onPick} animT={animT} label={`${nameB}'S KART`} />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -832,8 +1329,12 @@ export default function StickmanKartRacing() {
       {results && (
         <Modal>
           <div className="text-6xl mb-2">🏆</div>
-          <div className="text-2xl font-bold mb-2" style={{ letterSpacing: 3, color: results.color, textShadow: `0 0 16px ${results.color}` }}>
-            PLAYER {results.winner + 1} WINS!
+          <div
+            data-skr-winner={results.winner === 0 ? "A" : "B"}
+            className="text-2xl font-bold mb-2"
+            style={{ letterSpacing: 3, color: results.color, textShadow: `0 0 16px ${results.color}` }}
+          >
+            {nameOf(results.winner).toUpperCase()} WINS!
           </div>
           <table className="mx-auto my-3 text-sm"><tbody>
             <tr><td className="px-4 py-1.5" style={{ color: dim, borderBottom: `1px solid ${line}` }}>Race time</td><td className="px-4 py-1.5" style={{ borderBottom: `1px solid ${line}` }}>{results.time}</td></tr>

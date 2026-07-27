@@ -48,6 +48,42 @@ function PlayIcon() {
   );
 }
 
+function FullscreenEnterIcon() {
+  return (
+    <svg className="gv-fs-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FullscreenExitIcon() {
+  return (
+    <svg className="gv-fs-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <path d="M8 8H4V4M16 8h4V4M8 16H4v4M16 16h4v4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function getFullscreenEl() {
+  return document.fullscreenElement
+    || document.webkitFullscreenElement
+    || document.msFullscreenElement
+    || null;
+}
+
+async function enterFullscreen(el) {
+  if (!el) return;
+  if (el.requestFullscreen) await el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+  else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+}
+
+async function exitFullscreen() {
+  if (document.exitFullscreen) await document.exitFullscreen();
+  else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+  else if (document.msExitFullscreen) await document.msExitFullscreen();
+}
+
 /** Turn-based boards keep the exact same DOM engine interface as before:
  *  eng.render(hostEl, gs, { myRole, turn, winner, onMove }) */
 function TurnBoard({ eng, session, myRole, onMove, paused }) {
@@ -107,10 +143,47 @@ export default function GameScreen({
   const inChallenge = !!s.challengeId;
   const [bannerStatus, setBannerStatus] = useState('');
   const [showRules, setShowRules] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  /** Only the game canvas / kitchen — never DuoArcade chrome. */
+  const fsRootRef = useRef(null);
   useEffect(() => { setShowRules(false); }, [s.game]);
   const [, forceTick] = useState(0);
   // Local end time — ignore skewed wall clocks on liveAt (was showing 7 vs 3).
   const [goAt, setGoAt] = useState(null);
+
+  useEffect(() => {
+    const syncFs = () => {
+      const el = getFullscreenEl();
+      setIsFullscreen(!!el && el === fsRootRef.current);
+    };
+    document.addEventListener('fullscreenchange', syncFs);
+    document.addEventListener('webkitfullscreenchange', syncFs);
+    syncFs();
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFs);
+      document.removeEventListener('webkitfullscreenchange', syncFs);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (getFullscreenEl()) {
+        await exitFullscreen();
+      } else {
+        await enterFullscreen(fsRootRef.current);
+        requestAnimationFrame(() => {
+          const el = fsRootRef.current;
+          if (el) el.scrollTop = 0;
+          // Nudge Phaser / layout to fill the new fullscreen size.
+          window.dispatchEvent(new Event('resize'));
+        });
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 250);
+      }
+    } catch {
+      /* browser blocked fullscreen — ignore */
+    }
+  };
 
   useEffect(() => {
     if (s.phase === 'live' && s.liveAt && !s.winner) {
@@ -189,7 +262,7 @@ export default function GameScreen({
     board = <div className="countdown-big">{secs}</div>;
     banner = 'get ready…';
   } else if (eng.meta.realtime) {
-    if (!s.winner) {
+    if (!s.winner || eng.meta.keepInGame) {
       board = (
         <RealtimeBoard eng={eng} session={s} myRole={myRole} sync={sync} code={code}
           names={{ A: duo.nameA, B: duo.nameB }} paused={paused}
@@ -215,7 +288,8 @@ export default function GameScreen({
       : null;
   const iWon = s.winner && s.winner === myRole;
   const isDraw = s.winner === 'draw';
-  const showResult = !!s.winner;
+  // keepInGame engines (Bomb Tag, etc.) stay on the board — no shelf result panel
+  const showResult = !!s.winner && !eng.meta?.keepInGame;
 
   const turnA = !eng.meta.realtime && s.turn === 'A' && !s.winner && s.phase === 'live' && !counting && !paused;
   const turnB = !eng.meta.realtime && s.turn === 'B' && !s.winner && s.phase === 'live' && !counting && !paused;
@@ -232,7 +306,13 @@ export default function GameScreen({
   const kitchenGame = s.game === 'readysetcook';
 
   return (
-    <section className={'on gv-screen' + (kitchenGame ? ' gv-kitchen' : '') + (showResult ? ' gv-result-screen' : '')}>
+    <section
+      className={
+        'on gv-screen'
+        + (kitchenGame ? ' gv-kitchen' : '')
+        + (showResult ? ' gv-result-screen' : '')
+      }
+    >
       <header className="gv-top">
         <button type="button" className="gv-back" onClick={onBack}>
           <BackIcon />
@@ -255,6 +335,15 @@ export default function GameScreen({
               {paused ? <PlayIcon /> : <PauseIcon />}
             </button>
           )}
+          <button
+            type="button"
+            className={'gv-iconbtn gv-fullscreen' + (isFullscreen ? ' on' : '')}
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen — game only'}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
+          </button>
           {rules && (
             <button
               type="button"
@@ -386,10 +475,28 @@ export default function GameScreen({
           </div>
         ) : (
           <>
-            <div className="gv-board">{board}</div>
-            {(bannerStatus || banner) && (
-              <div className={bannerClass}>{bannerStatus || banner}</div>
-            )}
+            {/* Fullscreen targets this node only — no DuoArcade topbar / game header */}
+            <div
+              ref={fsRootRef}
+              className={'gv-fs-root' + (isFullscreen ? ' is-fullscreen' : '')}
+            >
+              {isFullscreen && (
+                <button
+                  type="button"
+                  className="gv-fs-exit"
+                  onClick={toggleFullscreen}
+                  title="Exit fullscreen"
+                  aria-label="Exit fullscreen"
+                >
+                  <FullscreenExitIcon />
+                  <span>Exit</span>
+                </button>
+              )}
+              <div className="gv-board">{board}</div>
+              {(bannerStatus || banner) && (
+                <div className={bannerClass}>{bannerStatus || banner}</div>
+              )}
+            </div>
           </>
         )}
       </div>

@@ -6,7 +6,7 @@ import './stickmanswordduel.css';
  * Thin DuoArcade adapter — renders the original sword duel unchanged.
  * Watches the match-end banner to report the winner to the shell.
  */
-export default function StickmanSwordDuelShell({ onComplete, pausedRef }) {
+export default function StickmanSwordDuelShell({ onComplete, pausedRef, myRole, rt, names }) {
   const rootRef = useRef(null);
   const doneRef = useRef(false);
 
@@ -31,7 +31,7 @@ export default function StickmanSwordDuelShell({ onComplete, pausedRef }) {
 
   return (
     <div ref={rootRef} className="ssd-shell">
-      <StickmanSwordDuel />
+      <StickmanSwordDuel myRole={myRole} rt={rt} names={names} />
     </div>
   );
 }

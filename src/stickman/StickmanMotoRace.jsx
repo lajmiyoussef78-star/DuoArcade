@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { createDuoStickmanNet, remapFromKeys } from "../lib/duoStickmanNet.js";
 
 // ============ STICKMAN MOTO RACE 🏍️ — NEON EDITION v4 · 10 TRACKS ============
 // Split-screen motorcycle duel. Acrobatic rails: LOOPS, DOUBLE-LOOP corkscrews,
@@ -390,7 +391,30 @@ function makeRider(id) {
   };
 }
 
-export default function StickmanMotoRace() {
+export default function StickmanMotoRace({ myRole, rt } = {}) {
+  const duoNetRef = useRef(null);
+
+  useEffect(() => {
+    if (!rt || !myRole) return;
+    const p1Codes = (typeof KEYS !== 'undefined' && KEYS.p1) ? Object.values(KEYS.p1) : ['KeyA','KeyD','KeyW','KeyS','Space'];
+    const p2Codes = (typeof KEYS !== 'undefined' && KEYS.p2) ? Object.values(KEYS.p2) : ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter'];
+    const net = createDuoStickmanNet({
+      rt, myRole, p1Codes, p2Codes,
+      remap: (typeof KEYS !== 'undefined' && KEYS.p1 && KEYS.p2) ? remapFromKeys(KEYS.p1, KEYS.p2) : null,
+    });
+    duoNetRef.current = net;
+    net.onUi((m) => {
+      if (m?.type === 'start') {
+        if (typeof m.mapIdx === 'number' && typeof setMapIdx === 'function') setMapIdx(m.mapIdx);
+        if (typeof m.arenaIdx === 'number' && typeof setArenaIdx === 'function') setArenaIdx(m.arenaIdx);
+        if (m.mode && typeof setMode === 'function') setMode(m.mode);
+        if (stateRef?.current) stateRef.current.launch = { ...stateRef.current.launch, ...m };
+        if (typeof setPhase === 'function') setPhase('playing');
+        if (typeof SFX !== 'undefined' && SFX.unlock) SFX.unlock();
+      }
+    });
+    return () => { duoNetRef.current = null; };
+  }, [rt, myRole]);
   const canvasRef = useRef(null);
   const [phase, setPhase] = useState("menu");
   const [mapIdx, setMapIdx] = useState(0);
@@ -407,10 +431,13 @@ export default function StickmanMotoRace() {
   }, []);
 
   const startRace = (mi) => {
+    const net = duoNetRef.current;
+    if (net?.online && !net.isHost) return;
     SFX.unlock();
     setMapIdx(mi); setResult(null);
     setPhase("playing");
     stateRef.current.launch = { mapIdx: mi };
+    net?.sendUi({ type: "start", mapIdx: mi });
   };
 
   useEffect(() => {
@@ -430,12 +457,44 @@ export default function StickmanMotoRace() {
       done: false,
     };
 
-    const down = (e) => {
-      if (ALL_KEYS.includes(e.code)) e.preventDefault();
-      if (!S.keys[e.code]) S.pressed[e.code] = true;
-      S.keys[e.code] = true;
+    
+    const p1Codes = (typeof KEYS !== 'undefined' && KEYS.p1) ? Object.values(KEYS.p1) : ['KeyA','KeyD','KeyW','KeyS','KeyF','KeyE','Space','KeyQ','KeyR','KeyG','KeyH'];
+    const p2Codes = (typeof KEYS !== 'undefined' && KEYS.p2) ? Object.values(KEYS.p2) : ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter','KeyK','KeyL','KeyJ','KeyM','Slash','KeyO','KeyP'];
+    const net = (typeof duoNetRef !== 'undefined' && duoNetRef.current) || createDuoStickmanNet({
+      rt, myRole, p1Codes, p2Codes,
+      remap: (typeof KEYS !== 'undefined' && KEYS.p1 && KEYS.p2) ? remapFromKeys(KEYS.p1, KEYS.p2) : null,
+    });
+    if (typeof duoNetRef !== 'undefined') duoNetRef.current = net;
+    let netAcc = 0;
+    const packDuoState = () => {
+      try {
+        return JSON.parse(JSON.stringify({
+          t: S.t, mode: S.mode, modeT: S.modeT, wins: S.wins, round: S.round, done: S.done,
+          players: S.players, bullets: S.bullets, hazards: S.hazards, pups: S.pups,
+          arrows: S.arrows, bomb: S.bomb, holder: S.holder, score: S.score,
+          karts: S.karts, items: S.items, artist: S.artist, runner: S.runner,
+          fill: S.fill, roundScores: S.roundScores, banner: S.banner, bannerT: S.bannerT,
+        }));
+      } catch {
+        return { t: S.t, mode: S.mode, players: S.players, wins: S.wins, done: S.done };
+      }
     };
-    const up = (e) => { S.keys[e.code] = false; };
+    const applyDuoState = (st) => {
+      if (!st) return;
+      for (const k of Object.keys(st)) {
+        if (k === 'players' && Array.isArray(st.players) && Array.isArray(S.players)) {
+          st.players.forEach((sp, i) => { if (S.players[i]) Object.assign(S.players[i], sp); });
+        } else if (st[k] !== undefined) {
+          S[k] = st[k];
+        }
+      }
+    };
+
+const down = (e) => {
+      if (typeof ALL_KEYS !== 'undefined' && ALL_KEYS.includes(e.code)) e.preventDefault();
+      net.onKeyDown(e.code, S);
+    };
+    const up = (e) => { net.onKeyUp(e.code, S); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     stateRef.current.setKey = (code, isDown) => {
@@ -1544,8 +1603,17 @@ export default function StickmanMotoRace() {
     // ---------------- main loop ----------------
     let raf, last = performance.now();
     const loop = (now) => {
+      const __guest = net.online && !net.isHost;
       const dt = Math.min((now - last) / 1000, 0.033);
       last = now;
+
+      if (__guest) {
+        netAcc += dt;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(); }
+        const __st = net.peekState();
+        if (__st) applyDuoState(__st);
+      } else {
+        net.mergeRemoteInto(S);
       S.t += dt;
 
       if (S.mode === "countdown") {
@@ -1581,6 +1649,20 @@ export default function StickmanMotoRace() {
         return pt.life > 0;
       });
       S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
+      }
+
+      // guest cameras still follow synced poses
+      if (__guest) {
+        S.players.forEach((p, i) => {
+          const c = S.cams[i];
+          const tx = p.x - CW * 0.4;
+          let ty = p.y - 158;
+          ty = Math.max(p.y - (VIEW_H - 36), Math.min(p.y - 36, ty));
+          if (!c.init) { c.x = tx; c.y = ty; c.init = true; }
+          c.x += (tx - c.x) * 0.35;
+          c.y += (ty - c.y) * 0.25;
+        });
+      }
 
       ctx.clearRect(0, 0, CW, CH);
       drawWorld(S.players[0], 0);
@@ -1607,6 +1689,10 @@ export default function StickmanMotoRace() {
         ctx.restore();
       }
 
+      if (!__guest) {
+        netAcc += 0.016;
+        if (netAcc >= 0.05) { netAcc = 0; net.netTick(packDuoState); }
+      }
       S.pressed = {};
       raf = requestAnimationFrame(loop);
     };

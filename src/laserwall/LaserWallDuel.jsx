@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createDuoStickmanNet } from "../lib/duoStickmanNet.js";
 
 /* ═══════════════════ WORLD ═══════════════════ */
 const VW = 1000, VH = 600;                      // viewport canvas
@@ -7,6 +8,116 @@ const WALL = { x1: 350, x2: 1650, y1: 120, y2: 950 }; // the big drawing wall
 const TBOX = { x: 690, y: 200, s: 620 };        // where templates are placed on the wall
 const BLOCK_R = 52;                              // runner hitbox (matches inflatable suit)
 const WIN_THRESHOLD = 80;
+/** Original laser-ink look — thick neon glow, smooth continuous strokes */
+const INK_W = { good: 6, bad: 4 };
+const inkColor = (onTpl) => (onTpl ? "#38c7ff" : "rgba(255,77,90,0.55)");
+const inkGlow = (onTpl) => (onTpl ? "#38c7ff" : "#ff4d5a");
+/** Wipe + redraw ink as smooth glowing polylines (original laser feel). */
+function paintInk(g, ink) {
+  g.clearRect(0, 0, WORLD.w, WORLD.h);
+  if (!ink || ink.length < 3) return;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  let i = 0;
+  while (i + 2 < ink.length) {
+    if (ink[i] < 0) { i += 3; continue; }
+    const onTpl = !!ink[i + 2];
+    g.beginPath();
+    g.moveTo(ink[i], ink[i + 1]);
+    let lx = ink[i], ly = ink[i + 1];
+    let j = i + 3;
+    let pts = 1;
+    while (j + 2 < ink.length && ink[j] >= 0 && !!ink[j + 2] === onTpl) {
+      const x = ink[j], y = ink[j + 1];
+      if (Math.hypot(x - lx, y - ly) >= 240) break;
+      g.lineTo(x, y);
+      lx = x; ly = y;
+      pts += 1;
+      j += 3;
+    }
+    if (pts === 1) g.lineTo(lx + 0.01, ly);
+    g.strokeStyle = inkColor(onTpl);
+    g.lineWidth = onTpl ? INK_W.good : INK_W.bad;
+    g.shadowColor = inkGlow(onTpl);
+    g.shadowBlur = 10;
+    g.stroke();
+    // bright inner core for the classic laser look
+    g.shadowBlur = 0;
+    g.strokeStyle = onTpl ? "rgba(180,235,255,0.95)" : "rgba(255,160,170,0.65)";
+    g.lineWidth = onTpl ? 2.5 : 1.8;
+    g.stroke();
+    i = j > i ? j : i + 3;
+  }
+  g.shadowBlur = 0;
+}
+/** Append one wall hit into ink buffer. Mutates `bag = { ink, pen, last }`. */
+function inkAdd(bag, sx, sy, good) {
+  if (!bag.ink) bag.ink = [];
+  const x = +sx.toFixed(1), y = +sy.toFixed(1), gg = good ? 1 : 0;
+  const n = bag.ink.length;
+  if (bag.pen && n >= 3 && bag.ink[n - 1] >= 0) {
+    const lx = bag.ink[n - 3], ly = bag.ink[n - 2];
+    if (Math.hypot(x - lx, y - ly) < 3.5) {
+      bag.ink[n - 3] = x; bag.ink[n - 2] = y; bag.ink[n - 1] = gg;
+      bag.last = { x, y };
+      return;
+    }
+  }
+  if (bag.last) {
+    const span = Math.hypot(x - bag.last.x, y - bag.last.y);
+    if (span > 8) {
+      const steps = Math.min(16, Math.ceil(span / 5));
+      for (let s = 1; s < steps; s++) {
+        const u = s / steps;
+        const ix = +(bag.last.x + (x - bag.last.x) * u).toFixed(1);
+        const iy = +(bag.last.y + (y - bag.last.y) * u).toFixed(1);
+        bag.ink.push(ix, iy, gg);
+      }
+    }
+  }
+  bag.ink.push(x, y, gg);
+  bag.pen = true;
+  bag.last = { x, y };
+}
+function inkEndPen(bag) {
+  if (!bag.pen) return;
+  if (!bag.ink) bag.ink = [];
+  bag.ink.push(-1, -1, -1);
+  bag.pen = false;
+  bag.last = null;
+}
+/** Compact ints relative to wall — much smaller realtime payloads. */
+function inkCompact(ink) {
+  const o = new Array(ink.length);
+  for (let i = 0; i + 2 < ink.length; i += 3) {
+    if (ink[i] < 0) { o[i] = -1; o[i + 1] = -1; o[i + 2] = -1; continue; }
+    o[i] = Math.round(ink[i] - WALL.x1);
+    o[i + 1] = Math.round(ink[i + 1] - WALL.y1);
+    o[i + 2] = ink[i + 2] | 0;
+  }
+  return o;
+}
+function inkExpand(enc) {
+  if (!enc || enc.length < 3) return null;
+  const o = new Array(enc.length);
+  for (let i = 0; i + 2 < enc.length; i += 3) {
+    if (enc[i] < 0) { o[i] = -1; o[i + 1] = -1; o[i + 2] = -1; continue; }
+    o[i] = enc[i] + WALL.x1;
+    o[i + 1] = enc[i + 1] + WALL.y1;
+    o[i + 2] = enc[i + 2] | 0;
+  }
+  return o;
+}
+function inkSoftCap(ink) {
+  if (!ink || ink.length <= 360) return ink;
+  const keepFrom = ink.length - 240;
+  const out = [];
+  for (let i = 0; i + 2 < keepFrom; i += 3) {
+    if (ink[i] < 0 || (i / 3) % 2 === 0) out.push(ink[i], ink[i + 1], ink[i + 2]);
+  }
+  for (let i = keepFrom; i < ink.length; i++) out.push(ink[i]);
+  return out;
+}
 
 /* ═══════════════════ TEMPLATE SHAPES ═══════════════════ */
 const C = (cx, cy, r, n = 26) => Array.from({ length: n + 1 }, (_, i) => [cx + Math.cos((i / n) * Math.PI * 2) * r, cy + Math.sin((i / n) * Math.PI * 2) * r]);
@@ -224,9 +335,14 @@ function MapCard({ i, selected, onSelect }) {
   }, [i]);
   const map = MAPS[i];
   return (
-    <div onClick={() => onSelect(i)}
-      className="cursor-pointer rounded-2xl p-2.5 pb-3 transition-transform hover:-translate-y-1"
-      style={{ background: "#0e111c", border: "1.5px solid #1c2236", boxShadow: selected ? `0 0 18px ${map.glow}` : "none" }}>
+    <div onClick={() => onSelect?.(i)}
+      className="rounded-2xl p-2.5 pb-3 transition-transform hover:-translate-y-1"
+      style={{
+        background: "#0e111c", border: "1.5px solid #1c2236",
+        boxShadow: selected ? `0 0 18px ${map.glow}` : "none",
+        cursor: onSelect ? "pointer" : "default",
+        opacity: onSelect ? 1 : 0.75,
+      }}>
       <canvas ref={ref} width={230} height={130} className="w-full rounded-xl block bg-black" />
       <div className="font-bold tracking-widest mt-2 mb-1 text-sm">{map.icon} {map.name}</div>
       <div className="text-[11px] leading-relaxed" style={{ color: "#8b93ab" }}>{map.desc}</div>
@@ -277,7 +393,16 @@ function TplWallPreview({ tp, map }) {
 }
 
 /* ═══════════════════ MAIN COMPONENT ═══════════════════ */
-export default function LaserWallDuel() {
+export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
+  const duoNetRef = useRef(null);
+  const nameA = (names?.A || names?.a || "Player A").trim() || "Player A";
+  const nameB = (names?.B || names?.b || "Player B").trim() || "Player B";
+  const role = String(myRole || "").toUpperCase() === "B" ? "B"
+    : String(myRole || "").toUpperCase() === "A" ? "A" : null;
+  const online = !!(rt && role);
+  const isHost = !online || role === "A";
+  const isGuest = online && role === "B";
+
   const canvasRef = useRef(null);
   const [screen, setScreen] = useState("menu"); // menu | play
   const [settings, setSettings] = useState({ time: 60, map: 0 });
@@ -286,6 +411,7 @@ export default function LaserWallDuel() {
   const customRef = useRef(customSet); customRef.current = customSet;
   const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [guestReady, setGuestReady] = useState(false);
   const [hud, setHud] = useState({ timer: "60.0", acc: 0, tpl: "", artist: 0, round: 1 });
   const [intro, setIntro] = useState(null);       // {round, artist, tplName, tplIcon, count}
   const [roundEnd, setRoundEnd] = useState(null); // {artist, acc, ratingTxt, color, last}
@@ -294,14 +420,16 @@ export default function LaserWallDuel() {
   const mutedRef = useRef(muted); mutedRef.current = muted;
   const pausedRef = useRef(paused); pausedRef.current = paused;
   const settingsRef = useRef(settings); settingsRef.current = settings;
+  const screenRef = useRef(screen); screenRef.current = screen;
+  const lastGuestPoseT = useRef(-1);
 
   const E = useRef({
     state: "menu", round: 1, artist: 0, accs: [0, 0],
-    art: null, run: null, keys: {}, mouse: { x: 1000, y: 500, down: false },
+    art: null, run: null, keys: {}, pressed: {}, mouse: { x: 1000, y: 500, down: false },
     cam: { x: 1000, y: 650, z: 0.55 },
     tpl: null, tplPts: [], covered: 0, offTime: 0,
     timer: 60, parts: [], trace: null, lastDot: null,
-    blockedFlicker: 0, now: 0,
+    blockedFlicker: 0, now: 0, _syncKey: "", _uiRoundEnd: null, _uiFinal: null,
   }).current;
   const audio = useRef({ AC: null, master: null, hum: null }).current;
 
@@ -330,29 +458,210 @@ export default function LaserWallDuel() {
     o.stop(audio.AC.currentTime + d);
   }, [audio]);
 
-  /* ---------- round setup ---------- */
-  const startRound = useCallback(() => {
-    E.art = { x: 250, y: WORLD.ground, face: 1 };
-    E.run = { x: 1000, y: 450, vx: 0, vy: 0, onWall: true, onGround: false, stickCd: 0, squash: 0 };
+  const pickTplName = useCallback(() => {
     const map = MAPS[settingsRef.current.map];
     const custom = customRef.current;
+    const pool = (custom.length ? custom : map.tpls).filter((n) => TPL[n]);
+    return pool[Math.floor(Math.random() * Math.max(1, pool.length))] || TEMPLATES[0].name;
+  }, []);
+
+  /* ---------- round setup ---------- */
+  const startRound = useCallback((opts = {}) => {
+    E.art = { x: 250, y: WORLD.ground, face: 1 };
+    E.run = { x: 1000, y: 450, vx: 0, vy: 0, onWall: true, onGround: false, stickCd: 0, squash: 0 };
+    if (opts.round != null) E.round = opts.round;
+    if (opts.artist != null) E.artist = opts.artist;
+    if (opts.map != null) {
+      const next = { ...settingsRef.current, map: opts.map };
+      if (opts.time != null) next.time = opts.time;
+      settingsRef.current = next;
+      setSettings(next);
+    }
+    if (Array.isArray(opts.customSet)) {
+      customRef.current = opts.customSet;
+      setCustomSet(opts.customSet);
+    }
+    const map = MAPS[settingsRef.current.map] || MAPS[0];
+    const custom = customRef.current;
     const pool = (custom.length ? custom : map.tpls).map((n) => TPL[n]).filter(Boolean);
-    E.tpl = pool[Math.floor(Math.random() * pool.length)];
+    E.tpl = (opts.tplName && TPL[opts.tplName]) || pool[Math.floor(Math.random() * pool.length)] || TEMPLATES[0];
     E.tplPts = sampleTemplate(E.tpl);
     E.covered = 0; E.offTime = 0; E.parts = []; E.lastDot = null; E.blockedFlicker = 0;
-    E.fxItems = []; E.boltT = 2; E.flashA = 0;
+    E.fxItems = []; E.boltT = 2; E.flashA = 0; E.beam = null;
+    E._ink = []; // full round ink for wall-man sync: [x,y,g, ...] g=-1 = pen break
+    E._inkPen = false;
+    E._lastInkLen = 0;
     E.stars = map.fx === "stars" ? Array.from({ length: 70 }, () => ({ x: Math.random() * WORLD.w, y: Math.random() * (WORLD.ground - 100), ph: Math.random() * 6.28 })) : [];
-    E.timer = settingsRef.current.time;
+    E.timer = opts.time != null ? opts.time : settingsRef.current.time;
     E.trace = document.createElement("canvas"); E.trace.width = WORLD.w; E.trace.height = WORLD.h;
     E.cam = { x: 1000, y: 650, z: 0.55 };
+    E._matchAt = opts.matchAt != null ? opts.matchAt : E._matchAt;
+    E._syncKey = `${E._matchAt || 0}:${E.round}:${E.tpl.name}:${E.artist}:${settingsRef.current.map}`;
+    E._uiRoundEnd = null; E._uiFinal = null;
+    setRoundEnd(null); setFinalRes(null);
     setIntro({ round: E.round, artist: E.artist, tplName: E.tpl.name, tplIcon: E.tpl.icon, diff: E.tpl.diff, count: 3 });
     E.state = "intro"; E._introT = 3.6; E._cn = 0;
+    E._introCn = 0;
   }, [E]);
 
-  const startMatch = useCallback(() => {
+  const beginOnlineMatch = useCallback((payload = {}) => {
+    if (payload.settings) {
+      settingsRef.current = payload.settings;
+      setSettings(payload.settings);
+    } else if (payload.map != null || payload.time != null) {
+      const next = { ...settingsRef.current };
+      if (payload.map != null) next.map = payload.map;
+      if (payload.time != null) next.time = payload.time;
+      settingsRef.current = next;
+      setSettings(next);
+    }
+    if (Array.isArray(payload.customSet)) {
+      customRef.current = payload.customSet;
+      setCustomSet(payload.customSet);
+    }
+    setGuestReady(false);
+    setPaused(false);
+    setFinalRes(null);
+    setRoundEnd(null);
+    setIntro(null);
+    setScreen("play");
+    screenRef.current = "play";
+    try { initAudio(); } catch { /* ignore */ }
+    E.round = payload.round != null ? payload.round : 1;
+    E.artist = payload.artist != null ? payload.artist : 0;
+    E.accs = Array.isArray(payload.accs) ? [...payload.accs] : [0, 0];
+    E._matchAt = payload.matchAt || Date.now();
+    E.matchLive = true;
+    E.blockedMatchAt = 0;
+    lastGuestPoseT.current = -1;
+    startRound({
+      tplName: payload.tplName,
+      round: E.round,
+      artist: E.artist,
+      map: settingsRef.current.map,
+      time: settingsRef.current.time,
+      customSet: customRef.current,
+      matchAt: E._matchAt,
+    });
+  }, [E, initAudio, startRound]);
+
+  const goLobby = useCallback((broadcast = true) => {
+    setScreen("menu");
+    screenRef.current = "menu";
+    setPaused(false);
+    setRoundEnd(null);
+    setFinalRes(null);
+    setIntro(null);
+    setGuestReady(false);
+    E.blockedMatchAt = E._matchAt || E.blockedMatchAt || 0;
+    E.matchLive = false;
+    E.state = "menu";
+    E._syncKey = "";
+    E._matchAt = 0;
+    E._roundEnd = null;
+    E._finalRes = null;
+    E.beam = null;
+    E.beam = null;
+    E._ink = [];
+    E._inkPen = false;
+    E._lastInkLen = 0;
+    E.lastDot = null;
+    if (audio.hum) audio.hum.gain.value = 0;
+    try { duoNetRef.current?.clearState?.(); } catch { /* ignore */ }
+    const c = canvasRef.current;
+    if (c) c.getContext("2d").clearRect(0, 0, VW, VH);
+    if (!broadcast || !online) return;
+    if (isGuest) duoNetRef.current?.sendUi({ type: "ready", ready: false });
+    else {
+      const payload = { type: "menu", matchAt: E.blockedMatchAt };
+      const blast = () => { try { duoNetRef.current?.sendUi(payload); } catch { /* ignore */ } };
+      blast();
+      setTimeout(blast, 100);
+      setTimeout(blast, 300);
+      // Host also pushes a menu snapshot so guest peekState can't revive the match
+      try {
+        duoNetRef.current?.netTick?.(() => ({
+          state: "menu", matchAt: 0, tplName: "", strokes: [],
+        }));
+      } catch { /* ignore */ }
+    }
+  }, [E, audio, online, isGuest]);
+
+  const beginOnlineMatchRef = useRef(beginOnlineMatch);
+  beginOnlineMatchRef.current = beginOnlineMatch;
+  const startRoundRef = useRef(startRound);
+  startRoundRef.current = startRound;
+
+  useEffect(() => {
+    if (!rt || !role) return undefined;
+    // Seat-bound keys: host=WASD+Shift, guest=arrows+Shift. Roles swap; keys stay on the seat.
+    const p1Codes = ["KeyA", "KeyD", "KeyW", "KeyS", "ShiftLeft", "Space"];
+    const p2Codes = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "ShiftRight"];
+    const net = createDuoStickmanNet({
+      rt, myRole: role, p1Codes, p2Codes,
+      remap: { KeyA: "ArrowLeft", KeyD: "ArrowRight", KeyW: "ArrowUp", KeyS: "ArrowDown", ShiftLeft: "ShiftRight" },
+    });
+    duoNetRef.current = net;
+    net.onUi((m) => {
+      if (!m) return;
+      const type = m.type || m.k;
+      if (type === "start") {
+        beginOnlineMatchRef.current({
+          settings: m.settings,
+          customSet: m.customSet,
+          tplName: m.tplName,
+          matchAt: m.matchAt,
+          map: m.settings?.map ?? m.map,
+          time: m.settings?.time ?? m.time,
+        });
+      } else if (type === "ready") {
+        setGuestReady(!!m.ready);
+      } else if (type === "menu") {
+        E.blockedMatchAt = m.matchAt || E._matchAt || E.blockedMatchAt || 0;
+        E.matchLive = false;
+        E.state = "menu";
+        E._syncKey = "";
+        E._matchAt = 0;
+        E.beam = null;
+        E.lastDot = null;
+        setScreen("menu");
+        screenRef.current = "menu";
+        setPaused(false);
+        setRoundEnd(null);
+        setFinalRes(null);
+        setIntro(null);
+        setGuestReady(false);
+        try { duoNetRef.current?.clearState?.(); } catch { /* ignore */ }
+        if (audio.hum) audio.hum.gain.value = 0;
+      } else if (type === "sel" && m.key && m.val != null) {
+        if (m.key === "customSet" && Array.isArray(m.val)) {
+          customRef.current = m.val;
+          setCustomSet(m.val);
+          return;
+        }
+        setSettings((s) => {
+          const next = { ...s, [m.key]: m.val };
+          settingsRef.current = next;
+          return next;
+        });
+      } else if (type === "round" && m.tplName) {
+        setRoundEnd(null); setFinalRes(null);
+        startRoundRef.current({
+          tplName: m.tplName, round: m.round, artist: m.artist,
+          map: m.map, time: m.time, matchAt: m.matchAt || E._matchAt,
+        });
+      }
+    });
+    return () => {
+      try { net.dispose?.(); } catch { /* ignore */ }
+      if (duoNetRef.current === net) duoNetRef.current = null;
+    };
+  }, [rt, role, E, audio]);
+
+  const startMatch = useCallback((tplName) => {
     E.round = 1; E.artist = 0; E.accs = [0, 0];
     setFinalRes(null); setRoundEnd(null);
-    startRound();
+    startRound({ tplName, round: 1, artist: 0 });
   }, [E, startRound]);
 
   const finishRound = useCallback(() => {
@@ -362,19 +671,40 @@ export default function LaserWallDuel() {
     E.accs[E.artist] = acc;
     const [txt, color] = rating(acc);
     E.state = "roundEnd";
+    E._roundEnd = { artist: E.artist, acc, ratingTxt: txt, color, last: E.round === 2, blocked: acc < WIN_THRESHOLD };
     if (audio.hum) audio.hum.gain.value = 0;
-    setRoundEnd({ artist: E.artist, acc, ratingTxt: txt, color, last: E.round === 2, blocked: acc < WIN_THRESHOLD });
+    setRoundEnd(E._roundEnd);
     beep(acc >= WIN_THRESHOLD ? 880 : 220, 0.4, 0.07, acc >= WIN_THRESHOLD ? "sine" : "sawtooth");
   }, [E, audio, beep]);
 
   const nextAfterRound = useCallback(() => {
+    if (isGuest) return;
     setRoundEnd(null);
     if (E.round === 2) {
       const [a, b] = E.accs;
-      setFinalRes({ accs: [...E.accs], winner: a === b ? -1 : a > b ? 0 : 1 });
+      const res = { accs: [...E.accs], winner: a === b ? -1 : a > b ? 0 : 1 };
+      setFinalRes(res);
       E.state = "done";
-    } else { E.round = 2; E.artist = 1; startRound(); }
-  }, [E, startRound]);
+      E._finalRes = res;
+    } else {
+      E.round = 2; E.artist = 1;
+      const tplName = pickTplName();
+      startRound({
+        tplName, round: 2, artist: 1,
+        map: settingsRef.current.map, time: settingsRef.current.time,
+        matchAt: E._matchAt,
+      });
+      if (online) {
+        const payload = {
+          type: "round", tplName, round: 2, artist: 1,
+          map: settingsRef.current.map, time: settingsRef.current.time,
+          matchAt: E._matchAt,
+        };
+        const blast = () => { try { duoNetRef.current?.sendUi(payload); } catch { /* ignore */ } };
+        blast(); setTimeout(blast, 120); setTimeout(blast, 350);
+      }
+    }
+  }, [E, startRound, isGuest, online, pickTplName]);
 
   /* ---------- physics ---------- */
   const dust = useCallback((x, y, n = 8) => {
@@ -383,7 +713,12 @@ export default function LaserWallDuel() {
 
   const updateRunner = useCallback((dt) => {
     const r = E.run, k = E.keys;
-    const L = k["ArrowLeft"], R = k["ArrowRight"], U = k["ArrowUp"], D = k["ArrowDown"];
+    // Online round 2: host (P1) is runner — WASD drives the suit. Couch keeps arrows-only for runner.
+    const hostRunner = online && E.artist === 1;
+    const L = k["ArrowLeft"] || (hostRunner && k["KeyA"]);
+    const R = k["ArrowRight"] || (hostRunner && k["KeyD"]);
+    const U = k["ArrowUp"] || (hostRunner && k["KeyW"]);
+    const D = k["ArrowDown"] || (hostRunner && k["KeyS"]);
     if (r.stickCd > 0) r.stickCd -= dt;
     if (r.squash > 0) r.squash -= dt * 3;
     const inWall = r.x > WALL.x1 + 10 && r.x < WALL.x2 - 10 && r.y > WALL.y1 + 20 && r.y < WALL.y2 + 4;
@@ -409,55 +744,74 @@ export default function LaserWallDuel() {
         r.onWall = true; r.vx = 0; r.vy = 0; dust(r.x, r.y, 6); beep(500, 0.05, 0.03, "triangle");
       }
     }
-  }, [E, dust, beep]);
+  }, [E, dust, beep, online]);
 
   const tryRunnerJump = useCallback(() => {
     const r = E.run, k = E.keys;
     if (E.state !== "play") return;
-    const dir = k["ArrowLeft"] ? -1 : k["ArrowRight"] ? 1 : 0;
+    const hostRunner = online && E.artist === 1;
+    const left = k["ArrowLeft"] || (hostRunner && k["KeyA"]);
+    const right = k["ArrowRight"] || (hostRunner && k["KeyD"]);
+    const down = k["ArrowDown"] || (hostRunner && k["KeyS"]);
+    const dir = left ? -1 : right ? 1 : 0;
     if (r.onWall) {
       r.onWall = false; r.stickCd = 0.28;
-      r.vx = dir * 480; r.vy = k["ArrowDown"] ? 300 : -560;
+      r.vx = dir * 480; r.vy = down ? 300 : -560;
       dust(r.x, r.y, 8); beep(340, 0.08, 0.04, "triangle");
     } else if (r.onGround) {
       r.vy = -640; r.onGround = false; dust(r.x, WORLD.ground, 8); beep(300, 0.08, 0.04, "triangle");
     }
-  }, [E, dust, beep]);
+  }, [E, dust, beep, online]);
 
   const updateArtist = useCallback((dt) => {
     const a = E.art, k = E.keys, S = 300;
-    if (k["KeyA"]) { a.x -= S * dt; a.face = -1; }
-    if (k["KeyD"]) { a.x += S * dt; a.face = 1; }
+    // Online: guest artist uses arrow keys (WASD remaps to arrows). Couch: A/D only.
+    const left = k["KeyA"] || (online && E.artist === 1 && k["ArrowLeft"]);
+    const right = k["KeyD"] || (online && E.artist === 1 && k["ArrowRight"]);
+    if (left) { a.x -= S * dt; a.face = -1; }
+    if (right) { a.x += S * dt; a.face = 1; }
     a.x = Math.max(60, Math.min(WORLD.w - 60, a.x));
-  }, [E]);
+  }, [E, online]);
 
   /* ---------- laser ---------- */
   const updateLaser = useCallback((dt) => {
     const a = E.art, m = E.mouse;
-    const hx = a.x + 26 * a.face, hy = WORLD.ground - 88; // laser pointer hand
+    const hx = a.x + 26 * a.face, hy = WORLD.ground - 88;
     a.face = m.x >= a.x ? 1 : -1;
     E.beam = null;
     if (audio.hum) audio.hum.gain.value = 0;
-    if (!m.down || E.state !== "play") { E.lastDot = null; return; }
-    // dot clamped to wall
+
+    const endPen = () => {
+      if (!E._inkPen) return;
+      if (!E._ink) E._ink = [];
+      E._ink.push(-1, -1, -1);
+      E._inkPen = false;
+      E.lastDot = null;
+    };
+
+    if (!m.down || E.state !== "play") {
+      endPen();
+      return;
+    }
+
     const dx = Math.max(WALL.x1 + 4, Math.min(WALL.x2 - 4, m.x));
     const dy = Math.max(WALL.y1 + 4, Math.min(WALL.y2 - 4, m.y));
-    // blocked by the runner's inflatable suit?
     const r = E.run;
     const { d, t } = segDist(r.x, r.y - 40, hx, hy, dx, dy);
     if (d < BLOCK_R) {
       const bx = hx + (dx - hx) * t, by = hy + (dy - hy) * t;
       E.beam = { hx, hy, x: bx, y: by, blocked: true };
       E.blockedFlicker = 0.15;
-      E.lastDot = null;
+      endPen();
       for (let i = 0; i < 3; i++) E.parts.push({ x: bx, y: by, vx: (Math.random() - 0.5) * 420, vy: (Math.random() - 0.5) * 420, life: 0.25, color: Math.random() < 0.5 ? "#ffcf3f" : "#ff8a3c", size: 2 + Math.random() * 2 });
       if (Math.random() < 0.2) beep(1600 + Math.random() * 800, 0.03, 0.03, "square");
       if (audio.hum) audio.hum.gain.value = 0.008;
       return;
     }
-    E.beam = { hx, hy, x: dx, y: dy, blocked: false };
-    if (audio.hum) { audio.hum.gain.value = 0.012; }
-    // mark template points + measure sloppiness
+
+    E.beam = { hx, hy, x: dx, y: dy, blocked: false, g: 1 };
+    if (audio.hum) audio.hum.gain.value = 0.012;
+
     let nearest = Infinity;
     for (const p of E.tplPts) {
       const dd = Math.hypot(p.x - dx, p.y - dy);
@@ -466,17 +820,20 @@ export default function LaserWallDuel() {
     }
     const onTpl = nearest < 30;
     if (!onTpl) E.offTime += dt;
-    // draw the trace
-    const g = E.trace.getContext("2d");
-    g.strokeStyle = onTpl ? "#38c7ff" : "rgba(255,77,90,0.55)";
-    g.lineWidth = onTpl ? 6 : 4; g.lineCap = "round";
-    g.shadowColor = onTpl ? "#38c7ff" : "#ff4d5a"; g.shadowBlur = 10;
-    g.beginPath();
-    if (E.lastDot && Math.hypot(E.lastDot.x - dx, E.lastDot.y - dy) < 90) g.moveTo(E.lastDot.x, E.lastDot.y);
-    else g.moveTo(dx, dy);
-    g.lineTo(dx, dy + 0.1); g.stroke();
-    g.shadowBlur = 0;
-    E.lastDot = { x: dx, y: dy };
+    E.beam.g = onTpl ? 1 : 0;
+
+    if (!E.trace) {
+      E.trace = document.createElement("canvas");
+      E.trace.width = WORLD.w; E.trace.height = WORLD.h;
+    }
+    if (!E._ink) E._ink = [];
+    const bag = { ink: E._ink, pen: E._inkPen, last: E.lastDot };
+    inkAdd(bag, dx, dy, onTpl);
+    E._ink = bag.ink;
+    E._inkPen = bag.pen;
+    E.lastDot = bag.last;
+    E._ink = inkSoftCap(E._ink);
+    paintInk(E.trace.getContext("2d"), E._ink);
   }, [E, audio, beep]);
 
   /* ---------- map ambience ---------- */
@@ -561,7 +918,9 @@ export default function LaserWallDuel() {
   }, []);
 
   const drawRunner = useCallback((ctx, t) => {
-    const r = E.run, x = r.x, y = r.y;
+    const r = E.run;
+    if (!r) return;
+    const x = r.x, y = r.y;
     const cx = x, cy = y - 40;
     const sq = 1 + Math.max(0, r.squash) * 0.4;
     // giant inflatable sumo suit = the blocker hitbox, drawn to match BLOCK_R
@@ -673,7 +1032,7 @@ export default function LaserWallDuel() {
       }
       ctx.setLineDash([]); ctx.shadowBlur = 0;
     }
-    // player's trace
+    // player's laser ink
     if (E.trace) ctx.drawImage(E.trace, 0, 0);
 
     // laser beam
@@ -691,7 +1050,7 @@ export default function LaserWallDuel() {
     }
 
     // players
-    drawStickman(ctx, E.art.x, WORLD.ground, "#38c7ff", { aim: E.mouse });
+    if (E.art) drawStickman(ctx, E.art.x, WORLD.ground, "#38c7ff", { aim: E.mouse });
     drawRunner(ctx, t);
 
     // particles
@@ -704,14 +1063,341 @@ export default function LaserWallDuel() {
     if (E.flashA > 0) { ctx.fillStyle = "rgba(210,190,255," + E.flashA * 0.5 + ")"; ctx.fillRect(0, 0, VW, VH); }
   }, [E, drawStickman, drawRunner]);
 
-  /* ---------- main loop ---------- */
+  /* ---------- main loop ----------
+   * ONE shared match:
+   *  - Host runs the world + laser (score authority)
+   *  - Guest owns their seat only (round1 = wall man, round2 = shooter) and streams pose/mouse
+   *  - Both see the same map / template / timer from host state
+   */
   useEffect(() => {
-    let raf, last = 0;
+    let raf, last = 0, netAcc = 0;
+    const ensureBodies = () => {
+      if (!E.art) E.art = { x: 250, y: WORLD.ground, face: 1 };
+      if (!E.run) E.run = { x: 1000, y: 450, vx: 0, vy: 0, onWall: true, onGround: false, stickCd: 0, squash: 0 };
+    };
+    const packHostState = (extra = {}) => {
+      const b = E.beam;
+      const guestIsRunner = E.artist === 0;
+      const guestIsShooter = E.artist === 1;
+      const { forceFp, ...pub } = extra;
+      // Trail is sent on a SEPARATE 'trail' channel — keep st small so it isn't dropped
+      return {
+        state: E.state,
+        timer: +Number(E.timer || 0).toFixed(2),
+        covered: E.covered | 0,
+        offTime: +Number(E.offTime || 0).toFixed(2),
+        artist: E.artist | 0,
+        round: E.round | 0,
+        tplName: E.tpl?.name || "",
+        map: settingsRef.current.map | 0,
+        time: settingsRef.current.time | 0,
+        matchAt: E._matchAt || 0,
+        art: (!guestIsShooter && E.art) ? {
+          x: +E.art.x.toFixed(1), face: E.art.face | 0,
+        } : null,
+        run: (!guestIsRunner && E.run) ? {
+          x: +E.run.x.toFixed(1), y: +E.run.y.toFixed(1),
+          onWall: !!E.run.onWall, onGround: !!E.run.onGround,
+        } : null,
+        mouse: guestIsShooter ? null : {
+          x: +E.mouse.x.toFixed(1), y: +E.mouse.y.toFixed(1), down: !!E.mouse.down,
+        },
+        beam: b ? {
+          hx: +b.hx.toFixed(1), hy: +b.hy.toFixed(1),
+          x: +b.x.toFixed(1), y: +b.y.toFixed(1),
+          blocked: !!b.blocked, g: b.g ? 1 : 0,
+        } : null,
+        accs: E.accs,
+        roundEnd: E.state === "roundEnd" ? (E._roundEnd || null) : null,
+        finalRes: E._finalRes || null,
+        ...pub,
+      };
+    };
+    const ensureTrace = () => {
+      if (!E.trace) {
+        E.trace = document.createElement("canvas");
+        E.trace.width = WORLD.w; E.trace.height = WORLD.h;
+      }
+    };
+    /** Wall man: host ink is authority ONLY when it is at least as long — never wipe a longer local beam-built stroke. */
+    const applyInkPacket = (pkt) => {
+      if (!pkt || !Array.isArray(pkt.ink) || pkt.ink.length < 3) return;
+      const ink = pkt.enc ? inkExpand(pkt.ink) : pkt.ink;
+      if (!ink || ink.length < 3) return;
+      if (pkt.n === E._lastInkN && ink.length === E._lastInkLen) return;
+      // Critical: shorter/stale packets were erasing the start of the line on the wall man
+      if (ink.length < (E._ink?.length || 0)) return;
+      ensureTrace();
+      E._ink = ink.slice();
+      E._inkPen = ink.length >= 3 && ink[ink.length - 1] >= 0;
+      E.lastDot = E._inkPen
+        ? { x: ink[ink.length - 3], y: ink[ink.length - 2] }
+        : null;
+      paintInk(E.trace.getContext("2d"), E._ink);
+      E._lastInkLen = E._ink.length;
+      E._lastInkN = pkt.n;
+    };
+
+    /** Wall man builds the SAME ink buffer from the live beam (st arrives every tick). */
+    const wallManFollowBeam = (beam, mouseDown) => {
+      ensureTrace();
+      if (!E._ink) E._ink = [];
+      if (beam && !beam.blocked && mouseDown) {
+        const bag = { ink: E._ink, pen: E._inkPen, last: E.lastDot };
+        inkAdd(bag, beam.x, beam.y, !!beam.g);
+        E._ink = inkSoftCap(bag.ink);
+        E._inkPen = bag.pen;
+        E.lastDot = bag.last;
+        paintInk(E.trace.getContext("2d"), E._ink);
+      } else if (E._inkPen) {
+        E._ink.push(-1, -1, -1);
+        E._inkPen = false;
+        E.lastDot = null;
+      }
+    };
+
     const loop = (ts) => {
       raf = requestAnimationFrame(loop);
       const dt = Math.min(0.033, (ts - last) / 1000 || 0.016); last = ts;
       const t = ts / 1000; E.now = t;
-      if (pausedRef.current || E.state === "menu" || E.state === "done" || E.state === "roundEnd") return;
+      const net = duoNetRef.current;
+      const guest = !!(net?.online && !net.isHost);
+
+      /* ════════ GUEST — local seat feel, host world for the other player ════════ */
+      if (guest) {
+        const fresh = net.takeState?.();
+        const st = fresh;
+        const trail = net.takeTrail?.();
+
+        if (st?.state === "menu") {
+          if (E.matchLive || E.state !== "menu" || screenRef.current !== "menu") {
+            E.matchLive = false;
+            E.blockedMatchAt = E._matchAt || E.blockedMatchAt || 0;
+            E.state = "menu";
+            E._syncKey = "";
+            setScreen("menu");
+            screenRef.current = "menu";
+            setIntro(null); setRoundEnd(null); setFinalRes(null);
+          }
+        }
+
+        if (st && st.tplName && TPL[st.tplName] && st.state && st.state !== "menu") {
+          const sameBlocked = E.blockedMatchAt && st.matchAt && st.matchAt === E.blockedMatchAt;
+          if (!sameBlocked) {
+            const mapIdx = st.map != null ? st.map : 0;
+            const matchAt = st.matchAt || E._matchAt || 0;
+            const syncKey = `${matchAt}:${st.round}:${st.tplName}:${st.artist}:${mapIdx}`;
+
+            if (!E.matchLive && (st.state === "intro" || st.state === "play") && matchAt) {
+              beginOnlineMatchRef.current({
+                settings: { map: mapIdx, time: st.time ?? 60 },
+                tplName: st.tplName,
+                matchAt,
+                round: st.round ?? 1,
+                artist: st.artist ?? 0,
+                accs: st.accs,
+              });
+            }
+
+            if (E.matchLive && syncKey && syncKey !== E._syncKey) {
+              startRoundRef.current({
+                tplName: st.tplName,
+                round: st.round ?? 1,
+                artist: st.artist ?? 0,
+                map: mapIdx,
+                time: st.time ?? 60,
+                matchAt: matchAt || Date.now(),
+              });
+            }
+
+            if (E.matchLive) {
+              ensureBodies();
+              const iAmShooter = (st.artist ?? E.artist) === 1;
+              E.artist = st.artist ?? E.artist;
+              E.round = st.round ?? E.round;
+              if (st.state) E.state = st.state;
+              if (st.timer != null) E.timer = st.timer;
+              if (st.offTime != null) E.offTime = st.offTime;
+              if (st.covered != null) E.covered = st.covered;
+              if (st.accs) E.accs = st.accs;
+
+              // Other player + laser from host — NEVER overwrite guest's own controls
+              if (iAmShooter) {
+                if (st.run && E.run) {
+                  E.run.x = st.run.x; E.run.y = st.run.y;
+                  E.run.onWall = !!st.run.onWall; E.run.onGround = !!st.run.onGround;
+                }
+                if (st.beam !== undefined) E.beam = st.beam;
+              } else {
+                // Hard-snap remote shooter — soft lerp felt like lag
+                if (st.art && E.art) {
+                  E.art.x = st.art.x;
+                  if (st.art.face != null) E.art.face = st.art.face;
+                }
+                if (st.mouse) Object.assign(E.mouse, st.mouse);
+                if (st.beam !== undefined) E.beam = st.beam;
+                // Build the full stroke locally from the beam — same points the shooter sees
+                wallManFollowBeam(st.beam, !!st.mouse?.down);
+              }
+
+              // Laser trail arrives on its own channel (applied below) — not buried in st
+
+              // Keep timer/score in lockstep with host
+              if (st.hud) {
+                const h = st.hud;
+                const key = `${h.timer}|${h.acc}|${h.round}|${h.artist}|${h.tpl || ""}`;
+                if (E._hudKey !== key) { E._hudKey = key; setHud(h); }
+              } else if (st.timer != null) {
+                const acc = E.tplPts?.length
+                  ? Math.max(0, Math.round((E.covered / E.tplPts.length) * 100 - Math.min(20, (E.offTime || 0) * 4)))
+                  : 0;
+                const h = {
+                  timer: Number(st.timer).toFixed(1), acc,
+                  tpl: (E.tpl?.icon || "") + " " + (E.tpl?.name || ""),
+                  artist: E.artist, round: E.round,
+                };
+                const key = `${h.timer}|${h.acc}|${h.round}|${h.artist}|${h.tpl}`;
+                if (E._hudKey !== key) { E._hudKey = key; setHud(h); }
+              }
+              // Intro overlay: only while host is in intro; ALWAYS dismiss on play
+              // (old bug: _introCn === -2 from a prior round skipped setIntro(null) → stuck on "3")
+              if (st.state === "intro") {
+                if (st.introCount != null && E._introCn !== st.introCount) {
+                  E._introCn = st.introCount;
+                  setIntro((s) => (s
+                    ? { ...s, count: st.introCount }
+                    : {
+                      round: E.round, artist: E.artist,
+                      tplName: E.tpl?.name, tplIcon: E.tpl?.icon, diff: E.tpl?.diff,
+                      count: st.introCount,
+                    }));
+                }
+              } else if (st.state === "play" || st.state === "roundEnd" || st.state === "done") {
+                if (E._introCn !== -2) E._introCn = -2;
+                setIntro(null);
+              }
+
+              if (st.roundEnd) {
+                const rk = `${st.roundEnd.acc}:${st.roundEnd.artist}`;
+                if (E._uiRoundEnd !== rk) { E._uiRoundEnd = rk; setRoundEnd(st.roundEnd); }
+              } else if (E.state !== "roundEnd" && E._uiRoundEnd) {
+                E._uiRoundEnd = null; setRoundEnd(null);
+              }
+              if (st.finalRes) {
+                const key = JSON.stringify(st.finalRes);
+                if (E._uiFinal !== key) { E._uiFinal = key; setFinalRes(st.finalRes); }
+              }
+            }
+          }
+        }
+
+        // Host ink reconciles drift — but never replaces a longer local beam-built line
+        if (E.matchLive && trail && E.artist === 0) {
+          applyInkPacket(trail);
+        }
+
+        if (pausedRef.current || E.state === "menu" || !E.matchLive) return;
+        ensureBodies();
+
+        // Failsafe: if host world is already playing, never leave the countdown overlay up
+        if (E.state === "play" || E.state === "roundEnd" || E.state === "done") {
+          if (E._introCn !== -2) {
+            E._introCn = -2;
+            setIntro(null);
+          }
+        }
+
+        const iAmShooter = E.artist === 1;
+        if (E.state === "play") {
+          if (iAmShooter) {
+            updateArtist(dt);
+            updateLaser(dt);
+          } else {
+            // Wall man: 100% local movement — never reconciled from host
+            updateRunner(dt);
+            if (E.pressed?.ShiftRight) tryRunnerJump();
+          }
+        }
+
+        // Pose every frame (coalesced) — Bomb Tag pattern for snappy remote movement
+        net.netTick(null, () => {
+          if (iAmShooter) {
+            return {
+              t: performance.now(),
+              art: E.art ? { x: E.art.x, face: E.art.face } : null,
+              mouse: { x: E.mouse.x, y: E.mouse.y, down: !!E.mouse.down },
+            };
+          }
+          const r = E.run;
+          return r ? {
+            t: performance.now(),
+            run: {
+              x: r.x, y: r.y, vx: r.vx || 0, vy: r.vy || 0,
+              onWall: !!r.onWall, onGround: !!r.onGround,
+              stickCd: r.stickCd || 0, squash: r.squash || 0,
+            },
+          } : null;
+        });
+        E.pressed = {};
+        if (E.blockedFlicker > 0) E.blockedFlicker -= dt;
+        if (E.fxItems && E.fxItems.length > 40) E.fxItems.length = 40;
+        if (E.parts.length > 28) E.parts.length = 28;
+        for (let i = E.parts.length - 1; i >= 0; i--) {
+          const q = E.parts[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 500 * dt; q.life -= dt;
+          if (q.life <= 0) E.parts.splice(i, 1);
+        }
+        updateCam(dt);
+        draw(t);
+        return;
+      }
+
+      /* ════════ HOST / LOCAL — full world + laser ════════ */
+      if (pausedRef.current || E.state === "menu") return;
+      ensureBodies();
+
+      if (E.state === "done" || E.state === "roundEnd") {
+        if (net?.online) {
+          netAcc += dt;
+          if (netAcc >= 0.05) { netAcc = 0; net.netTick(() => packHostState()); }
+        }
+        return;
+      }
+
+      let guestRunSnap = false;
+      let guestArtSnap = false;
+      if (net?.online) {
+        net.mergeRemoteInto(E);
+        const ex = net.peekRemoteExtra?.();
+        if (ex && ex.t !== lastGuestPoseT.current) {
+          lastGuestPoseT.current = ex.t;
+          // Round 1: guest is WALL MAN
+          if (E.artist === 0 && ex.run && E.run) {
+            // Snap to guest authority pose (snappy, no rubber-band on invitee)
+            E.run.x = ex.run.x; E.run.y = ex.run.y;
+            E.run.onWall = !!ex.run.onWall; E.run.onGround = !!ex.run.onGround;
+            E.run.stickCd = ex.run.stickCd || 0; E.run.squash = ex.run.squash || 0;
+            E.run.vx = ex.run.vx || 0; E.run.vy = ex.run.vy || 0;
+            guestRunSnap = true;
+          }
+          if (E.artist === 1) {
+            if (ex.art && E.art) { E.art.x = ex.art.x; if (ex.art.face != null) E.art.face = ex.art.face; }
+            if (ex.mouse) Object.assign(E.mouse, ex.mouse);
+            guestArtSnap = true;
+          }
+        } else if (lastGuestPoseT.current >= 0 && E.artist === 0 && E.run) {
+          // Brief coast from last guest velocity, then damp — feels less teleporty on host
+          E.run.x += (E.run.vx || 0) * dt;
+          E.run.y += (E.run.vy || 0) * dt;
+          E.run.vx *= 0.85; E.run.vy *= 0.85;
+          guestRunSnap = true;
+        } else if (lastGuestPoseT.current >= 0 && E.artist === 1) {
+          guestArtSnap = true;
+        }
+        if (!guestRunSnap && (E.pressed?.ShiftRight || E.pressed?.ShiftLeft) && E.artist === 0) {
+          tryRunnerJump();
+        }
+      }
+
       if (E.blockedFlicker > 0) E.blockedFlicker -= dt;
       updateMapFX(dt);
 
@@ -721,20 +1407,57 @@ export default function LaserWallDuel() {
         if (n > 0 && E._cn !== n) { E._cn = n; beep(440, 0.1, 0.05); setIntro((s) => s && { ...s, count: n }); }
         if (E._introT <= 0.6 && E._cn !== -1) { E._cn = -1; beep(880, 0.25, 0.06); setIntro((s) => s && { ...s, count: 0 }); }
         if (E._introT <= 0) { setIntro(null); E.state = "play"; }
-        updateCam(dt); draw(t); return;
+        updateCam(dt); draw(t);
+        if (net?.online) {
+          netAcc += dt;
+          if (netAcc >= 0.033) {
+            netAcc = 0;
+            net.netTick(() => packHostState({ introCount: Math.max(0, Math.ceil(E._introT - 0.6)) }));
+          }
+        }
+        return;
       }
+
       if (E.state === "play") {
         E.timer -= dt;
         if (E.timer <= 0) { E.timer = 0; finishRound(); }
-        updateArtist(dt);
-        updateRunner(dt);
+        // Host is shooter in round 1 (artist 0); guest shooter pose in round 2
+        if (!(net?.online && E.artist === 1 && guestArtSnap)) updateArtist(dt);
+        // Guest is wall man in round 1; host wall man in round 2
+        if (!(net?.online && E.artist === 0 && guestRunSnap)) updateRunner(dt);
+        // ONLY host fires the laser — one shared beam / one score / stroke buffer for guest
         updateLaser(dt);
-        const acc = E.tplPts.length ? Math.max(0, Math.round((E.covered / E.tplPts.length) * 100 - Math.min(20, E.offTime * 4))) : 0;
-        setHud((h) => {
-          const next = { timer: Math.max(0, E.timer).toFixed(1), acc, tpl: E.tpl.icon + " " + E.tpl.name, artist: E.artist, round: E.round };
-          return JSON.stringify(h) === JSON.stringify(next) ? h : next;
-        });
+        const acc = E.tplPts.length
+          ? Math.max(0, Math.round((E.covered / E.tplPts.length) * 100 - Math.min(20, E.offTime * 4)))
+          : 0;
+        const nextHud = {
+          timer: Math.max(0, E.timer).toFixed(1), acc,
+          tpl: (E.tpl?.icon || "") + " " + (E.tpl?.name || ""),
+          artist: E.artist, round: E.round,
+        };
+        const hudKey = `${nextHud.timer}|${nextHud.acc}|${nextHud.round}|${nextHud.artist}|${nextHud.tpl}`;
+        if (E._hudKey !== hudKey) { E._hudKey = hudKey; setHud(nextHud); }
+        if (net?.online) {
+          netAcc += dt;
+          const drawing = !!E.mouse?.down || !!E._inkPen;
+          const drawHz = drawing ? 0.012 : 0.02;
+          if (netAcc >= drawHz) {
+            netAcc = 0;
+            net.netTick(() => packHostState({ hud: nextHud }));
+            if (E.artist === 0 && E._ink && E._ink.length >= 3) {
+              E._inkN = (E._inkN || 0) + 1;
+              net.sendTrail?.({
+                ink: inkCompact(E._ink),
+                enc: 1,
+                n: E._inkN,
+                len: E._ink.length,
+              });
+            }
+          }
+          E.pressed = {};
+        }
       }
+
       for (let i = E.parts.length - 1; i >= 0; i--) {
         const q = E.parts[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 500 * dt; q.life -= dt;
         if (q.life <= 0) E.parts.splice(i, 1);
@@ -744,36 +1467,102 @@ export default function LaserWallDuel() {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [E, beep, draw, updateArtist, updateRunner, updateLaser, updateCam, updateMapFX, finishRound]);
+  }, [E, beep, draw, updateArtist, updateRunner, updateLaser, updateCam, updateMapFX, finishRound, tryRunnerJump]);
 
   /* ---------- input ---------- */
   useEffect(() => {
     const dn = (e) => {
-      E.keys[e.code] = true;
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "ShiftRight"].includes(e.code)) e.preventDefault();
       if (e.code === "Escape") setPaused((p) => (E.state === "play" || E.state === "intro" ? !p : p));
+      const net = duoNetRef.current;
+      if (net?.online) {
+        const code = net.onKeyDown(e.code, E);
+        // Local jump: host when runner (artist===1), guest when runner (artist===0)
+        if (code && (code === "ShiftRight" || code === "ShiftLeft") && !e.repeat) {
+          const iAmRunner = net.isHost ? E.artist === 1 : E.artist === 0;
+          if (iAmRunner) tryRunnerJump();
+        }
+        return;
+      }
+      E.keys[e.code] = true;
       if ((e.code === "ShiftRight" || e.code === "ShiftLeft") && !e.repeat) tryRunnerJump();
     };
-    const up = (e) => (E.keys[e.code] = false);
+    const up = (e) => {
+      const net = duoNetRef.current;
+      if (net?.online) net.onKeyUp(e.code, E);
+      else E.keys[e.code] = false;
+    };
     addEventListener("keydown", dn); addEventListener("keyup", up);
     return () => { removeEventListener("keydown", dn); removeEventListener("keyup", up); };
   }, [E, tryRunnerJump]);
+
+  const localIsArtist = () => !online || (isHost && E.artist === 0) || (isGuest && E.artist === 1);
 
   const toWorld = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
     const sx = ((e.clientX - r.left) / r.width) * VW, sy = ((e.clientY - r.top) / r.height) * VH;
     return { x: (sx - VW / 2) / E.cam.z + E.cam.x, y: (sy - VH / 2) / E.cam.z + E.cam.y };
   };
-  const onMove = (e) => { const w = toWorld(e); E.mouse.x = w.x; E.mouse.y = w.y; };
-  const onDown = (e) => { e.preventDefault(); E.mouse.down = true; onMove(e); };
-  const onUp = () => { E.mouse.down = false; };
-
-  const startMatchUI = () => { setScreen("play"); initAudio(); startMatch(); };
-  const backToMenu = () => {
-    setScreen("menu"); setPaused(false); setRoundEnd(null); setFinalRes(null); setIntro(null);
-    E.state = "menu"; if (audio.hum) audio.hum.gain.value = 0;
-    const c = canvasRef.current; if (c) c.getContext("2d").clearRect(0, 0, VW, VH);
+  const onMove = (e) => {
+    if (online && !localIsArtist()) return;
+    const w = toWorld(e); E.mouse.x = w.x; E.mouse.y = w.y;
   };
+  const onDown = (e) => {
+    if (online && !localIsArtist()) return;
+    e.preventDefault(); E.mouse.down = true; onMove(e);
+  };
+  const onUp = () => { if (online && !localIsArtist()) return; E.mouse.down = false; };
+
+  const syncSetting = (key, val, { anyone = false } = {}) => {
+    if (isGuest && !anyone) return;
+    if (key === "customSet") {
+      customRef.current = val;
+      setCustomSet(val);
+      if (online) duoNetRef.current?.sendUi({ type: "sel", key, val });
+      return;
+    }
+    setSettings((s) => {
+      const next = { ...s, [key]: val };
+      settingsRef.current = next;
+      return next;
+    });
+    if (online) duoNetRef.current?.sendUi({ type: "sel", key, val });
+  };
+
+  const setReady = (ready) => {
+    if (!isGuest) return;
+    setGuestReady(!!ready);
+    duoNetRef.current?.sendUi({ type: "ready", ready: !!ready });
+  };
+
+  const startMatchUI = () => {
+    if (isGuest) return;
+    if (online && !guestReady && screenRef.current === "menu") return;
+    const tplName = pickTplName();
+    if (!online) {
+      setScreen("play"); initAudio(); startMatch(tplName);
+      return;
+    }
+    const matchAt = Date.now();
+    const payload = {
+      type: "start",
+      settings: { ...settingsRef.current },
+      customSet: [...(customRef.current || [])],
+      tplName,
+      matchAt,
+      map: settingsRef.current.map,
+      time: settingsRef.current.time,
+    };
+    beginOnlineMatch(payload);
+    const blast = () => { try { duoNetRef.current?.sendUi(payload); } catch { /* ignore */ } };
+    blast();
+    setTimeout(blast, 120);
+    setTimeout(blast, 350);
+    setTimeout(blast, 800);
+    setTimeout(blast, 1500);
+  };
+
+  const backToMenu = () => goLobby(true);
 
   const dim = "#8b93ab", line = "#1c2236", card = "#0e111c";
   const cyan = "#38c7ff", red = "#ff4d5a";
@@ -782,30 +1571,66 @@ export default function LaserWallDuel() {
     border: `1.5px solid ${sel ? cyan : line}`,
     boxShadow: sel ? "0 0 14px rgba(56,199,255,.45)" : "none",
   });
-  const artistName = (i) => "PLAYER " + (i + 1);
+  const artistName = (i) => (online ? (i === 0 ? nameA : nameB) : ("PLAYER " + (i + 1)));
+  // Online seats: host(A)=player0, guest(B)=player1. artist index = who is the shooter this round.
+  const mySeat = isGuest ? 1 : 0;
+  const iAmShooterNow = online && (
+    intro ? intro.artist === mySeat : hud.artist === mySeat
+  );
+  // Crosshair only for the shooter; wall man keeps a normal cursor
+  const playCursor = (() => {
+    if (screen !== "play") return "default";
+    if (paused || roundEnd || finalRes || intro) return "default";
+    if (online && !iAmShooterNow) return "default";
+    return "crosshair";
+  })();
 
   return (
-    <div className="w-full h-screen overflow-hidden relative flex items-center justify-center" style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5" }}>
+    <div
+      className={`w-full relative flex items-center justify-center lwd-root ${screen === "menu" ? "lwd-root-menu" : "lwd-root-play"}`}
+      style={{
+        background: "#07080f",
+        fontFamily: 'Consolas,"Courier New",monospace',
+        color: "#dfe6f5",
+        cursor: screen === "play" ? playCursor : undefined,
+      }}
+    >
       <canvas ref={canvasRef} width={VW} height={VH}
         onMouseMove={onMove} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp} onContextMenu={(e) => e.preventDefault()}
-        className="block rounded-xl"
-        style={{ width: "min(98vw, calc(98vh * " + VW / VH + "))", aspectRatio: VW + "/" + VH, cursor: screen === "play" ? "crosshair" : "default", boxShadow: screen === "play" ? "0 0 50px rgba(56,199,255,.12)" : "none" }} />
+        className="lwd-canvas block rounded-xl"
+        style={{
+          display: screen === "menu" ? "none" : "block",
+          cursor: playCursor,
+          boxShadow: screen === "play" ? "0 0 50px rgba(56,199,255,.12)" : "none",
+        }}
+      />
 
       {/* HUD */}
       {screen === "play" && (
         <div className="absolute inset-0 pointer-events-none z-10">
+          {online && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-2xl px-5 py-2 font-bold tracking-widest text-sm"
+              style={{
+                background: iAmShooterNow ? "#0a2231ee" : "#2a1014ee",
+                border: `2px solid ${iAmShooterNow ? cyan : red}`,
+                color: iAmShooterNow ? cyan : red,
+                boxShadow: iAmShooterNow ? `0 0 20px ${cyan}66` : `0 0 20px ${red}66`,
+              }}>
+              {iAmShooterNow ? "YOU ARE THE SHOOTER 🔦" : "YOU ARE THE WALL MAN 🎈"}
+            </div>
+          )}
           <div className="absolute top-3 left-3.5 rounded-2xl px-4 py-2" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}` }}>
-            <div className="text-[10px] tracking-widest font-bold" style={{ color: cyan }}>🔦 LASER ARTIST — {artistName(hud.artist)}</div>
+            <div className="text-[10px] tracking-widest font-bold" style={{ color: cyan }}>🔦 SHOOTER — {artistName(hud.artist)}</div>
             <div className="text-2xl font-bold">{hud.acc}%</div>
             <div className="text-[11px]" style={{ color: dim }}>target: {WIN_THRESHOLD}% · {hud.tpl}</div>
           </div>
           <div className="absolute top-3 right-3.5 rounded-2xl px-4 py-2 text-right" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}` }}>
-            <div className="text-[10px] tracking-widest font-bold" style={{ color: red }}>🎈 WALL RUNNER — {artistName(1 - hud.artist)}</div>
+            <div className="text-[10px] tracking-widest font-bold" style={{ color: red }}>🎈 WALL MAN — {artistName(1 - hud.artist)}</div>
             <div className="text-[11px] mt-1" style={{ color: dim }}>block the laser<br />with your suit!</div>
           </div>
           <div className="absolute top-2.5 left-1/2 -translate-x-1/2 rounded-2xl px-6 font-bold text-center" style={{ fontSize: 38, letterSpacing: 2, background: "#0a0d17d9", border: `1.5px solid ${line}`, color: +hud.timer < 10 ? red : "#dfe6f5" }}>
             {hud.timer}
-            <div className="text-[10px] font-normal tracking-widest -mt-1" style={{ color: dim }}>ROUND {hud.round}/2</div>
+            <div className="text-[10px] font-normal tracking-widest -mt-1" style={{ color: dim }}>ROUND {hud.round}/2 · SAME MAP</div>
           </div>
           <div className="absolute top-3 flex gap-2 pointer-events-auto" style={{ right: "calc(50% - 160px)" }}>
             <button onClick={() => setPaused(true)} className="w-10 h-10 rounded-xl cursor-pointer" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>⏸</button>
@@ -818,10 +1643,18 @@ export default function LaserWallDuel() {
       {intro && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none" style={{ background: "rgba(7,8,15,0.72)" }}>
           <div className="text-center">
-            <div className="text-sm tracking-[6px] mb-3" style={{ color: dim }}>ROUND {intro.round} / 2</div>
-            <div className="text-3xl font-bold mb-1" style={{ color: cyan, textShadow: `0 0 16px ${cyan}` }}>🔦 {artistName(intro.artist)} — LASER ARTIST</div>
-            <div className="text-xl font-bold mb-4" style={{ color: red, textShadow: `0 0 14px ${red}` }}>🎈 {artistName(1 - intro.artist)} — WALL RUNNER</div>
-            <div className="text-lg mb-1">trace: <b>{intro.tplIcon} {intro.tplName}</b> <span style={{ color: dim }}>({intro.diff})</span></div>
+            <div className="text-sm tracking-[6px] mb-3" style={{ color: dim }}>ROUND {intro.round} / 2 · ONE SHARED WALL</div>
+            {online && (
+              <div className="text-2xl font-bold mb-4 tracking-widest" style={{
+                color: intro.artist === mySeat ? cyan : red,
+                textShadow: intro.artist === mySeat ? `0 0 18px ${cyan}` : `0 0 18px ${red}`,
+              }}>
+                {intro.artist === mySeat ? "YOU → SHOOTER 🔦" : "YOU → WALL MAN 🎈"}
+              </div>
+            )}
+            <div className="text-3xl font-bold mb-1" style={{ color: cyan, textShadow: `0 0 16px ${cyan}` }}>🔦 {artistName(intro.artist)} — SHOOTER</div>
+            <div className="text-xl font-bold mb-4" style={{ color: red, textShadow: `0 0 14px ${red}` }}>🎈 {artistName(1 - intro.artist)} — WALL MAN</div>
+            <div className="text-lg mb-1">same map · trace: <b>{intro.tplIcon} {intro.tplName}</b> <span style={{ color: dim }}>({intro.diff})</span></div>
             <div style={{ fontSize: 90, color: "#ffcf3f", textShadow: "0 0 30px rgba(255,207,63,.8)", fontWeight: "bold" }}>
               {intro.count > 0 ? intro.count : "GO!"}
             </div>
@@ -829,49 +1662,103 @@ export default function LaserWallDuel() {
         </div>
       )}
 
-      {/* MENU */}
+      {/* MENU — in document flow so the website page scrolls (no inner game scrollbar) */}
       {screen === "menu" && (
-        <div className="absolute inset-0 z-20 overflow-auto flex justify-center" style={{ background: "#07080fee" }}>
+        <div className="lwd-menu w-full flex justify-center" style={{ background: "#07080f" }}>
           <div className="w-full max-w-[860px] px-3 pt-7 pb-10 text-center">
             <h1 className="text-4xl font-bold mb-1" style={{ letterSpacing: 8 }}>
               <span style={{ color: cyan, textShadow: `0 0 14px ${cyan},0 0 40px rgba(56,199,255,.4)` }}>LASER</span>{" 🔦 "}
               <span style={{ color: red, textShadow: `0 0 14px ${red},0 0 40px rgba(255,77,90,.4)` }}>WALL DUEL</span>
             </h1>
             <div className="text-[13px] mb-4" style={{ color: dim, letterSpacing: 2 }}>
-              one draws with a laser · one blocks with their body · 2 rounds, switch roles · best tracer wins
+              {online
+                ? `${nameA} vs ${nameB} · same map · shooter vs wall man · round 2 swaps roles`
+                : "one draws with a laser · one blocks with their body · 2 rounds, switch roles · best tracer wins"}
             </div>
+            {online && (
+              <div className="mb-4 rounded-2xl px-4 py-3 text-sm" style={{ background: card, border: `1.5px solid ${line}`, letterSpacing: 1 }}>
+                <div className="font-bold mb-1" style={{ color: isHost ? cyan : red }}>
+                  {isHost ? `You (${nameA}) start as SHOOTER 🔦` : `You (${nameB}) start as WALL MAN 🎈`}
+                </div>
+                <div style={{ color: dim, fontSize: 12 }}>
+                  {isHost
+                    ? (guestReady
+                      ? `${nameB} is ready — press Start Match. You play together on one wall.`
+                      : `Waiting for ${nameB} to press I'm Ready — then you both jump into the same match.`)
+                    : (guestReady
+                      ? `Ready — waiting for ${nameA} to start. You'll block their laser on the same map.`
+                      : `Press I'm Ready. Host starts → you both play shooter vs wall man together.`)}
+                </div>
+              </div>
+            )}
             <div className="flex gap-3 justify-center items-center flex-wrap">
-              <button onClick={startMatchUI} className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
-                style={{ padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", background: "linear-gradient(90deg,#3a7bfd,#ff4d5a)", boxShadow: "0 0 26px rgba(90,120,255,.45)", fontFamily: "inherit" }}>
-                START MATCH ▶
-              </button>
-              <button onClick={() => setCustomOpen(true)} className="cursor-pointer rounded-2xl px-6 py-4 text-sm font-bold transition-transform hover:-translate-y-0.5"
-                style={{ background: card, color: "#dfe6f5", fontFamily: "inherit", letterSpacing: 2, border: "1.5px solid #a86bff", boxShadow: "0 0 14px rgba(168,107,255,.35)" }}>
+              {(!online || isHost) && (
+                <button onClick={startMatchUI} disabled={online && !guestReady}
+                  className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
+                  style={{
+                    padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", fontFamily: "inherit",
+                    background: online && !guestReady ? "linear-gradient(90deg,#3a4558,#4a5568)" : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
+                    boxShadow: online && !guestReady ? "none" : "0 0 26px rgba(90,120,255,.45)",
+                    opacity: online && !guestReady ? 0.6 : 1,
+                    cursor: online && !guestReady ? "not-allowed" : "pointer",
+                  }}>
+                  {online && !guestReady ? `WAITING FOR ${nameB.toUpperCase()}…` : "START MATCH ▶"}
+                </button>
+              )}
+              {isGuest && (
+                <button onClick={() => setReady(!guestReady)}
+                  className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
+                  style={{
+                    padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", fontFamily: "inherit",
+                    background: guestReady
+                      ? "linear-gradient(90deg,#2a8f5a,#3ecf8e)"
+                      : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
+                    boxShadow: guestReady ? "0 0 26px rgba(62,207,142,.45)" : "0 0 26px rgba(90,120,255,.45)",
+                  }}>
+                  {guestReady ? "READY ✓  (tap to cancel)" : "I'M READY ▶"}
+                </button>
+              )}
+              <button onClick={() => setCustomOpen(true)} disabled={isGuest}
+                className="cursor-pointer rounded-2xl px-6 py-4 text-sm font-bold transition-transform hover:-translate-y-0.5"
+                style={{
+                  background: card, color: "#dfe6f5", fontFamily: "inherit", letterSpacing: 2,
+                  border: "1.5px solid #a86bff", boxShadow: "0 0 14px rgba(168,107,255,.35)",
+                  opacity: isGuest ? 0.55 : 1, cursor: isGuest ? "default" : "pointer",
+                }}>
                 ✏️ CUSTOM MATCH
-                <small className="block mt-0.5 font-normal" style={{ color: dim, fontSize: 10, letterSpacing: 1 }}>pick the drawings yourself</small>
+                <small className="block mt-0.5 font-normal" style={{ color: dim, fontSize: 10, letterSpacing: 1 }}>
+                  {isGuest ? "host picks drawings" : "pick the drawings yourself"}
+                </small>
               </button>
             </div>
             {customSet.length > 0 && (
               <div className="mt-3 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs" style={{ background: card, border: "1.5px solid #a86bff", letterSpacing: 1 }}>
                 <span style={{ color: "#a86bff", fontWeight: "bold" }}>CUSTOM SET ACTIVE:</span>
                 <span>{customSet.map((n) => TPL[n]?.icon).join(" ")}</span>
-                <button onClick={() => setCustomSet([])} className="cursor-pointer rounded-md px-2 py-0.5 ml-1" style={{ background: "#060810", border: `1px solid ${line}`, color: dim, fontFamily: "inherit", fontSize: 11 }}>✕ clear</button>
+                {!isGuest && (
+                  <button onClick={() => syncSetting("customSet", [])} className="cursor-pointer rounded-md px-2 py-0.5 ml-1" style={{ background: "#060810", border: `1px solid ${line}`, color: dim, fontFamily: "inherit", fontSize: 11 }}>✕ clear</button>
+                )}
               </div>
             )}
 
             <div className="text-sm font-bold mt-5 mb-2.5" style={{ letterSpacing: 2 }}>Round time:</div>
             <div className="flex gap-3 justify-center">
               {[45, 60].map((tt) => (
-                <button key={tt} onClick={() => setSettings((s) => ({ ...s, time: tt }))} className="cursor-pointer rounded-xl px-6 py-3 text-sm" style={pillStyle(settings.time === tt)}>
+                <button key={tt} disabled={isGuest} onClick={() => syncSetting("time", tt)}
+                  className="cursor-pointer rounded-xl px-6 py-3 text-sm"
+                  style={{ ...pillStyle(settings.time === tt), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
                   <b>{tt} s</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{tt === 45 ? "fast & frantic" : "classic"}</small>
                 </button>
               ))}
             </div>
 
-            <div className="text-sm font-bold mt-5 mb-2.5" style={{ letterSpacing: 2 }}>Choose your map:</div>
+            <div className="text-sm font-bold mt-5 mb-2.5" style={{ letterSpacing: 2 }}>
+              {online ? "Choose your map (either player):" : "Choose your map:"}
+            </div>
             <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
               {MAPS.map((_, i) => (
-                <MapCard key={i} i={i} selected={settings.map === i} onSelect={(m) => setSettings((s) => ({ ...s, map: m }))} />
+                <MapCard key={i} i={i} selected={settings.map === i}
+                  onSelect={(m) => syncSetting("map", m, { anyone: true })} />
               ))}
             </div>
 
@@ -879,7 +1766,13 @@ export default function LaserWallDuel() {
               <div className="rounded-2xl p-4 text-left" style={{ background: card, border: `1.5px solid ${cyan}44`, boxShadow: "inset 0 0 30px rgba(56,199,255,.05)" }}>
                 <div className="font-bold tracking-widest mb-2" style={{ color: cyan }}>🔦 LASER ARTIST</div>
                 <div className="text-xs leading-loose" style={{ color: dim }}>
-                  <Key>A</Key>/<Key>D</Key> — walk on the ground<br />
+                  {online ? (
+                    isHost
+                      ? <><Key>A</Key>/<Key>D</Key> — walk (you are artist in round 1)<br /></>
+                      : <><Key>←</Key>/<Key>→</Key> or <Key>A</Key>/<Key>D</Key> — walk (you are artist in round 2)<br /></>
+                  ) : (
+                    <><Key>A</Key>/<Key>D</Key> — walk on the ground<br /></>
+                  )}
                   <Key>MOUSE</Key> — aim the laser at the wall<br />
                   <Key>HOLD LEFT CLICK</Key> — fire &amp; draw<br />
                   Trace the glowing outline. Stay ON the line — sloppy drawing costs accuracy. Reach <b style={{ color: "#dfe6f5" }}>{WIN_THRESHOLD}%</b> to win your round.
@@ -888,8 +1781,13 @@ export default function LaserWallDuel() {
               <div className="rounded-2xl p-4 text-left" style={{ background: card, border: `1.5px solid ${red}44`, boxShadow: "inset 0 0 30px rgba(255,77,90,.05)" }}>
                 <div className="font-bold tracking-widest mb-2" style={{ color: red }}>🎈 WALL RUNNER</div>
                 <div className="text-xs leading-loose" style={{ color: dim }}>
-                  <Key>←</Key><Key>→</Key><Key>↑</Key><Key>↓</Key> — run anywhere on the wall<br />
-                  <Key>SHIFT</Key> — leap off the wall / jump<br />
+                  {online ? (
+                    isHost
+                      ? <><Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> — run on the wall (you are runner in round 2)<br /><Key>SHIFT</Key> — leap / jump<br /></>
+                      : <><Key>←</Key><Key>→</Key><Key>↑</Key><Key>↓</Key> — run on the wall (you are runner in round 1)<br /><Key>SHIFT</Key> — leap / jump<br /></>
+                  ) : (
+                    <><Key>←</Key><Key>→</Key><Key>↑</Key><Key>↓</Key> — run anywhere on the wall<br /><Key>SHIFT</Key> — leap off the wall / jump<br /></>
+                  )}
                   You wear a giant <b style={{ color: "#dfe6f5" }}>inflatable suit</b> — put it in the laser's path! Blocked laser = zero progress for the artist.
                 </div>
               </div>
@@ -905,7 +1803,7 @@ export default function LaserWallDuel() {
 
       {/* CUSTOM MATCH — drawing picker */}
       {customOpen && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center overflow-auto" style={{ background: "#07080fee" }}>
+        <div className="fixed inset-0 z-40 flex items-start justify-center" style={{ background: "#07080fee", overflowY: "auto" }}>
           <div className="rounded-3xl px-7 py-7 text-center w-[min(760px,95%)] my-5" style={{ background: "#0e111c", border: "1.5px solid #1c2236", boxShadow: "0 0 60px rgba(168,107,255,.15)" }}>
             <h2 className="text-xl font-bold mb-1" style={{ letterSpacing: 5, color: "#a86bff", textShadow: "0 0 12px rgba(168,107,255,.6)" }}>✏️ CUSTOM MATCH</h2>
             <div className="text-xs mb-4" style={{ color: dim, letterSpacing: 1 }}>
@@ -918,9 +1816,13 @@ export default function LaserWallDuel() {
                 const diffColor = tp.diff === "easy" ? "#4dff9e" : tp.diff === "medium" ? "#ffcf3f" : "#ff4d5a";
                 return (
                   <button key={tp.name}
-                    onClick={() => setCustomSet((s) => (on ? s.filter((n) => n !== tp.name) : [...s, tp.name]))}
+                    disabled={isGuest}
+                    onClick={() => {
+                      const next = on ? customSet.filter((n) => n !== tp.name) : [...customSet, tp.name];
+                      syncSetting("customSet", next);
+                    }}
                     className="cursor-pointer rounded-xl p-2 transition-transform hover:-translate-y-0.5"
-                    style={{ background: on ? "#191233" : "#0a0d17", fontFamily: "inherit", color: "#dfe6f5", border: `1.5px solid ${on ? "#a86bff" : line}`, boxShadow: on ? "0 0 12px rgba(168,107,255,.4)" : "none" }}>
+                    style={{ background: on ? "#191233" : "#0a0d17", fontFamily: "inherit", color: "#dfe6f5", border: `1.5px solid ${on ? "#a86bff" : line}`, boxShadow: on ? "0 0 12px rgba(168,107,255,.4)" : "none", opacity: isGuest ? 0.7 : 1 }}>
                     <TplWallPreview tp={tp} map={MAPS[settings.map]} />
                     <span className="block text-[11px] font-bold" style={{ letterSpacing: 0.5 }}>{tp.icon} {tp.name}</span>
                     <span className="block text-[9px] mt-0.5 uppercase" style={{ color: diffColor, letterSpacing: 2 }}>{tp.diff}{on ? " · ✔" : ""}</span>
@@ -932,10 +1834,15 @@ export default function LaserWallDuel() {
               {customSet.length ? customSet.length + " drawing" + (customSet.length > 1 ? "s" : "") + " selected" : "nothing selected — the map's own drawings will be used"}
             </div>
             <div className="flex gap-3 justify-center mt-4 flex-wrap">
-              <GradBtn onClick={() => { setCustomOpen(false); if (customSet.length) { setScreen("play"); initAudio(); startMatch(); } }}>
-                {customSet.length ? "START CUSTOM MATCH ▶" : "CLOSE"}
+              <GradBtn onClick={() => {
+                setCustomOpen(false);
+                if (!customSet.length || isGuest) return;
+                if (online) startMatchUI();
+                else { setScreen("play"); initAudio(); startMatch(pickTplName()); }
+              }}>
+                {customSet.length ? (online && !guestReady ? "CLOSE & WAIT FOR READY" : "START CUSTOM MATCH ▶") : "CLOSE"}
               </GradBtn>
-              {customSet.length > 0 && <GhostBtn onClick={() => setCustomSet([])}>CLEAR ALL</GhostBtn>}
+              {customSet.length > 0 && !isGuest && <GhostBtn onClick={() => syncSetting("customSet", [])}>CLEAR ALL</GhostBtn>}
               <GhostBtn onClick={() => setCustomOpen(false)}>BACK</GhostBtn>
             </div>
           </div>
@@ -965,7 +1872,13 @@ export default function LaserWallDuel() {
               ? <>🎈 {artistName(1 - roundEnd.artist)} blocked the art — round to the <b style={{ color: red }}>Wall Runner!</b></>
               : <>🔦 {artistName(roundEnd.artist)} traced it — round to the <b style={{ color: cyan }}>Laser Artist!</b></>}
           </div>
-          <GradBtn onClick={nextAfterRound}>{roundEnd.last ? "SEE FINAL RESULT ▶" : "ROUND 2 — SWITCH ROLES ▶"}</GradBtn>
+          {isGuest ? (
+            <div className="text-sm" style={{ color: dim, letterSpacing: 1 }}>
+              Waiting for {nameA} to continue…
+            </div>
+          ) : (
+            <GradBtn onClick={nextAfterRound}>{roundEnd.last ? "SEE FINAL RESULT ▶" : "ROUND 2 — SWITCH ROLES ▶"}</GradBtn>
+          )}
         </Modal>
       )}
 
@@ -974,20 +1887,35 @@ export default function LaserWallDuel() {
         <Modal>
           <div className="text-6xl mb-1.5">🏆</div>
           <div className="text-[26px] font-bold mb-3" style={{ letterSpacing: 3, color: finalRes.winner === -1 ? "#ffcf3f" : finalRes.winner === 0 ? cyan : red, textShadow: "0 0 16px currentColor" }}>
-            {finalRes.winner === -1 ? "IT'S A TIE!" : "PLAYER " + (finalRes.winner + 1) + " WINS!"}
+            {finalRes.winner === -1
+              ? "IT'S A TIE!"
+              : (online
+                ? <>{finalRes.winner === 0 ? nameA : nameB} WINS!<span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)" }}>PLAYER {finalRes.winner + 1} WINS!</span></>
+                : `PLAYER ${finalRes.winner + 1} WINS!`)}
           </div>
           <table className="mx-auto mb-5 text-sm"><tbody>
             <tr>
-              <td className="px-4 py-1.5" style={{ color: cyan, borderBottom: `1px solid ${line}` }}>Player 1 accuracy</td>
+              <td className="px-4 py-1.5" style={{ color: cyan, borderBottom: `1px solid ${line}` }}>{online ? nameA : "Player 1"} accuracy</td>
               <td className="px-4 py-1.5" style={{ borderBottom: `1px solid ${line}` }}>{finalRes.accs[0]}% — {rating(finalRes.accs[0])[0]}</td>
             </tr>
             <tr>
-              <td className="px-4 py-1.5" style={{ color: red, borderBottom: `1px solid ${line}` }}>Player 2 accuracy</td>
+              <td className="px-4 py-1.5" style={{ color: red, borderBottom: `1px solid ${line}` }}>{online ? nameB : "Player 2"} accuracy</td>
               <td className="px-4 py-1.5" style={{ borderBottom: `1px solid ${line}` }}>{finalRes.accs[1]}% — {rating(finalRes.accs[1])[0]}</td>
             </tr>
           </tbody></table>
           <div className="flex flex-col gap-3 min-w-[260px]">
-            <GradBtn onClick={() => { setFinalRes(null); startMatch(); }}>REMATCH ▶</GradBtn>
+            {!isGuest && (
+              <GradBtn onClick={() => {
+                setFinalRes(null); E._finalRes = null;
+                if (online) goLobby(true);
+                else startMatch(pickTplName());
+              }}>
+                {online ? "BACK TO LOBBY ▶" : "REMATCH ▶"}
+              </GradBtn>
+            )}
+            {isGuest && (
+              <div className="text-sm mb-1" style={{ color: dim }}>Waiting for {nameA}…</div>
+            )}
             <GhostBtn onClick={backToMenu}>BACK TO MENU</GhostBtn>
           </div>
         </Modal>

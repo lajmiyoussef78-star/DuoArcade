@@ -10,8 +10,32 @@
   width: 100%;
   position: relative;
   border-radius: 18px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--line, #3D3450);
+  background: #07080f;
+}
+.arcade-page .skr-wrap {
+  background: #07080f;
+}
+
+/* Lobby must scroll — do not clip garage / maps */
+.arcade-page .skr-shell .skr-root-menu,
+.skr-shell .skr-root-menu {
+  height: auto;
+  min-height: min(780px, calc(100vh - 170px));
+  overflow: visible;
+  align-items: flex-start;
+}
+.arcade-page .skr-shell .skr-lobby,
+.skr-shell .skr-lobby {
+  position: relative;
+  inset: auto;
+  overflow: visible;
+  width: 100%;
+}
+.arcade-page .skr-shell .skr-menu-block,
+.skr-shell .skr-menu-block {
+  display: block;
 }
 
 .skr-shell .relative { position: relative; }
