@@ -12,7 +12,10 @@ function RealtimeBoard({ eng, session, myRole, names, client, code, onFinish }) 
   useEffect(() => {
     if (!hostRef.current || !eng?.mount) return;
     const rt = client.rt(code);
-    eng.mount(hostRef.current, { myRole, rt, names, onFinish, code });
+    eng.mount(hostRef.current, {
+      myRole, rt, names, onFinish, code,
+      startedAt: session.startedAt || 0,
+    });
     return () => {
       try { eng.unmount(); } catch { /* */ }
       try { rt.close(); } catch { /* */ }
@@ -21,17 +24,21 @@ function RealtimeBoard({ eng, session, myRole, names, client, code, onFinish }) 
   return <div ref={hostRef} className="gv-board-wrap" />;
 }
 
-function TurnBoard({ eng, session, myRole, onMove }) {
+function TurnBoard({ eng, session, myRole, onMove, names, onProceed }) {
   const hostRef = useRef(null);
+  const onProceedRef = useRef(onProceed);
+  useEffect(() => { onProceedRef.current = onProceed; }, [onProceed]);
   useEffect(() => {
     if (!hostRef.current || !eng?.render) return;
     eng.render(hostRef.current, session.gs, {
       myRole,
       turn: session.turn,
       winner: session.winner,
-      onMove
+      names,
+      onMove,
+      onProceed: () => onProceedRef.current?.()
     });
-  }, [eng, session, myRole, onMove]);
+  }, [eng, session, myRole, onMove, names]);
   return <div ref={hostRef} />;
 }
 
@@ -256,7 +263,7 @@ export default function FriendMatchScreen() {
               onFinish={onRealtimeFinish}
             />
           ) : (
-            <TurnBoard eng={eng} session={session} myRole={myRole} onMove={onMove} />
+            <TurnBoard eng={eng} session={session} myRole={myRole} onMove={onMove} names={names} />
           )
         )}
 

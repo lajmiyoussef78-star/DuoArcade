@@ -73,7 +73,11 @@
 }
 .nc-canvas { display: block; width: 100%; height: auto; }
 
-.nc-curlbar { display: flex; align-items: center; gap: 8px; }
+.nc-curlbar { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.nc-curlbar-top {
+  width: 100%;
+  padding: 2px 0 4px;
+}
 .nc-curllabel {
   font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim);
   text-transform: uppercase; letter-spacing: .06em;

@@ -3,7 +3,9 @@ import { ENGINES } from '../engines/index.js';
 
 export const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
+  { id: 'dali', label: 'Dali β' },
   { id: 'favorites', label: 'Favorites ★' },
+  { id: 'needsfix', label: 'Fixed β' },
   { id: 'neverplayed', label: 'Never played' },
   { id: 'realtime', label: 'Real-time' },
   { id: 'turnbased', label: 'Turn-based' },
@@ -80,9 +82,11 @@ export function fuzzyMatch(name, query) {
   return false;
 }
 
-export function matchesFilter(eng, filterId, favoriteIds, records) {
+export function matchesFilter(eng, filterId, favoriteIds, records, fixIds = [], daliIds = []) {
   if (!filterId || filterId === 'all') return true;
+  if (filterId === 'dali') return (daliIds || []).includes(eng.meta.id);
   if (filterId === 'favorites') return (favoriteIds || []).includes(eng.meta.id);
+  if (filterId === 'needsfix') return (fixIds || []).includes(eng.meta.id);
   if (filterId === 'neverplayed') return playsOf((records || {})[eng.meta.id]) === 0;
   return categoriesFor(eng).has(filterId);
 }
@@ -111,12 +115,16 @@ export function sortEngines(list, sortId, records) {
   return out;
 }
 
-export function filterAndSortEngines({ filter, query, sort, favoriteIds, records }) {
-  let list = Object.values(ENGINES).filter(eng => matchesFilter(eng, filter, favoriteIds, records));
+export function filterAndSortEngines({ filter, query, sort, favoriteIds, records, fixIds, daliIds }) {
+  let list = Object.values(ENGINES).filter(eng =>
+    matchesFilter(eng, filter, favoriteIds, records, fixIds, daliIds));
   if (query?.trim()) list = list.filter(eng => fuzzyMatch(eng.meta.name, query));
-  // Favorites filter: keep starred order unless user picks another sort
-  if (filter === 'favorites' && (!sort || sort === 'default')) {
-    const order = new Map((favoriteIds || []).map((id, i) => [id, i]));
+  // Dali / Favorites / Fixed: keep list order unless user picks another sort
+  if ((filter === 'dali' || filter === 'favorites' || filter === 'needsfix') && (!sort || sort === 'default')) {
+    const orderIds = filter === 'dali'
+      ? (daliIds || [])
+      : filter === 'favorites' ? (favoriteIds || []) : (fixIds || []);
+    const order = new Map(orderIds.map((id, i) => [id, i]));
     list.sort((a, b) => (order.get(a.meta.id) ?? 999) - (order.get(b.meta.id) ?? 999));
     return list;
   }

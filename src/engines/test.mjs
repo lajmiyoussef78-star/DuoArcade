@@ -5,31 +5,46 @@ import * as DOTS from './dots.js';
 let pass = 0, fail = 0;
 const t = (name, cond) => cond ? pass++ : (fail++, console.log('FAIL:', name));
 
-/* ---------- Tic-Tac-Toe ---------- */
+/* ---------- Ultimate Tic-Tac-Toe ---------- */
 {
   let gs = TTT.initialState();
-  t('ttt: empty no winner', TTT.winner(gs) === null);
-  let r = TTT.applyMove(gs, 0, 'A');
-  t('ttt: legal move', r && r.gs.cells[0] === 'A' && r.again === false);
-  t('ttt: original not mutated', gs.cells[0] === null);
-  t('ttt: occupied illegal', TTT.applyMove(r.gs, 0, 'B') === null);
-  t('ttt: out of range illegal', TTT.applyMove(gs, 9, 'A') === null && TTT.applyMove(gs, -1, 'A') === null);
+  t('utt: empty no winner', TTT.winner(gs) === null);
+  t('utt: nine boards', gs.boards.length === 9 && gs.boards[0].length === 9);
+  let r = TTT.applyMove(gs, { b: 0, c: 0 }, 'A');
+  t('utt: legal move', r && r.gs.boards[0][0] === 'A' && r.again === false);
+  t('utt: original not mutated', gs.boards[0][0] === null);
+  t('utt: play any board', !!TTT.applyMove(r.gs, { b: 8, c: 4 }, 'B'));
+  t('utt: occupied illegal', TTT.applyMove(r.gs, { b: 0, c: 0 }, 'B') === null);
+  t('utt: int move ok', !!TTT.applyMove(gs, 40, 'A')); // board 4 cell 4
 
-  // row win
+  // A wins small board 0 (top row) — free play anywhere
   gs = TTT.initialState();
-  for (const [i, p] of [[0,'A'],[3,'B'],[1,'A'],[4,'B'],[2,'A']]) gs = TTT.applyMove(gs, i, p).gs;
-  t('ttt: row win A', TTT.winner(gs) === 'A');
+  for (const [m, p] of [
+    [{ b: 0, c: 0 }, 'A'],
+    [{ b: 4, c: 4 }, 'B'],
+    [{ b: 0, c: 1 }, 'A'],
+    [{ b: 4, c: 0 }, 'B'],
+    [{ b: 0, c: 2 }, 'A']
+  ]) {
+    const step = TTT.applyMove(gs, m, p);
+    t('utt: sequence place', !!step);
+    if (!step) break;
+    gs = step.gs;
+  }
+  t('utt: small board win', gs.boardWinners[0] === 'A');
 
-  // diagonal win
-  gs = TTT.initialState();
-  for (const [i, p] of [[0,'B'],[1,'A'],[4,'B'],[2,'A'],[8,'B']]) gs = TTT.applyMove(gs, i, p).gs;
-  t('ttt: diag win B', TTT.winner(gs) === 'B');
-
-  // draw: A A B / B B A / A A B
-  gs = TTT.initialState();
-  const seq = [[0,'A'],[1,'A'],[2,'B'],[3,'B'],[4,'B'],[5,'A'],[6,'A'],[7,'A'],[8,'B']];
-  for (const [i, p] of seq) gs = TTT.applyMove(gs, i, p).gs;
-  t('ttt: draw', TTT.winner(gs) === 'draw');
+  t('utt: mega row win', TTT.winner({
+    boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
+    boardWinners: ['A', 'A', 'A', null, null, null, null, null, null]
+  }) === 'A');
+  t('utt: mega diag win', TTT.winner({
+    boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
+    boardWinners: ['B', null, null, null, 'B', null, null, null, 'B']
+  }) === 'B');
+  t('utt: all boards decided draw', TTT.winner({
+    boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
+    boardWinners: ['A', 'B', 'A', 'B', 'A', 'B', 'B', 'A', 'draw']
+  }) === 'draw');
 }
 
 /* ---------- Connect Four ---------- */
@@ -38,6 +53,8 @@ const t = (name, cond) => cond ? pass++ : (fail++, console.log('FAIL:', name));
   t('c4: empty no winner', C4.winner(gs) === null);
   for (let i = 0; i < 4; i++) gs = C4.applyMove(gs, 0, 'A').gs;
   t('c4: vertical win', C4.winner(gs) === 'A');
+  t('c4: win line length', (C4.winningCells(gs) || []).length === 4);
+  t('c4: lastDrop set', gs.lastDrop && gs.lastDrop.c === 0 && gs.lastDrop.r === 3);
 
   gs = C4.initialState();
   for (let c = 0; c < 4; c++) gs = C4.applyMove(gs, c, 'B').gs;

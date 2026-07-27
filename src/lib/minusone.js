@@ -1,6 +1,7 @@
 // src/lib/minusone.js — RPS Minus One pure helpers.
 
-export const WIN_SCORE = 5;
+/** Best of 5 = first to 3 points. */
+export const WIN_SCORE = 3;
 export const KEEP_SECONDS = 8;     // soft countdown in the minus-one phase
 
 export const GESTURES = {

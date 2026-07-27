@@ -7,13 +7,14 @@ export const RULES = {
   /* ================= turn-based classics ================= */
 
   ttt: {
-    goal: 'Get three of your marks in a row.',
+    goal: 'Win three small boards in a row on the big board.',
     how: [
-      'Take turns placing your mark on the 3\u00d73 grid.',
-      'Three in a row \u2014 across, down, or diagonal \u2014 wins the round.',
-      'If the grid fills with no line, it\u2019s a draw.'
+      'The field is nine tic-tac-toe boards arranged as one big 3\u00d73.',
+      'On your turn, play a mark on any open small board.',
+      'Win a small board with three-in-a-row \u2014 it becomes your mark on the big board.',
+      'Three small-board wins in a row (across, down, or diagonal) wins the match 1\u20130. No path left? Draw.'
     ],
-    tip: 'Take the center. If it\u2019s gone, take a corner.'
+    tip: 'Fight on more than one board at once — threats on two fronts are hard to stop.'
   },
 
   connect4: {
@@ -27,7 +28,7 @@ export const RULES = {
   },
 
   dots: {
-    goal: 'Claim the most boxes out of 16.',
+    goal: 'Claim the most boxes out of 36.',
     how: [
       'Take turns drawing one edge between two dots.',
       'Complete the fourth side of a box \u2014 it\u2019s yours, and you go again.',
@@ -242,7 +243,7 @@ export const RULES = {
     how: [
       'Veilcourt: 7 characters \u00d7 3 = 21 cards, shuffled once. Three hidden cards each. Both players start with 2 coins.',
       'Always: Wage +1 · Governmental aid +2 (Taxman can block) · Exposition pay 7 to kill (forced at 10+). When hit by Exposition (or any kill), pay 9 Corruption to defend and keep your card.',
-      'Businesswoman +4 · Terrorist pay 3 to kill · Politician exchanges · Thief steals 2 (Thief blocks) · Colonel accuses for 4 / blocks Terrorist · Taxman taxes 7+ or skims deals · Cop inspects and may swap (Cop blocks Cop).',
+      'Businesswoman +4 · Terrorist pay 3 to kill · Politician draws as many as they hold (then keeps that many) · Thief steals 2 if target has 2+ (Thief blocks) · Colonel accuses for 4 / blocks Terrorist · Taxman taxes 7+ or skims deals · Cop inspects and may swap (Cop blocks Cop).',
       'Claim any character anytime. Challenges are free \u2014 liars lose a card; truthful claimers force the challenger to lose one. On your turn, actions matching your live cards are marked so you can play them without bluffing.',
       'The deck never reshuffles: returned cards go under the bottom. Count everything.'
     ],
@@ -261,12 +262,12 @@ export const RULES = {
   },
 
   minusone: {
-    goal: 'Win classic RPS with the hand you keep \u2014 first to 5 points.',
+    goal: 'Win classic RPS with the hand you keep \u2014 best of 5 (first to 3).',
     how: [
       'Throw with BOTH hands (rock, paper, or scissors on left and right), then Lock. Nothing shows until both of you lock.',
       'All four hands appear \u2014 theirs across the table, yours below.',
       'Minus one: an 8-second countdown both of you see. Tap the hand you KEEP; the other vanishes. Choices stay secret until both are in. Time out and each player who has not picked gets their own random left/right keep (they can differ).',
-      'The kept hands duel classic RPS. Draw = no point. First to 5 wins the match.'
+      'The kept hands duel classic RPS. Draw = no point. Best of 5 — first to 3 wins the match.'
     ],
     tip: 'The mind-game is the keep \u2014 you can see both of their throws before you choose.'
   },

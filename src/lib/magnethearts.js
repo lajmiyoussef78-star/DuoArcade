@@ -46,9 +46,8 @@ export const MH = {
   POD_R: 60,
   ITEM_R: 30,
   ACC: 620, FRICTION: 3.2, MAXV: 300,
-  MAG_R: 170,
-  MAG_PULL: 480,
-  PICK_R: 110,
+  // Contact at the magnet mouth only — not a wide field.
+  PICK_R: 98,
   CARRY_MAX: 1,
   // Held item sits in the magnet mouth (matches drawMagneteer attach).
   MAG_HOLD: 90,
@@ -61,7 +60,8 @@ export const MH = {
   SPAWN_EVERY: 1.05,
   FIELD_CAP: 5,
   SPAWN_MIN_DIST: 200,
-  HEART_SIZE: 78,
+  // Matches the bomb's visual footprint (ITEM_R 30 → ~60px round body).
+  HEART_SIZE: 112,
   PTS: { heart: 1, gold: 2, bomb: -2 }
 };
 
@@ -119,7 +119,13 @@ export function mhInitial(seed) {
   };
 }
 
-export function mhStep(st, inputs, dt) {
+/**
+ * @param {object} [opts]
+ * @param {object} [opts.poseLock] — { A?: pod, B?: pod } owner-authored poses.
+ *   Locked pods are NOT driven by input (independent move + sync).
+ */
+export function mhStep(st, inputs, dt, opts = {}) {
+  const poseLock = opts.poseLock || {};
   const s = JSON.parse(JSON.stringify(st));
   s.events = [];
   if (s.over) return s;
@@ -141,6 +147,16 @@ export function mhStep(st, inputs, dt) {
 
   for (const r of ['A', 'B']) {
     const p = s.pods[r];
+    if (poseLock[r]) {
+      const src = poseLock[r];
+      p.x = src.x; p.y = src.y;
+      p.vx = src.vx || 0; p.vy = src.vy || 0;
+      if (src.fx != null) p.fx = src.fx;
+      if (src.fy != null) p.fy = src.fy;
+      p.x = Math.max(MH.POD_R, Math.min(MH.W - MH.POD_R, p.x));
+      p.y = Math.max(MH.POD_R, Math.min(MH.H - MH.POD_R, p.y));
+      continue;
+    }
     const inp = inputs[r] || { x: 0, y: 0 };
     const mag = Math.hypot(inp.x, inp.y);
     if (mag > 0.01) {
@@ -163,11 +179,14 @@ export function mhStep(st, inputs, dt) {
     const d = Math.hypot(dx, dy), min = MH.POD_R * 2;
     if (d > 0 && d < min) {
       const nx = dx / d, ny = dy / d, push = (min - d) / 2;
-      a.x -= nx * push; a.y -= ny * push;
-      b.x += nx * push; b.y += ny * push;
-      const avx = a.vx, avy = a.vy;
-      a.vx = b.vx * 0.7; a.vy = b.vy * 0.7;
-      b.vx = avx * 0.7; b.vy = avy * 0.7;
+      // Never shove a pose-locked pod — that player owns their position.
+      if (!poseLock.A) { a.x -= nx * push; a.y -= ny * push; }
+      if (!poseLock.B) { b.x += nx * push; b.y += ny * push; }
+      if (!poseLock.A && !poseLock.B) {
+        const avx = a.vx, avy = a.vy;
+        a.vx = b.vx * 0.7; a.vy = b.vy * 0.7;
+        b.vx = avx * 0.7; b.vy = avy * 0.7;
+      }
     }
   }
 
@@ -180,25 +199,34 @@ export function mhStep(st, inputs, dt) {
       it.cd = 0.55;
       it.vx = p.fx * MH.THROW_V + p.vx * 0.4;
       it.vy = p.fy * MH.THROW_V + p.vy * 0.4;
+      s.events.push({
+        kind: 'throw', side: r, type: it.type,
+        x: it.x, y: it.y, vx: it.vx, vy: it.vy
+      });
     }
+  }
+
+  // One catch per magnet. While carrying, no further pickup at all.
+  const carrying = { A: false, B: false };
+  for (const it of s.items) {
+    if (it.held === 'A') carrying.A = true;
+    if (it.held === 'B') carrying.B = true;
   }
 
   for (const it of s.items) {
     if (it.held) continue;
     if (it.cd) it.cd = Math.max(0, it.cd - dt);
-    for (const r of ['A', 'B']) {
-      if (it.cd) break;
-      const p = s.pods[r];
-      const dx = p.x - it.x, dy = p.y - it.y;
-      const d = Math.hypot(dx, dy);
-      if (d < MH.MAG_R && d > 1) {
-        const f = MH.MAG_PULL * (1 - d / MH.MAG_R);
-        it.vx += (dx / d) * f * dt;
-        it.vy += (dy / d) * f * dt;
-      }
-      if (d < MH.PICK_R) {
-        const carrying = s.items.filter(x => x.held === r).length;
-        if (carrying < MH.CARRY_MAX) { it.held = r; it.vx = 0; it.vy = 0; }
+    if (!it.cd) {
+      for (const r of ['A', 'B']) {
+        if (carrying[r]) continue;
+        const p = s.pods[r];
+        const d = Math.hypot(p.x - it.x, p.y - it.y);
+        if (d < MH.PICK_R) {
+          it.held = r;
+          it.vx = 0; it.vy = 0;
+          carrying[r] = true;
+          break;
+        }
       }
     }
     if (it.held) continue;
@@ -214,14 +242,18 @@ export function mhStep(st, inputs, dt) {
       const overlap = touch - d;
       it.x += nx * overlap * 0.88;
       it.y += ny * overlap * 0.88;
-      p.x -= nx * overlap * 0.12;
-      p.y -= ny * overlap * 0.12;
+      if (!poseLock[r]) {
+        p.x -= nx * overlap * 0.12;
+        p.y -= ny * overlap * 0.12;
+      }
       const rel = (p.vx - it.vx) * nx + (p.vy - it.vy) * ny;
       if (rel > 0) {
         it.vx += nx * rel * MH.BUMP;
         it.vy += ny * rel * MH.BUMP;
-        p.vx -= nx * rel * MH.POD_RECOIL;
-        p.vy -= ny * rel * MH.POD_RECOIL;
+        if (!poseLock[r]) {
+          p.vx -= nx * rel * MH.POD_RECOIL;
+          p.vy -= ny * rel * MH.POD_RECOIL;
+        }
       }
     }
 
@@ -265,13 +297,20 @@ export function mhStep(st, inputs, dt) {
     p.y = Math.max(MH.POD_R, Math.min(MH.H - MH.POD_R, p.y));
   }
 
+  // Enforce one held item per seat; seat it in the magnet mouth only.
   for (const r of ['A', 'B']) {
     const p = s.pods[r];
     const held = s.items.filter(i => i.held === r);
+    if (held.length > MH.CARRY_MAX) {
+      for (let i = MH.CARRY_MAX; i < held.length; i++) {
+        held[i].held = null;
+        held[i].cd = 0.25;
+      }
+      held.length = MH.CARRY_MAX;
+    }
     const ang = Math.atan2(p.fy, p.fx);
     const c = Math.cos(ang), sn = Math.sin(ang);
     for (const it of held) {
-      // Seat the single catch in the magnet mouth (opening faces outward).
       it.x = p.x + c * MH.MAG_HOLD - sn * MH.MAG_HOLD_SIDE;
       it.y = p.y + sn * MH.MAG_HOLD + c * MH.MAG_HOLD_SIDE;
       it.vx = 0; it.vy = 0;
@@ -287,7 +326,10 @@ export function mhStep(st, inputs, dt) {
         if (Math.hypot(it.x - z.x, it.y - z.y) <= MH.ZONE_R) {
           const pts = MH.PTS[it.type];
           s.score[r] += pts;
-          s.events.push({ kind: it.type === 'bomb' ? 'boom' : 'bank', side: r, pts, x: it.x, y: it.y });
+          s.events.push({
+            kind: it.type === 'bomb' ? 'boom' : 'bank',
+            side: r, pts, type: it.type, x: it.x, y: it.y
+          });
           banked = true;
           break;
         }
@@ -302,4 +344,335 @@ export function mhStep(st, inputs, dt) {
     s.winner = s.score.A > s.score.B ? 'A' : s.score.B > s.score.A ? 'B' : 'D';
   }
   return s;
+}
+
+export function cloneMh(st) {
+  return JSON.parse(JSON.stringify(st));
+}
+
+/** Slim payload for RT — drop ephemeral event list. */
+export function packMh(st) {
+  const s = cloneMh(st);
+  s.events = [];
+  return s;
+}
+
+function clampPod(p) {
+  p.x = Math.max(MH.POD_R, Math.min(MH.W - MH.POD_R, p.x));
+  p.y = Math.max(MH.POD_R, Math.min(MH.H - MH.POD_R, p.y));
+}
+
+export function integratePod(p, inp, dt) {
+  const mag = Math.hypot(inp.x || 0, inp.y || 0);
+  if (mag > 0.01) {
+    const nx = (inp.x || 0) / Math.max(1, mag);
+    const ny = (inp.y || 0) / Math.max(1, mag);
+    p.vx += nx * MH.ACC * dt;
+    p.vy += ny * MH.ACC * dt;
+    p.fx = nx; p.fy = ny;
+  }
+  p.vx -= p.vx * MH.FRICTION * dt;
+  p.vy -= p.vy * MH.FRICTION * dt;
+  const v = Math.hypot(p.vx, p.vy);
+  if (v > MH.MAXV) { p.vx *= MH.MAXV / v; p.vy *= MH.MAXV / v; }
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+  clampPod(p);
+}
+
+export function seatHeld(s, r) {
+  const p = s.pods[r];
+  if (!p) return;
+  const held = s.items.filter(i => i.held === r);
+  // One item only — drop extras.
+  for (let i = MH.CARRY_MAX; i < held.length; i++) {
+    held[i].held = null;
+    held[i].cd = 0.25;
+  }
+  const keep = held.slice(0, MH.CARRY_MAX);
+  const ang = Math.atan2(p.fy, p.fx);
+  const c = Math.cos(ang), sn = Math.sin(ang);
+  for (const it of keep) {
+    it.x = p.x + c * MH.MAG_HOLD - sn * MH.MAG_HOLD_SIDE;
+    it.y = p.y + sn * MH.MAG_HOLD + c * MH.MAG_HOLD_SIDE;
+    it.vx = 0; it.vy = 0;
+  }
+}
+
+/**
+ * Pure visual coast from a host snapshot — velocity/friction only.
+ * No magnet pull, pickups, banks, or spawns (those are host-only).
+ */
+export function mhCoast(st, dt) {
+  if (!st || st.over) return st;
+  const s = cloneMh(st);
+  s.events = [];
+  for (const r of ['A', 'B']) {
+    const p = s.pods[r];
+    p.vx -= p.vx * MH.FRICTION * dt;
+    p.vy -= p.vy * MH.FRICTION * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    clampPod(p);
+  }
+  for (const it of s.items) {
+    if (it.held) continue;
+    if (it.cd) it.cd = Math.max(0, it.cd - dt);
+    it.vx -= it.vx * MH.ITEM_FRICTION * dt;
+    it.vy -= it.vy * MH.ITEM_FRICTION * dt;
+    it.x += it.vx * dt;
+    it.y += it.vy * dt;
+    const edge = MH.ITEM_R;
+    if (it.x < edge) { it.x = edge; it.vx = Math.abs(it.vx) * 0.5; }
+    if (it.x > MH.W - edge) { it.x = MH.W - edge; it.vx = -Math.abs(it.vx) * 0.5; }
+    if (it.y < edge) { it.y = edge; it.vy = Math.abs(it.vy) * 0.5; }
+    if (it.y > MH.H - edge) { it.y = MH.H - edge; it.vy = -Math.abs(it.vy) * 0.5; }
+  }
+  seatHeld(s, 'A');
+  seatHeld(s, 'B');
+  s.t += dt;
+  s.left = Math.max(0, MH.MATCH_SECONDS - s.t);
+  return s;
+}
+
+/** Short extrapolate of host truth — never free-sim past ~RTT. */
+export function mhExtrapolate(st, ageSec) {
+  if (!st) return st;
+  let left = Math.max(0, Math.min(ageSec, 0.22));
+  let s = cloneMh(st);
+  while (left > 0) {
+    const step = Math.min(0.016, left);
+    s = mhCoast(s, step);
+    left -= step;
+  }
+  return s;
+}
+
+/**
+ * Roudi: never rewind own pod. Snap only on hard desync; soft-settle when idle.
+ */
+export function reconcilePod(localPod, hostPod, { idle = false } = {}) {
+  if (!localPod) return hostPod ? { ...hostPod } : null;
+  if (!hostPod) return { ...localPod };
+  const dist = Math.hypot(localPod.x - hostPod.x, localPod.y - hostPod.y);
+  if (dist > 220) {
+    return { ...hostPod, fx: localPod.fx, fy: localPod.fy };
+  }
+  if (idle) {
+    const k = 0.18;
+    return {
+      ...localPod,
+      x: localPod.x * (1 - k) + hostPod.x * k,
+      y: localPod.y * (1 - k) + hostPod.y * k,
+      vx: localPod.vx * (1 - k) + hostPod.vx * k,
+      vy: localPod.vy * (1 - k) + hostPod.vy * k
+    };
+  }
+  return { ...localPod };
+}
+
+/** Roudi: instant local throw feel — host still owns real release via `try`. */
+export function mhLocalThrow(st, me) {
+  if (!st?.pods?.[me]) return { st, ids: [] };
+  const s = cloneMh(st);
+  const p = s.pods[me];
+  const ids = [];
+  for (const it of s.items) {
+    if (it.held !== me) continue;
+    it.held = null;
+    it.cd = 0.55;
+    it.vx = p.fx * MH.THROW_V + p.vx * 0.4;
+    it.vy = p.fy * MH.THROW_V + p.vy * 0.4;
+    ids.push(it.id);
+  }
+  return { st: s, ids };
+}
+
+/** Instant local grab feel — host confirms via `grab` / `st`. */
+export function mhOptimisticGrab(st, me) {
+  if (!st?.pods?.[me]) return { st, id: null };
+  const s = cloneMh(st);
+  if (s.items.some(i => i.held === me)) return { st: s, id: null };
+  const p = s.pods[me];
+  let best = null, bestD = Infinity;
+  for (const it of s.items) {
+    if (it.held || it.cd) continue;
+    const d = Math.hypot(it.x - p.x, it.y - p.y);
+    if (d < MH.PICK_R && d < bestD) { best = it; bestD = d; }
+  }
+  if (!best) return { st: s, id: null };
+  best.held = me;
+  best.vx = 0; best.vy = 0;
+  seatHeld(s, me);
+  return { st: s, id: best.id };
+}
+
+/** Host confirm grab from peer (pose-near + free item). */
+export function mhApplyGrab(st, by, itemId, pose) {
+  const s = cloneMh(st);
+  if (pose && s.pods?.[by]) {
+    s.pods[by] = {
+      ...s.pods[by],
+      x: pose.x, y: pose.y,
+      vx: pose.vx || 0, vy: pose.vy || 0,
+      fx: pose.fx ?? s.pods[by].fx,
+      fy: pose.fy ?? s.pods[by].fy
+    };
+    clampPod(s.pods[by]);
+  }
+  if (s.items.some(i => i.held === by)) return { st: s, ok: false };
+  const it = s.items.find(i => i.id === itemId);
+  if (!it || it.held) return { st: s, ok: false };
+  const p = s.pods[by];
+  if (!p || Math.hypot(it.x - p.x, it.y - p.y) > MH.PICK_R * 1.4) {
+    return { st: s, ok: false };
+  }
+  it.held = by;
+  it.vx = 0; it.vy = 0;
+  seatHeld(s, by);
+  return { st: s, ok: true };
+}
+
+/**
+ * Symmetric view for A and B (Roudi A=B):
+ * host items/score + own local pod + peer pose (not st.pods for opponent).
+ */
+export function mhComposeView(hostSnap, me, localPod, peerPose, pendingThrow, pendingGrab) {
+  if (!hostSnap) return null;
+  const view = cloneMh(hostSnap);
+  const opp = me === 'A' ? 'B' : 'A';
+  if (localPod) view.pods[me] = { ...localPod };
+  if (peerPose) view.pods[opp] = { ...peerPose };
+
+  // Optimistic throw wins over pending grab for the same item.
+  const throwIds = new Set(pendingThrow?.ids || []);
+
+  if (pendingGrab?.id != null && !throwIds.has(pendingGrab.id)) {
+    const hostHas = (view.items || []).some(i => i.id === pendingGrab.id && i.held === me);
+    if (!hostHas && pendingGrab.item) {
+      view.items = (view.items || [])
+        .filter(i => i.id !== pendingGrab.id)
+        .concat([{ ...pendingGrab.item, held: me, vx: 0, vy: 0 }]);
+    }
+  }
+
+  // Keep local flight until cleared — do NOT snap to late host trajectory mid-air.
+  if (pendingThrow?.ids?.length && pendingThrow.localItems?.length) {
+    view.items = (view.items || [])
+      .filter(i => !throwIds.has(i.id))
+      .concat(pendingThrow.localItems.map(i => ({ ...i, held: null })));
+  }
+
+  seatHeld(view, me);
+  seatHeld(view, opp);
+  return view;
+}
+
+/**
+ * Drop optimistic throw once host has released and trajectories are close,
+ * or after a hard timeout. Never clear while host still shows held (lag snap).
+ */
+export function mhPendingThrowDone(pending, hostSnap, me, now = performance.now()) {
+  if (!pending?.ids?.length) return true;
+  const age = now - (pending.at || now);
+  if (age > 1100) return true;
+  const hostItems = hostSnap?.items || [];
+  const stillHeld = hostItems.some(
+    i => i.held === me && pending.ids.includes(i.id)
+  );
+  if (stillHeld) return false;
+  // Host released — adopt when close, or after a short grace so we don't hitch.
+  if (age > 420) return true;
+  if (!pending.localItems?.length) return true;
+  for (const li of pending.localItems) {
+    const hi = hostItems.find(i => i.id === li.id);
+    if (!hi || hi.held) return false;
+    if (Math.hypot(li.x - hi.x, li.y - hi.y) > 90) return false;
+  }
+  return true;
+}
+
+/**
+ * FIXBUG soft authority merge.
+ * - Score / winner / holds from authority; clock NEVER rewinds (authority snap
+ *   is ~RTT old — pulling t/spawned back stutters local spawns and the timer).
+ * - Never rewind my hold or my in-flight throw.
+ * - Free items keep full local physics when close (no stale-velocity drag).
+ * - Local spawns the old snapshot doesn't know yet are kept, not deleted.
+ */
+export function mhReconcileDual(local, host, me, { protectIds } = {}) {
+  if (!host) return local;
+  if (!local) return cloneMh(host);
+  const s = cloneMh(local);
+  const protect = new Set(protectIds || []);
+
+  s.score = { A: host.score.A, B: host.score.B };
+  // Monotonic clock: adopt authority time only when we're behind it.
+  s.t = Math.max(local.t, host.t);
+  s.left = Math.max(0, MH.MATCH_SECONDS - s.t);
+  s.spawned = Math.max(local.spawned, host.spawned);
+  s.nextId = Math.max(local.nextId, host.nextId);
+  s.over = host.over;
+  s.winner = host.winner;
+
+  const localById = new Map((s.items || []).map(i => [i.id, i]));
+  const merged = [];
+  const seen = new Set();
+
+  for (const hi of (host.items || [])) {
+    const li = localById.get(hi.id);
+    seen.add(hi.id);
+
+    // In-flight throw: keep local free flight.
+    if (protect.has(hi.id) && li) {
+      merged.push({ ...li, held: null });
+      continue;
+    }
+
+    if (!li) {
+      merged.push({ ...hi });
+      continue;
+    }
+
+    // Own hold: never snap back to free (independent act).
+    if (li.held === me && hi.held !== me && !hi.held) {
+      merged.push({ ...li, held: me, vx: 0, vy: 0 });
+      continue;
+    }
+
+    // Someone else holds on authority — adopt.
+    if (hi.held && hi.held !== me) {
+      merged.push({ ...hi });
+      continue;
+    }
+
+    // Authority confirms I hold — keep local item (seatHeld will place it).
+    if (hi.held === me) {
+      merged.push({ ...li, held: me, vx: 0, vy: 0 });
+      continue;
+    }
+
+    // Both free: local trajectory wins unless hard desync — no velocity drag.
+    const d = Math.hypot(li.x - hi.x, li.y - hi.y);
+    merged.push(d > 200 ? { ...hi, held: null } : { ...li, held: null });
+  }
+
+  for (const li of (s.items || [])) {
+    if (seen.has(li.id)) continue;
+    // Keep: own hold, own in-flight throw, and spawns the authority hasn't
+    // reached yet (its nextId is behind). If authority knows the id but no
+    // longer lists it, it was banked — drop it then, never before.
+    const notSpawnedThere = li.id >= (host.nextId ?? 0);
+    if (protect.has(li.id) || li.held === me || notSpawnedThere) {
+      merged.push(li.held === me ? { ...li } : { ...li, held: null });
+    }
+  }
+
+  s.items = merged;
+  return s;
+}
+
+/** @deprecated use mhComposeView */
+export function mhAdoptHostWorld(hostSnap, me, localPod, pendingThrow) {
+  return mhComposeView(hostSnap, me, localPod, null, pendingThrow, null);
 }

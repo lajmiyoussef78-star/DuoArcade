@@ -31,6 +31,7 @@ import './styles/uno.css';
 import './styles/coup.css';
 import './styles/xp.css';
 import './styles/challenges.css';
+import './styles/seabattle.css';
 
 function ChallengeRedirect() {
   const { code } = useParams();

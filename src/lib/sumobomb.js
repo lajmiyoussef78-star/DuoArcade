@@ -40,12 +40,14 @@ export async function recordSumoBomb(code, winner) {
 export const SB = {
   W: 900, H: 560,
   CX: 450, CY: 280,
-  RING_R: 192,
+  RING_R: 222,
   N_SUMOS: 8,
-  SUMO_R: 30,
-  HIT_R: 38,
+  SUMO_R: 32,
+  HIT_R: 56,            // catch cone — forgiving but not through-the-ring
+  // Neighbors sit ~67.5° off center-aim; sweep must reach past that.
   AIM_VEL: 2.4,         // rad/s — reverses at left/right sweep ends
-  SWEEP_AMP: 1.15,      // ±radians from center (~66°)
+  SWEEP_AMP: 1.45,      // ±radians from center (~83°) so adjacent sumos are reachable
+  MAX_THROW_DIST: 340,  // block opposite-side hits (~444); allow neighbor (~170) / skip-one (~314)
   FLY_V: 720,
   MISS_DUR: 0.75,
   SPIN_T: 1.6,
@@ -95,15 +97,18 @@ export function roundSetup(seed, round) {
 export function targetOf(fromIdx, angle) {
   const from = sumoPos(fromIdx);
   const dx = Math.cos(angle), dy = Math.sin(angle);
-  let best = null, bestProj = Infinity;
+  // Prefer the nearest sumo in the aim cone — never "through the ring" to the far side.
+  let best = null, bestDist = Infinity;
   for (let j = 0; j < SB.N_SUMOS; j++) {
     if (j === fromIdx) continue;
     const p = sumoPos(j);
     const vx = p.x - from.x, vy = p.y - from.y;
+    const dist = Math.hypot(vx, vy);
+    if (dist > SB.MAX_THROW_DIST) continue;
     const proj = vx * dx + vy * dy;
-    if (proj <= 8) continue;
-    const perp = Math.sqrt(Math.max(0, vx * vx + vy * vy - proj * proj));
-    if (perp <= SB.HIT_R && proj < bestProj) { best = j; bestProj = proj; }
+    if (proj <= 8) continue; // behind the thrower
+    const perp = Math.sqrt(Math.max(0, dist * dist - proj * proj));
+    if (perp <= SB.HIT_R && dist < bestDist) { best = j; bestDist = dist; }
   }
   return best;
 }
@@ -183,7 +188,29 @@ function beginTransit(st, x0, y0, toIdx, miss, angle) {
   }
 }
 
-export function sbStep(st, throws, dt) {
+/** Optimistic local throw for responsive guest UX (host still confirms via ev). */
+export function predictThrow(st, angle) {
+  if (!st || st.phase !== 'live' || st.transit || st.bombAt == null) return null;
+  const from = st.bombAt;
+  const p = sumoPos(from);
+  const tgt = targetOf(from, angle);
+  const next = JSON.parse(JSON.stringify(st));
+  beginTransit(next, p.x, p.y, tgt == null ? from : tgt, tgt == null, angle);
+  next.bombAt = null;
+  if (next.fuseT >= next.fuse) next.pendingBoom = true;
+  return next;
+}
+
+/**
+ * @param {object} st
+ * @param {Array} throws
+ * @param {number} dt
+ * @param {{ sweep?: boolean, authority?: boolean }} [opts]
+ *   sweep:false — remote player owns the aim arrow
+ *   authority:false — visual client: no fuse boom / round advance (host pushes those)
+ */
+export function sbStep(st, throws, dt, opts = {}) {
+  const authority = opts.authority !== false;
   const s = JSON.parse(JSON.stringify(st));
   if (s.phase === 'over') return s;
   s.phaseT += dt;
@@ -218,12 +245,12 @@ export function sbStep(st, throws, dt) {
           const wasMiss = s.transit.miss;
           s.transit = null;
           s.bombAt = arrived;
-          if (s.pendingBoom || s.fuseT >= s.fuse) return explode(s, arrived);
+          if (authority && (s.pendingBoom || s.fuseT >= s.fuse)) return explode(s, arrived);
           if (!wasMiss) setHolderAim(s, arrived);
         }
       } else {
-        sweepAim(s, dt);
-        if (s.fuseT >= s.fuse) return explode(s, s.bombAt);
+        if (opts.sweep !== false) sweepAim(s, dt);
+        if (authority && s.fuseT >= s.fuse) return explode(s, s.bombAt);
         for (const th of throws || []) {
           if (s.bombAt == null) break;
           if (ownerOf(s.bombAt) !== th.by) continue;
@@ -239,7 +266,7 @@ export function sbStep(st, throws, dt) {
       break;
     }
     case 'boom': {
-      if (s.phaseT >= SB.BOOM_T) {
+      if (authority && s.phaseT >= SB.BOOM_T) {
         if (s.score.A >= SB.WIN_SCORE || s.score.B >= SB.WIN_SCORE) {
           s.phase = 'over';
           s.winner = s.score.A >= SB.WIN_SCORE ? 'A' : 'B';

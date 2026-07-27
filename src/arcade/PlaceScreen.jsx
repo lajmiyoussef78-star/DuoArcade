@@ -61,7 +61,7 @@ export default function PlaceScreen({
     if (!mins) return null;
     const fav = ENGINES[favoriteGameId(duo)], close = ENGINES[closestGameId(duo)];
     if (mins === 30) return [
-      ['Warm-up', 'Tic-Tac-Toe', 'Two quick rounds to settle in.', '5 min', () => onStartGame('ttt')],
+      ['Warm-up', 'Ultimate Tic-Tac-Toe', 'Nine boards — play anywhere, claim the big grid.', '10 min', () => onStartGame('ttt')],
       ['Main', fav.meta.name, 'Your most-played — the record is on the line.', '20 min', () => onStartGame(fav.meta.id)],
       ['Closer', close.meta.name, 'The tightest record you two have. One decider.', '5 min', () => onStartGame(close.meta.id)]
     ];

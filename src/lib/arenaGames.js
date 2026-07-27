@@ -8,7 +8,7 @@ export const ARENA_GAMES = [
 
 export const ARENA_GAME_INFO = {
   connect4: { art: '● ● ● ●', tagline: 'Drop together. Win together.' },
-  ttt: { art: '× ○ ×', tagline: 'Fast relay rounds for four.' },
+  ttt: { art: '⊞ ⊞ ⊞', tagline: 'Nine boards — claim the big grid.' },
   dots: { art: '□ · □', tagline: 'Captured boxes pass to your partner.' },
   gomoku: { art: '● ● ● ● ●', tagline: 'Five in a row, two minds per team.' },
   hex: { art: '⬡ ⬡ ⬡', tagline: 'Bridge your sides as a relay.' },

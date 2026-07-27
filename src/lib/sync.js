@@ -38,6 +38,8 @@ function normalize(row) {
     theme: row.theme ?? null,
     anniversary: row.anniversary ?? null,
     favoriteGames: Array.isArray(row.favorite_games) ? row.favorite_games : [],
+    fixGames: Array.isArray(row.fix_games) ? row.fix_games : [],
+    daliGames: Array.isArray(row.dali_games) ? row.dali_games : [],
     turn: row.turn ?? '-'
   };
 }
@@ -56,6 +58,8 @@ function denormalize(patch) {
   if ('theme' in patch) out.theme = patch.theme;
   if ('anniversary' in patch) out.anniversary = patch.anniversary;
   if ('favoriteGames' in patch) out.favorite_games = patch.favoriteGames;
+  if ('fixGames' in patch) out.fix_games = patch.fixGames;
+  if ('daliGames' in patch) out.dali_games = patch.daliGames;
   if ('turn' in patch) out.turn = patch.turn;
   return out;
 }
@@ -310,8 +314,7 @@ async function supabaseSync() {
 
     rt(code) {
       /* Shared topic per duo. Wait until SUBSCRIBED before send — otherwise
-         supabase-js falls back to HTTP broadcast (often drops / 500s) and the
-         guest (Splash) looks frozen while the host still plays locally. */
+         supabase-js falls back to HTTP broadcast (often drops / 500s). */
       /** Sole replace-handler (legacy rt.on) + additive subscribers (rt.subscribe). */
       let rcb = () => {};
       const listeners = new Set();
@@ -331,13 +334,24 @@ async function supabaseSync() {
         }
       } catch { /* older clients */ }
 
-      let resolveReady;
-      const ready = new Promise(res => {
-        resolveReady = res;
-        setTimeout(res, 2500);
-      });
       let subscribed = false;
-      const ch = sb.channel(name, { config: { broadcast: { self: false } } })
+      let resolveReady;
+      const readyPromise = new Promise(res => {
+        resolveReady = res;
+        setTimeout(res, 8000);
+      });
+
+      const clonePayload = payload => {
+        try { return JSON.parse(JSON.stringify(payload)); }
+        catch { return payload; }
+      };
+
+      /* Soft ticks may coalesce; critical game events never drop.
+         trail = Laser Wall ink channel (separate from st). */
+      const COALESCE = new Set(['pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim', 'trail']);
+      const CRITICAL = new Set(['try', 'ev', 'throw', 'over', 'nextEnd', 'grab']);
+
+      const ch = sb.channel(name, { config: { broadcast: { ack: false, self: false } } })
         .on('broadcast', { event: 'm' }, p => {
           dispatch(p?.payload);
         })
@@ -348,13 +362,9 @@ async function supabaseSync() {
           }
         });
 
-      /* Coalesce high-frequency pose/state to the latest packet only.
-         Never coalesce claims/done/need* — those are one-shot events. */
       let chain = Promise.resolve();
       let latestByKind = new Map();
       let flushScheduled = false;
-      /* st = stickman/soccer snapshots; state/pose = older aliases; inp = guest input */
-      const COALESCE = new Set(['pose', 'state', 'st', 'inp', 'in', 'trail']);
 
       function flushSoon() {
         if (flushScheduled) return;
@@ -369,7 +379,7 @@ async function supabaseSync() {
           const batch = [...latestByKind.values()];
           latestByKind.clear();
           if (!batch.length) return;
-          ready.then(() => {
+          readyPromise.then(() => {
             for (const p of batch) {
               ch.send({ type: 'broadcast', event: 'm', payload: p }).catch(() => {});
             }
@@ -378,20 +388,25 @@ async function supabaseSync() {
       }
 
       function enqueue(payload) {
-        const kind = payload?.k || '_';
-        if (!COALESCE.has(kind)) {
-          chain = chain.then(() => ready).then(() =>
-            ch.send({ type: 'broadcast', event: 'm', payload }).catch(() => {})
+        const msg = clonePayload(payload);
+        const kind = msg?.k || '_';
+        if (CRITICAL.has(kind) || !COALESCE.has(kind)) {
+          chain = chain.then(() => readyPromise).then(() =>
+            ch.send({ type: 'broadcast', event: 'm', payload: msg }).catch(() => {})
           );
           return chain;
         }
-        latestByKind.set(kind, payload);
+        latestByKind.set(kind, msg);
         flushSoon();
         return chain;
       }
 
       return {
-        ready,
+        /** Promise — Spark Splash and others await `rt.ready`. */
+        ready: readyPromise,
+        /** Boolean helper for Sumo / Curling start gates. */
+        isReady: () => subscribed,
+        whenReady: () => readyPromise.then(() => subscribed),
         send: payload => enqueue(payload),
         on: f => { rcb = f || (() => {}); },
         subscribe: f => {
@@ -439,7 +454,7 @@ function localSync() {
   const blank = (code, nameA, nameB) => ({
     code, nameA, nameB, records: {},
     evenings: 0, streak: 0, bestStreak: 0, tasteAgree: 0, tasteTotal: 0,
-    lastDay: null, session: null, turn: '-', favoriteGames: []
+    lastDay: null, session: null, turn: '-', favoriteGames: [], fixGames: [], daliGames: []
   });
 
   return {
@@ -508,6 +523,26 @@ function localSync() {
       write(code, next);
       bc.postMessage(next);
       return true;
+    },
+    rt(code) {
+      let rcb = () => {};
+      const chName = 'duoarcade-rt-' + code;
+      let ch = null;
+      try {
+        ch = new BroadcastChannel(chName);
+        ch.onmessage = e => { try { rcb(e.data); } catch { /* */ } };
+      } catch { /* BroadcastChannel missing */ }
+      return {
+        send: payload => {
+          try { ch?.postMessage(JSON.parse(JSON.stringify(payload))); }
+          catch { try { ch?.postMessage(payload); } catch { /* */ } }
+        },
+        on: f => { rcb = f; },
+        ready: Promise.resolve(),
+        isReady: () => true,
+        whenReady: async () => true,
+        close: () => { try { ch?.close(); } catch { /* */ } }
+      };
     }
   };
 }

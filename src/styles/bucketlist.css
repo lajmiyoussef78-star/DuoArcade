@@ -1,117 +1,385 @@
-/* Time-locked bucket list */
+/* Time-locked bucket list — simple UI, no jar art */
 
-.arcade-page .bucket-card{
-  width:100%;border-radius:14px;padding:16px 18px;margin-top:0;}
-.arcade-page .bucket-card h3{font-size:16px;margin:0 0 4px;}
-.arcade-page .bucket-card h4{font-size:14px;margin:0 0 4px;}
-.arcade-page .bucket-sub{font-size:12.5px;color:var(--dim);margin:0 0 12px;line-height:1.45;}
+.arcade-page .bucket-card {
+  width: 100%;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-top: 0;
+}
 
-.arcade-page .bucket-form{display:flex;gap:8px;margin-bottom:14px;}
-.arcade-page .bucket-form input{
-  flex:1;min-width:0;background:var(--room2);border:1px solid var(--line);border-radius:10px;
-  color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;}
-.arcade-page .bucket-form input:focus{outline:none;border-color:var(--candle);}
+.arcade-page .bucket-head {
+  margin: 0 0 12px;
+  padding: 0;
+}
 
-.arcade-page .bucket-list{display:flex;flex-direction:column;gap:8px;}
-.arcade-page .bucket-item{
-  border:1px solid var(--line);border-radius:12px;background:var(--room2);
-  padding:10px 12px;display:grid;gap:5px;}
-.arcade-page .bucket-item.reveal.yes{
-  border-color:color-mix(in srgb, var(--good, #4dff9e) 45%, var(--line));
-  background:color-mix(in srgb, var(--good, #4dff9e) 7%, var(--room2));}
-.arcade-page .bucket-item.reveal.no{
-  border-color:color-mix(in srgb, #ff6b6b 40%, var(--line));
-  background:color-mix(in srgb, #ff6b6b 6%, var(--room2));}
-.arcade-page .bucket-text{font-size:14px;font-weight:600;line-height:1.35;}
-.arcade-page .bucket-meta{font-size:10.5px;color:color-mix(in srgb, var(--dim) 80%, transparent);}
-.arcade-page .bucket-meta b{color:var(--text);font-weight:600;}
-.arcade-page .bucket-actions{display:flex;gap:8px;}
-.arcade-page .bucket-actions button{
-  border:none;background:none;color:var(--dim);font-size:11px;cursor:pointer;padding:0;}
-.arcade-page .bucket-actions button:hover{color:var(--candle);}
-.arcade-page .bucket-empty{font-size:12.5px;color:var(--dim);padding:8px 0 4px;}
-.arcade-page .bucket-edit{display:grid;gap:6px;}
-.arcade-page .bucket-edit input{
-  width:100%;background:var(--room2);border:1px solid var(--line);border-radius:10px;
-  color:var(--text);font-size:13px;padding:8px 10px;}
-.arcade-page .bucket-edit-row{display:flex;gap:6px;}
+.arcade-page .bucket-card h3 {
+  font-size: 16px;
+  margin: 0 0 4px;
+  padding: 0;
+}
 
-/* Lock panel */
-.arcade-page .bucket-lockpanel{
-  margin-top:16px;padding:14px;border-radius:14px;
-  border:1px solid color-mix(in srgb, var(--candle) 35%, var(--line));
+.arcade-page .bucket-card h4 {
+  font-size: 14px;
+  margin: 0 0 4px;
+  padding: 0;
+}
+
+.arcade-page .bucket-sub {
+  font-size: 12.5px;
+  color: var(--dim);
+  margin: 0 0 12px;
+  padding: 0;
+  line-height: 1.45;
+}
+
+.arcade-page .bucket-status-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  text-align: center;
+  border: 1px solid color-mix(in srgb, var(--candle, #ffcf3f) 32%, var(--line));
+  background: color-mix(in srgb, var(--room2, #1a1625) 90%, transparent);
+}
+
+.arcade-page .bucket-status-pill.locked {
+  border-color: color-mix(in srgb, var(--candle, #ffcf3f) 45%, var(--line));
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--candle, #ffcf3f) 10%, var(--room2)),
+      var(--room2));
+}
+
+.arcade-page .bucket-status-pill strong {
+  font-family: 'Bungee', 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--candle, #ffcf3f);
+  line-height: 1.1;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-status-pill span,
+.arcade-page .bucket-status-pill em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--dim);
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-status-pill span {
+  color: var(--text);
+}
+
+.arcade-page .bucket-form {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+
+.arcade-page .bucket-form input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  background: var(--room2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 9px 12px;
+}
+
+.arcade-page .bucket-form input:focus {
+  outline: none;
+  border-color: var(--candle);
+}
+
+.arcade-page .bucket-locked-hint {
+  margin: 0 0 10px;
+}
+
+.arcade-page .bucket-locked-wrap {
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-lockpanel {
+  margin-top: 4px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--candle) 35%, var(--line));
   background:
     linear-gradient(160deg,
       color-mix(in srgb, var(--candle) 8%, var(--room2)),
-      var(--room2));}
-.arcade-page .bucket-lockpanel p{font-size:12px;color:var(--dim);margin:0 0 10px;line-height:1.45;}
-.arcade-page .bucket-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.arcade-page .bucket-presets button{
-  border:1px solid var(--line);background:var(--room2);color:var(--dim);
-  border-radius:999px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;}
-.arcade-page .bucket-presets button.on{
-  border-color:var(--candle);color:var(--candle);
-  background:color-mix(in srgb, var(--candle) 12%, var(--room2));}
-.arcade-page .bucket-date{
-  display:block;margin:0 0 10px;background:var(--room2);border:1px solid var(--line);
-  border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
-  padding:8px 12px;color-scheme:dark;}
-.arcade-page .bucket-confirm{
-  margin-top:8px;padding:10px 12px;border-radius:12px;
-  border:1px solid color-mix(in srgb, var(--candle) 45%, var(--line));
-  background:color-mix(in srgb, var(--candle) 8%, transparent);}
-.arcade-page .bucket-confirm p{margin:0 0 8px;}
-.arcade-page .bucket-confirm b{color:var(--candle);}
+      var(--room2));
+}
 
-/* Sealed capsule */
-.arcade-page .bucket-sealed{
-  text-align:center;padding:22px 14px 16px;border-radius:16px;
-  border:1px solid color-mix(in srgb, var(--candle) 40%, var(--line));
-  background:
-    radial-gradient(ellipse 70% 60% at 50% 0%,
-      color-mix(in srgb, var(--candle) 10%, transparent), transparent 70%),
-    var(--room2);}
-.arcade-page .bucket-seal-mark{font-size:34px;margin-bottom:6px;}
-.arcade-page .bucket-countdown{
-  font-family:'Bungee', 'Inter', sans-serif;font-size:22px;color:var(--candle);
-  margin:4px 0 2px;letter-spacing:.02em;}
-.arcade-page .bucket-count{font-size:12px;color:var(--dim);margin-bottom:12px;}
-.arcade-page .bucket-sealed .bucket-form{margin:0 auto;max-width:420px;}
-.arcade-page .bucket-sealed .bucket-sub{margin-bottom:8px;}
+.arcade-page .bucket-lockpanel p {
+  font-size: 12px;
+  color: var(--dim);
+  margin: 0 0 10px;
+  padding: 0;
+  line-height: 1.45;
+}
 
-/* Reveal */
-.arcade-page .bucket-reveal-head{margin-bottom:12px;}
-.arcade-page .bucket-tally{
-  display:inline-block;font-size:13px;color:var(--text);border:1px solid var(--line);
-  border-radius:999px;padding:5px 12px;background:var(--room2);}
-.arcade-page .bucket-tally b{color:var(--good, #4dff9e);}
-.arcade-page .bucket-markrow{display:flex;gap:6px;margin-top:2px;}
-.arcade-page .bucket-markrow button{
-  border:1px solid var(--line);background:var(--room2);color:var(--dim);
-  border-radius:999px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;}
-.arcade-page .bucket-markrow .mark-yes.on{
-  border-color:var(--good, #4dff9e);color:var(--good, #4dff9e);
-  background:color-mix(in srgb, var(--good, #4dff9e) 12%, var(--room2));}
-.arcade-page .bucket-markrow .mark-no.on{
-  border-color:#ff6b6b;color:#ff8a8a;
-  background:color-mix(in srgb, #ff6b6b 12%, var(--room2));}
-.arcade-page .bucket-archive{margin-top:14px;}
+.arcade-page .bucket-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 0;
+}
 
-/* History */
-.arcade-page .bucket-history-toggle{
-  display:block;margin-top:16px;border:none;background:none;color:var(--dim);
-  font-size:11.5px;cursor:pointer;padding:0;text-decoration:underline;}
-.arcade-page .bucket-history-toggle:hover{color:var(--candle);}
-.arcade-page .bucket-history{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
-.arcade-page .bucket-history-entry{
-  border:1px solid var(--line);border-radius:12px;background:var(--room2);padding:10px 12px;}
-.arcade-page .bucket-history-head{
-  display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;
-  font-size:11.5px;color:var(--dim);margin-bottom:6px;}
-.arcade-page .bucket-history-head b{color:var(--candle);}
-.arcade-page .bucket-history-entry ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;}
-.arcade-page .bucket-history-entry li{font-size:12.5px;color:var(--text);line-height:1.4;}
-.arcade-page .bucket-history-entry li.yes{color:var(--good, #4dff9e);}
-.arcade-page .bucket-history-entry li.no{color:color-mix(in srgb, #ff8a8a 80%, var(--dim));}
+.arcade-page .bucket-presets button {
+  border: 1px solid var(--line);
+  background: var(--room2);
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 5px 12px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
 
-.arcade-page .bucket-status{font-size:11.5px;color:var(--dim);margin-top:8px;min-height:16px;}
+.arcade-page .bucket-presets button.on {
+  border-color: var(--candle);
+  color: var(--candle);
+  background: color-mix(in srgb, var(--candle) 12%, var(--room2));
+}
+
+.arcade-page .bucket-date {
+  display: block;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: var(--room2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color-scheme: dark;
+}
+
+.arcade-page .bucket-confirm {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--candle) 45%, var(--line));
+  background: color-mix(in srgb, var(--candle) 8%, transparent);
+}
+
+.arcade-page .bucket-confirm p {
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.arcade-page .bucket-confirm b {
+  color: var(--candle);
+}
+
+.arcade-page .bucket-edit-row {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-reveal-head {
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.arcade-page .bucket-tally {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px;
+  margin: 0;
+  background: var(--room2);
+}
+
+.arcade-page .bucket-tally b {
+  color: var(--good, #4dff9e);
+}
+
+.arcade-page .bucket-reveal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.arcade-page .bucket-reveal-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--room2);
+  padding: 10px 12px;
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.arcade-page .bucket-reveal-item.yes {
+  border-color: color-mix(in srgb, var(--good, #4dff9e) 45%, var(--line));
+  background: color-mix(in srgb, var(--good, #4dff9e) 7%, var(--room2));
+}
+
+.arcade-page .bucket-reveal-item.no {
+  border-color: color-mix(in srgb, #ff6b6b 40%, var(--line));
+  background: color-mix(in srgb, #ff6b6b 6%, var(--room2));
+}
+
+.arcade-page .bucket-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-meta {
+  font-size: 10.5px;
+  color: color-mix(in srgb, var(--dim) 80%, transparent);
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-meta b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.arcade-page .bucket-markrow {
+  display: flex;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-markrow button {
+  border: 1px solid var(--line);
+  background: var(--room);
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 4px 11px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.arcade-page .bucket-markrow .mark-yes.on {
+  border-color: var(--good, #4dff9e);
+  color: var(--good, #4dff9e);
+  background: color-mix(in srgb, var(--good, #4dff9e) 12%, var(--room2));
+}
+
+.arcade-page .bucket-markrow .mark-no.on {
+  border-color: #ff6b6b;
+  color: #ff8a8a;
+  background: color-mix(in srgb, #ff6b6b 12%, var(--room2));
+}
+
+.arcade-page .bucket-archive {
+  margin-top: 14px;
+}
+
+.arcade-page .bucket-empty {
+  font-size: 12.5px;
+  color: var(--dim);
+  padding: 8px 0 4px;
+  margin: 0;
+}
+
+.arcade-page .bucket-history-toggle {
+  display: block;
+  margin-top: 16px;
+  border: none;
+  background: none;
+  color: var(--dim);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.arcade-page .bucket-history-toggle:hover {
+  color: var(--candle);
+}
+
+.arcade-page .bucket-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 0;
+}
+
+.arcade-page .bucket-history-entry {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--room2);
+  padding: 10px 12px;
+  margin: 0;
+}
+
+.arcade-page .bucket-history-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--dim);
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.arcade-page .bucket-history-head b {
+  color: var(--candle);
+}
+
+.arcade-page .bucket-history-entry ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.arcade-page .bucket-history-entry li {
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-page .bucket-history-entry li.yes {
+  color: var(--good, #4dff9e);
+}
+
+.arcade-page .bucket-history-entry li.no {
+  color: color-mix(in srgb, #ff8a8a 80%, var(--dim));
+}
+
+.arcade-page .bucket-status {
+  font-size: 11.5px;
+  color: var(--dim);
+  margin-top: 8px;
+  min-height: 16px;
+  padding: 0;
+}

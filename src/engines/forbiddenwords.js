@@ -37,7 +37,8 @@ export function mount(el, ctx) {
     rt: ctx.rt,
     onComplete: w => {
       if (isHost) finish(w);
-    }
+    },
+    onProceed: () => ctx.onProceed?.()
   }));
 }
 

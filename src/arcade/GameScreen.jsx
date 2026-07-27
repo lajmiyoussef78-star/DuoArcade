@@ -85,24 +85,32 @@ async function exitFullscreen() {
 }
 
 /** Turn-based boards keep the exact same DOM engine interface as before:
- *  eng.render(hostEl, gs, { myRole, turn, winner, onMove }) */
-function TurnBoard({ eng, session, myRole, onMove, paused }) {
+ *  eng.render(hostEl, gs, { myRole, turn, winner, onMove, names, onProceed }) */
+function TurnBoard({ eng, session, myRole, onMove, paused, names, onProceed }) {
   const hostRef = useRef(null);
+  const onProceedRef = useRef(onProceed);
+  useEffect(() => { onProceedRef.current = onProceed; }, [onProceed]);
+  const nameA = names?.A || 'A';
+  const nameB = names?.B || 'B';
   useEffect(() => {
     eng.render(hostRef.current, session.gs, {
       myRole, turn: session.turn, winner: session.winner,
-      onMove: paused ? () => {} : onMove
+      names: { A: nameA, B: nameB },
+      onMove: paused ? () => {} : onMove,
+      onProceed: () => onProceedRef.current?.()
     });
-  }, [eng, session, myRole, onMove, paused]);
+  }, [eng, session, myRole, onMove, paused, nameA, nameB]);
   return <div ref={hostRef} className={paused ? 'gv-board-paused' : undefined} />;
 }
 
 /** Realtime engines mount once per match (game + startedAt) with a broadcast
  *  channel, exactly like the original shell. */
-function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paused }) {
+function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onProceed, paused, frozen }) {
   const hostRef = useRef(null);
   const onFinishRef = useRef(onFinish);
+  const onProceedRef = useRef(onProceed);
   useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
+  useEffect(() => { onProceedRef.current = onProceed; }, [onProceed]);
   const key = session.game + ':' + (session.startedAt || 0);
   useEffect(() => {
     const host = hostRef.current;
@@ -113,7 +121,9 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paus
       rt,
       names,
       code,
-      onFinish: (...args) => onFinishRef.current?.(...args)
+      startedAt: session.startedAt || 0,
+      onFinish: (...args) => onFinishRef.current?.(...args),
+      onProceed: () => onProceedRef.current?.()
     });
     return () => {
       try { eng.unmount(); } catch { /* engine already gone */ }
@@ -124,9 +134,13 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, paus
     try { eng.setPaused?.(paused); } catch { /* optional */ }
   }, [eng, paused, key]);
   return (
-    <div className={'gv-board-wrap' + (paused ? ' paused' : '')}>
+    <div className={
+      'gv-board-wrap'
+      + (paused && !frozen ? ' paused' : '')
+      + (frozen ? ' gv-end-freeze' : '')
+    }>
       <div ref={hostRef} />
-      {paused && <div className="gv-pause-overlay">Paused</div>}
+      {paused && !frozen && <div className="gv-pause-overlay">Paused</div>}
     </div>
   );
 }
@@ -150,6 +164,8 @@ export default function GameScreen({
   const [, forceTick] = useState(0);
   // Local end time — ignore skewed wall clocks on liveAt (was showing 7 vs 3).
   const [goAt, setGoAt] = useState(null);
+  // Connect Four / Gomoku: show the winning line before the result panel.
+  const [revealResult, setRevealResult] = useState(false);
 
   useEffect(() => {
     const syncFs = () => {
@@ -193,6 +209,33 @@ export default function GameScreen({
     }
   }, [s.liveAt, s.phase, s.winner, s.startedAt, s.game]);
 
+  useEffect(() => {
+    if (!s.winner) {
+      setRevealResult(false);
+      return;
+    }
+    if (s.game === 'connect4' && s.winner !== 'draw') {
+      setRevealResult(false);
+      const t = setTimeout(() => setRevealResult(true), 1800);
+      return () => clearTimeout(t);
+    }
+    if (s.game === 'gomoku' && s.winner !== 'draw') {
+      setRevealResult(false);
+      const t = setTimeout(() => setRevealResult(true), 2200);
+      return () => clearTimeout(t);
+    }
+    if (s.game === 'wordrace' || s.game === 'codebreak' || s.game === 'forbiddenwords') {
+      // Manual End round only — do not auto-open or wipe a prior click.
+      return;
+    }
+    if (s.game === 'seabattle') {
+      setRevealResult(false);
+      const t = setTimeout(() => setRevealResult(true), 2400);
+      return () => clearTimeout(t);
+    }
+    setRevealResult(true);
+  }, [s.winner, s.game, s.startedAt]);
+
   const counting = goAt != null && Date.now() < goAt && !s.winner;
   useEffect(() => {
     if (!counting) return;
@@ -203,6 +246,7 @@ export default function GameScreen({
   if (!eng) return null;
   const rules = getRules(s.game);
   const rec = (duo.records || {})[s.game] || { a: 0, b: 0, d: 0 };
+  const series = s.series || s.streak || { a: 0, b: 0, d: 0 };
   const partnerRole = other(myRole);
   const partner = partnerRole === 'A' ? duo.nameA : duo.nameB;
   const paused = !!s.paused;
@@ -237,6 +281,8 @@ export default function GameScreen({
       </div>
     );
   } else if (s.phase === 'lobby' && !s.winner) {
+    const rematchAsk = s.rematchBy && s.rematchBy !== myRole && !s.ready?.[myRole];
+    const rematchWait = s.rematchBy === myRole && !!s.ready?.[myRole] && !s.ready?.[partnerRole];
     board = (
       <div className="gv-panel gv-ready">
         <div className="ready-row">
@@ -252,8 +298,22 @@ export default function GameScreen({
             </div>
           ))}
         </div>
+        {rematchAsk && (
+          <p className="gv-rematch-note">
+            <b>{partner}</b> requested a rematch
+          </p>
+        )}
+        {rematchWait && (
+          <p className="gv-rematch-note dim">
+            Rematch sent — waiting for {partner}…
+          </p>
+        )}
         <button className="btn warm" disabled={!!s.ready?.[myRole]} onClick={onReady}>
-          {s.ready?.[myRole] ? 'Waiting for partner…' : "I'm ready"}
+          {s.ready?.[myRole]
+            ? 'Waiting for partner to ready…'
+            : rematchAsk
+              ? 'Accept rematch'
+              : "I'm ready"}
         </button>
       </div>
     );
@@ -262,25 +322,46 @@ export default function GameScreen({
     board = <div className="countdown-big">{secs}</div>;
     banner = 'get ready…';
   } else if (eng.meta.realtime) {
-    if (!s.winner || eng.meta.keepInGame) {
+    // Keep the live board up during result delay so Word Race / Sea Battle
+    // can show their end reveal before the summary panel.
+    // keepInGame engines (Bomb Tag, Laser Wall, etc.) stay on their own board.
+    if (!s.winner || eng.meta.keepInGame || !revealResult) {
+      const endFreeze = !!s.winner && !revealResult && !eng.meta?.keepInGame
+        && s.game !== 'wordrace'
+        && s.game !== 'forbiddenwords';
       board = (
         <RealtimeBoard eng={eng} session={s} myRole={myRole} sync={sync} code={code}
-          names={{ A: duo.nameA, B: duo.nameB }} paused={paused}
-          onFinish={(w, scores) => onRealtimeFinish(s.game, w, scores)} />
+          names={{ A: duo.nameA, B: duo.nameB }} paused={paused} frozen={endFreeze}
+          onFinish={(w, scores) => onRealtimeFinish(s.game, w, scores)}
+          onProceed={() => setRevealResult(true)} />
       );
-      banner = paused ? 'Game paused' : '';
+      banner = paused
+        ? 'Game paused'
+        : s.winner && s.game === 'seabattle' && !revealResult
+          ? 'Fleet destroyed!'
+          : '';
     } else {
       showRematch = !inChallenge;
     }
   } else {
-    board = <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} paused={paused} />;
-    bannerClass = 'banner' + (s.winner ? ' ' + s.winner : '');
+    board = (
+      <TurnBoard eng={eng} session={s} myRole={myRole} onMove={onMove} paused={paused}
+        names={{ A: duo.nameA, B: duo.nameB }}
+        onProceed={() => setRevealResult(true)} />
+    );
+    bannerClass = 'banner' + (s.winner && revealResult ? ' ' + s.winner : '');
     banner = paused
       ? 'Game paused'
-      : !s.winner
-        ? (s.turn === myRole ? 'Your move' : `${s.turn === 'A' ? duo.nameA : duo.nameB}’s move…`)
-        : '';
-    showRematch = !inChallenge && !!s.winner;
+      : s.winner && s.game === 'connect4' && s.winner !== 'draw' && !revealResult
+        ? 'Four in a row!'
+        : s.winner && s.game === 'gomoku' && s.winner !== 'draw' && !revealResult
+          ? 'Five in a row!'
+          : s.winner && s.game === 'seabattle' && !revealResult
+            ? 'Fleet destroyed!'
+            : !s.winner
+              ? (s.turn === myRole ? 'Your move' : `${s.turn === 'A' ? duo.nameA : duo.nameB}’s move…`)
+              : '';
+    showRematch = !inChallenge && !!s.winner && revealResult;
   }
 
   const winnerName = s.winner === 'A' ? duo.nameA
@@ -288,8 +369,8 @@ export default function GameScreen({
       : null;
   const iWon = s.winner && s.winner === myRole;
   const isDraw = s.winner === 'draw';
-  // keepInGame engines (Bomb Tag, etc.) stay on the board — no shelf result panel
-  const showResult = !!s.winner && !eng.meta?.keepInGame;
+  // keepInGame engines stay on the board — no shelf result panel
+  const showResult = !!s.winner && revealResult && !eng.meta?.keepInGame;
 
   const turnA = !eng.meta.realtime && s.turn === 'A' && !s.winner && s.phase === 'live' && !counting && !paused;
   const turnB = !eng.meta.realtime && s.turn === 'B' && !s.winner && s.phase === 'live' && !counting && !paused;
@@ -377,15 +458,22 @@ export default function GameScreen({
         )}
 
         {!showResult && (
-          <div className="gv-players">
-            <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
-              <div className="dot" /><span>{duo.nameA}</span>
+          <>
+            <div className="gv-players">
+              <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
+                <div className="dot" /><span>{duo.nameA}</span>
+              </div>
+              <div className="tally">{series.a} {'–'} {series.b}</div>
+              <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
+                <div className="dot" /><span>{duo.nameB}</span>
+              </div>
             </div>
-            <div className="tally">{rec.a} {'–'} {rec.b}</div>
-            <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
-              <div className="dot" /><span>{duo.nameB}</span>
-            </div>
-          </div>
+            {s.game === 'codebreak' && s.gs?.secrets?.[myRole] && (
+              <div className="cb-secret-title">
+                Your secret code is : <span>{s.gs.secrets[myRole]}</span>
+              </div>
+            )}
+          </>
         )}
 
         {pausePending === partnerRole && !paused && (
@@ -417,7 +505,9 @@ export default function GameScreen({
                   ? <>{s.gs.scores.A} <span>–</span> {s.gs.scores.B}</>
                   : isDraw
                     ? 'Draw'
-                    : <>{rec.a} <span>–</span> {rec.b}</>}
+                    : s.winner === 'A'
+                      ? <>1 <span>–</span> 0</>
+                      : <>0 <span>–</span> 1</>}
             </div>
             <h3 className="gv-result-title">
               {isDraw
@@ -427,7 +517,8 @@ export default function GameScreen({
                   : `${winnerName} takes the match`}
             </h3>
             <p className="gv-result-series">
-              Series · {rec.a}–{rec.b}{rec.d ? ` · ${rec.d} draws` : ''}
+              Series · {series.a}–{series.b}{series.d ? ` · ${series.d} draws` : ''}
+              {rec.a || rec.b || rec.d ? ` · All-time ${rec.a}–${rec.b}` : ''}
             </p>
             {s.game === 'twotruths' && Array.isArray(s.gs?.roundResults) && s.gs.roundResults.length > 0 && (
               <table className="ttl-recap" aria-label="Round recap">
