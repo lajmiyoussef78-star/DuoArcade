@@ -65,9 +65,9 @@ function pitButton(count, color, clickable, onClick) {
   const b = document.createElement('button');
   b.textContent = count;
   b.style.cssText =
-    `width:46px;height:46px;border-radius:50%;font:700 15px 'JetBrains Mono',monospace;` +
+    `width:100%;max-width:46px;aspect-ratio:1;border-radius:50%;font:700 14px 'JetBrains Mono',monospace;` +
     `background:var(--room2);color:var(--text);border:2px solid ${clickable ? 'var(--candle)' : 'var(--line)'};` +
-    `cursor:${clickable ? 'pointer' : 'default'};box-shadow:inset 0 0 0 2px ${color}22;`;
+    `cursor:${clickable ? 'pointer' : 'default'};box-shadow:inset 0 0 0 2px ${color}22;min-width:0;padding:0;`;
   b.disabled = !clickable;
   if (clickable) b.addEventListener('click', onClick);
   return b;
@@ -76,21 +76,25 @@ function pitButton(count, color, clickable, onClick) {
 export function render(host, gs, { myRole, turn, winner: w, onMove }) {
   host.innerHTML = '';
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
+  wrap.className = 'man-wrap';
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;';
 
   const board = document.createElement('div');
+  board.className = 'man-board';
   board.style.cssText =
-    'display:grid;grid-template-columns:56px repeat(6,50px) 56px;grid-template-rows:50px 50px;' +
+    'display:grid;grid-template-columns:minmax(40px,56px) repeat(6,minmax(36px,1fr)) minmax(40px,56px);' +
+    'grid-template-rows:minmax(40px,50px) minmax(40px,50px);' +
     'gap:4px;align-items:center;justify-items:center;background:var(--room);' +
-    'border:1px solid var(--line);border-radius:18px;padding:12px;';
+    'border:1px solid var(--line);border-radius:18px;padding:10px;' +
+    'width:min(100%,min(520px,calc(100dvh - 300px)));box-sizing:border-box;';
 
   const store = (idx, color) => {
     const d = document.createElement('div');
     d.textContent = gs.pits[idx];
     d.style.cssText =
-      `grid-row:1/3;width:52px;height:100%;border-radius:16px;display:flex;align-items:center;` +
-      `justify-content:center;font:900 20px 'Fraunces',serif;color:${color};` +
-      `background:var(--room2);border:2px solid ${color}55;`;
+      `grid-row:1/3;width:100%;height:100%;border-radius:16px;display:flex;align-items:center;` +
+      `justify-content:center;font:900 clamp(16px,4vw,20px) 'Fraunces',serif;color:${color};` +
+      `background:var(--room2);border:2px solid ${color}55;min-width:0;`;
     return d;
   };
 

@@ -1052,8 +1052,11 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
   justify-content:center;padding:12px 10px 40px;box-sizing:border-box;}
 .arcade-page .gv-screen.gv-kitchen{max-width:min(1280px,calc(100vw - 28px));}
 .arcade-page .gv-stage{
-  width:100%;display:flex;flex-direction:column;align-items:stretch;
-  flex:1;justify-content:center;min-height:0;}
+  width:100%;display:flex;flex-direction:column;align-items:center;
+  flex:1;justify-content:center;min-height:0;background:transparent;}
+.arcade-page .gv-board{
+  width:100%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;background:transparent;}
 .arcade-page .gv-top{
   display:grid;grid-template-columns:minmax(88px,auto) 1fr minmax(88px,auto);
   align-items:center;width:100%;margin-bottom:18px;gap:10px;flex:none;
@@ -1111,133 +1114,479 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 .arcade-page .gv-pause-icon{width:20px;height:20px;display:block;flex:none;}
 .arcade-page .gv-fullscreen{width:42px;height:42px;min-width:42px;padding:0;border-radius:12px;}
 .arcade-page .gv-fs-icon{width:20px;height:20px;display:block;flex:none;}
+/* ── Fullscreen (CSS overlay on .gv-screen) ── */
 .arcade-page .gv-fs-root{width:100%;position:relative;}
-/* True game-only fullscreen — no website chrome inside this element */
-.arcade-page .gv-fs-root.is-fullscreen,
-.arcade-page .gv-fs-root:fullscreen,
-.arcade-page .gv-fs-root:-webkit-full-screen{
+.arcade-page .gv-fs-root,
+.arcade-page .gv-stage,
+.arcade-page .gv-board{background-color:transparent;}
+
+/* In-flow slot + portal host (host moves to body when FS) */
+.arcade-page .gv-fs-slot{
   width:100%;
-  height:100%;
-  max-width:none;
+  max-width:min(1280px,calc(100vw - 28px));
+  margin-left:auto;
+  margin-right:auto;
+  display:block;
   box-sizing:border-box;
-  padding:0;
-  margin:0;
-  overflow-x:hidden;
-  overflow-y:auto;
-  /* Match dark game shells — cream letterboxing looked like a white strip */
-  background:#07080f;
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  justify-content:flex-start;
 }
-.arcade-page .gv-fs-root.is-fullscreen .gv-board,
-.arcade-page .gv-fs-root:fullscreen .gv-board,
-.arcade-page .gv-fs-root:-webkit-full-screen .gv-board{
+@media (min-width:769px) and (max-width:999px){
+  .arcade-page .gv-fs-slot{max-width:min(1100px,calc(100vw - 170px));}
+}
+@media (min-width:1000px){
+  .arcade-page .gv-fs-slot{max-width:min(1400px,calc(100vw - 176px));}
+}
+.arcade-page .gv-fs-slot.is-fullscreen{
+  /* Keep slot in layout as a collapsed spacer; host lives on body while FS. */
+  height:0 !important;
+  min-height:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  border:none !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+.gv-fs-portal{
   width:100%;
-  flex:1;
-  min-height:100%;
-  display:flex;
-  flex-direction:column;
-  background:#07080f;
+  min-height:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+  background:transparent !important;
+  display:block !important;
+  box-sizing:border-box;
 }
-.arcade-page .gv-fs-root.is-fullscreen .gv-board > *,
-.arcade-page .gv-fs-root:fullscreen .gv-board > *,
-.arcade-page .gv-fs-root:-webkit-full-screen .gv-board > *{
-  width:100%;
-  flex:1;
-  min-height:100%;
-  background:#07080f;
+.gv-fs-portal.is-fullscreen{
+  position:fixed !important;
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+  bottom:0 !important;
+  inset:0 !important;
+  z-index:2147483000 !important;
+  width:100vw !important;
+  max-width:none !important;
+  min-width:100vw !important;
+  height:100vh !important;
+  height:100dvh !important;
+  min-height:100vh !important;
+  min-height:100dvh !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  background-color:#191420 !important;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(127,168,255,.16), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(255,127,168,.14), transparent 52%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(255,198,110,.08), transparent 55%) !important;
+  background-repeat:no-repeat !important;
+  background-size:cover !important;
 }
-/* Stickman / kart shells fill fullscreen with the same dark stage */
-.arcade-page .gv-fs-root.is-fullscreen .skr-wrap,
-.arcade-page .gv-fs-root:fullscreen .skr-wrap,
-.arcade-page .gv-fs-root:-webkit-full-screen .skr-wrap,
-.arcade-page .gv-fs-root.is-fullscreen .skr-shell,
-.arcade-page .gv-fs-root:fullscreen .skr-shell,
-.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell{
-  width:100%;
-  height:100%;
-  min-height:100%;
-  border:none;
-  border-radius:0;
-  background:#07080f;
-}
-.arcade-page .gv-fs-root.is-fullscreen .skr-shell .h-screen,
-.arcade-page .gv-fs-root:fullscreen .skr-shell .h-screen,
-.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell .h-screen,
-.arcade-page .gv-fs-root.is-fullscreen .skr-shell .skr-root-menu,
-.arcade-page .gv-fs-root:fullscreen .skr-shell .skr-root-menu,
-.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell .skr-root-menu{
-  height:100%;
-  min-height:100%;
-  background:#07080f;
-}
-/* Fullscreen + kitchen match only: hide chrome and let the canvas fill */
-.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home-hero,
-.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .play-home-hero,
-.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .play-home-hero,
-.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .theme-picker,
-.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .theme-picker,
-.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .theme-picker{
-  display:none !important;
-}
-.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .rsc-kitchen,
-.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .rsc-kitchen,
-.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .rsc-kitchen,
-.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home,
-.arcade-page .gv-fs-root:fullscreen:has(.rsc-match-stage) .play-home,
-.arcade-page .gv-fs-root:-webkit-full-screen:has(.rsc-match-stage) .play-home,
-.arcade-page .gv-fs-root.is-fullscreen .play-home-game.rsc-match-stage,
-.arcade-page .gv-fs-root:fullscreen .play-home-game.rsc-match-stage,
-.arcade-page .gv-fs-root:-webkit-full-screen .play-home-game.rsc-match-stage{
-  width:100%;
-  height:100%;
-  min-height:100%;
-  margin:0;
-  padding:0;
-  border-radius:0 !important;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  background:#0f1a14;
-}
-.arcade-page .gv-fs-root.is-fullscreen .rsc-phaser-host,
-.arcade-page .gv-fs-root:fullscreen .rsc-phaser-host,
-.arcade-page .gv-fs-root:-webkit-full-screen .rsc-phaser-host{
-  flex:1 1 auto;
+/* Native Fullscreen API — covers the whole monitor (browser chrome included) */
+.gv-fs-portal:fullscreen,
+.gv-fs-portal:-webkit-full-screen{
   width:100% !important;
+  min-width:100% !important;
   height:100% !important;
   min-height:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:none !important;
   border-radius:0 !important;
-  background:#0f1a14;
+  background-color:#191420 !important;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(127,168,255,.16), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(255,127,168,.14), transparent 52%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(255,198,110,.08), transparent 55%) !important;
 }
-.arcade-page .gv-fs-root.is-fullscreen .rsc-phaser-host canvas,
-.arcade-page .gv-fs-root:fullscreen .rsc-phaser-host canvas,
-.arcade-page .gv-fs-root:-webkit-full-screen .rsc-phaser-host canvas{
+.gv-fs-portal:fullscreen::backdrop,
+.gv-fs-portal:-webkit-full-screen::backdrop{
+  background-color:#191420 !important;
+}
+html[data-appearance="light"] .gv-fs-portal.is-fullscreen{
+  background-color:var(--night) !important;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 8% -8%, rgba(80,120,200,.12), transparent 58%),
+    radial-gradient(ellipse 70% 48% at 96% 0%, rgba(200,80,120,.10), transparent 52%),
+    radial-gradient(ellipse 50% 40% at 70% 100%, rgba(200,140,60,.08), transparent 55%) !important;
+}
+html[data-appearance="light"] .gv-fs-portal:fullscreen,
+html[data-appearance="light"] .gv-fs-portal:-webkit-full-screen{
+  background-color:var(--night) !important;
+}
+html[data-appearance="light"] .gv-fs-portal:fullscreen::backdrop,
+html[data-appearance="light"] .gv-fs-portal:-webkit-full-screen::backdrop{
+  background-color:var(--night) !important;
+}
+.gv-fs-portal.is-fullscreen > .gv-screen,
+.gv-fs-portal.is-fullscreen > section.gv-screen{
+  position:relative !important;
+  inset:auto !important;
+  top:auto !important;
+  left:auto !important;
+  right:auto !important;
+  bottom:auto !important;
+  flex:1 1 auto !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  height:100% !important;
+  min-height:0 !important;
+  margin:0 !important;
+  border:none !important;
   border-radius:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+  background:transparent !important;
 }
-.arcade-page .gv-fs-exit{
-  position:fixed;
-  top:max(12px, env(safe-area-inset-top));
-  right:max(12px, env(safe-area-inset-right));
-  z-index:100;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:8px 12px;
-  border-radius:999px;
-  border:2px solid rgba(255,255,255,0.45);
-  background:rgba(20, 16, 28, 0.72);
-  color:#fff8e1;
-  font:inherit;
-  font-size:13px;
-  font-weight:700;
-  cursor:pointer;
-  backdrop-filter:blur(8px);
+
+/* Kill page chrome while game FS is open */
+html.gv-fs-on .arcade-page > .topbar,
+html.gv-fs-on .arcade-page .frail,
+html.gv-fs-on .arcade-page .friends-dock,
+html.gv-fs-on .arcade-page .friends-panel,
+html.gv-fs-on .arcade-page .pc-fab,
+html.gv-fs-on .arcade-page .pc-panel{
+  visibility:hidden !important;
+  pointer-events:none !important;
 }
-.arcade-page .gv-fs-exit:hover{background:rgba(20, 16, 28, 0.9);}
-.arcade-page .gv-fs-exit .gv-fs-icon{width:16px;height:16px;}
+html.gv-fs-on,
+html.gv-fs-on body,
+html.gv-fs-on #root{
+  background-color:#191420 !important;
+  overflow:hidden !important;
+}
+html[data-appearance="light"].gv-fs-on,
+html[data-appearance="light"].gv-fs-on body,
+html[data-appearance="light"].gv-fs-on #root{
+  background-color:var(--night) !important;
+}
+
+/* Section fills the portal host (host is the fixed full-screen layer) */
+section.gv-screen.is-fullscreen,
+.arcade-page section.gv-screen.is-fullscreen,
+.arcade-page > .gv-screen.is-fullscreen{
+  position:relative !important;
+  inset:auto !important;
+  top:auto !important;
+  left:auto !important;
+  right:auto !important;
+  bottom:auto !important;
+  z-index:auto !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  height:100% !important;
+  min-height:0 !important;
+  margin:0 !important;
+  border:none !important;
+  border-radius:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  justify-content:flex-start !important;
+  background:transparent !important;
+}
+html[data-appearance="light"] section.gv-screen.is-fullscreen,
+html[data-appearance="light"] .arcade-page section.gv-screen.is-fullscreen,
+html[data-appearance="light"] .arcade-page > .gv-screen.is-fullscreen{
+  background:transparent !important;
+}
+
+.arcade-page .gv-screen.is-fullscreen .gv-fs-root,
+.arcade-page .gv-fs-root.is-fullscreen,
+section.gv-screen.is-fullscreen .gv-fs-root{
+  position:relative !important;
+  flex:1 1 auto !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  justify-content:flex-start !important;
+  background:transparent !important;
+  box-sizing:border-box !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-top,
+section.gv-screen.is-fullscreen .gv-top{
+  flex:none;
+  width:100%;
+  max-width:none;
+  margin:0;
+  border-radius:0;
+  box-sizing:border-box;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-stage,
+section.gv-screen.is-fullscreen .gv-stage{
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow:auto;
+  padding:8px clamp(12px,3vw,28px) 16px;
+  box-sizing:border-box;
+  background:transparent !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-players,
+.arcade-page .gv-fs-root.is-fullscreen .banner,
+section.gv-screen.is-fullscreen .gv-players,
+section.gv-screen.is-fullscreen .banner{
+  flex:none;
+  width:100%;
+  max-width:min(920px,100%);
+  margin-left:auto;
+  margin-right:auto;
+  text-align:center;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-players{margin:0 0 8px;font-size:clamp(13px,1.8vw,15px);}
+.arcade-page .gv-fs-root.is-fullscreen .banner{margin:2px 0 8px;font-size:clamp(15px,2.2vw,20px);}
+
+/* Center play surface for every game — fill the stage */
+.arcade-page .gv-fs-root.is-fullscreen .gv-board,
+section.gv-screen.is-fullscreen .gv-board{
+  width:100% !important;
+  flex:1 1 auto;
+  min-height:0;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:transparent !important;
+  margin:0 !important;
+  max-width:none !important;
+  overflow:auto;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap > div,
+section.gv-screen.is-fullscreen .gv-board > *,
+section.gv-screen.is-fullscreen .gv-board-wrap,
+section.gv-screen.is-fullscreen .gv-board-wrap > div{
+  width:100% !important;
+  max-width:min(1100px,100%) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+  background:transparent !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  max-width:100% !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap > div{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  max-width:100% !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board > *:not(.gv-board-wrap) > *{
+  margin-left:auto !important;
+  margin-right:auto !important;
+  align-self:center !important;
+  max-width:min(1100px,100%);
+}
+
+/* Classic boards — use the viewport */
+.arcade-page .gv-fs-root.is-fullscreen .rev-grid,
+.arcade-page .gv-fs-root.is-fullscreen .gmk-grid,
+.arcade-page .gv-fs-root.is-fullscreen .chk-board{
+  width:min(96vw,calc(100dvh - 220px),900px) !important;
+  max-width:min(96vw,calc(100dvh - 220px),900px) !important;
+  height:min(96vw,calc(100dvh - 220px),900px) !important;
+  aspect-ratio:1 !important;
+  margin:0 auto !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .rev-grid{
+  grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+  grid-template-rows:repeat(8,minmax(0,1fr)) !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gmk-grid{
+  grid-template-columns:repeat(11,minmax(0,1fr)) !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .chk-board{
+  grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+  grid-template-rows:repeat(8,minmax(0,1fr)) !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .chk-board > button{
+  width:100% !important;height:auto !important;aspect-ratio:1 !important;min-width:0 !important;min-height:0 !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .c4-grid,
+.arcade-page .gv-fs-root.is-fullscreen .utt-root,
+.arcade-page .gv-fs-root.is-fullscreen .dots-grid,
+.arcade-page .gv-fs-root.is-fullscreen .mem-grid,
+.arcade-page .gv-fs-root.is-fullscreen .man-board,
+.arcade-page .gv-fs-root.is-fullscreen .race-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .nim-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .quiz-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .wr-root,
+.arcade-page .gv-fs-root.is-fullscreen .cb-root,
+.arcade-page .gv-fs-root.is-fullscreen .ca-shell,
+.arcade-page .gv-fs-root.is-fullscreen .ca-table,
+.arcade-page .gv-fs-root.is-fullscreen .fb-page,
+.arcade-page .gv-fs-root.is-fullscreen .cp-shell,
+.arcade-page .gv-fs-root.is-fullscreen .m1-shell,
+.arcade-page .gv-fs-root.is-fullscreen .ti-shell,
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .bo-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .nf-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .au-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .chkobba-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .dominoes-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .wordgrid-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .magnethearts-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .sumobomb-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .thinice-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .minusone-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .nc-shell,
+.arcade-page .gv-fs-root.is-fullscreen .sea-wrap{
+  width:min(96vw,calc(100dvh - 200px),1040px) !important;
+  max-width:min(96vw,calc(100dvh - 200px),1040px) !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  align-self:center !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .wr-root,
+.arcade-page .gv-fs-root.is-fullscreen .cb-root{
+  width:100% !important;
+  max-width:min(1100px,100%) !important;
+  height:100%;
+  min-height:0;
+  justify-content:center;
+  padding:clamp(12px,2.5vh,28px) clamp(12px,3vw,24px);
+  box-sizing:border-box;
+}
+.arcade-page .gv-fs-root.is-fullscreen .wr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .cb-wrap{
+  justify-content:center !important;
+  align-items:center !important;
+  gap:clamp(24px,4vw,48px);
+}
+.arcade-page .gv-fs-root.is-fullscreen .wr-board{
+  --wr-cell:clamp(48px,min(11vw,11.5vh),76px);
+  grid-template-columns:repeat(5,var(--wr-cell));
+  grid-template-rows:repeat(6,var(--wr-cell));
+}
+.arcade-page .gv-fs-root.is-fullscreen .cb-cell{
+  width:clamp(48px,min(10vw,10vh),70px);
+  height:clamp(48px,min(10vw,10vh),70px);
+  font-size:clamp(20px,3vw,30px);
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-panel,
+.arcade-page .gv-fs-root.is-fullscreen .gv-wait,
+.arcade-page .gv-fs-root.is-fullscreen .gv-ready,
+.arcade-page .gv-fs-root.is-fullscreen .gv-result{
+  margin-left:auto !important;
+  margin-right:auto !important;
+  align-self:center !important;
+  width:min(520px,92vw) !important;
+  max-width:min(520px,92vw) !important;
+}
+
+/* Action / canvas games — fill leftover space under chrome */
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.ssd-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sab-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sdb-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.smr-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sgf-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sr-wrap) .gv-board{
+  align-items:stretch !important;
+  justify-content:stretch !important;
+  overflow:hidden;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.lwd-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.skr-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.rsc-match-stage),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sbt-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.ssd-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sab-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sdb-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.smr-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sgf-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sr-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.lwd-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.skr-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.rsc-match-stage) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sbt-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.ssd-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sab-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sdb-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.smr-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sgf-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sr-wrap) > div{
+  align-items:stretch !important;
+  justify-content:flex-start !important;
+  width:100% !important;
+  max-width:100% !important;
+  height:100% !important;
+  margin:0 !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.lwd-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.skr-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.rsc-match-stage) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sbt-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.ssd-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sab-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sdb-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.smr-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sgf-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sr-wrap) > div > *{
+  width:100% !important;
+  max-width:none !important;
+  height:100% !important;
+  margin:0 !important;
+  align-self:stretch !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell,
+.arcade-page .gv-fs-root.is-fullscreen .lwd-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .sbt-wrap{
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  border-radius:0 !important;
+  background:var(--night) !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home-hero,
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .theme-picker{display:none !important;}
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .rsc-kitchen,
+.arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home,
+.arcade-page .gv-fs-root.is-fullscreen .play-home-game.rsc-match-stage{
+  width:100%;height:100%;min-height:100%;margin:0;padding:0;border-radius:0 !important;
+  display:flex;flex-direction:column;overflow:hidden;background:#0f1a14;
+}
+.arcade-page .gv-fs-root.is-fullscreen .rsc-phaser-host{
+  flex:1 1 auto;width:100% !important;height:100% !important;min-height:100% !important;
+  border-radius:0 !important;background:#0f1a14;
+}
+.arcade-page .gv-fs-root.is-fullscreen .rsc-phaser-host canvas{border-radius:0 !important;}
+
 .arcade-page .gv-rules-note{margin:0 0 12px;text-align:center;font-size:12px;line-height:1.45;color:var(--dim);width:100%;}
 @media (max-width:420px){
   .arcade-page .gv-back span{display:none;}
@@ -1439,8 +1788,8 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   .arcade-page{padding-bottom:calc(72px + env(safe-area-inset-bottom, 0px));}
   .arcade-page .gv-screen{padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px));}
 }
-.arcade-page .gv-players{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin-bottom:14px;font-size:13px;}
-.arcade-page .gv-board{width:100%;display:flex;flex-direction:column;align-items:stretch;}
+.arcade-page .gv-players{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;margin-bottom:8px;font-size:13px;flex:none;}
+.arcade-page .gv-board{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:transparent;}
 .arcade-page .gv-board > div{width:100%;}
 .arcade-page .gv-panel{
   width:min(100%,420px);aspect-ratio:1;max-height:min(420px,70vh);
@@ -1463,15 +1812,66 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .gv-rematch-note{margin:0;text-align:center;font-size:14px;color:var(--candle);max-width:280px;line-height:1.35;}
 .arcade-page .gv-rematch-note b{color:var(--text);}
 .arcade-page .gv-rematch-note.dim{color:var(--dim);}
+.arcade-page .gv-rules-overlay{
+  position:fixed;
+  inset:0;
+  z-index:12000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  box-sizing:border-box;
+  background:rgba(12, 10, 18, .62);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+.arcade-page .gv-fs-root.is-fullscreen .gv-rules-overlay{
+  position:absolute;
+}
 .arcade-page .gv-rules-panel{
-  width:100%;border-radius:14px;padding:14px 18px;margin:0 0 12px;text-align:left;
-  border:1px solid color-mix(in srgb, var(--candle) 28%, var(--line));
-  background:linear-gradient(165deg, color-mix(in srgb, var(--candle) 8%, var(--room)), var(--room));
-  box-shadow:0 12px 28px rgba(0,0,0,.22);}
-.arcade-page .gv-rules-head{font-family:'Fraunces',serif;font-weight:700;font-size:15px;margin-bottom:4px;}
-.arcade-page .gv-rules-goal{color:var(--candle);font-size:13px;font-weight:600;margin-bottom:8px;}
-.arcade-page .gv-rules-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;}
-.arcade-page .gv-rules-tip{margin-top:10px;font-size:12px;color:var(--dim);font-style:italic;}
+  width:min(100%,420px);
+  max-height:min(78dvh,560px);
+  overflow:auto;
+  border-radius:18px;
+  padding:18px 20px 20px;
+  margin:0;
+  text-align:left;
+  border:1px solid color-mix(in srgb, var(--candle) 32%, var(--line));
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, color-mix(in srgb, var(--candle) 12%, transparent), transparent 60%),
+    linear-gradient(165deg, color-mix(in srgb, var(--candle) 8%, var(--room)), var(--room));
+  box-shadow:0 22px 56px rgba(0,0,0,.45), 0 0 0 1px color-mix(in srgb, var(--candle) 10%, transparent) inset;
+  box-sizing:border-box;
+}
+.arcade-page .gv-rules-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+}
+.arcade-page .gv-rules-head{
+  font-family:'Fraunces',serif;font-weight:700;font-size:17px;line-height:1.25;margin:0;padding-top:2px;
+}
+.arcade-page .gv-rules-close{
+  flex:none;
+  width:34px;height:34px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:color-mix(in srgb, var(--night) 35%, var(--room2));
+  color:var(--text);
+  font-size:22px;line-height:1;
+  cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:0;
+}
+.arcade-page .gv-rules-close:hover{
+  border-color:color-mix(in srgb, var(--candle) 50%, var(--line));
+  color:var(--candle);
+}
+.arcade-page .gv-rules-goal{color:var(--candle);font-size:13.5px;font-weight:600;margin-bottom:10px;line-height:1.4;}
+.arcade-page .gv-rules-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;line-height:1.5;}
+.arcade-page .gv-rules-tip{margin-top:12px;font-size:12.5px;color:var(--dim);font-style:italic;line-height:1.45;}
 .arcade-page .gv-pause-request{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   border:1px solid color-mix(in srgb,var(--candle) 45%,var(--line));border-radius:12px;
   background:color-mix(in srgb,var(--candle) 10%,var(--room));padding:10px 14px;margin-bottom:12px;font-size:13px;}
@@ -1523,15 +1923,25 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .pl.B .dot{background:var(--p2);}
 .arcade-page .pl.turn{border-color:var(--line);background:var(--room);}
 .arcade-page .tally{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:17px;color:var(--candle);}
-.arcade-page .banner{margin-top:14px;font-family:'Fraunces',serif;font-weight:700;font-size:18px;min-height:26px;text-align:center;}
+.arcade-page .banner{margin:4px 0 10px;font-family:'Fraunces',serif;font-weight:700;font-size:17px;min-height:24px;text-align:center;flex:none;}
 .arcade-page .banner.A{color:var(--p1);}
 .arcade-page .banner.B{color:var(--p2);}
 .arcade-page .banner.draw{color:var(--candle);}
 .arcade-page #boardHost{background:var(--room);border:1px solid var(--line);border-radius:16px;padding:16px;}
-.arcade-page .utt-root{width:min(100%,440px);margin:0 auto;}
-.arcade-page .utt-hint{font-size:12px;color:var(--dim);text-align:center;margin:0 0 10px;min-height:18px;}
-.arcade-page .utt-mega{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;}
-.arcade-page .utt-mini{position:relative;display:grid;padding:5px;border-radius:12px;border:1px solid var(--line);
+/* UIfriendly: Ultimate Tic-Tac-Toe — centered, ~header-width, fits viewport */
+.arcade-page .utt-root{
+  width:min(100%,min(820px,calc(100dvh - 300px)));
+  max-width:820px;
+  margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;
+  box-sizing:border-box;
+}
+.arcade-page .utt-hint{
+  font-size:12px;color:var(--dim);text-align:center;
+  margin:0 0 8px;min-height:16px;width:100%;
+}
+.arcade-page .utt-mega{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;}
+.arcade-page .utt-mini{position:relative;display:grid;padding:6px;border-radius:14px;border:1px solid var(--line);
   background:color-mix(in srgb,var(--room2) 88%,transparent);transition:border-color .15s,box-shadow .15s,opacity .15s;}
 .arcade-page .utt-mini.next{border-color:color-mix(in srgb,var(--candle) 55%,var(--line));}
 .arcade-page .utt-mini.active{border-color:var(--candle);box-shadow:0 0 0 1px color-mix(in srgb,var(--candle) 40%,transparent),0 0 18px color-mix(in srgb,var(--candle) 18%,transparent);}
@@ -1540,12 +1950,12 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .utt-mini.won-B{border-color:color-mix(in srgb,var(--p2) 50%,var(--line));background:color-mix(in srgb,var(--p2) 10%,var(--room2));}
 .arcade-page .utt-mini.drawn{opacity:.55;}
 .arcade-page .utt-stamp{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2;
-  font-family:'Fraunces',serif;font-size:clamp(36px,10vw,56px);font-weight:900;opacity:.22;}
+  font-family:'Fraunces',serif;font-size:clamp(40px,8vw,72px);font-weight:900;opacity:.22;}
 .arcade-page .utt-stamp.A{color:var(--p1);}
 .arcade-page .utt-stamp.B{color:var(--p2);}
-.arcade-page .utt-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3px;position:relative;z-index:1;}
-.arcade-page .utt-cell{aspect-ratio:1;margin:0;padding:0;border:1px solid var(--line);border-radius:7px;background:var(--room);
-  color:var(--text);font-family:'Fraunces',serif;font-size:clamp(14px,3.6vw,20px);font-weight:900;cursor:pointer;line-height:1;}
+.arcade-page .utt-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;position:relative;z-index:1;}
+.arcade-page .utt-cell{aspect-ratio:1;margin:0;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--room);
+  color:var(--text);font-family:'Fraunces',serif;font-size:clamp(16px,2.8vw,28px);font-weight:900;cursor:pointer;line-height:1;}
 .arcade-page .utt-cell.A{color:var(--p1);}
 .arcade-page .utt-cell.B{color:var(--p2);}
 .arcade-page .utt-cell:disabled{cursor:default;}
@@ -1554,9 +1964,19 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .utt-mini.sendable:hover{background:color-mix(in srgb,var(--candle) 14%,var(--room2));}
 .arcade-page .utt-mini.placing{border-color:color-mix(in srgb,var(--p1) 55%,var(--line));}
 .arcade-page .utt-cell.pending{opacity:.85;}
-.arcade-page .utt-cancel{display:block;margin:12px auto 0;}
+.arcade-page .utt-cancel{display:block;margin:10px auto 0;}
 @keyframes utt-send-pulse{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--candle) 35%,transparent)}50%{box-shadow:0 0 0 2px color-mix(in srgb,var(--candle) 55%,transparent),0 0 18px color-mix(in srgb,var(--candle) 22%,transparent)}}
-.arcade-page .c4-grid{display:grid;grid-template-columns:repeat(7,minmax(36px,1fr));gap:5px;width:min(100%,520px);margin-left:auto;margin-right:auto;overflow:visible;position:relative;}
+@media (max-height:720px){
+  .arcade-page .utt-root{width:min(100%,min(640px,calc(100dvh - 260px)));}
+  .arcade-page .utt-hint{margin-bottom:6px;font-size:11px;min-height:14px;}
+  .arcade-page .utt-mega{gap:6px;}
+  .arcade-page .utt-mini{padding:4px;border-radius:10px;}
+  .arcade-page .utt-grid{gap:2px;}
+  .arcade-page .utt-cell{font-size:clamp(14px,2.4vw,22px);border-radius:6px;}
+  .arcade-page .utt-stamp{font-size:clamp(32px,7vw,56px);}
+}
+.arcade-page .c4-grid{display:grid;grid-template-columns:repeat(7,minmax(36px,1fr));gap:5px;
+  width:min(100%,min(560px,calc(100dvh - 300px)));margin-left:auto;margin-right:auto;overflow:visible;position:relative;}
 .arcade-page .c4-slot{width:100%;aspect-ratio:1;border-radius:50%;background:var(--room2);border:1px solid var(--line);cursor:pointer;position:relative;z-index:1;}
 .arcade-page .c4-slot.A{background:var(--p1);border-color:var(--p1);}
 .arcade-page .c4-slot.B{background:var(--p2);border-color:var(--p2);}
@@ -1582,7 +2002,7 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   0%,100%{filter:brightness(1);box-shadow:0 0 0 3px var(--candle),0 0 14px color-mix(in srgb,var(--candle) 35%,transparent);}
   50%{filter:brightness(1.22);box-shadow:0 0 0 4px var(--candle),0 0 22px color-mix(in srgb,var(--candle) 55%,transparent);}
 }
-.arcade-page .dots-grid{display:grid;width:min(100%,640px);margin-left:auto;margin-right:auto;}
+.arcade-page .dots-grid{display:grid;width:min(100%,min(560px,calc(100dvh - 300px)));margin-left:auto;margin-right:auto;}
 .arcade-page .dots-dot{width:10px;height:10px;border-radius:50%;background:var(--dim);}
 .arcade-page .dots-edge{background:var(--room2);border:none;cursor:pointer;padding:0;border-radius:4px;}
 .arcade-page .dots-edge.h{height:10px;width:100%;}
@@ -1595,15 +2015,72 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .dots-box{width:100%;height:100%;border-radius:6px;}
 .arcade-page .dots-box.A{background:var(--p1s);}
 .arcade-page .dots-box.B{background:var(--p2s);}
-.arcade-page .dots-score{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);margin-top:10px;text-align:center;}
-.arcade-page .rev-grid{display:grid;grid-template-columns:repeat(8,minmax(28px,1fr));grid-template-rows:repeat(8,minmax(28px,1fr));gap:3px;
-            background:var(--room2);padding:8px;border-radius:12px;width:min(100%,520px);margin-left:auto;margin-right:auto;}
+.arcade-page .dots-score{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);margin-top:6px;text-align:center;}
+/* UIfriendly: Reversi — centered, fits with turn banner (no scroll) */
+.arcade-page .gv-board > div:has(.rev-grid){
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.arcade-page .rev-grid{
+  display:grid;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  grid-template-rows:repeat(8,minmax(0,1fr));
+  gap:clamp(3px,.6vw,6px);
+  background:var(--room2);
+  padding:clamp(8px,1.4vw,14px);
+  border-radius:14px;
+  width:min(100%,min(640px,calc(100dvh - 320px)));
+  max-width:100%;
+  aspect-ratio:1;
+  height:auto;
+  margin-left:auto;
+  margin-right:auto;
+  box-sizing:border-box;
+}
 .arcade-page .rev-cell{background:var(--room);border:1px solid var(--line);border-radius:6px;cursor:default;
-            display:flex;align-items:center;justify-content:center;padding:0;aspect-ratio:1;}
+            display:flex;align-items:center;justify-content:center;padding:0;aspect-ratio:1;min-width:0;min-height:0;}
 .arcade-page .rev-cell.hint{cursor:pointer;box-shadow:inset 0 0 0 2px var(--candle);}
 .arcade-page .rev-disc{width:70%;height:70%;border-radius:50%;}
 .arcade-page .rev-disc.A{background:var(--p1);}
 .arcade-page .rev-disc.B{background:var(--p2);}
+/* Checkers / Mancala — responsive boards (same chrome budget as Reversi) */
+.arcade-page .chk-wrap,
+.arcade-page .man-wrap{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+.arcade-page .chk-board{
+  width:min(100%,min(420px,calc(100dvh - 320px))) !important;
+  max-width:100%;
+  aspect-ratio:1 !important;
+  box-sizing:border-box;
+}
+.arcade-page .man-board{
+  width:min(100%,min(520px,calc(100dvh - 300px))) !important;
+  max-width:100%;
+  box-sizing:border-box;
+}
+@media (max-height:720px){
+  .arcade-page .rev-grid{width:min(100%,min(480px,calc(100dvh - 280px)));padding:6px;gap:2px;border-radius:12px;}
+  .arcade-page .banner{margin:2px 0 6px;font-size:15px;min-height:20px;}
+  .arcade-page .gv-players{margin-bottom:6px;}
+  .arcade-page .dots-score{margin-top:4px;}
+  .arcade-page .c4-grid{width:min(100%,min(480px,calc(100dvh - 260px)));}
+  .arcade-page .gmk-grid{width:min(100%,min(440px,calc(100dvh - 260px)));}
+  .arcade-page .mem-grid{width:min(100%,min(400px,calc(100dvh - 260px)));gap:6px;}
+  .arcade-page .dots-grid{width:min(100%,min(480px,calc(100dvh - 260px)));}
+  .arcade-page .utt-root{width:min(100%,min(640px,calc(100dvh - 260px)));}
+  .arcade-page .quiz-wrap{gap:8px;padding:14px;}
+  .arcade-page .chk-board{width:min(100%,min(360px,calc(100dvh - 260px))) !important;}
+  .arcade-page .man-board{width:min(100%,min(440px,calc(100dvh - 260px))) !important;}
+}
 .arcade-page .pong-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
 .arcade-page .pong-canvas{width:100%;max-width:none;border-radius:12px;border:1px solid var(--line);touch-action:none;}
 .arcade-page .pong-score{font-family:'Fraunces',serif;font-weight:900;font-size:22px;}
@@ -1725,7 +2202,7 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .lwd-wrap .lwd-root-menu,
 .arcade-page .lwd-wrap .lwd-root-play{background:#07080f !important;}
 .arcade-page .lwd-wrap .lwd-shell{overflow:visible;}
-.arcade-page .gv-fs-root:not(.is-fullscreen):not(:fullscreen) .lwd-wrap .lwd-canvas{
+.arcade-page .gv-fs-root:not(.is-fullscreen) .lwd-wrap .lwd-canvas{
   width:100%;height:auto;aspect-ratio:1000/600;background:#07080f;
 }
 .arcade-page .sbt-wrap .sbt-shell > div{min-height:0 !important;}
@@ -1736,7 +2213,7 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .sbt-wrap .sbt-lobby{background:#07080f !important;}
 .arcade-page .sbt-wrap .sbt-shell{overflow:visible;}
 /* Embedded (not fullscreen): full column width */
-.arcade-page .gv-fs-root:not(.is-fullscreen):not(:fullscreen) .sbt-wrap .sbt-canvas{
+.arcade-page .gv-fs-root:not(.is-fullscreen) .sbt-wrap .sbt-canvas{
   width:100%;height:auto;aspect-ratio:1000/600;background:#07080f;
 }
 .arcade-page .skr-wrap .skr-shell > div{min-height:0 !important;}
@@ -1744,8 +2221,9 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .ss-hint{text-align:center;max-width:720px;margin-left:auto;margin-right:auto;line-height:1.45;}
 .arcade-page .pong-canvas{max-width:none;}
 .arcade-page .ss-canvas{max-width:none;}
-.arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,minmax(22px,1fr));grid-auto-rows:1fr;gap:2px;
-            background:var(--room2);padding:8px;border-radius:12px;width:min(100%,560px);margin-left:auto;margin-right:auto;aspect-ratio:1;}
+.arcade-page .gmk-grid{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));grid-auto-rows:1fr;gap:2px;
+            background:var(--room2);padding:8px;border-radius:12px;
+            width:min(100%,min(560px,calc(100dvh - 320px)));margin-left:auto;margin-right:auto;aspect-ratio:1;}
 .arcade-page .gmk-cell{background:var(--room);border:1px solid var(--line);border-radius:5px;cursor:pointer;padding:0;
             display:flex;align-items:center;justify-content:center;aspect-ratio:1;}
 .arcade-page .gmk-cell:disabled{cursor:default;}
@@ -1762,7 +2240,8 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   50%{filter:brightness(1.25);transform:scale(1.22);}
 }
 .arcade-page .gmk-over .gmk-cell:not(.gmk-win){opacity:.55;}
-.arcade-page .mem-grid{display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:8px;width:min(100%,480px);margin-left:auto;margin-right:auto;}
+.arcade-page .mem-grid{display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:8px;
+  width:min(100%,min(480px,calc(100dvh - 300px)));margin-left:auto;margin-right:auto;}
 .arcade-page .mem-card{width:100%;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--room2);
             font-size:clamp(22px,5vw,28px);cursor:pointer;transition:transform .12s ease;}
 .arcade-page .mem-card:hover:not(:disabled){transform:scale(1.05);}
@@ -1872,7 +2351,7 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .mem-card{font-size:22px;}
 }
 @media (max-width:460px){
-.arcade-page .rev-grid{width:100%;gap:2px;}
+.arcade-page .rev-grid{width:min(100%,calc(100dvh - 300px));gap:2px;}
 }
 .arcade-page /* watch view */
   .player-wrap{width:100%;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;border:1px solid var(--line);}
@@ -1890,9 +2369,11 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 @media (max-width:460px){
 .arcade-page .c4-grid{grid-template-columns:repeat(7,38px);}
 .arcade-page .c4-slot{width:38px;height:38px;}
-.arcade-page .utt-root{width:100%;}
+.arcade-page .utt-root{width:min(100%,calc(100dvh - 220px));}
 .arcade-page .utt-mega{gap:5px;}
-.arcade-page .utt-cell{font-size:clamp(12px,3.2vw,16px);border-radius:5px;}
+.arcade-page .utt-mini{padding:3px;border-radius:9px;}
+.arcade-page .utt-cell{font-size:clamp(12px,3.2vw,18px);border-radius:5px;}
+.arcade-page .utt-stamp{font-size:clamp(28px,12vw,44px);}
 .arcade-page .dots-grid{grid-template-columns:repeat(4,8px 38px) 8px;grid-template-rows:repeat(4,8px 38px) 8px;}
 .arcade-page .dots-edge.h{width:38px;height:8px;}
 .arcade-page .dots-edge.v{width:8px;height:38px;}
@@ -1904,7 +2385,8 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 }
 
 /* ── Sticks (Nim) ── */
-.arcade-page .nim-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;}
+.arcade-page .nim-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;
+  max-width:min(560px,calc(100dvh - 280px));margin:0 auto;}
 .arcade-page .nim-row{display:flex;gap:10px;min-height:64px;align-items:flex-end;}
 .arcade-page .nim-stick{width:14px;height:60px;border-radius:7px;border:1px solid var(--line);cursor:pointer;padding:0;
   background:linear-gradient(180deg, var(--candle), color-mix(in srgb, var(--candle) 55%, var(--night)));
@@ -1915,7 +2397,8 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 .arcade-page .nim-stick:disabled:not(.gone){cursor:default;}
 
 /* ── Duo Dash (race) ── */
-.arcade-page .race-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;}
+.arcade-page .race-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;
+  max-width:min(640px,calc(100dvh - 280px));margin:0 auto;}
 .arcade-page .race-lanes{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
 .arcade-page .race-lane{display:flex;align-items:center;gap:6px;background:var(--room);border:1px solid var(--line);
   border-radius:999px;padding:5px 12px;min-height:34px;}
@@ -1938,8 +2421,9 @@ html[data-appearance="light"] .arcade-page .frail-pop{
 }
 
 /* ── Couple Quiz + Two Truths & a Lie ── */
-.arcade-page .quiz-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:460px;
-  background:var(--room);border:1px solid var(--line);border-radius:18px;padding:22px;}
+.arcade-page .quiz-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;
+  max-width:min(460px,calc(100dvh - 280px));margin:0 auto;
+  background:var(--room);border:1px solid var(--line);border-radius:18px;padding:18px;}
 .arcade-page .quiz-wrap h3{font-family:'Fraunces',serif;font-weight:900;font-size:19px;text-align:center;line-height:1.3;}
 .arcade-page .quiz-score{display:flex;align-items:center;gap:14px;font-family:'Fraunces',serif;font-weight:900;font-size:22px;}
 .arcade-page .quiz-score .qA{color:var(--p1);text-shadow:0 0 12px color-mix(in srgb, var(--p1) 50%, transparent);}

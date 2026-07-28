@@ -41,9 +41,10 @@ html[data-appearance="light"] {
   color-scheme: light;
 }
 
-html { scroll-behavior: smooth; }
-/* Slim, inset page scrollbar — thin thumb centered in the gutter */
-html{
+html {
+  scroll-behavior: smooth;
+  background: var(--night);
+  min-height: 100%;
   scrollbar-width:thin;
   scrollbar-color:color-mix(in srgb, var(--dim) 55%, transparent) transparent;
 }
@@ -66,4 +67,9 @@ body {
   background: var(--night);
   color: var(--text);
   transition: background-color .2s ease, color .2s ease;
+  min-height: 100%;
+}
+#root {
+  min-height: 100vh;
+  background: var(--night);
 }

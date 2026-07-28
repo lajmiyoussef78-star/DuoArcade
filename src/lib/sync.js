@@ -9,6 +9,8 @@
 //   onDuo(cb); updateDuo(code, patch, {guardTurn, force})
 
 import { CONFIG } from './config.js';
+import { createSupabaseGameRt } from './gameRtSupabase.js';
+import { createSocketGameRt } from './gameRtSocket.js';
 
 function shareUrlFor(code, token) {
   const url = new URL(location.href);
@@ -313,113 +315,33 @@ async function supabaseSync() {
     },
 
     rt(code) {
-      /* Shared topic per duo. Wait until SUBSCRIBED before send — otherwise
-         supabase-js falls back to HTTP broadcast (often drops / 500s). */
-      /** Sole replace-handler (legacy rt.on) + additive subscribers (rt.subscribe). */
-      let rcb = () => {};
-      const listeners = new Set();
-      const dispatch = (payload) => {
-        try { rcb(payload); } catch (e) { console.warn('rt handler', e); }
-        for (const f of listeners) {
-          try { f(payload); } catch (e) { console.warn('rt listener', e); }
-        }
-      };
-      const name = 'rt-' + code;
-      try {
-        for (const c of sb.getChannels()) {
-          const topic = c.topic || '';
-          if (topic === name || topic === 'realtime:' + name || topic.endsWith(':' + name)) {
-            sb.removeChannel(c);
-          }
-        }
-      } catch { /* older clients */ }
+      const makeSupabase = () => createSupabaseGameRt(sb, code);
+      const preferSocket = String(CONFIG.GAME_RT || 'supabase').toLowerCase() === 'socket';
 
-      let subscribed = false;
-      let resolveReady;
-      const readyPromise = new Promise(res => {
-        resolveReady = res;
-        setTimeout(res, 8000);
+      if (!preferSocket) {
+        console.info('[game-rt] transport=supabase', { code });
+        return makeSupabase();
+      }
+
+      console.info('[game-rt] transport=socket (requested)', {
+        code,
+        url: CONFIG.GAME_RT_URL,
       });
 
-      const clonePayload = payload => {
-        try { return JSON.parse(JSON.stringify(payload)); }
-        catch { return payload; }
-      };
-
-      /* Soft ticks may coalesce; critical game events never drop.
-         trail = Laser Wall ink channel (separate from st). */
-      const COALESCE = new Set(['pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim', 'trail']);
-      const CRITICAL = new Set(['try', 'ev', 'throw', 'over', 'nextEnd', 'grab']);
-
-      const ch = sb.channel(name, { config: { broadcast: { ack: false, self: false } } })
-        .on('broadcast', { event: 'm' }, p => {
-          dispatch(p?.payload);
-        })
-        .subscribe(status => {
-          if (status === 'SUBSCRIBED' && !subscribed) {
-            subscribed = true;
-            resolveReady();
+      return createSocketGameRt({
+        code,
+        url: CONFIG.GAME_RT_URL,
+        kind: 'duo',
+        getAccessToken: async () => {
+          try {
+            const { data: { session } } = await sb.auth.getSession();
+            return session?.access_token ?? null;
+          } catch {
+            return null;
           }
-        });
-
-      let chain = Promise.resolve();
-      let latestByKind = new Map();
-      let flushScheduled = false;
-
-      function flushSoon() {
-        if (flushScheduled) return;
-        flushScheduled = true;
-        // Don't await prior sends — that serialized lag into every inp/st packet.
-        // Coalesce already keeps only the latest; fire-and-forget after ready.
-        const kick = typeof requestAnimationFrame === 'function'
-          ? (fn) => requestAnimationFrame(fn)
-          : (fn) => setTimeout(fn, 0);
-        kick(() => {
-          flushScheduled = false;
-          const batch = [...latestByKind.values()];
-          latestByKind.clear();
-          if (!batch.length) return;
-          readyPromise.then(() => {
-            for (const p of batch) {
-              ch.send({ type: 'broadcast', event: 'm', payload: p }).catch(() => {});
-            }
-          });
-        });
-      }
-
-      function enqueue(payload) {
-        const msg = clonePayload(payload);
-        const kind = msg?.k || '_';
-        if (CRITICAL.has(kind) || !COALESCE.has(kind)) {
-          chain = chain.then(() => readyPromise).then(() =>
-            ch.send({ type: 'broadcast', event: 'm', payload: msg }).catch(() => {})
-          );
-          return chain;
-        }
-        latestByKind.set(kind, msg);
-        flushSoon();
-        return chain;
-      }
-
-      return {
-        /** Promise — Spark Splash and others await `rt.ready`. */
-        ready: readyPromise,
-        /** Boolean helper for Sumo / Curling start gates. */
-        isReady: () => subscribed,
-        whenReady: () => readyPromise.then(() => subscribed),
-        send: payload => enqueue(payload),
-        on: f => { rcb = f || (() => {}); },
-        subscribe: f => {
-          if (typeof f !== 'function') return () => {};
-          listeners.add(f);
-          return () => listeners.delete(f);
         },
-        close: () => {
-          listeners.clear();
-          rcb = () => {};
-          try { sb.removeChannel(ch); } catch { /* already gone */ }
-        }
-      };
+        createFallback: makeSupabase,
+      });
     },
 
     async updateDuo(code, patch, { guardTurn = null, force = false } = {}) {

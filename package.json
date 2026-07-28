@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "server:dev": "npm run dev --prefix server",
+    "server:start": "npm run start --prefix server",
     "test:engines": "node src/engines/test.mjs",
     "test:arena": "node src/lib/arenaLogic.test.mjs",
     "test:xp": "node scripts/test-xp-pure.mjs",
@@ -17,7 +19,8 @@
     "phaser": "^3.88.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.0"
+    "react-router-dom": "^6.26.0",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

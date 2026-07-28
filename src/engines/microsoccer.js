@@ -1,4 +1,7 @@
-// Micro Soccer — realtime car soccer, host-authoritative.
+// Micro Soccer — realtime car soccer.
+// Ball: host authoritative; guest converges render → latest snapshot (no delayed buffer).
+// Snapshot rate: VITE_SOC_NET_HZ=20|60 (experiment). Remote cars: interp buffers.
+// Transport via sync.rt().
 
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';

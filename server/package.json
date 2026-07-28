@@ -1,0 +1,21 @@
+{
+  "name": "duoarcade-game-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DuoArcade Socket.IO game relay (Step 1 — server only, not wired to the React client yet)",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

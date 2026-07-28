@@ -124,11 +124,13 @@ export function render(host, gs, ctx) {
 
   host.innerHTML = '';
   const wrap = document.createElement('div');
+  wrap.className = 'chk-wrap';
   wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;';
   const board = document.createElement('div');
+  board.className = 'chk-board';
   board.style.cssText =
-    `display:grid;grid-template-columns:repeat(${N},42px);border:2px solid var(--line);` +
-    'border-radius:12px;overflow:hidden;';
+    `display:grid;grid-template-columns:repeat(${N},minmax(0,1fr));border:2px solid var(--line);` +
+    'border-radius:12px;overflow:hidden;width:min(100%,min(420px,calc(100dvh - 320px)));aspect-ratio:1;';
 
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const dark = (r + c) % 2 === 1;
@@ -137,20 +139,20 @@ export function render(host, gs, ctx) {
     const isTarget = targets.some(([tr, tc]) => tr === r && tc === c);
     const cell = document.createElement('button');
     cell.style.cssText =
-      'width:42px;height:42px;border:none;display:flex;align-items:center;justify-content:center;' +
+      'width:100%;aspect-ratio:1;border:none;display:flex;align-items:center;justify-content:center;' +
       `background:${isSel ? 'var(--candles)' : dark ? 'var(--room2)' : 'var(--room)'};` +
       `cursor:${canPlay && (isTarget || (piece?.p === myRole && movable.has(r + ',' + c))) ? 'pointer' : 'default'};` +
-      'padding:0;position:relative;';
+      'padding:0;position:relative;min-width:0;min-height:0;';
     if (isTarget) {
       const hint = document.createElement('div');
-      hint.style.cssText = 'width:12px;height:12px;border-radius:50%;background:var(--candle);opacity:.85;';
+      hint.style.cssText = 'width:28%;height:28%;border-radius:50%;background:var(--candle);opacity:.85;';
       cell.appendChild(hint);
     }
     if (piece) {
       const disc = document.createElement('div');
       disc.style.cssText =
-        'width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-        `font-size:16px;color:#1a1420;background:${piece.p === 'A' ? 'var(--p1)' : 'var(--p2)'};` +
+        'width:70%;height:70%;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+        `font-size:clamp(12px,3.2vw,16px);color:#1a1420;background:${piece.p === 'A' ? 'var(--p1)' : 'var(--p2)'};` +
         `box-shadow:inset 0 -3px 0 rgba(0,0,0,.3);${isSel ? 'outline:2px solid var(--candle);' : ''}`;
       disc.textContent = piece.king ? '\u265A' : '';
       cell.appendChild(disc);

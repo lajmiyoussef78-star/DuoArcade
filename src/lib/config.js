@@ -4,5 +4,20 @@
 
 export const CONFIG = {
   SUPABASE_URL: 'https://bzlerfibdvemuwhxxzdh.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_OeS2MJjlWDzSkcfyGhDw3A_Nkw03_XY'
+  SUPABASE_ANON_KEY: 'sb_publishable_OeS2MJjlWDzSkcfyGhDw3A_Nkw03_XY',
+
+  /**
+   * Live gameplay transport for sync.rt() only.
+   *   'supabase' — existing Realtime broadcast (default)
+   *   'socket'   — DuoArcade Socket.IO game server
+   * Override with Vite env: VITE_GAME_RT=socket|supabase
+   */
+  GAME_RT: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAME_RT)
+    ? String(import.meta.env.VITE_GAME_RT).toLowerCase()
+    : 'supabase',
+
+  /** Socket.IO server URL when GAME_RT=socket */
+  GAME_RT_URL: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAME_RT_URL)
+    ? String(import.meta.env.VITE_GAME_RT_URL)
+    : 'http://127.0.0.1:3001',
 };
