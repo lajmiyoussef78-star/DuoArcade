@@ -342,14 +342,15 @@ export const RULES = {
   },
 
   chkobba: {
-    goal: 'Score Carta, Diamonds, 7aya, Bermila, and Chkobbas \u2014 first to 21 with a 2-point lead.',
+    goal: 'Score kārṭa, dīnārī, barmīla, sabʿa l-ḥayya, and chkobbas — first to 11, 21, or 31.',
     how: [
-      '40-card French deck (Hearts, Diamonds, Clubs, Spades). Cut: keep the cut card (dealt only 2 more) or leave it. Dealer alternates each round.',
-      '3 cards each, 4 on the table. Play a card that captures table cards summing to its value \u2014 or lay it if it cannot.',
-      'Single-card rule: if an equal is on the table, you must take that single, not a longer combo. Clearing the table = Chkobba (+1), except on the round\u2019s final card.',
-      'Values: 1\u20137 as printed, Queen = 8, Lieutenant = 9, King = 10. Diamonds score like classic Dinari; the 7 of Diamonds is 7aya.'
+      '40 cards: pique, cœur, carreau, trèfle × 10. Carreau is dīnārī. Values: ace 1–7, dame 8, valet 9, roi 10. The 7 of carreau is sabʿa l-ḥayya.',
+      'Cut ritual: non-dealer draws a card — keep it (then +2 more; dealer takes 3; 4 on the table) or lay it face up (then +3 to the table; 3 each). Redeal if three of the same value sit on the table.',
+      'Play exactly one card each turn. ʾAkala (eat): match a value, or a sum on the table. Exact match beats addition. Capturing is never compulsory — you may lay instead.',
+      'Clearing the table is a chkobba (+1), face-up on your pile — not on the final trick. Leftovers go to whoever ate last. After empty hands, deal 3 more each (no new table cards).',
+      'End of hand: kārṭa (most cards), dīnārī (most carreau), barmīla (most 7s, else 6s), sabʿa l-ḥayya (7 of carreau). Ties on the first three are bājī. Agree 11 / 21 / 31 before you ready.'
     ],
-    tip: 'Hunt the 7 of Diamonds (7aya) and keep an eye on who is winning Carta.'
+    tip: 'Think in sums — and play fast. Hesitating is bad form; speed itself is a tactic against someone counting the deck.'
   },
 
   dominoes: {

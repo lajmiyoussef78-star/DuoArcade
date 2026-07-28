@@ -3,6 +3,7 @@
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import Chkobba from '../pages/Chkobba.jsx';
+import { DEFAULT_TARGET } from '../lib/chkobba.js';
 
 let root = null;
 let finished = false;
@@ -10,7 +11,7 @@ let finished = false;
 export const meta = {
   id: 'chkobba',
   name: 'Chkobba',
-  tag: 'tunisian · capture · first to 21',
+  tag: 'tunisian · capture · first to 11 / 21 / 31',
   accent: 'candle',
   realtime: true
 };
@@ -36,6 +37,8 @@ export function mount(el, ctx) {
     names: ctx.names,
     rt: ctx.rt,
     code: ctx.code,
+    target: ctx.target || DEFAULT_TARGET,
+    startedAt: ctx.startedAt || 0,
     onComplete: w => {
       if (isHost) finish(w);
     }

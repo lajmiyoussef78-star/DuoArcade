@@ -298,6 +298,8 @@ export default function Arcade() {
       chatEndedPosted: false,
       ...(isChallenge ? { ready: { A: false, B: false } } : {}),
       ...(challengeCtx ? { challengeId: challengeCtx.id, challengeSlot: challengeCtx.slot } : {}),
+      ...(gameId === 'nightcurling' ? { ncEnds: 3 } : {}),
+      ...(gameId === 'chkobba' ? { ckTarget: 21 } : {}),
     };
     const patch = { session, turn: 'A' };
     patchLocal(patch);
@@ -353,6 +355,7 @@ export default function Arcade() {
       chatPostedStart: true, // already announced this shelf visit
       chatEndedPosted: false,
       ...(s.game === 'nightcurling' ? { ncEnds: s.ncEnds || 3 } : {}),
+      ...(s.game === 'chkobba' ? { ckTarget: s.ckTarget || 21 } : {}),
     };
     const patch = { session, turn: eng.meta.realtime ? '-' : starter };
     patchLocal(patch);
@@ -451,6 +454,17 @@ export default function Arcade() {
     await upd(code, { session }, { force: true });
   }, [patchLocal, upd]);
 
+  const setCkTarget = useCallback(async (n) => {
+    const { duo, code } = ctxRef.current;
+    const s = duo.session;
+    if (!s || s.game !== 'chkobba' || s.phase !== 'lobby') return;
+    if (s.ready?.A || s.ready?.B) return;
+    if (![11, 21, 31].includes(n)) return;
+    const session = { ...s, ckTarget: n };
+    patchLocal({ session });
+    await upd(code, { session }, { force: true });
+  }, [patchLocal, upd]);
+
   const realtimeFinish = useCallback(async (gameId, w, scores) => {
     const { duo, code } = ctxRef.current;
     const s = duo.session;
@@ -542,6 +556,7 @@ export default function Arcade() {
         chatPostedStart: true,
         series: s.series || s.streak || { a: 0, b: 0, d: 0 },
         ...(s.game === 'nightcurling' ? { ncEnds: s.ncEnds || 3 } : {}),
+        ...(s.game === 'chkobba' ? { ckTarget: s.ckTarget || 21 } : {}),
       };
       patchLocal({ session });
       const ok = await upd(code, { session }, { force: true });
@@ -984,6 +999,7 @@ export default function Arcade() {
           onRequestPause={requestPause} onRespondPause={respondPause}
           onRealtimeFinish={realtimeFinish}
           onSetNcEnds={setNcEnds}
+          onSetCkTarget={setCkTarget}
         />
       );
     } else {

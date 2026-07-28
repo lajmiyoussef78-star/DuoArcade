@@ -1,28 +1,27 @@
 // src/lib/chkobba.js — Chkobba pure rules engine.
 //
-// Tunisian ruleset as a deterministic lockstep reducer — both clients
-// apply the same moves and can never diverge. Deck order comes from the
-// shared seed (re-shuffled each round).
+// Tunisian café rules (lockstep reducer — both clients apply the same moves).
+// Deck: pique, cœur, carreau, trèfle × 10. Carreau = dīnārī.
+// Values: ace 1 … 7, dame 8, valet 9, roi 10. Sabʿa l-ḥayya = 7 of carreau.
 
-export const TARGET = 21;          // win at 21+ with a 2-point lead
-export const LEAD = 2;
+export const TARGETS = [11, 21, 31];
+export const DEFAULT_TARGET = 21;
 
-// French-suited Chkobba deck: 4 suits x 10 values (1..7, 8=Queen, 9=Lieutenant, 10=King)
-// Diamonds stand in for the classic Dinari scoring suit.
+// French-suited deck; diamonds = carreau (dīnārī scoring suit).
 export const SUITS = {
-  hearts:   { id: 'hearts',   name: 'Hearts',   symbol: '\u2665', color: 'red' },
-  diamonds: { id: 'diamonds', name: 'Diamonds', symbol: '\u2666', color: 'red' },
-  clubs:    { id: 'clubs',    name: 'Clubs',    symbol: '\u2663', color: 'black' },
-  spades:   { id: 'spades',   name: 'Spades',   symbol: '\u2660', color: 'black' }
+  hearts:   { id: 'hearts',   name: 'Cœur',   fr: 'coeur',   symbol: '\u2665', color: 'red' },
+  diamonds: { id: 'diamonds', name: 'Carreau', fr: 'carreau', symbol: '\u2666', color: 'red' },
+  clubs:    { id: 'clubs',    name: 'Trèfle',  fr: 'trefle',  symbol: '\u2663', color: 'black' },
+  spades:   { id: 'spades',   name: 'Pique',   fr: 'pique',   symbol: '\u2660', color: 'black' }
 };
 export const SUIT_IDS = Object.keys(SUITS);
-export const SCORE_SUIT = 'diamonds';
+export const SCORE_SUIT = 'diamonds'; // carreau / dīnārī
 
 export function faceOf(v) {
-  return v === 8 ? 'Q' : v === 9 ? 'L' : v === 10 ? 'K' : String(v);
+  return v === 8 ? 'D' : v === 9 ? 'V' : v === 10 ? 'R' : String(v);
 }
 export function faceName(v) {
-  return v === 8 ? 'Queen' : v === 9 ? 'Lieutenant' : v === 10 ? 'King' : String(v);
+  return v === 8 ? 'Dame' : v === 9 ? 'Valet' : v === 10 ? 'Roi' : v === 1 ? 'Ace' : String(v);
 }
 
 export function mulberry32(seed) {
@@ -46,13 +45,19 @@ export function buildDeck(seed) {
   return deck;
 }
 
-// All subsets of table indices whose values sum to `v`.
+/** All subsets of table indices whose values sum to `v`. */
 export function captureOptions(v, table) {
   const out = [];
-  const n = table.length;
-  for (let mask = 1; mask < (1 << n); mask++) {
+  const list = Array.isArray(table) ? table : [];
+  const n = list.length;
+  // Bitmask subset search — cap width so 1<<n stays safe (and UI stays responsive).
+  if (n === 0 || n > 16) return out;
+  const limit = 1 << n;
+  for (let mask = 1; mask < limit; mask++) {
     let sum = 0;
-    for (let i = 0; i < n; i++) if (mask & (1 << i)) sum += table[i].v;
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) sum += list[i]?.v || 0;
+    }
     if (sum === v) {
       const idxs = [];
       for (let i = 0; i < n; i++) if (mask & (1 << i)) idxs.push(i);
@@ -62,64 +67,114 @@ export function captureOptions(v, table) {
   return out;
 }
 
-// Chkobba/Scopa rule: if a single equal card is on the table, you must
-// take a single card (not a longer combination).
+/**
+ * Legal capture sets for a played value.
+ * Exact match beats addition: if a single equal is on the table,
+ * only that single-card capture is allowed (not a longer sum).
+ * Capturing itself is optional — you may lay instead.
+ */
 export function legalCaptures(v, table) {
   const all = captureOptions(v, table);
   const singles = all.filter(x => x.length === 1);
   return singles.length ? singles : all;
 }
 
-export function initialState(seed) {
+/** Three+ cards of the same value on the table → uncapturable; redeal. */
+export function tableNeedsRedeal(table) {
+  const counts = Object.create(null);
+  for (const c of table || []) {
+    counts[c.v] = (counts[c.v] || 0) + 1;
+    if (counts[c.v] >= 3) return true;
+  }
+  return false;
+}
+
+export function initialState(seed, opts = {}) {
+  const target = TARGETS.includes(opts.target) ? opts.target : DEFAULT_TARGET;
   const st = {
-    seed,
+    seed: seed >>> 0,
+    target,
+    dealSeq: 0,                      // bumps on redeal so shuffle changes
     round: 0,
-    dealer: 'B',                     // A is the cutter & plays first, round 0
+    dealer: 'B',                     // A cuts & plays first in round 0
     totals: { A: 0, B: 0 },
     phase: 'cut',                    // cut | play | roundEnd | over
     winner: null,
-    log: ['New match \u2014 first to 21 with a 2-point lead.'],
-    lastRound: null                  // score breakdown of the finished round
+    log: [`New match — first to ${target}.`],
+    lastRound: null
   };
   startRound(st);
   return st;
 }
 
 export function startRound(st) {
-  const deck = buildDeck((st.seed ^ (st.round * 68968681)) >>> 0);
-  st.deck = deck;
+  const deckSeed = (st.seed ^ (st.round * 68968681) ^ (st.dealSeq * 0x9E3779B9)) >>> 0;
+  st.deck = buildDeck(deckSeed);
   st.table = [];
   st.hands = { A: [], B: [] };
-  st.caps = { A: [], B: [] };        // captured piles
-  st.chk = { A: 0, B: 0 };           // chkobbas this round
+  st.caps = { A: [], B: [] };
+  st.chk = { A: 0, B: 0 };
   st.lastCap = null;
   st.cutKept = false;
-  st.cutCard = st.deck[0];           // the cutter may keep this
-  st.turn = other(st.dealer);        // non-dealer plays first
+  // Cutter draws the top card — keep it or lay it face-up.
+  st.cutCard = st.deck.shift();
   st.cutter = other(st.dealer);
+  st.turn = st.cutter;               // non-dealer leads
   st.phase = 'cut';
-  st.log.push(`Round ${st.round + 1}: ${st.dealer} deals, ${st.cutter} cuts.`);
+  st.log.push(`Hand ${st.round + 1}: ${st.dealer} deals, ${st.cutter} cuts.`);
 }
 
 const other = p => (p === 'A' ? 'B' : 'A');
 const clone = st => JSON.parse(JSON.stringify(st));
 
-function dealHands(st, firstAfterCut) {
-  for (const p of ['A', 'B']) {
-    let n = 3;
-    if (firstAfterCut && st.cutKept && p === st.cutter) n = 2;   // kept the cut card
-    for (let i = 0; i < n; i++) st.hands[p].push(st.deck.shift());
+function dealN(st, side, n) {
+  for (let i = 0; i < n; i++) {
+    if (!st.deck.length) break;
+    st.hands[side].push(st.deck.shift());
   }
 }
 
-function dealTable(st) {
-  for (let i = 0; i < 4; i++) st.table.push(st.deck.shift());
+function pushTable(st, n) {
+  for (let i = 0; i < n; i++) {
+    if (!st.deck.length) break;
+    st.table.push(st.deck.shift());
+  }
 }
 
-function beginPlay(st) {
-  dealHands(st, true);
-  dealTable(st);
+/** After cut choice: always 3 per hand, 4 on table. */
+function finishDealAfterCut(st) {
+  if (st.cutKept) {
+    // Cutter already has the cut card → +2; dealer +3; table +4.
+    dealN(st, st.cutter, 2);
+    dealN(st, st.dealer, 3);
+    pushTable(st, 4);
+  } else {
+    // Cut card already on table → +3 more to table; then 3 each.
+    pushTable(st, 3);
+    dealN(st, 'A', 3);
+    dealN(st, 'B', 3);
+  }
+
+  if (tableNeedsRedeal(st.table)) {
+    st.dealSeq = (st.dealSeq || 0) + 1;
+    st.log.push('Three of a kind on the table — redeal.');
+    startRound(st);
+    return;
+  }
+
   st.phase = 'play';
+  st.turn = st.cutter;
+  st.cutCard = null;
+}
+
+/** Mid-hand refill: 3 each, no new table cards. */
+function refillHands(st) {
+  dealN(st, 'A', 3);
+  dealN(st, 'B', 3);
+}
+
+function matchTarget(st) {
+  return TARGETS.includes(st.target) ? st.target : DEFAULT_TARGET;
 }
 
 function endRound(st) {
@@ -132,9 +187,12 @@ function endRound(st) {
   st.totals.A += score.A.total;
   st.totals.B += score.B.total;
   st.lastRound = score;
-  st.log.push(`Round scored: A +${score.A.total}, B +${score.B.total} (now ${st.totals.A}\u2013${st.totals.B}).`);
+  st.log.push(
+    `Hand scored: A +${score.A.total}, B +${score.B.total} (now ${st.totals.A}\u2013${st.totals.B}).`
+  );
   const { A, B } = st.totals;
-  if ((A >= TARGET || B >= TARGET) && Math.abs(A - B) >= LEAD) {
+  const target = matchTarget(st);
+  if ((A >= target || B >= target) && A !== B) {
     st.winner = A > B ? 'A' : 'B';
     st.phase = 'over';
     st.log.push(`${st.winner} wins the match!`);
@@ -145,10 +203,10 @@ function endRound(st) {
 
 export function scoreRound(caps, chk) {
   const count = p => caps[p].length;
-  const diamonds = p => caps[p].filter(c => c.s === SCORE_SUIT).length;
+  const carreau = p => caps[p].filter(c => c.s === SCORE_SUIT).length;
   const sevens = p => caps[p].filter(c => c.v === 7).length;
   const sixes = p => caps[p].filter(c => c.v === 6).length;
-  const has7aya = p => caps[p].some(c => c.s === SCORE_SUIT && c.v === 7);
+  const hasSabha = p => caps[p].some(c => c.s === SCORE_SUIT && c.v === 7);
 
   const res = {
     A: { total: 0, items: [] },
@@ -157,23 +215,26 @@ export function scoreRound(caps, chk) {
   };
   const award = (p, label) => { res[p].total += 1; res[p].items.push(label); };
 
-  if (count('A') > count('B')) award('A', `Carta (${count('A')} cards)`);
-  else if (count('B') > count('A')) award('B', `Carta (${count('B')} cards)`);
-  else res.beji.push('Carta');
+  // kārṭa — most cards
+  if (count('A') > count('B')) award('A', `Kārṭa (${count('A')} cards)`);
+  else if (count('B') > count('A')) award('B', `Kārṭa (${count('B')} cards)`);
+  else res.beji.push('Kārṭa');
 
-  // Diamonds = classic Dinari suit
-  if (diamonds('A') > diamonds('B')) award('A', `Diamonds (${diamonds('A')})`);
-  else if (diamonds('B') > diamonds('A')) award('B', `Diamonds (${diamonds('B')})`);
-  else res.beji.push('Diamonds');
+  // dīnārī — most carreau
+  if (carreau('A') > carreau('B')) award('A', `Dīnārī (${carreau('A')} carreau)`);
+  else if (carreau('B') > carreau('A')) award('B', `Dīnārī (${carreau('B')} carreau)`);
+  else res.beji.push('Dīnārī');
 
-  if (has7aya('A')) award('A', '7aya');
-  else if (has7aya('B')) award('B', '7aya');
+  // sabʿa l-ḥayya — 7 of carreau (stacks with barmīla if you also win 7s)
+  if (hasSabha('A')) award('A', 'Sabʿa l-ḥayya');
+  else if (hasSabha('B')) award('B', 'Sabʿa l-ḥayya');
 
-  if (sevens('A') > sevens('B')) award('A', 'Bermila (7s)');
-  else if (sevens('B') > sevens('A')) award('B', 'Bermila (7s)');
-  else if (sixes('A') > sixes('B')) award('A', 'Bermila (6s tiebreak)');
-  else if (sixes('B') > sixes('A')) award('B', 'Bermila (6s tiebreak)');
-  else res.beji.push('Bermila');
+  // barmīla — most 7s; tie → most 6s
+  if (sevens('A') > sevens('B')) award('A', 'Barmīla (7s)');
+  else if (sevens('B') > sevens('A')) award('B', 'Barmīla (7s)');
+  else if (sixes('A') > sixes('B')) award('A', 'Barmīla (6s tiebreak)');
+  else if (sixes('B') > sixes('A')) award('B', 'Barmīla (6s tiebreak)');
+  else res.beji.push('Barmīla');
 
   if (chk.A) { res.A.total += chk.A; res.A.items.push(`Chkobba \u00d7${chk.A}`); }
   if (chk.B) { res.B.total += chk.B; res.B.items.push(`Chkobba \u00d7${chk.B}`); }
@@ -182,7 +243,7 @@ export function scoreRound(caps, chk) {
 }
 
 // moves: {t:'cutKeep'} | {t:'cutPass'}      by the cutter
-//        {t:'play', idx, take:[tableIdxs]}  by turn player
+//        {t:'play', idx, take:[tableIdxs]}  by turn player (take=[] = lay; capture optional)
 //        {t:'nextRound'}                    by either, once, at roundEnd
 export function applyMove(state, move, by) {
   const st = clone(state);
@@ -192,16 +253,20 @@ export function applyMove(state, move, by) {
   switch (move.t) {
     case 'cutKeep': {
       if (st.phase !== 'cut' || by !== st.cutter) return fail('Not your cut');
+      if (!st.cutCard) return fail('No cut card');
       st.cutKept = true;
-      st.hands[by].push(st.deck.shift());
-      st.log.push(`${by} keeps the cut card.`);
-      beginPlay(st);
+      st.hands[by].push(st.cutCard);
+      st.log.push(`${by} keeps the cut.`);
+      finishDealAfterCut(st);
       return st;
     }
     case 'cutPass': {
       if (st.phase !== 'cut' || by !== st.cutter) return fail('Not your cut');
-      st.log.push(`${by} leaves the cut.`);
-      beginPlay(st);
+      if (!st.cutCard) return fail('No cut card');
+      st.cutKept = false;
+      st.table.push(st.cutCard);
+      st.log.push(`${by} lays the cut on the table.`);
+      finishDealAfterCut(st);
       return st;
     }
 
@@ -213,13 +278,15 @@ export function applyMove(state, move, by) {
       const take = (move.take || []).slice().sort((a, b) => a - b);
 
       if (take.length === 0) {
-        if (legal.length > 0) return fail('This card can capture \u2014 you must take');
+        // Capturing is never compulsory — laying is always allowed.
         st.hands[by].splice(move.idx, 1);
         st.table.push(card);
         st.log.push(`${by} lays ${faceOf(card.v)} of ${SUITS[card.s].name}.`);
       } else {
-        const ok = legal.some(opt => opt.length === take.length && opt.every((x, i) => x === take[i]));
-        if (!ok) return fail('Invalid capture (check the single-card rule)');
+        const ok = legal.some(
+          opt => opt.length === take.length && opt.every((x, i) => x === take[i])
+        );
+        if (!ok) return fail('Invalid capture (exact match beats addition)');
         const taken = take.map(i => st.table[i]);
         st.table = st.table.filter((_, i) => !take.includes(i));
         st.hands[by].splice(move.idx, 1);
@@ -227,19 +294,23 @@ export function applyMove(state, move, by) {
         const takenCards = taken.map(c => ({ ...c }));
         st.caps[by].push(playCard, ...takenCards);
         st.lastCap = by;
-        st.log.push(`${by} plays ${faceOf(card.v)} of ${SUITS[card.s].name} and captures ${taken.length}.`);
-        const isFinalCard = st.deck.length === 0 && st.hands.A.length === 0 && st.hands.B.length === 0;
+        st.log.push(
+          `${by} eats with ${faceOf(card.v)} of ${SUITS[card.s].name} (${taken.length}).`
+        );
+        // Final trick of the hand cannot chkobba.
+        const isFinalCard =
+          st.deck.length === 0 && st.hands.A.length === 0 && st.hands.B.length === 0;
         if (st.table.length === 0 && !isFinalCard) {
           st.chk[by] += 1;
-          playCard.chkobba = true; // face-up trophy in the capture pile
-          st.log.push(`CHKOBBA for ${by}! \u{1F389}`);
+          playCard.chkobba = true; // face-up on the pile
+          st.log.push(`CHKOBBA for ${by}!`);
         }
       }
 
       if (st.hands.A.length === 0 && st.hands.B.length === 0) {
         if (st.deck.length > 0) {
-          dealHands(st, false);
-          st.log.push('New cards dealt.');
+          refillHands(st);
+          st.log.push('Three more each.');
           st.turn = other(st.dealer);
         } else {
           endRound(st);
@@ -253,9 +324,10 @@ export function applyMove(state, move, by) {
     }
 
     case 'nextRound': {
-      if (st.phase !== 'roundEnd') return fail('Round not over');
+      if (st.phase !== 'roundEnd') return fail('Hand not over');
       st.round += 1;
       st.dealer = other(st.dealer);
+      st.dealSeq = 0;
       startRound(st);
       return st;
     }

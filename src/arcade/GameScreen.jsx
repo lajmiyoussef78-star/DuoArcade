@@ -123,6 +123,7 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onPr
       code,
       startedAt: session.startedAt || 0,
       maxEnds: session.ncEnds || 3,
+      target: session.ckTarget || 21,
       onFinish: (...args) => onFinishRef.current?.(...args),
       onProceed: () => onProceedRef.current?.()
     });
@@ -151,7 +152,7 @@ const LOBBY_COUNTDOWN_MS = 3000;
 export default function GameScreen({
   duo, code, myRole, isAway, sync,
   onMove, onReady, onRematch, onBack,
-  onRequestPause, onRespondPause, onRealtimeFinish, onSetNcEnds
+  onRequestPause, onRespondPause, onRealtimeFinish, onSetNcEnds, onSetCkTarget
 }) {
   const s = duo.session;
   const eng = ENGINES[s.game];
@@ -335,6 +336,22 @@ export default function GameScreen({
                 className={'btn small' + ((s.ncEnds || 3) === n ? ' warm' : '')}
                 disabled={!!s.ready?.A || !!s.ready?.B}
                 onClick={() => onSetNcEnds?.(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        )}
+        {s.game === 'chkobba' && (
+          <div className="gv-ends-pick">
+            <span className="gv-ends-label">play to</span>
+            {[11, 21, 31].map(n => (
+              <button
+                key={n}
+                type="button"
+                className={'btn small' + ((s.ckTarget || 21) === n ? ' warm' : '')}
+                disabled={!!s.ready?.A || !!s.ready?.B}
+                onClick={() => onSetCkTarget?.(n)}
               >
                 {n}
               </button>

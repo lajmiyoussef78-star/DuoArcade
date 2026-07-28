@@ -708,13 +708,20 @@ html[data-appearance="light"] .arcade-page .home-nav-btn.on{
   .arcade-page section.lobby{max-width:min(720px,calc(100vw - 170px));}
   .arcade-page section.lobby .lobby-card{max-width:none;}
   .arcade-page section.gv-screen,
-  .arcade-page .gv-screen{max-width:min(1100px,calc(100vw - 170px));}
+  .arcade-page .gv-screen{
+    max-width:min(1100px,calc(100vw - 170px));
+    margin-left:auto;margin-right:auto;
+  }
 }
 @media (min-width:1000px){
   /* Clear the fixed side rail and use the viewport instead of a narrow column */
   .arcade-page section{max-width:min(1280px,calc(100vw - 176px));}
   .arcade-page > .gv-screen,
-  .arcade-page section.gv-screen{max-width:min(1400px,calc(100vw - 176px));}
+  .arcade-page section.gv-screen,
+  .arcade-page .gv-screen{
+    max-width:min(1400px,calc(100vw - 176px));
+    margin-left:auto;margin-right:auto;
+  }
   .arcade-page section > .card{max-width:none;}
   .arcade-page .topbar-inner{max-width:min(1280px,calc(100vw - 176px));padding:12px 24px;}
   /* Profile / duo pages read better slightly narrower than the arcade */
@@ -1048,6 +1055,7 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 .arcade-page .gv-screen{
   width:100%;max-width:min(1280px,calc(100vw - 28px));
   min-height:calc(100vh - 48px);
+  margin-left:auto;margin-right:auto;
   display:flex;flex-direction:column;align-items:stretch;
   justify-content:center;padding:12px 10px 40px;box-sizing:border-box;}
 .arcade-page .gv-screen.gv-kitchen{max-width:min(1280px,calc(100vw - 28px));}
