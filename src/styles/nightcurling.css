@@ -47,13 +47,26 @@
 .nc-brand { font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px; }
 
 .nc-hud {
-  display: flex; justify-content: space-between; align-items: center; width: 100%;
+  display: flex; justify-content: space-between; align-items: flex-start; width: 100%;
   font-family: 'JetBrains Mono', monospace; font-size: 13px; gap: 10px;
 }
 .nc-hud b { font-size: 18px; }
-.nc-endinfo { color: var(--dim); font-size: 11.5px; text-align: center; }
+.nc-side {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 0; flex: 1;
+}
+.nc-side.pB { align-items: center; }
+.nc-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nc-match { font-size: 18px; }
+.nc-livepts {
+  font-family: 'Fraunces', serif; font-weight: 800; font-size: 22px; line-height: 1;
+  min-width: 1.2em; text-align: center;
+  color: inherit;
+  text-shadow: 0 0 12px color-mix(in srgb, currentColor 35%, transparent);
+}
+.nc-endinfo { color: var(--dim); font-size: 11.5px; text-align: center; flex: 0 0 auto; padding-top: 4px; }
 .nc-endinfo em { font-style: normal; color: var(--candle); }
-.nc-stonedots { display: inline-flex; gap: 3px; margin: 0 8px; vertical-align: middle; }
+.nc-stonedots { display: inline-flex; gap: 3px; margin: 0; vertical-align: middle; }
 .nc-stonedots i {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--room2); border: 1px solid var(--line);
@@ -71,7 +84,85 @@
   border-radius: 18px; overflow: hidden; border: 1px solid var(--line);
   box-shadow: 0 10px 30px rgba(0,0,0,.35); user-select: none; cursor: crosshair;
 }
+.nc-canvaswrap-overlay { cursor: default; }
 .nc-canvas { display: block; width: 100%; height: auto; }
+
+/* Tiebreak prompt — compact overlay on the ice (overrides full-size .gv-result) */
+.arcade-page .nc-tie-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: color-mix(in srgb, var(--night) 55%, transparent);
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+}
+.arcade-page .nc-tie-panel.gv-result {
+  margin: 0;
+  width: min(260px, 90%);
+  max-width: 260px;
+  max-height: 96%;
+  padding: 12px 12px 10px;
+  border-radius: 14px;
+  gap: 4px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.4);
+  pointer-events: auto;
+  overflow: auto;
+}
+.arcade-page .nc-tie-panel .gv-result-kicker {
+  font-size: 9px;
+  letter-spacing: .1em;
+}
+.arcade-page .nc-tie-panel .gv-result-avs {
+  gap: 8px;
+  margin: 0;
+}
+.arcade-page .nc-tie-panel .gv-result-av {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  border-width: 1.5px;
+}
+.arcade-page .nc-tie-panel .gv-result-vs {
+  font-size: 10px;
+}
+.arcade-page .nc-tie-panel .gv-result-score {
+  font-size: 16px;
+  margin: 0;
+}
+.arcade-page .nc-tie-panel .gv-result-title {
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.15;
+}
+.arcade-page .nc-tie-panel .gv-result-sub {
+  font-size: 11px;
+  line-height: 1.3;
+  max-width: 230px;
+  margin: 0;
+}
+.arcade-page .nc-tie-panel .nc-tieask-votes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 10.5px;
+  margin: 0;
+}
+.arcade-page .nc-tie-panel .gv-result-actions {
+  margin-top: 2px;
+  gap: 6px;
+  flex-direction: column;
+  width: 100%;
+}
+.arcade-page .nc-tie-panel .gv-result-actions .btn {
+  min-width: 0;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11.5px;
+}
 
 .nc-curlbar { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .nc-curlbar-top {
@@ -99,4 +190,138 @@
   50% { box-shadow: 0 0 26px color-mix(in srgb, var(--candle) 40%, transparent); }
 }
 
-.nc-dock { display: flex; justify-content: center; }
+.nc-dock { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+.nc-endcard {
+  width: min(100%, 420px);
+  margin: 0 auto;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--room) 88%, transparent);
+  text-align: center;
+}
+.nc-endcard-title {
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px;
+  margin-bottom: 8px; color: var(--candle);
+}
+.nc-endcard-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; padding: 4px 0;
+}
+.nc-endcard-row b { font-size: 20px; }
+.nc-endcard-tot { color: var(--dim); font-size: 12px; }
+.nc-endcard-foot { margin-top: 8px; font-size: 12px; color: var(--dim); }
+
+/* Fullscreen: ice canvas fills the stage; HUD/controls stay usable */
+.arcade-page .gv-fs-root.is-fullscreen .gv-board:has(.nightcurling-wrap),
+.arcade-page .gv-fs-root:fullscreen .gv-board:has(.nightcurling-wrap),
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board:has(.nightcurling-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board:has(.nightcurling-wrap) > *,
+.arcade-page .gv-fs-root:fullscreen .gv-board:has(.nightcurling-wrap) > *,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board:has(.nightcurling-wrap) > * {
+  min-height: 0 !important;
+  height: 100% !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nightcurling-wrap,
+.arcade-page .gv-fs-root:fullscreen .nightcurling-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .nightcurling-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .nc-shell,
+.arcade-page .gv-fs-root:fullscreen .nc-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-shell {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #07080f;
+  padding: 0 !important;
+  margin: 0;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nc-table,
+.arcade-page .gv-fs-root:fullscreen .nc-table,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  padding: 8px 14px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nc-gamewrap,
+.arcade-page .gv-fs-root:fullscreen .nc-gamewrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-gamewrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nc-toolbar,
+.arcade-page .gv-fs-root:fullscreen .nc-toolbar,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-toolbar,
+.arcade-page .gv-fs-root.is-fullscreen .nc-statusline,
+.arcade-page .gv-fs-root:fullscreen .nc-statusline,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-statusline,
+.arcade-page .gv-fs-root.is-fullscreen .nc-curlbar,
+.arcade-page .gv-fs-root:fullscreen .nc-curlbar,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-curlbar,
+.arcade-page .gv-fs-root.is-fullscreen .nc-dock,
+.arcade-page .gv-fs-root:fullscreen .nc-dock,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-dock,
+.arcade-page .gv-fs-root.is-fullscreen .nc-sweepbtn,
+.arcade-page .gv-fs-root:fullscreen .nc-sweepbtn,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-sweepbtn {
+  flex: 0 0 auto;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nc-brand,
+.arcade-page .gv-fs-root:fullscreen .nc-brand,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-brand {
+  display: none;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nc-canvaswrap,
+.arcade-page .gv-fs-root:fullscreen .nc-canvaswrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-canvaswrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  height: 100%;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .nc-canvas,
+.arcade-page .gv-fs-root:fullscreen .nc-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .nc-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0;
+  object-fit: contain;
+}

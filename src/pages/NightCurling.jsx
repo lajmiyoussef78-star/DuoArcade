@@ -6,9 +6,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  ncInitial, throwStone, sweepTap, ncStep, nextEnd, NC
+  ncInitial, throwStone, sweepTap, ncStep, nextEnd, NC, liveHouseScore, voteTieBreak
 } from '../lib/nightcurling.js';
 import '../styles/nightcurling.css';
+
+const END_PAUSE_MS = 3800;
 
 const SPECKS = Array.from({ length: 90 }, (_, i) => ({
   x: ((i * 733) % 880) + 10,
@@ -59,15 +61,22 @@ function stoneProgress(stn) {
   return Math.hypot(stn.x - NC.START.x, stn.y - NC.START.y);
 }
 
-export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
+export default function NightCurling({ myRole, names = {}, rt, onComplete, maxEnds }) {
   const me = myRole;
   const nm = { A: names.A || 'A', B: names.B || 'B' };
   const opp = me === 'A' ? 'B' : 'A';
+  const ends = NC.ENDS_OPTIONS.includes(maxEnds) ? maxEnds : NC.DEFAULT_ENDS;
 
   const [phase, setPhase] = useState('wait'); // wait | game | done
   const [hud, setHud] = useState({
-    a: 0, b: 0, end: 1, thrower: 'A',
-    left: { A: NC.STONES_EACH, B: NC.STONES_EACH }, sub: 'aim', hammer: 'B'
+    a: 0, b: 0, end: 1, maxEnds: ends, thrower: 'A',
+    left: { A: NC.STONES_EACH, B: NC.STONES_EACH },
+    live: { A: 0, B: 0 },
+    endsWon: { A: 0, B: 0 },
+    lastEnd: null,
+    tieVotes: { A: null, B: null },
+    tieBreak: false,
+    sub: 'aim', hammer: 'B'
   });
   const [curl, setCurl] = useState(0);
   const [winner, setWinner] = useState(null);
@@ -83,6 +92,8 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
   const phaseRef = useRef('wait');
   const endMsgRef = useRef(null);
   const namesRef = useRef(nm);
+  const endsRef = useRef(ends);
+  const autoEndTimerRef = useRef(null);
   const throwIdRef = useRef(0);
   const seenThrowsRef = useRef(new Set());
   const pendingThrowRef = useRef(null);
@@ -96,20 +107,34 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
   phaseRef.current = phase;
   endMsgRef.current = endMsg;
   namesRef.current = nm;
+  endsRef.current = ends;
 
-  const finish = useCallback((w, iRecord) => {
+  const finish = useCallback((w, iRecord, scores) => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     setWinner(w);
     setPhase('done');
-    if (iRecord) onComplete?.(w);
+    if (iRecord) onComplete?.(w, scores);
   }, [onComplete]);
+
+  const packScores = useCallback((st) => {
+    if (!st) return null;
+    return {
+      a: st.score?.A || 0,
+      b: st.score?.B || 0,
+      endsWon: { a: st.endsWon?.A || 0, b: st.endsWon?.B || 0 },
+      ends: Array.isArray(st.endLog) ? st.endLog.map(e => ({
+        end: e.end, a: e.a, b: e.b, winner: e.winner, blank: e.blank, tie: e.tie, tieBreak: e.tieBreak
+      })) : []
+    };
+  }, []);
 
   const begin = useCallback(() => {
     if (startedRef.current) return;
     startedRef.current = true;
     finishedRef.current = false;
-    stRef.current = ncInitial();
+    if (autoEndTimerRef.current) { clearTimeout(autoEndTimerRef.current); autoEndTimerRef.current = null; }
+    stRef.current = ncInitial({ maxEnds: endsRef.current });
     seenThrowsRef.current = new Set();
     pendingThrowRef.current = null;
     throwIdRef.current = 0;
@@ -170,6 +195,32 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
     }
     setEndMsg(null);
   }, [rt, pushSt]);
+
+  const scheduleAutoNextEnd = useCallback(() => {
+    if (meRef.current !== 'A') return;
+    if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+    autoEndTimerRef.current = setTimeout(() => {
+      autoEndTimerRef.current = null;
+      if (stRef.current?.phase === 'endOver') hostNextEnd(false);
+    }, END_PAUSE_MS);
+  }, [hostNextEnd]);
+
+  const castTieVote = useCallback((accept) => {
+    const st = stRef.current;
+    if (!st || st.phase !== 'tieAsk') return;
+    if (meRef.current === 'A') {
+      stRef.current = voteTieBreak(st, 'A', accept);
+      pushSt(true);
+      if (stRef.current.phase === 'over' && stRef.current.winner) {
+        finish(stRef.current.winner, true, packScores(stRef.current));
+        rt?.send({ k: 'over', winner: stRef.current.winner, scores: packScores(stRef.current) });
+      }
+      return;
+    }
+    const payload = { k: 'tieVote', by: 'B', accept: !!accept };
+    rt?.send(payload);
+    setTimeout(() => rt?.send(payload), 160);
+  }, [finish, packScores, pushSt, rt]);
 
   const myThrowNow = useCallback((angle, power) => {
     const c = curlRef.current;
@@ -311,12 +362,23 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
         hostNextEnd(false);
         return;
       }
+      if (m.k === 'tieVote') {
+        if (meRef.current !== 'A' || !stRef.current) return;
+        stRef.current = voteTieBreak(stRef.current, m.by || 'B', !!m.accept);
+        pushSt(true);
+        if (stRef.current.phase === 'over' && stRef.current.winner) {
+          const scores = packScores(stRef.current);
+          rt?.send({ k: 'over', winner: stRef.current.winner, scores });
+          finish(stRef.current.winner, true, scores);
+        }
+        return;
+      }
       if (m.k === 'over') {
-        finish(m.winner, false);
+        finish(m.winner, false, m.scores || packScores(stRef.current));
       }
     });
     return undefined;
-  }, [rt, begin, hostThrow, hostSweep, hostNextEnd, finish, pushSt]);
+  }, [rt, begin, hostThrow, hostSweep, hostNextEnd, finish, pushSt, packScores]);
 
   useEffect(() => {
     let cancelled = false;
@@ -463,9 +525,17 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
           const next = ncStep(st, dt);
           stRef.current = next;
           if (next.phase !== prevPhase) {
+            const from = prevPhase;
             prevPhase = next.phase;
             pushSt(true);
             throwBurstRef.current = Math.max(throwBurstRef.current, 0.55);
+            if (next.phase === 'endOver' && from !== 'endOver') scheduleAutoNextEnd();
+            if (next.phase === 'over' && next.winner && !finishedRef.current) {
+              const scores = packScores(next);
+              pushSt(true);
+              rt?.send({ k: 'over', winner: next.winner, scores });
+              finish(next.winner, true, scores);
+            }
           } else {
             slideAcc += dt;
             const bursting = throwBurstRef.current > 0;
@@ -476,14 +546,16 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
               pushSt(false);
             }
           }
-          if (next.phase === 'over' && next.winner && !finishedRef.current) {
-            pushSt(true);
-            rt?.send({ k: 'over', winner: next.winner });
-            finish(next.winner, true);
-          }
         } else if (isHost && st.phase !== prevPhase) {
+          const from = prevPhase;
           prevPhase = st.phase;
           pushSt(true);
+          if (st.phase === 'endOver' && from !== 'endOver') scheduleAutoNextEnd();
+          if (st.phase === 'over' && st.winner && !finishedRef.current) {
+            const scores = packScores(st);
+            rt?.send({ k: 'over', winner: st.winner, scores });
+            finish(st.winner, true, scores);
+          }
         }
 
         // Guest: NEVER free-sim ahead of host (that caused go→back→go).
@@ -512,27 +584,43 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
 
         const s2 = stRef.current;
         if (!s2) { raf = requestAnimationFrame(loop); return; }
+        const live = liveHouseScore(s2.stones);
         setHud({
           a: s2.score.A, b: s2.score.B, end: s2.end + 1,
+          maxEnds: s2.maxEnds || endsRef.current,
           thrower: s2.thrower,
           left: { A: NC.STONES_EACH - s2.thrown.A, B: NC.STONES_EACH - s2.thrown.B },
+          live,
+          endsWon: s2.endsWon || { A: 0, B: 0 },
+          lastEnd: s2.lastEnd || null,
+          tieVotes: s2.tieVotes || { A: null, B: null },
+          tieBreak: !!s2.tieBreak,
           sub: s2.phase,
           hammer: s2.hammer
         });
         if (s2.phase === 'endOver' && s2.lastEnd && !endMsgRef.current) {
           const n = namesRef.current;
-          setEndMsg(s2.lastEnd.blank
-            ? 'Blank end — nobody in the house. Hammer stays.'
-            : `${n[s2.lastEnd.side]} takes ${s2.lastEnd.pts} — hammer passes.`);
+          const le = s2.lastEnd;
+          if (le.blank) {
+            setEndMsg('Blank end — nobody in the house.');
+          } else if (le.tie) {
+            setEndMsg(`Tie end — ${n.A} ${le.live.A}, ${n.B} ${le.live.B}.`);
+          } else {
+            setEndMsg(`${n[le.side]} takes the end · ${n.A} +${le.live.A} · ${n.B} +${le.live.B}`);
+          }
         }
-        if (!isHost && s2.phase === 'over' && s2.winner) finish(s2.winner, false);
+        if (s2.phase !== 'endOver' && endMsgRef.current) setEndMsg(null);
+        if (!isHost && s2.phase === 'over' && s2.winner) finish(s2.winner, false, packScores(s2));
         draw();
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(raf); };
-  }, [phase, rt, finish, draw, pushSt]);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (autoEndTimerRef.current) clearTimeout(autoEndTimerRef.current);
+    };
+  }, [phase, rt, finish, draw, pushSt, scheduleAutoNextEnd, packScores]);
 
   const canvasPos = e => {
     const cv = canvasRef.current;
@@ -582,32 +670,58 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
           <div className="nc-toolbar">
             <div className="nc-brand">Night Curling</div>
             <div className="nc-hud">
-              <span className="pA">{nm.A} <b>{hud.a}</b>
+              <div className="nc-side pA">
+                <span className="nc-name">{nm.A} <b className="nc-match">{hud.a}</b></span>
                 <span className="nc-stonedots">{Array.from({ length: NC.STONES_EACH }).map((_, i) =>
                   <i key={i} className={'A' + (i < hud.left.A ? ' on' : '')} />)}</span>
-              </span>
-              <span className="nc-endinfo">end {hud.end}
+                <span className="nc-livepts" title="House points this end">{hud.live?.A ?? 0}</span>
+              </div>
+              <span className="nc-endinfo">
+                {hud.tieBreak ? 'tiebreak' : <>end {Math.min(hud.end, hud.maxEnds || ends)}/{hud.maxEnds || ends}</>}
+                <em> {'\u00b7'} ends {hud.endsWon?.A ?? 0}–{hud.endsWon?.B ?? 0}</em>
                 <em> {'\u00b7'} hammer: {nm[hud.hammer]}</em>
               </span>
-              <span className="pB">
+              <div className="nc-side pB">
+                <span className="nc-name"><b className="nc-match">{hud.b}</b> {nm.B}</span>
                 <span className="nc-stonedots">{Array.from({ length: NC.STONES_EACH }).map((_, i) =>
                   <i key={i} className={'B' + (i < hud.left.B ? ' on' : '')} />)}</span>
-                <b>{hud.b}</b> {nm.B}
-              </span>
+                <span className="nc-livepts" title="House points this end">{hud.live?.B ?? 0}</span>
+              </div>
             </div>
           </div>
 
           <div className="nc-statusline">
             {phase === 'done' ? (
-              winner && <span className="nc-winline">{nm[winner]} owns the ice</span>
+              winner === 'draw'
+                ? <span className="nc-winline">Draw on the ice</span>
+                : winner && <span className="nc-winline">{nm[winner]} owns the ice</span>
             ) : hud.sub === 'aim' ? (
               iAmThrowing ? 'your stone — pull back and release' : `${nm[opp]} is lining up\u2026`
             ) : hud.sub === 'slide' ? (
               iCanSweep ? 'SWEEP! SWEEP!' : 'sliding\u2026'
             ) : hud.sub === 'endOver' ? (
               endMsg || 'end complete'
+            ) : hud.sub === 'tieAsk' ? (
+              ''
             ) : ''}
           </div>
+
+          {phase === 'game' && hud.sub === 'endOver' && hud.lastEnd && (
+            <div className="nc-endcard">
+              <div className="nc-endcard-title">End {hud.lastEnd.end || hud.end} · scores</div>
+              <div className="nc-endcard-row pA">
+                <span>{nm.A}</span>
+                <b>+{hud.lastEnd.live?.A ?? 0}</b>
+                <span className="nc-endcard-tot">total {hud.a}</span>
+              </div>
+              <div className="nc-endcard-row pB">
+                <span>{nm.B}</span>
+                <b>+{hud.lastEnd.live?.B ?? 0}</b>
+                <span className="nc-endcard-tot">total {hud.b}</span>
+              </div>
+              <div className="nc-endcard-foot">Ends won {hud.endsWon?.A ?? 0}–{hud.endsWon?.B ?? 0} · next end shortly…</div>
+            </div>
+          )}
 
           {phase === 'game' && hud.sub === 'aim' && iAmThrowing && (
             <div className="nc-curlbar nc-curlbar-top">
@@ -626,14 +740,49 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
           )}
 
           <div
-            className="nc-canvaswrap"
-            onPointerDown={aimStart}
-            onPointerMove={aimMove}
-            onPointerUp={aimEnd}
-            onPointerLeave={aimEnd}
+            className={'nc-canvaswrap' + (hud.sub === 'tieAsk' ? ' nc-canvaswrap-overlay' : '')}
+            onPointerDown={hud.sub === 'tieAsk' ? undefined : aimStart}
+            onPointerMove={hud.sub === 'tieAsk' ? undefined : aimMove}
+            onPointerUp={hud.sub === 'tieAsk' ? undefined : aimEnd}
+            onPointerLeave={hud.sub === 'tieAsk' ? undefined : aimEnd}
             onContextMenu={e => e.preventDefault()}
           >
             <canvas ref={canvasRef} width={NC.W} height={NC.H} className="nc-canvas" />
+            {phase === 'game' && hud.sub === 'tieAsk' && (
+              <div className="nc-tie-overlay" role="dialog" aria-label="Tiebreak">
+                <div className="gv-result gv-result-draw nc-tie-panel">
+                  <div className="gv-result-kicker">Night Curling</div>
+                  <div className="gv-result-avs" aria-hidden="true">
+                    <div className="gv-result-av A">{nm.A[0]?.toUpperCase()}</div>
+                    <div className="gv-result-vs">vs</div>
+                    <div className="gv-result-av B">{nm.B[0]?.toUpperCase()}</div>
+                  </div>
+                  <div className="gv-result-score">
+                    {hud.endsWon?.A ?? 0} <span>–</span> {hud.endsWon?.B ?? 0}
+                  </div>
+                  <h3 className="gv-result-title">Tied on ends</h3>
+                  <p className="gv-result-sub">
+                    {hud.a === hud.b
+                      ? 'One more end? If either says no — draw.'
+                      : `One more end? If either says no, highest totals win (${nm.A} ${hud.a} · ${nm.B} ${hud.b}).`}
+                  </p>
+                  <div className="nc-tieask-votes">
+                    <span className="pA">{nm.A}: {hud.tieVotes?.A == null ? '…' : hud.tieVotes.A ? 'Yes' : 'No'}</span>
+                    <span className="pB">{nm.B}: {hud.tieVotes?.B == null ? '…' : hud.tieVotes.B ? 'Yes' : 'No'}</span>
+                  </div>
+                  {hud.tieVotes?.[me] == null ? (
+                    <div className="gv-result-actions">
+                      <button type="button" className="btn warm" onClick={() => castTieVote(true)}>Yes — tiebreak</button>
+                      <button type="button" className="btn ghost" onClick={() => castTieVote(false)}>
+                        {hud.a === hud.b ? 'No — draw' : 'No — use totals'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="gv-result-sub">Waiting for {nm[opp]}…</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {phase === 'game' && iCanSweep && (
@@ -645,13 +794,8 @@ export default function NightCurling({ myRole, names = {}, rt, onComplete }) {
               SWEEP
             </button>
           )}
-          {phase === 'game' && hud.sub === 'endOver' && (
-            <div className="nc-dock">
-              <button type="button" className="btn warm" onClick={() => hostNextEnd(true)}>Next end</button>
-            </div>
-          )}
           {phase === 'done' && (
-            <p className="nc-note">Use Rematch in the shell for another match.</p>
+            <p className="nc-note">Match over — see the result panel for the end-by-end score.</p>
           )}
         </div>
       </div>

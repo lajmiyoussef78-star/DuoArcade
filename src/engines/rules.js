@@ -296,15 +296,15 @@ export const RULES = {
   },
 
   nightcurling: {
-    goal: 'Score closest to the button on midnight ice. First to 5 points wins.',
+    goal: 'Win more ends on midnight ice. Play 2, 3, or 5 ends — most ends won takes the match.',
     how: [
-      'Four stones each per end. On your throw: pick curl (Up / Straight / Down), then pull back and release (slingshot).',
-      'While YOUR stone slides, hammer SWEEP (or SPACE) to cut friction and carry it deeper. Stop short of the hog line and it\u2019s removed.',
-      'Stones collide with real takeouts \u2014 knock theirs out of the house.',
-      'After 8 stones: closest side scores one point per stone closer than the opponent\u2019s best. Blank end = nobody in the house.',
-      'Hammer (last throw) passes to the end\u2019s loser; blank ends keep the hammer where it was.'
+      'In the lobby, pick the number of ends (2 / 3 / 5), then both press Ready.',
+      'Four stones each per end. Pull back and release to throw; SWEEP (or SPACE) while your stone slides.',
+      'Ring points (live under each name): blue 10 · between blue & red 20 · red 35 · yellow 70. Both bank their totals each end.',
+      'After each end the scores flash, then the next end starts automatically.',
+      'Match winner = who won more ends. If ends are tied, you are asked to play one more end; decline and the highest total points wins.'
     ],
-    tip: 'Save the hammer for a blank-or-score end \u2014 and sweep early if you need the deep freeze.'
+    tip: 'Park on yellow when you can — 70 beats a pile of blues. Sweep early if you need the deep freeze.'
   },
 
   laserwall: {

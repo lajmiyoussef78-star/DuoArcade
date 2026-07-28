@@ -122,6 +122,7 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onPr
       names,
       code,
       startedAt: session.startedAt || 0,
+      maxEnds: session.ncEnds || 3,
       onFinish: (...args) => onFinishRef.current?.(...args),
       onProceed: () => onProceedRef.current?.()
     });
@@ -150,7 +151,7 @@ const LOBBY_COUNTDOWN_MS = 3000;
 export default function GameScreen({
   duo, code, myRole, isAway, sync,
   onMove, onReady, onRematch, onBack,
-  onRequestPause, onRespondPause, onRealtimeFinish
+  onRequestPause, onRespondPause, onRealtimeFinish, onSetNcEnds
 }) {
   const s = duo.session;
   const eng = ENGINES[s.game];
@@ -162,7 +163,7 @@ export default function GameScreen({
   const fsRootRef = useRef(null);
   useEffect(() => { setShowRules(false); }, [s.game]);
   const [, forceTick] = useState(0);
-  // Local end time — ignore skewed wall clocks on liveAt (was showing 7 vs 3).
+  // Shared liveAt from session — both clients count to the same instant.
   const [goAt, setGoAt] = useState(null);
   // Connect Four / Gomoku: show the winning line before the result panel.
   const [revealResult, setRevealResult] = useState(false);
@@ -202,8 +203,9 @@ export default function GameScreen({
   };
 
   useEffect(() => {
+    // Shared absolute liveAt so both clients show the same 3·2·1 (not local clocks).
     if (s.phase === 'live' && s.liveAt && !s.winner) {
-      setGoAt(Date.now() + LOBBY_COUNTDOWN_MS);
+      setGoAt(s.liveAt);
     } else {
       setGoAt(null);
     }
@@ -308,6 +310,22 @@ export default function GameScreen({
             Rematch sent — waiting for {partner}…
           </p>
         )}
+        {s.game === 'nightcurling' && (
+          <div className="gv-ends-pick">
+            <span className="gv-ends-label">number of ends</span>
+            {[2, 3, 5].map(n => (
+              <button
+                key={n}
+                type="button"
+                className={'btn small' + ((s.ncEnds || 3) === n ? ' warm' : '')}
+                disabled={!!s.ready?.A || !!s.ready?.B}
+                onClick={() => onSetNcEnds?.(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        )}
         <button className="btn warm" disabled={!!s.ready?.[myRole]} onClick={onReady}>
           {s.ready?.[myRole]
             ? 'Waiting for partner to ready…'
@@ -318,7 +336,8 @@ export default function GameScreen({
       </div>
     );
   } else if (counting) {
-    const secs = Math.min(3, Math.max(1, Math.ceil((goAt - Date.now()) / 1000)));
+    const remMs = Math.max(0, goAt - Date.now());
+    const secs = Math.min(3, Math.max(1, Math.ceil(remMs / 1000)));
     board = <div className="countdown-big">{secs}</div>;
     banner = 'get ready…';
   } else if (eng.meta.realtime) {
@@ -499,19 +518,26 @@ export default function GameScreen({
               </div>
             </div>
             <div className="gv-result-score">
-              {s.matchScore
-                ? <>{s.matchScore.a} <span>–</span> {s.matchScore.b}</>
-                : s.game === 'twotruths' && s.gs?.scores
-                  ? <>{s.gs.scores.A} <span>–</span> {s.gs.scores.B}</>
-                  : isDraw
-                    ? 'Draw'
-                    : s.winner === 'A'
-                      ? <>1 <span>–</span> 0</>
-                      : <>0 <span>–</span> 1</>}
+              {isDraw && s.game === 'nightcurling'
+                ? 'Draw'
+                : s.matchScore
+                  ? <>{s.matchScore.a} <span>–</span> {s.matchScore.b}</>
+                  : s.game === 'twotruths' && s.gs?.scores
+                    ? <>{s.gs.scores.A} <span>–</span> {s.gs.scores.B}</>
+                    : isDraw
+                      ? 'Draw'
+                      : s.winner === 'A'
+                        ? <>1 <span>–</span> 0</>
+                        : <>0 <span>–</span> 1</>}
             </div>
+            {s.game === 'nightcurling' && s.matchScore?.endsWon && !isDraw && (
+              <p className="gv-result-sub" style={{ marginTop: 0 }}>
+                Ends won · {s.matchScore.endsWon.a}–{s.matchScore.endsWon.b}
+              </p>
+            )}
             <h3 className="gv-result-title">
               {isDraw
-                ? 'A perfectly tied match'
+                ? (s.game === 'nightcurling' ? 'Draw' : 'A perfectly tied match')
                 : iWon
                   ? 'You take the match'
                   : `${winnerName} takes the match`}
@@ -520,6 +546,36 @@ export default function GameScreen({
               Series · {series.a}–{series.b}{series.d ? ` · ${series.d} draws` : ''}
               {rec.a || rec.b || rec.d ? ` · All-time ${rec.a}–${rec.b}` : ''}
             </p>
+            {s.game === 'nightcurling' && Array.isArray(s.matchScore?.ends) && s.matchScore.ends.length > 0 && (
+              <table className="ttl-recap nc-recap" aria-label="End-by-end score">
+                <thead>
+                  <tr>
+                    <th scope="col" />
+                    {s.matchScore.ends.map((e, i) => (
+                      <th key={i} scope="col">{e.tieBreak ? 'TB' : `E${e.end || i + 1}`}</th>
+                    ))}
+                    <th scope="col">Tot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[['A', duo.nameA, 'a'], ['B', duo.nameB, 'b']].map(([role, name, key]) => (
+                    <tr key={role}>
+                      <th scope="row" className={'ttl-recap-name ' + role}>{name}</th>
+                      {s.matchScore.ends.map((e, i) => (
+                        <td key={i} className={
+                          e.winner === role ? 'win ' + role
+                            : e.blank || e.tie ? 'draw'
+                              : 'loss'
+                        }>
+                          {e[key]}
+                        </td>
+                      ))}
+                      <td className={'win ' + role}>{s.matchScore[key]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
             {s.game === 'twotruths' && Array.isArray(s.gs?.roundResults) && s.gs.roundResults.length > 0 && (
               <table className="ttl-recap" aria-label="Round recap">
                 <thead>
@@ -552,7 +608,11 @@ export default function GameScreen({
             )}
             <p className="gv-result-sub">
               {isDraw
-                ? 'This round ended even — check the series line for your record.'
+                ? (s.game === 'nightcurling'
+                  ? (s.matchScore && s.matchScore.a === s.matchScore.b
+                    ? 'Equal totals — no extra end.'
+                    : 'Match ends even.')
+                  : 'This round ended even — check the series line for your record.')
                 : iWon
                   ? 'Nice one. Offer a rematch while the streak is warm.'
                   : `Well played — challenge ${winnerName} to a rematch.`}

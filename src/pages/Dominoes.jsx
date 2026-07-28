@@ -167,23 +167,34 @@ function BackTile({ size = 20 }) {
 }
 
 /* chunk the chain into snake rows that fit `maxW` */
-function buildRows(chain, maxW) {
+function buildRows(chain, maxW, half = HALF, gap = GAP) {
   const rows = [];
   let row = [];
   let w = 0;
   chain.forEach((t, gi) => {
-    const tw = t.a === t.b ? HALF : HALF * 2;
-    const need = tw + (row.length ? GAP : 0);
+    const tw = t.a === t.b ? half : half * 2;
+    const need = tw + (row.length ? gap : 0);
     if (row.length && w + need > maxW) {
       rows.push(row);
       row = [];
       w = 0;
     }
     row.push({ t, gi });
-    w += tw + (row.length > 1 ? GAP : 0);
+    w += tw + (row.length > 1 ? gap : 0);
   });
   if (row.length) rows.push(row);
   return rows;
+}
+
+function readFullscreen(el) {
+  if (!el) return false;
+  const root = el.closest?.(".gv-fs-root");
+  if (!root) return false;
+  return (
+    root.classList.contains("is-fullscreen") ||
+    root === document.fullscreenElement ||
+    root === document.webkitFullscreenElement
+  );
 }
 
 /* ── main component ─────────────────────────────────────── */
@@ -198,7 +209,9 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
   const [st, setSt] = useState(null);
   const [pending, setPending] = useState(null);
   const [boardW, setBoardW] = useState(440);
+  const [isFs, setIsFs] = useState(false);
   const boardRef = useRef(null);
+  const shellRef = useRef(null);
 
   const stRef = useRef(null);
   const meRef = useRef(me);
@@ -326,7 +339,36 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
+  }, [st, isFs]);
+
+  /* stretch tiles when the arcade shell goes fullscreen */
+  useEffect(() => {
+    const sync = () => setIsFs(readFullscreen(shellRef.current));
+    sync();
+    document.addEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync);
+    window.addEventListener("resize", sync);
+    const root = shellRef.current?.closest?.(".gv-fs-root");
+    let mo;
+    if (root && typeof MutationObserver !== "undefined") {
+      mo = new MutationObserver(sync);
+      mo.observe(root, { attributes: true, attributeFilter: ["class"] });
+    }
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync);
+      window.removeEventListener("resize", sync);
+      mo?.disconnect();
+    };
   }, [st]);
+
+  // Fullscreen: scale bone size with available board width for a bigger play area
+  const tileHalf = isFs
+    ? Math.round(Math.min(76, Math.max(50, boardW / 14)))
+    : HALF;
+  const tileGap = isFs ? Math.max(8, Math.round(tileHalf * 0.2)) : GAP;
+  const handSize = isFs ? Math.round(Math.min(72, tileHalf * 1.45)) : 46;
+  const backSize = isFs ? Math.round(tileHalf * 0.58) : 18;
 
   const chain = st?.chain || [];
   const { left: leftEnd, right: rightEnd } = endsFor(chain);
@@ -358,22 +400,11 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
     dispatch({ t: "nextRound" });
   }
 
-  const rows = buildRows(chain, boardW);
+  const rows = buildRows(chain, boardW, tileHalf, tileGap);
 
   /* ── shared shell / widgets ───────────────────────────── */
   const shell = (children) => (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: `radial-gradient(700px 400px at 85% -5%, rgba(255,95,168,0.13), transparent 60%),
-                     radial-gradient(700px 420px at 0% 105%, rgba(87,200,255,0.11), transparent 60%), ${T.bg}`,
-        color: T.text,
-        fontFamily: "'Nunito', system-ui, sans-serif",
-        display: "flex",
-        justifyContent: "center",
-        padding: "18px 10px 30px",
-      }}
-    >
+    <div ref={shellRef} className={"da-shell" + (isFs ? " da-shell-fs" : "")}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&display=swap');
         .da-pop { animation: daPop .28s cubic-bezier(.34,1.56,.64,1); }
@@ -383,7 +414,7 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
         .da-btn:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) { .da-pop { animation: none; } }
       `}</style>
-      <div style={{ width: "100%", maxWidth: 560 }}>{children}</div>
+      <div className="da-inner">{children}</div>
     </div>
   );
 
@@ -511,7 +542,13 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
               ? me === "A"
                 ? btn("Rematch", rematch)
                 : <p style={{ color: T.muted, fontWeight: 700, fontSize: 14 }}>Waiting for a rematch…</p>
-              : btn("Deal next round", nextRound)}
+              : st.dealReady === me
+                ? <p style={{ color: T.muted, fontWeight: 700, fontSize: 14 }}>
+                    Waiting for {PLAYERS[opp].name} to accept…
+                  </p>
+                : st.dealReady === opp
+                  ? btn("Accept deal", nextRound)
+                  : btn("Deal next round", nextRound)}
           </div>
         </div>
       </>
@@ -521,26 +558,27 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
   /* ── active play ──────────────────────────────────────── */
   const P = PLAYERS[st.turn];
   return shell(
-    <>
+    <div className="da-play">
       {header}
 
       {/* opponent */}
       <div
+        className="da-opp"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: isFs ? 14 : 10,
           background: T.card,
           border: `1px solid ${T.cardBorder}`,
-          borderRadius: 16,
-          padding: "10px 14px",
-          marginBottom: 12,
+          borderRadius: isFs ? 18 : 16,
+          padding: isFs ? "14px 18px" : "10px 14px",
+          marginBottom: isFs ? 16 : 12,
         }}
       >
-        <span style={{ color: PLAYERS[opp].color, fontWeight: 900, fontSize: 14 }}>{PLAYERS[opp].name}</span>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <span style={{ color: PLAYERS[opp].color, fontWeight: 900, fontSize: isFs ? 16 : 14 }}>{PLAYERS[opp].name}</span>
+        <div style={{ display: "flex", gap: isFs ? 6 : 4, flexWrap: "wrap" }}>
           {st.hands[opp].map((t) => (
-            <BackTile key={t.id} size={18} />
+            <BackTile key={t.id} size={backSize} />
           ))}
         </div>
       </div>
@@ -548,12 +586,18 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
       {/* board — snake layout, no side scrolling */}
       <div
         ref={boardRef}
+        className="da-board"
         style={{
           background: `linear-gradient(180deg, rgba(255,255,255,0.02), transparent), ${T.card}`,
           border: `1px solid ${T.cardBorder}`,
-          borderRadius: 18,
-          padding: "14px 12px",
-          marginBottom: 12,
+          borderRadius: isFs ? 22 : 18,
+          padding: isFs ? "20px 18px" : "14px 12px",
+          marginBottom: isFs ? 16 : 12,
+          flex: isFs ? "1 1 auto" : undefined,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          minHeight: isFs ? 280 : undefined,
         }}
       >
         {chain.length > 0 && (
@@ -562,7 +606,7 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
               display: "flex",
               justifyContent: "space-between",
               padding: "0 2px 10px",
-              fontSize: 12,
+              fontSize: isFs ? 14 : 12,
               fontWeight: 900,
               color: T.muted,
             }}
@@ -575,15 +619,15 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
             </span>
           </div>
         )}
-        <div style={{ display: "flex", flexDirection: "column", minHeight: 96 }}>
+        <div style={{ display: "flex", flexDirection: "column", minHeight: isFs ? tileHalf * 3 : 96 }}>
           {chain.length === 0 ? (
             <div
               style={{
                 color: T.muted,
                 fontWeight: 800,
                 margin: "auto",
-                fontSize: 14,
-                padding: "24px 0",
+                fontSize: isFs ? 18 : 14,
+                padding: isFs ? "40px 0" : "24px 0",
               }}
             >
               {P.name} leads — play any tile
@@ -597,15 +641,16 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
                     style={{
                       display: "flex",
                       flexDirection: reversed ? "row-reverse" : "row",
-                      gap: GAP,
+                      gap: tileGap,
                       alignItems: "center",
-                      minHeight: HALF * 2,
+                      minHeight: tileHalf * 2,
                     }}
                   >
                     {row.map(({ t, gi }) => (
                       <BoardTile
                         key={t.id}
                         tile={t}
+                        size={tileHalf}
                         flip={reversed}
                         isNew={t.id === st.lastPlacedId}
                         isEnd={gi === 0 || gi === chain.length - 1}
@@ -617,13 +662,13 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
                       style={{
                         display: "flex",
                         justifyContent: reversed ? "flex-start" : "flex-end",
-                        padding: "2px 14px",
+                        padding: isFs ? "4px 18px" : "2px 14px",
                       }}
                     >
                       <div
                         style={{
-                          width: 3,
-                          height: 12,
+                          width: isFs ? 4 : 3,
+                          height: isFs ? 16 : 12,
                           borderRadius: 2,
                           background: "rgba(255,255,255,0.16)",
                         }}
@@ -643,12 +688,12 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 12,
+          marginBottom: isFs ? 16 : 12,
           flexWrap: "wrap",
           gap: 8,
         }}
       >
-        <div style={{ fontWeight: 800, fontSize: 14 }}>
+        <div style={{ fontWeight: 800, fontSize: isFs ? 16 : 14 }}>
           <span style={{ color: P.color }}>{P.name}</span>
           <span style={{ color: T.muted }}>
             {!myTurn
@@ -668,22 +713,24 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
 
       {/* hand */}
       <div
+        className="da-hand"
         style={{
           display: "flex",
-          gap: 8,
+          gap: isFs ? 12 : 8,
           flexWrap: "wrap",
           justifyContent: "center",
           background: T.card,
           border: `1px solid ${T.cardBorder}`,
-          borderRadius: 18,
-          padding: "16px 10px",
-          minHeight: 120,
+          borderRadius: isFs ? 22 : 18,
+          padding: isFs ? "22px 16px" : "16px 10px",
+          minHeight: isFs ? handSize * 2 + 44 : 120,
         }}
       >
         {myHand.map((t) => (
           <HandTile
             key={t.id}
             tile={t}
+            size={handSize}
             playable={myTurn && fits(chain, t)}
             color={P.color}
             onClick={() => onTileClick(t)}
@@ -716,15 +763,15 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
               background: T.card,
               border: `1px solid ${T.cardBorder}`,
               borderRadius: 20,
-              padding: 24,
+              padding: isFs ? 32 : 24,
               textAlign: "center",
               boxShadow: `0 0 40px ${P.glow}`,
             }}
           >
             <div style={{ marginBottom: 14, display: "flex", justifyContent: "center" }}>
-              <BoardTile tile={pending} size={36} />
+              <BoardTile tile={pending} size={isFs ? Math.round(tileHalf * 1.15) : 36} />
             </div>
-            <div style={{ color: T.muted, fontWeight: 800, fontSize: 13, marginBottom: 14 }}>
+            <div style={{ color: T.muted, fontWeight: 800, fontSize: isFs ? 15 : 13, marginBottom: 14 }}>
               This bone fits both ends
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
@@ -734,6 +781,6 @@ export default function DominoesDuel({ myRole, names = {}, rt, code, onMatchEnd 
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

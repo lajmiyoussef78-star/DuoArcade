@@ -106,7 +106,7 @@ export default function FriendMatchScreen() {
 
   useEffect(() => {
     if (session.phase === 'live' && session.liveAt && !session.winner) {
-      setGoAt(Date.now() + LOBBY_COUNTDOWN_MS);
+      setGoAt(session.liveAt);
     } else {
       setGoAt(null);
     }

@@ -351,7 +351,8 @@ export default function Arcade() {
       series,
       matchScore: null,
       chatPostedStart: true, // already announced this shelf visit
-      chatEndedPosted: false
+      chatEndedPosted: false,
+      ...(s.game === 'nightcurling' ? { ncEnds: s.ncEnds || 3 } : {}),
     };
     const patch = { session, turn: eng.meta.realtime ? '-' : starter };
     patchLocal(patch);
@@ -387,7 +388,7 @@ export default function Arcade() {
     if (!s || s.winner || s.turn !== myRole) return;
     if (s.paused) return;
     if (s.phase && s.phase !== 'live') return;
-    // Countdown is enforced locally in GameScreen (clock-skew safe) — don't gate on liveAt here.
+    // Countdown is driven by shared session.liveAt in GameScreen.
     const eng = ENGINES[s.game];
     const res = eng.applyMove(s.gs, m, myRole);
     if (!res) return;
@@ -430,10 +431,21 @@ export default function Arcade() {
     if (!s || s.phase !== 'lobby' || s.ready?.[myRole] || s.paused) return;
     const ready = { ...(s.ready || { A: false, B: false }), [myRole]: true };
     const both = ready.A && ready.B;
-    // Mark countdown start; each client runs a fixed local 3s (avoids clock skew).
+    // Shared absolute countdown end — both clients use this same liveAt (not a local restart).
     const session = both
       ? { ...s, ready, phase: 'live', liveAt: Date.now() + 3000, countdownMs: 3000 }
       : { ...s, ready };
+    patchLocal({ session });
+    await upd(code, { session }, { force: true });
+  }, [patchLocal, upd]);
+
+  const setNcEnds = useCallback(async (n) => {
+    const { duo, code } = ctxRef.current;
+    const s = duo.session;
+    if (!s || s.game !== 'nightcurling' || s.phase !== 'lobby') return;
+    if (s.ready?.A || s.ready?.B) return;
+    if (![2, 3, 5].includes(n)) return;
+    const session = { ...s, ncEnds: n };
     patchLocal({ session });
     await upd(code, { session }, { force: true });
   }, [patchLocal, upd]);
@@ -443,7 +455,12 @@ export default function Arcade() {
     const s = duo.session;
     if (!s || s.game !== gameId || s.winner) return;
     const matchScore = scores && typeof scores.a === 'number' && typeof scores.b === 'number'
-      ? { a: scores.a, b: scores.b }
+      ? {
+          a: scores.a,
+          b: scores.b,
+          ...(scores.endsWon ? { endsWon: scores.endsWon } : {}),
+          ...(Array.isArray(scores.ends) ? { ends: scores.ends } : {}),
+        }
       : null;
     const series = bumpSeries(s, w);
     const session = { ...s, winner: w, series, ...(matchScore ? { matchScore } : {}) };
@@ -522,7 +539,8 @@ export default function Arcade() {
         ready: { A: false, B: false },
         liveAt: null,
         chatPostedStart: true,
-        series: s.series || s.streak || { a: 0, b: 0, d: 0 }
+        series: s.series || s.streak || { a: 0, b: 0, d: 0 },
+        ...(s.game === 'nightcurling' ? { ncEnds: s.ncEnds || 3 } : {}),
       };
       patchLocal({ session });
       const ok = await upd(code, { session }, { force: true });
@@ -947,6 +965,7 @@ export default function Arcade() {
           onRematch={rematch} onBack={backToHome}
           onRequestPause={requestPause} onRespondPause={respondPause}
           onRealtimeFinish={realtimeFinish}
+          onSetNcEnds={setNcEnds}
         />
       );
     } else {

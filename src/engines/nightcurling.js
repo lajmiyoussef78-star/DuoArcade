@@ -12,7 +12,7 @@ let finished = false;
 export const meta = {
   id: 'nightcurling',
   name: 'Night Curling',
-  tag: 'physics · curling · first to 5',
+  tag: 'physics · curling · ends',
   accent: 'p1',
   realtime: true
 };
@@ -26,10 +26,10 @@ export function mount(el, ctx) {
   el.appendChild(wrap);
 
   const isHost = ctx.myRole === 'A';
-  const finish = w => {
+  const finish = (w, scores) => {
     if (finished) return;
     finished = true;
-    ctx.onFinish(w);
+    ctx.onFinish(w, scores);
   };
 
   root = createRoot(wrap);
@@ -38,8 +38,9 @@ export function mount(el, ctx) {
     names: ctx.names,
     rt: ctx.rt,
     code: ctx.code,
-    onComplete: w => {
-      if (isHost) finish(w);
+    maxEnds: ctx.maxEnds,
+    onComplete: (w, scores) => {
+      if (isHost) finish(w, scores);
     }
   }));
 }

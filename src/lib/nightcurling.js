@@ -1,9 +1,8 @@
 // src/lib/nightcurling.js — Night Curling pure physics + scoring engine.
 //
-// Slingshot-drag throws with curl; tap-sweep while sliding. Real end
-// scoring (closest to the button) and hammer rules. First to TARGET.
-// Host-authoritative: A sims at 60fps and broadcasts; B sends throw
-// params and sweep taps.
+// Slingshot-drag throws with curl; tap-sweep while sliding. Ring scoring
+// (blue 10 / mid 20 / red 35 / yellow 70). Match decided by ends won;
+// tied ends → optional tiebreak end, else highest total points.
 
 export const NC = {
   W: 900, H: 560,
@@ -22,15 +21,23 @@ export const NC = {
   CURL_A: 78,
   RESTITUTION: 0.86,
   STONES_EACH: 4,
-  TARGET: 5
+  /** Default ends when lobby does not pick 2 / 3 / 5 */
+  DEFAULT_ENDS: 3,
+  ENDS_OPTIONS: [2, 3, 5]
 };
 
 const other = s => (s === 'A' ? 'B' : 'A');
 
-export function ncInitial() {
+export function ncInitial(opts = {}) {
+  const maxEnds = NC.ENDS_OPTIONS.includes(opts.maxEnds) ? opts.maxEnds : NC.DEFAULT_ENDS;
   return startEnd({
     end: 0,
+    maxEnds,
     score: { A: 0, B: 0 },
+    endsWon: { A: 0, B: 0 },
+    endLog: [],
+    tieBreak: false,
+    tieVotes: { A: null, B: null },
     hammer: 'B',
     winner: null,
     lastEnd: null
@@ -154,28 +161,82 @@ function settle(s) {
   return s;
 }
 
+/** Ring points by distance from the button (center of stone). */
+export function ringPtsForDist(d) {
+  if (d <= NC.RINGS[3]) return 70; // yellow (button)
+  if (d <= NC.RINGS[2]) return 35; // red
+  if (d <= NC.RINGS[1]) return 20; // between blue and red
+  if (d <= NC.HOUSE_R + NC.STONE_R) return 10; // blue
+  return 0;
+}
+
 export function endScore(stones) {
-  const inHouse = stones
-    .map(stn => ({ side: stn.side, d: Math.hypot(stn.x - NC.BUTTON.x, stn.y - NC.BUTTON.y) }))
-    .filter(x => x.d <= NC.HOUSE_R + NC.STONE_R)
-    .sort((a, b) => a.d - b.d);
-  if (inHouse.length === 0) return { blank: true, pts: 0, side: null };
-  const side = inHouse[0].side;
-  const oppBest = inHouse.find(x => x.side !== side);
-  const pts = inHouse.filter(x => x.side === side && (!oppBest || x.d < oppBest.d)).length;
-  return { blank: false, side, pts };
+  const live = { A: 0, B: 0 };
+  for (const stn of stones || []) {
+    const d = Math.hypot(stn.x - NC.BUTTON.x, stn.y - NC.BUTTON.y);
+    const pts = ringPtsForDist(d);
+    if (pts > 0 && (stn.side === 'A' || stn.side === 'B')) live[stn.side] += pts;
+  }
+  const blank = live.A === 0 && live.B === 0;
+  if (blank) return { blank: true, pts: 0, side: null, live };
+  if (live.A === live.B) return { blank: false, pts: live.A, side: null, tie: true, live };
+  const side = live.A > live.B ? 'A' : 'B';
+  return { blank: false, pts: live[side], side, tie: false, live };
+}
+
+/** Provisional house score from current stone positions (updates every settle / slide). */
+export function liveHouseScore(stones) {
+  return endScore(stones || []).live || { A: 0, B: 0 };
+}
+
+function winnerByPoints(s) {
+  // Equal totals after refusing a tiebreak → draw
+  if ((s.score?.A || 0) === (s.score?.B || 0)) return 'draw';
+  return s.score.A > s.score.B ? 'A' : 'B';
 }
 
 function scoreEndInto(s) {
   const res = endScore(s.stones);
   s.lastEnd = res;
-  if (!res.blank) {
-    s.score[res.side] += res.pts;
+  if (!s.endLog) s.endLog = [];
+  if (!s.endsWon) s.endsWon = { A: 0, B: 0 };
+
+  s.endLog.push({
+    end: s.end + 1,
+    a: res.live.A,
+    b: res.live.B,
+    winner: res.side || null,
+    blank: !!res.blank,
+    tie: !!res.tie,
+    tieBreak: !!s.tieBreak
+  });
+
+  s.score.A += res.live.A;
+  s.score.B += res.live.B;
+  if (res.side) {
+    s.endsWon[res.side] = (s.endsWon[res.side] || 0) + 1;
     s.hammer = other(res.side);
   }
-  if (s.score.A >= NC.TARGET || s.score.B >= NC.TARGET) {
+
+  // Extra end after a tied ends-won match
+  if (s.tieBreak) {
     s.phase = 'over';
-    s.winner = s.score.A >= NC.TARGET ? 'A' : 'B';
+    if (res.side) s.winner = res.side;
+    else s.winner = winnerByPoints(s);
+    return s;
+  }
+
+  const maxEnds = s.maxEnds || NC.DEFAULT_ENDS;
+  if (s.end + 1 >= maxEnds) {
+    if (s.endsWon.A !== s.endsWon.B) {
+      s.phase = 'over';
+      s.winner = s.endsWon.A > s.endsWon.B ? 'A' : 'B';
+    } else {
+      // Same number of ends won → ask for one more end
+      s.phase = 'tieAsk';
+      s.tieVotes = { A: null, B: null };
+      s.winner = null;
+    }
   } else {
     s.phase = 'endOver';
   }
@@ -186,7 +247,40 @@ export function nextEnd(st) {
   const s = clone(st);
   if (s.phase !== 'endOver') return s;
   s.end += 1;
+  s.lastEnd = null;
   return startEnd(s);
+}
+
+/** Both accepted the tiebreak — play one extra end. */
+export function beginTieBreak(st) {
+  const s = clone(st);
+  if (s.phase !== 'tieAsk') return s;
+  s.tieBreak = true;
+  s.tieVotes = { A: null, B: null };
+  s.end += 1;
+  s.lastEnd = null;
+  return startEnd(s);
+}
+
+/** Someone declined the extra end — decide by total ring points. */
+export function declineTieBreak(st) {
+  const s = clone(st);
+  if (s.phase !== 'tieAsk') return s;
+  s.phase = 'over';
+  s.winner = winnerByPoints(s);
+  return s;
+}
+
+/** Record a Yes/No vote for the tiebreak. Host applies result when decided. */
+export function voteTieBreak(st, side, accept) {
+  const s = clone(st);
+  if (s.phase !== 'tieAsk') return s;
+  if (side !== 'A' && side !== 'B') return s;
+  if (!s.tieVotes) s.tieVotes = { A: null, B: null };
+  s.tieVotes[side] = !!accept;
+  if (s.tieVotes.A === false || s.tieVotes.B === false) return declineTieBreak(s);
+  if (s.tieVotes.A === true && s.tieVotes.B === true) return beginTieBreak(s);
+  return s;
 }
 
 const clone = x => JSON.parse(JSON.stringify(x));

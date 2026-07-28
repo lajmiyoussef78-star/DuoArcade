@@ -86,7 +86,8 @@ export function initialState(seed) {
     passStreak: 0,
     lastPlacedId: null,
     result: null,
-    winner: null
+    winner: null,
+    dealReady: null           // 'A' | 'B' | null — who proposed next deal at roundEnd
   };
 }
 
@@ -119,6 +120,7 @@ function endRound(state, winnerOrNull) {
     result: { w, pts, blocked, sums },
     phase: matchDone ? 'matchEnd' : 'roundEnd',
     winner: matchDone ? w : null,
+    dealReady: null,
     error: undefined
   };
 }
@@ -126,7 +128,7 @@ function endRound(state, winnerOrNull) {
 // moves: {t:'place', id, end:'left'|'right'}  by the player on turn
 //        {t:'draw'}                           by the player on turn, no playable tile
 //        {t:'pass'}                            by the player on turn, no playable tile, empty boneyard
-//        {t:'nextRound', seed?}                by either, once, at roundEnd
+//        {t:'nextRound', seed?}                propose or accept deal at roundEnd
 //        {t:'rematch', seed?}                  by either, once, at matchEnd
 export function applyMove(state, move, by) {
   const fail = msg => ({ ...state, error: msg });
@@ -196,6 +198,13 @@ export function applyMove(state, move, by) {
 
     case 'nextRound': {
       if (state.phase !== 'roundEnd') return fail('The round is not over yet');
+      // First press proposes; the other player must accept before dealing.
+      if (!state.dealReady) {
+        return { ...state, dealReady: by, error: undefined };
+      }
+      if (state.dealReady === by) {
+        return { ...state, error: undefined }; // already proposed — wait for partner
+      }
       const round = state.round + 1;
       const nextSeed = move.seed != null
         ? (move.seed >>> 0)
@@ -216,6 +225,7 @@ export function applyMove(state, move, by) {
         lastPlacedId: null,
         result: null,
         winner: null,
+        dealReady: null,
         error: undefined
       };
     }
