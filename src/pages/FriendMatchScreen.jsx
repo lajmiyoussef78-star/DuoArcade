@@ -50,6 +50,7 @@ export default function FriendMatchScreen() {
   const [status, setStatus] = useState('Opening friend match…');
   const [goAt, setGoAt] = useState(null);
   const [, tick] = useState(0);
+  const countdownArmRef = useRef(null);
   const presenceRef = useRef(null);
 
   const myRole = (() => {
@@ -106,18 +107,29 @@ export default function FriendMatchScreen() {
 
   useEffect(() => {
     if (session.phase === 'live' && session.liveAt && !session.winner) {
-      setGoAt(session.liveAt);
-    } else {
+      const armKey = `${session.game}:${session.startedAt || 0}`;
+      if (countdownArmRef.current === armKey) return;
+      countdownArmRef.current = armKey;
+      const shared = Number(session.liveAt);
+      const now = Date.now();
+      if (Number.isFinite(shared) && shared <= now) {
+        setGoAt(now);
+      } else {
+        setGoAt(now + LOBBY_COUNTDOWN_MS);
+      }
+    } else if (session.phase !== 'live' || session.winner) {
+      countdownArmRef.current = null;
       setGoAt(null);
     }
   }, [session.liveAt, session.phase, session.winner, session.startedAt, session.game]);
 
   const counting = goAt != null && Date.now() < goAt && !session.winner;
   useEffect(() => {
-    if (!counting) return;
-    const t = setTimeout(() => tick(n => n + 1), 200);
-    return () => clearTimeout(t);
-  });
+    if (goAt == null || session.winner) return undefined;
+    if (Date.now() >= goAt) return undefined;
+    const id = setInterval(() => tick(n => n + 1), 200);
+    return () => clearInterval(id);
+  }, [goAt, session.winner]);
 
   const pushSession = async next => {
     if (!client || !match) return;

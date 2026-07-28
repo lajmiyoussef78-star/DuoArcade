@@ -429,9 +429,10 @@ export default function Arcade() {
     const { duo, code, myRole } = ctxRef.current;
     const s = duo.session;
     if (!s || s.phase !== 'lobby' || s.ready?.[myRole] || s.paused) return;
+    // Merge with any ready flags already known locally (avoids clobbering partner).
     const ready = { ...(s.ready || { A: false, B: false }), [myRole]: true };
     const both = ready.A && ready.B;
-    // Shared absolute countdown end — both clients use this same liveAt (not a local restart).
+    // Shared liveAt is only a "go live" signal — each client arms a local 3s once.
     const session = both
       ? { ...s, ready, phase: 'live', liveAt: Date.now() + 3000, countdownMs: 3000 }
       : { ...s, ready };
@@ -839,8 +840,7 @@ export default function Arcade() {
           const remoteS = remote.session;
           if (
             localS && remoteS &&
-            localS.startedAt && remoteS.startedAt === localS.startedAt &&
-            Date.now() - lastLocalWrite.current < 2000
+            localS.startedAt && remoteS.startedAt === localS.startedAt
           ) {
             const rank = sess => {
               if (!sess) return -1;
@@ -850,10 +850,28 @@ export default function Arcade() {
               if (sess.phase === 'invite') return 100;
               return 0;
             };
+            // Always keep a more-advanced local session for this match start.
+            // (Late single-ready writes used to rewind live → lobby and re-stick "3".)
             if (rank(localS) > rank(remoteS)) {
               return {
                 ...s,
                 duo: { ...remote, session: localS, turn: s.duo.turn ?? remote.turn }
+              };
+            }
+            // Prefer the earlier liveAt so countdown can't re-arm from a second writer.
+            if (
+              localS.phase === 'live' && remoteS.phase === 'live' &&
+              localS.liveAt && remoteS.liveAt &&
+              localS.liveAt < remoteS.liveAt &&
+              Date.now() - lastLocalWrite.current < 5000
+            ) {
+              return {
+                ...s,
+                duo: {
+                  ...remote,
+                  session: { ...remoteS, liveAt: localS.liveAt },
+                  turn: s.duo.turn ?? remote.turn
+                }
               };
             }
           }

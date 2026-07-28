@@ -163,8 +163,9 @@ export default function GameScreen({
   const fsRootRef = useRef(null);
   useEffect(() => { setShowRules(false); }, [s.game]);
   const [, forceTick] = useState(0);
-  // Shared liveAt from session — both clients count to the same instant.
+  // Local countdown end — armed once per match so sync echoes can't re-stick on "3".
   const [goAt, setGoAt] = useState(null);
+  const countdownArmRef = useRef(null);
   // Connect Four / Gomoku: show the winning line before the result panel.
   const [revealResult, setRevealResult] = useState(false);
 
@@ -203,10 +204,22 @@ export default function GameScreen({
   };
 
   useEffect(() => {
-    // Shared absolute liveAt so both clients show the same 3·2·1 (not local clocks).
+    // Arm a fixed local 3s once when the match goes live. Re-using shared liveAt
+    // caused clock-skew "stuck on 3"; re-arming on every echo reset the digit.
     if (s.phase === 'live' && s.liveAt && !s.winner) {
-      setGoAt(s.liveAt);
-    } else {
+      const armKey = `${s.game}:${s.startedAt || 0}`;
+      if (countdownArmRef.current === armKey) return;
+      countdownArmRef.current = armKey;
+      const shared = Number(s.liveAt);
+      const now = Date.now();
+      // Late join / slow sync: if the shared end is already past, skip straight in.
+      if (Number.isFinite(shared) && shared <= now) {
+        setGoAt(now);
+      } else {
+        setGoAt(now + LOBBY_COUNTDOWN_MS);
+      }
+    } else if (s.phase !== 'live' || s.winner) {
+      countdownArmRef.current = null;
       setGoAt(null);
     }
   }, [s.liveAt, s.phase, s.winner, s.startedAt, s.game]);
@@ -239,11 +252,13 @@ export default function GameScreen({
   }, [s.winner, s.game, s.startedAt]);
 
   const counting = goAt != null && Date.now() < goAt && !s.winner;
+  // Interval keyed on goAt — parent presence/geo re-renders must not clear the tick.
   useEffect(() => {
-    if (!counting) return;
-    const t = setTimeout(() => forceTick(n => n + 1), 200);
-    return () => clearTimeout(t);
-  });
+    if (goAt == null || s.winner) return undefined;
+    if (Date.now() >= goAt) return undefined;
+    const id = setInterval(() => forceTick(n => n + 1), 200);
+    return () => clearInterval(id);
+  }, [goAt, s.winner]);
 
   if (!eng) return null;
   const rules = getRules(s.game);
