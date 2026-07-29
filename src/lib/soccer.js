@@ -2,6 +2,7 @@
 export {
   MATCH_SECONDS,
   SOC,
+  SOCCER_CONTACT_RADIUS,
   socInitial,
   socStepCar,
   socStep,

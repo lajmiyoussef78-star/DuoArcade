@@ -347,6 +347,43 @@ export function reconcileOwnCar(predicted, authoritative, dt, {
   return lerpCar(predicted, authoritative, 1 - Math.exp(-Math.max(0, dt) * rate));
 }
 
+/**
+ * Keep an immediate local car outside the delayed shared ball render.
+ * This only constrains the car's visual prediction; the server still owns
+ * collision response and the ball timeline.
+ */
+export function constrainPredictedCarToBall(previous, predicted, ball, minDistance) {
+  if (!predicted || !ball || !Number.isFinite(minDistance) || minDistance <= 0) {
+    return predicted ? { ...predicted } : predicted;
+  }
+  const dx = predicted.x - ball.x;
+  const dy = predicted.y - ball.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance >= minDistance) return { ...predicted };
+
+  // Preserve the approach side so a fast frame cannot visually tunnel through.
+  let nx = (previous?.x ?? predicted.x) - ball.x;
+  let ny = (previous?.y ?? predicted.y) - ball.y;
+  let normalLength = Math.hypot(nx, ny);
+  if (normalLength < 1e-6) {
+    nx = dx;
+    ny = dy;
+    normalLength = distance;
+  }
+  if (normalLength < 1e-6) {
+    nx = -Math.cos(predicted.a || 0);
+    ny = -Math.sin(predicted.a || 0);
+    normalLength = 1;
+  }
+  nx /= normalLength;
+  ny /= normalLength;
+  return {
+    ...predicted,
+    x: ball.x + nx * minDistance,
+    y: ball.y + ny * minDistance,
+  };
+}
+
 export function createSoccerClock() {
   let offsetMs = 0;
   let ready = false;

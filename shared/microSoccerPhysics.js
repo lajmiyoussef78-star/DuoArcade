@@ -11,6 +11,10 @@ export const SOC = Object.freeze({
   BALL_R: 13,
 });
 
+/** Existing circular car/ball contact shell used by authoritative physics. */
+export const SOCCER_CONTACT_RADIUS =
+  SOC.BALL_R + Math.max(SOC.CAR_W, SOC.CAR_H) / 2 - 4;
+
 const ROLES = Object.freeze(['A', 'B']);
 const TURN = 3.4;
 const ACC = 420;
@@ -106,7 +110,7 @@ export function socStep(st, inputs, dt, opts = {}) {
     const dx = b.x - c.x;
     const dy = b.y - c.y;
     const dist = Math.hypot(dx, dy);
-    const min = SOC.BALL_R + Math.max(SOC.CAR_W, SOC.CAR_H) / 2 - 4;
+    const min = SOCCER_CONTACT_RADIUS;
     if (dist > 0 && dist < min) {
       const nx = dx / dist;
       const ny = dy / dist;
@@ -160,7 +164,7 @@ export function socBumpBallWithCar(ball, car) {
   const dx = b.x - car.x;
   const dy = b.y - car.y;
   const dist = Math.hypot(dx, dy);
-  const min = SOC.BALL_R + Math.max(SOC.CAR_W, SOC.CAR_H) / 2 - 4;
+  const min = SOCCER_CONTACT_RADIUS;
   if (dist > 0 && dist < min) {
     const nx = dx / dist;
     const ny = dy / dist;

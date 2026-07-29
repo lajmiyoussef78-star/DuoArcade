@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import {
+  constrainPredictedCarToBall,
   createSoccerClock,
   createSoccerSnapshotBuffer,
   reconcileOwnCar,
   validateSoccerMsg,
 } from '../src/lib/soccerNet.js';
-import { socInitial } from '../src/lib/soccer.js';
+import { SOCCER_CONTACT_RADIUS, socInitial } from '../src/lib/soccer.js';
 
 function snapshot(tick, serverTime, x, scoreA = 0) {
   const state = socInitial();
@@ -81,6 +82,27 @@ function snapshot(tick, serverTime, x, scoreA = 0) {
 
   const hardCorrected = reconcileOwnCar(predicted, { ...predicted, x: 160 }, 1 / 60);
   assert.equal(hardCorrected.x, 160);
+}
+
+{
+  const ball = { x: 400, y: 250, vx: 0, vy: 0 };
+  const previous = { x: 360, y: 250, a: 0, v: 300 };
+  const tunneled = { x: 405, y: 250, a: 0, v: 300 };
+  const constrained = constrainPredictedCarToBall(
+    previous,
+    tunneled,
+    ball,
+    SOCCER_CONTACT_RADIUS,
+  );
+  assert.equal(constrained.x, ball.x - SOCCER_CONTACT_RADIUS);
+  assert.equal(constrained.y, ball.y);
+  assert.equal(constrained.v, tunneled.v, 'visual contact must not invent ball authority');
+
+  const clear = { x: 300, y: 250, a: 0, v: 20 };
+  assert.deepEqual(
+    constrainPredictedCarToBall(previous, clear, ball, SOCCER_CONTACT_RADIUS),
+    clear,
+  );
 }
 
 {

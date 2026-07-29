@@ -1,8 +1,15 @@
 // src/pages/Soccer.jsx — symmetric browser client for server-authoritative Micro Soccer.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MATCH_SECONDS, SOC, socInitial, socStepCar } from '../lib/soccer.js';
 import {
+  MATCH_SECONDS,
+  SOC,
+  SOCCER_CONTACT_RADIUS,
+  socInitial,
+  socStepCar,
+} from '../lib/soccer.js';
+import {
+  constrainPredictedCarToBall,
   createSoccerClock,
   createSoccerMetrics,
   createSoccerSnapshotBuffer,
@@ -341,8 +348,15 @@ export default function Soccer({
       if (sampled && latest) {
         let ownCar = ownCarRef.current || { ...sampled.state.cars[role] };
         if (phaseRef.current === 'live' && !pausedRef?.current) {
+          const previousOwnCar = ownCar;
           ownCar = socStepCar(ownCar, keys.current, dt);
           ownCar = reconcileOwnCar(ownCar, latest.state.cars[role], dt);
+          ownCar = constrainPredictedCarToBall(
+            previousOwnCar,
+            ownCar,
+            sampled.state.ball,
+            SOCCER_CONTACT_RADIUS,
+          );
           ownCarRef.current = ownCar;
         }
         renderStateRef.current = {
