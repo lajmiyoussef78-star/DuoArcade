@@ -177,3 +177,93 @@ export function laserWallWinnerRole(finalRes) {
   if (!finalRes || ![-1, 0, 1].includes(finalRes.winner)) return null;
   return finalRes.winner === -1 ? 'draw' : (finalRes.winner === 0 ? 'A' : 'B');
 }
+
+/** Drop oldest completed strokes only — never thin mid-stroke points. */
+export function inkBoundPreserveStrokes(ink, maxLen = 2700) {
+  if (!Array.isArray(ink) || ink.length <= maxLen) return ink;
+  let cut = ink.length - maxLen;
+  cut -= cut % 3;
+  for (let i = cut; i + 2 < ink.length; i += 3) {
+    if (ink[i] < 0) return ink.slice(i + 3);
+  }
+  return ink.slice(Math.max(0, cut));
+}
+
+/**
+ * Host trail packet: append-only deltas. `reset` replaces guest ink.
+ * `from` is the absolute ink index the delta starts at.
+ */
+export function packLaserWallTrailDelta(ink, sentLen, {
+  compact = (values) => values,
+  maxDelta = 900,
+  maxReset = 2400,
+} = {}) {
+  if (!Array.isArray(ink) || ink.length < 3) return null;
+  let safeSent = Math.max(0, Number(sentLen) || 0);
+  if (safeSent > ink.length) safeSent = 0;
+  if (safeSent === ink.length) return null;
+
+  const remaining = ink.length - safeSent;
+
+  // Fresh sync / large catch-up: send a replace window (full ink when it fits).
+  if (safeSent === 0 || remaining > maxDelta) {
+    if (ink.length <= maxReset) {
+      return {
+        ink: compact(ink.slice()),
+        enc: 1,
+        from: 0,
+        len: ink.length,
+        reset: 1,
+        nextSent: ink.length,
+      };
+    }
+    const start = ink.length - maxDelta;
+    const aligned = start - (start % 3);
+    return {
+      ink: compact(ink.slice(aligned)),
+      enc: 1,
+      from: 0,
+      len: ink.length - aligned,
+      reset: 1,
+      nextSent: ink.length,
+    };
+  }
+
+  return {
+    ink: compact(ink.slice(safeSent)),
+    enc: 1,
+    from: safeSent,
+    len: ink.length,
+    reset: 0,
+    nextSent: ink.length,
+  };
+}
+
+/** Guest: append deltas or replace on reset. Never deletes newer local points unless reset. */
+export function applyLaserWallTrailDelta(currentInk, pkt, expand = (v) => v) {
+  if (!pkt || !Array.isArray(pkt.ink) || pkt.ink.length < 3) {
+    return { ink: currentInk || [], changed: false };
+  }
+  const chunk = pkt.enc ? expand(pkt.ink) : pkt.ink;
+  if (!chunk || chunk.length < 3) return { ink: currentInk || [], changed: false };
+
+  const from = Number.isInteger(pkt.from) ? pkt.from : 0;
+  const reset = !!pkt.reset || from === 0;
+  const cur = Array.isArray(currentInk) ? currentInk : [];
+
+  if (reset) {
+    if (from <= 0) return { ink: chunk.slice(), changed: true };
+    if (from > cur.length) return { ink: chunk.slice(), changed: true };
+    return { ink: cur.slice(0, from).concat(chunk), changed: true };
+  }
+
+  if (from === cur.length) {
+    return { ink: cur.concat(chunk), changed: true };
+  }
+  if (from < cur.length) {
+    // Overlap / resend of a suffix — replace from `from` forward.
+    return { ink: cur.slice(0, from).concat(chunk), changed: true };
+  }
+  // Gap — cannot append safely; ignore until a reset arrives.
+  return { ink: cur, changed: false, gap: true };
+}

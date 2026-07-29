@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import {
   applyLaserWallGuestState,
+  applyLaserWallTrailDelta,
+  inkBoundPreserveStrokes,
   laserWallWinnerRole,
   packLaserWallGuestIntent,
   packLaserWallState,
+  packLaserWallTrailDelta,
   sanitizeLaserWallState,
 } from '../src/laserwall/laserWallNet.js';
 
@@ -106,6 +109,46 @@ function world() {
   assert.equal(laserWallWinnerRole({ winner: -1 }), 'draw');
   assert.equal(laserWallWinnerRole({ winner: 4 }), null);
   assert.equal(sanitizeLaserWallState({ state: 'play' }), null);
+}
+
+{
+  // Bound drops oldest completed strokes only — no mid-stroke holes.
+  const ink = [];
+  for (let i = 0; i < 100; i++) ink.push(i, i, 1);
+  ink.push(-1, -1, -1);
+  for (let i = 0; i < 40; i++) ink.push(200 + i, 200 + i, 1);
+  const bounded = inkBoundPreserveStrokes(ink, 90);
+  assert.ok(bounded.length <= 90);
+  assert.equal(bounded.some((v, i) => i % 3 === 0 && v < 0), false);
+  assert.ok(bounded[0] >= 200);
+}
+
+{
+  // Append-only deltas never rewrite earlier points; reset replaces.
+  const drawn = [];
+  for (let i = 0; i < 30; i++) drawn.push(i, i, 1);
+
+  const first = packLaserWallTrailDelta(drawn, 0, {
+    compact: (v) => v,
+    maxDelta: 12,
+    maxReset: 2400,
+  });
+  assert.equal(first.reset, 1);
+  assert.equal(first.from, 0);
+  let guest = applyLaserWallTrailDelta([], first).ink;
+  assert.deepEqual(guest, drawn);
+
+  drawn.push(100, 100, 1, 101, 101, 1);
+  const delta = packLaserWallTrailDelta(drawn, first.nextSent, {
+    compact: (v) => v,
+    maxDelta: 900,
+  });
+  assert.equal(delta.reset, 0);
+  assert.equal(delta.from, 90);
+  guest = applyLaserWallTrailDelta(guest, delta).ink;
+  assert.equal(guest.length, drawn.length);
+  assert.deepEqual(guest.slice(0, 90), drawn.slice(0, 90));
+  assert.ok(guest.length > 90, 'laser history stays intact while new ink appends');
 }
 
 console.log('laser wall net tests: PASS');

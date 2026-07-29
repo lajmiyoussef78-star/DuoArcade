@@ -43,7 +43,7 @@ export const SB = {
   RING_R: 222,
   N_SUMOS: 8,
   SUMO_R: 32,
-  HIT_R: 56,            // catch cone — forgiving but not through-the-ring
+  HIT_R: 88,            // catch cone — wider reception so far sumos are easier to hit
   // Neighbors sit ~67.5° off center-aim; sweep must reach past that.
   AIM_VEL: 2.4,         // rad/s — reverses at left/right sweep ends
   SWEEP_AMP: 1.45,      // ±radians from center (~83°) so adjacent sumos are reachable

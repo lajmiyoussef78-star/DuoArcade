@@ -2,9 +2,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createDuoStickmanNet } from "../lib/duoStickmanNet.js";
 import {
   applyLaserWallGuestState,
+  applyLaserWallTrailDelta,
+  inkBoundPreserveStrokes,
   laserWallWinnerRole,
   packLaserWallGuestIntent,
   packLaserWallState,
+  packLaserWallTrailDelta,
 } from "./laserWallNet.js";
 
 /* ═══════════════════ WORLD ═══════════════════ */
@@ -114,15 +117,9 @@ function inkExpand(enc) {
   }
   return o;
 }
+/** Bound ink memory without punching holes in drawn strokes. */
 function inkSoftCap(ink) {
-  if (!ink || ink.length <= 360) return ink;
-  const keepFrom = ink.length - 240;
-  const out = [];
-  for (let i = 0; i + 2 < keepFrom; i += 3) {
-    if (ink[i] < 0 || (i / 3) % 2 === 0) out.push(ink[i], ink[i + 1], ink[i + 2]);
-  }
-  for (let i = keepFrom; i < ink.length; i++) out.push(ink[i]);
-  return out;
+  return inkBoundPreserveStrokes(ink, 2700);
 }
 
 /* ═══════════════════ TEMPLATE SHAPES ═══════════════════ */
@@ -519,6 +516,8 @@ export default function LaserWallDuel({
     E._ink = []; // full round ink for wall-man sync: [x,y,g, ...] g=-1 = pen break
     E._inkPen = false;
     E._lastInkLen = 0;
+    E._inkSent = 0;
+    E._lastInkN = -1;
     E.stars = map.fx === "stars" ? Array.from({ length: 70 }, () => ({ x: Math.random() * WORLD.w, y: Math.random() * (WORLD.ground - 100), ph: Math.random() * 6.28 })) : [];
     E.timer = opts.time != null ? opts.time : settingsRef.current.time;
     E.trace = document.createElement("canvas"); E.trace.width = WORLD.w; E.trace.height = WORLD.h;
@@ -595,6 +594,8 @@ export default function LaserWallDuel({
     E._ink = [];
     E._inkPen = false;
     E._lastInkLen = 0;
+    E._inkSent = 0;
+    E._lastInkN = -1;
     E.lastDot = null;
     if (audio.hum) audio.hum.gain.value = 0;
     try { duoNetRef.current?.clearState?.(); } catch { /* ignore */ }
@@ -632,7 +633,11 @@ export default function LaserWallDuel({
       remap: { KeyA: "ArrowLeft", KeyD: "ArrowRight", KeyW: "ArrowUp", KeyS: "ArrowDown", ShiftLeft: "ShiftRight" },
     });
     duoNetRef.current = net;
-    net.setStateProvider?.(() => packHostStateRef.current?.());
+    net.setStateProvider?.(() => {
+      // Reconnect/full sync must resend ink, not assume guest still has deltas.
+      E._inkSent = 0;
+      return packHostStateRef.current?.();
+    });
     if (typeof window !== "undefined") {
       window.__LASERWALL_NET__ = {
         summary: () => ({
@@ -905,7 +910,9 @@ export default function LaserWallDuel({
     E._ink = bag.ink;
     E._inkPen = bag.pen;
     E.lastDot = bag.last;
+    const beforeLen = E._ink.length;
     E._ink = inkSoftCap(E._ink);
+    if (E._ink.length < beforeLen) E._inkSent = 0;
     paintInk(E.trace.getContext("2d"), E._ink);
   }, [E, audio, beep]);
 
@@ -1156,41 +1163,21 @@ export default function LaserWallDuel({
         E.trace.width = WORLD.w; E.trace.height = WORLD.h;
       }
     };
-    /** Wall man: host ink is authority ONLY when it is at least as long — never wipe a longer local beam-built stroke. */
+    /** Guest ink comes only from host trail deltas — never rewrite/softcap locally. */
     const applyInkPacket = (pkt) => {
       if (!pkt || !Array.isArray(pkt.ink) || pkt.ink.length < 3) return;
-      const ink = pkt.enc ? inkExpand(pkt.ink) : pkt.ink;
-      if (!ink || ink.length < 3) return;
-      if (pkt.n === E._lastInkN && ink.length === E._lastInkLen) return;
-      // Critical: shorter/stale packets were erasing the start of the line on the wall man
-      if (ink.length < (E._ink?.length || 0)) return;
+      if (pkt.n != null && pkt.n === E._lastInkN && pkt.len === E._lastInkLen) return;
+      const applied = applyLaserWallTrailDelta(E._ink, pkt, inkExpand);
+      if (!applied.changed) return;
       ensureTrace();
-      E._ink = ink.slice();
-      E._inkPen = ink.length >= 3 && ink[ink.length - 1] >= 0;
+      E._ink = applied.ink;
+      E._inkPen = E._ink.length >= 3 && E._ink[E._ink.length - 1] >= 0;
       E.lastDot = E._inkPen
-        ? { x: ink[ink.length - 3], y: ink[ink.length - 2] }
+        ? { x: E._ink[E._ink.length - 3], y: E._ink[E._ink.length - 2] }
         : null;
       paintInk(E.trace.getContext("2d"), E._ink);
       E._lastInkLen = E._ink.length;
-      E._lastInkN = pkt.n;
-    };
-
-    /** Wall man builds the SAME ink buffer from the live beam (st arrives every tick). */
-    const wallManFollowBeam = (beam, mouseDown) => {
-      ensureTrace();
-      if (!E._ink) E._ink = [];
-      if (beam && !beam.blocked && mouseDown) {
-        const bag = { ink: E._ink, pen: E._inkPen, last: E.lastDot };
-        inkAdd(bag, beam.x, beam.y, !!beam.g);
-        E._ink = inkSoftCap(bag.ink);
-        E._inkPen = bag.pen;
-        E.lastDot = bag.last;
-        paintInk(E.trace.getContext("2d"), E._ink);
-      } else if (E._inkPen) {
-        E._ink.push(-1, -1, -1);
-        E._inkPen = false;
-        E.lastDot = null;
-      }
+      if (pkt.n != null) E._lastInkN = pkt.n;
     };
 
     const loop = (ts) => {
@@ -1249,71 +1236,64 @@ export default function LaserWallDuel({
 
             if (E.matchLive) {
               ensureBodies();
-              const iAmShooter = (st.artist ?? E.artist) === 1;
               const applied = applyLaserWallGuestState(E, st, dt);
-              if (!applied.accepted) return;
-              const cm = correctionMetricsRef.current;
-              cm.samples += 1;
-              cm.artMax = Math.max(cm.artMax, applied.corrections.art);
-              cm.runMax = Math.max(cm.runMax, applied.corrections.run);
-              if (!iAmShooter) {
-                // Authoritative beam builds the same visible stroke for the wall man.
-                wallManFollowBeam(E.beam, !!st.mouse?.down);
-              }
+              if (applied.accepted) {
+                const cm = correctionMetricsRef.current;
+                cm.samples += 1;
+                cm.artMax = Math.max(cm.artMax, applied.corrections.art);
+                cm.runMax = Math.max(cm.runMax, applied.corrections.run);
 
-              // Laser trail arrives on its own channel (applied below) — not buried in st
-
-              // Keep timer/score in lockstep with host
-              if (st.hud) {
-                const h = st.hud;
-                const key = `${h.timer}|${h.acc}|${h.round}|${h.artist}|${h.tpl || ""}`;
-                if (E._hudKey !== key) { E._hudKey = key; setHud(h); }
-              } else if (st.timer != null) {
-                const acc = E.tplPts?.length
-                  ? Math.max(0, Math.round((E.covered / E.tplPts.length) * 100 - Math.min(20, (E.offTime || 0) * 4)))
-                  : 0;
-                const h = {
-                  timer: Number(st.timer).toFixed(1), acc,
-                  tpl: (E.tpl?.icon || "") + " " + (E.tpl?.name || ""),
-                  artist: E.artist, round: E.round,
-                };
-                const key = `${h.timer}|${h.acc}|${h.round}|${h.artist}|${h.tpl}`;
-                if (E._hudKey !== key) { E._hudKey = key; setHud(h); }
-              }
-              // Intro overlay: only while host is in intro; ALWAYS dismiss on play
-              // (old bug: _introCn === -2 from a prior round skipped setIntro(null) → stuck on "3")
-              if (st.state === "intro") {
-                if (st.introCount != null && E._introCn !== st.introCount) {
-                  E._introCn = st.introCount;
-                  setIntro((s) => (s
-                    ? { ...s, count: st.introCount }
-                    : {
-                      round: E.round, artist: E.artist,
-                      tplName: E.tpl?.name, tplIcon: E.tpl?.icon, diff: E.tpl?.diff,
-                      count: st.introCount,
-                    }));
+                // Keep timer/score in lockstep with host
+                if (st.hud) {
+                  const h = st.hud;
+                  const key = `${h.timer}|${h.acc}|${h.round}|${h.artist}|${h.tpl || ""}`;
+                  if (E._hudKey !== key) { E._hudKey = key; setHud(h); }
+                } else if (st.timer != null) {
+                  const acc = E.tplPts?.length
+                    ? Math.max(0, Math.round((E.covered / E.tplPts.length) * 100 - Math.min(20, (E.offTime || 0) * 4)))
+                    : 0;
+                  const h = {
+                    timer: Number(st.timer).toFixed(1), acc,
+                    tpl: (E.tpl?.icon || "") + " " + (E.tpl?.name || ""),
+                    artist: E.artist, round: E.round,
+                  };
+                  const key = `${h.timer}|${h.acc}|${h.round}|${h.artist}|${h.tpl}`;
+                  if (E._hudKey !== key) { E._hudKey = key; setHud(h); }
                 }
-              } else if (st.state === "play" || st.state === "roundEnd" || st.state === "done") {
-                if (E._introCn !== -2) E._introCn = -2;
-                setIntro(null);
-              }
+                // Intro overlay: only while host is in intro; ALWAYS dismiss on play
+                if (st.state === "intro") {
+                  if (st.introCount != null && E._introCn !== st.introCount) {
+                    E._introCn = st.introCount;
+                    setIntro((s) => (s
+                      ? { ...s, count: st.introCount }
+                      : {
+                        round: E.round, artist: E.artist,
+                        tplName: E.tpl?.name, tplIcon: E.tpl?.icon, diff: E.tpl?.diff,
+                        count: st.introCount,
+                      }));
+                  }
+                } else if (st.state === "play" || st.state === "roundEnd" || st.state === "done") {
+                  if (E._introCn !== -2) E._introCn = -2;
+                  setIntro(null);
+                }
 
-              if (st.roundEnd) {
-                const rk = `${st.roundEnd.acc}:${st.roundEnd.artist}`;
-                if (E._uiRoundEnd !== rk) { E._uiRoundEnd = rk; setRoundEnd(st.roundEnd); }
-              } else if (E.state !== "roundEnd" && E._uiRoundEnd) {
-                E._uiRoundEnd = null; setRoundEnd(null);
-              }
-              if (st.finalRes) {
-                const key = JSON.stringify(st.finalRes);
-                if (E._uiFinal !== key) { E._uiFinal = key; setFinalRes(st.finalRes); }
+                if (st.roundEnd) {
+                  const rk = `${st.roundEnd.acc}:${st.roundEnd.artist}`;
+                  if (E._uiRoundEnd !== rk) { E._uiRoundEnd = rk; setRoundEnd(st.roundEnd); }
+                } else if (E.state !== "roundEnd" && E._uiRoundEnd) {
+                  E._uiRoundEnd = null; setRoundEnd(null);
+                }
+                if (st.finalRes) {
+                  const key = JSON.stringify(st.finalRes);
+                  if (E._uiFinal !== key) { E._uiFinal = key; setFinalRes(st.finalRes); }
+                }
               }
             }
           }
         }
 
-        // Host ink reconciles drift — but never replaces a longer local beam-built line
-        if (E.matchLive && trail && E.artist === 0) {
+        // Host trail is the only ink authority on the guest.
+        if (E.matchLive && trail) {
           applyInkPacket(trail);
         }
 
@@ -1367,6 +1347,8 @@ export default function LaserWallDuel({
           netAcc += dt;
           if (netAcc >= 0.05) { netAcc = 0; net.netTick(() => packHostState()); }
         }
+        updateCam(dt);
+        draw(t);
         return;
       }
 
@@ -1424,14 +1406,25 @@ export default function LaserWallDuel({
           if (netAcc >= 0.05) {
             netAcc = 0;
             net.netTick(() => packHostState({ hud: nextHud }));
-            if (E.artist === 0 && E._ink && E._ink.length >= 3) {
-              E._inkN = (E._inkN || 0) + 1;
-              net.sendTrail?.({
-                ink: inkCompact(E._ink),
-                enc: 1,
-                n: E._inkN,
-                len: E._ink.length,
+            if (E._ink && E._ink.length >= 3) {
+              if (E._inkSent > E._ink.length) E._inkSent = 0;
+              const delta = packLaserWallTrailDelta(E._ink, E._inkSent || 0, {
+                compact: inkCompact,
+                maxDelta: 900,
+                maxReset: 2400,
               });
+              if (delta) {
+                E._inkN = (E._inkN || 0) + 1;
+                net.sendTrail?.({
+                  ink: delta.ink,
+                  enc: delta.enc,
+                  n: E._inkN,
+                  len: delta.len,
+                  from: delta.from,
+                  reset: delta.reset,
+                });
+                E._inkSent = delta.nextSent;
+              }
             }
           }
           E.pressed = {};
