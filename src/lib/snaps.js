@@ -1,15 +1,9 @@
 // src/lib/snaps.js — Duo Snap data layer (interval-based rounds).
 
-import { CONFIG } from './config.js';
-
-let clientPromise = null;
+import { getSupabase } from './supabaseClient.js';
 
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 export const DEFAULT_SNAP_SETTINGS = {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CONFIG } from '../lib/config.js';
+import { getSupabase } from '../lib/supabaseClient.js';
 import { getLeaderboard, levelFromXp, titleForLevel } from '../lib/xp.js';
 import { applyTheme } from '../lib/util.js';
 import '../styles/xp.css';
@@ -32,8 +32,7 @@ export default function Leaderboard() {
     let alive = true;
     (async () => {
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        const sb = await getSupabase();
         const { data: { session } } = await sb.auth.getSession();
         if (!session) {
           if (alive) setStatus('Sign in on the home screen first, then open the leaderboard.');

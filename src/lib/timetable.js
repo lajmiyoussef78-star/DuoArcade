@@ -1,16 +1,10 @@
 // src/lib/timetable.js — "Our Week" data layer.
 
-import { CONFIG } from './config.js';
+import { getSupabase } from './supabaseClient.js';
 import { defaultTimezone } from './timetableTimezone.js';
 
-let clientPromise = null;
-
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 export async function myRoleInDuo(code) {

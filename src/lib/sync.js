@@ -69,8 +69,8 @@ function denormalize(patch) {
 /* ---------------- Supabase backend ---------------- */
 
 async function supabaseSync() {
-  const { createClient } = await import('@supabase/supabase-js');
-  const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  const { getSupabase } = await import('./supabaseClient.js');
+  const sb = await getSupabase();
   let cb = () => {};
   let channel = null;
   let myToken = null;

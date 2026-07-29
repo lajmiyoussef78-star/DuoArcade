@@ -3,17 +3,12 @@
 // (items are stripped server-side until the unlock date).
 
 import { CONFIG } from './config.js';
+import { getSupabase } from './supabaseClient.js';
 
 const localKey = code => 'duoarcade-bucket-' + code;
 
-let clientPromise = null;
-
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 function configured() {
