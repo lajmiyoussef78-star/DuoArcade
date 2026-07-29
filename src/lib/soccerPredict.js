@@ -1,6 +1,6 @@
 import {
-  SOCCER_CONTACT_RADIUS,
   SOCCER_TICK_HZ,
+  socResolveCarBallContact,
   socReplayInputChanges,
 } from '../../shared/microSoccerPhysics.js';
 import { SOCCER_PROTOCOL_VERSION } from '../../shared/microSoccerProtocol.js';
@@ -197,24 +197,15 @@ function boundedMove(from, to, alpha, maxStep) {
   return { x: from.x + mx, y: from.y + my };
 }
 
-function separatePresentationCar(car, previousCar, ball) {
-  const dx = car.x - ball.x;
-  const dy = car.y - ball.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist >= SOCCER_CONTACT_RADIUS) return car;
-  const previousDx = previousCar?.x - ball.x;
-  const previousDy = previousCar?.y - ball.y;
-  const previousDist = Math.hypot(previousDx, previousDy);
-  const nx = dist > 1e-6
-    ? dx / dist
-    : (previousDist > 1e-6 ? previousDx / previousDist : -Math.cos(car.a));
-  const ny = dist > 1e-6
-    ? dy / dist
-    : (previousDist > 1e-6 ? previousDy / previousDist : -Math.sin(car.a));
+function separatePresentationCar(car, ball) {
+  const contact = socResolveCarBallContact(car, ball);
+  if (!contact) return car;
   return {
     ...car,
-    x: ball.x + nx * SOCCER_CONTACT_RADIUS,
-    y: ball.y + ny * SOCCER_CONTACT_RADIUS,
+    // Keep the predicted ball trajectory untouched. Move only the visual car
+    // by the inverse minimum translation required to clear the rotated hull.
+    x: car.x - (contact.x - ball.x),
+    y: car.y - (contact.y - ball.y),
   };
 }
 
@@ -273,7 +264,6 @@ export function reconcileSoccerPresentation(current, target, dt, {
   for (const role of ROLES) {
     state.cars[role] = separatePresentationCar(
       state.cars[role],
-      source.cars[role],
       state.ball,
     );
   }

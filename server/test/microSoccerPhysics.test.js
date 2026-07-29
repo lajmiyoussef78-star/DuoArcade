@@ -4,6 +4,7 @@ import {
   SOCCER_CONTACT_RADIUS,
   SOCCER_FIXED_DT,
   socInitial,
+  socResolveCarBallContact,
   socReplayFixedTicks,
   socReplayInputChanges,
   socStep,
@@ -105,11 +106,8 @@ test('slow contact stays gentle and always resolves car-ball penetration', () =>
   const separated = socStepFixed(centered, {});
   assert.ok(Number.isFinite(separated.state.ball.x));
   assert.equal(
-    Math.hypot(
-      separated.state.ball.x - separated.state.cars.A.x,
-      separated.state.ball.y - separated.state.cars.A.y,
-    ),
-    SOCCER_CONTACT_RADIUS,
+    socResolveCarBallContact(separated.state.cars.A, separated.state.ball),
+    null,
   );
 });
 

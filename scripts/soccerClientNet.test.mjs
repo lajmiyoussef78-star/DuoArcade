@@ -15,6 +15,7 @@ import {
 import { SOCCER_CONTACT_RADIUS, socInitial } from '../src/lib/soccer.js';
 import {
   SOCCER_FIXED_DT,
+  socResolveCarBallContact,
   socStep,
 } from '../shared/microSoccerPhysics.js';
 
@@ -430,11 +431,9 @@ function predictorSnapshot({
     overlapping,
     1 / 60,
   ).state;
-  assert.ok(
-    Math.hypot(
-      separated.cars.B.x - separated.ball.x,
-      separated.cars.B.y - separated.ball.y,
-    ) >= SOCCER_CONTACT_RADIUS,
+  assert.equal(
+    socResolveCarBallContact(separated.cars.B, separated.ball),
+    null,
     'presentation smoothing cannot draw either car inside the ball',
   );
 }

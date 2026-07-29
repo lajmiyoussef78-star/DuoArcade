@@ -11,9 +11,14 @@ export const SOC = Object.freeze({
   BALL_R: 13,
 });
 
-/** Existing circular car/ball contact shell used by authoritative physics. */
+export const SOCCER_CAR_COLLIDER_PADDING = 3;
+export const SOCCER_CAR_COLLIDER_HALF_W =
+  SOC.CAR_W / 2 + SOCCER_CAR_COLLIDER_PADDING;
+export const SOCCER_CAR_COLLIDER_HALF_H =
+  SOC.CAR_H / 2 + SOCCER_CAR_COLLIDER_PADDING;
+/** Conservative broad-phase radius; exact contact uses the rotated car hull. */
 export const SOCCER_CONTACT_RADIUS =
-  SOC.BALL_R + Math.max(SOC.CAR_W, SOC.CAR_H) / 2 - 4;
+  SOC.BALL_R + SOCCER_CAR_COLLIDER_HALF_W;
 
 const ROLES = Object.freeze(['A', 'B']);
 const TURN = 3.4;
@@ -21,6 +26,59 @@ const ACC = 420;
 const MAXV = 300;
 const FRICTION = 1.6;
 const BALL_FRICTION = 0.55;
+
+export function socResolveCarBallContact(car, ball) {
+  const cos = Math.cos(car.a);
+  const sin = Math.sin(car.a);
+  const dx = ball.x - car.x;
+  const dy = ball.y - car.y;
+  const localX = cos * dx + sin * dy;
+  const localY = -sin * dx + cos * dy;
+  const closestX = Math.max(
+    -SOCCER_CAR_COLLIDER_HALF_W,
+    Math.min(SOCCER_CAR_COLLIDER_HALF_W, localX),
+  );
+  const closestY = Math.max(
+    -SOCCER_CAR_COLLIDER_HALF_H,
+    Math.min(SOCCER_CAR_COLLIDER_HALF_H, localY),
+  );
+  const outsideX = localX - closestX;
+  const outsideY = localY - closestY;
+  const outsideDistance = Math.hypot(outsideX, outsideY);
+  if (outsideDistance >= SOC.BALL_R) return null;
+
+  let normalX;
+  let normalY;
+  let resolvedX;
+  let resolvedY;
+  if (outsideDistance > 1e-6) {
+    normalX = outsideX / outsideDistance;
+    normalY = outsideY / outsideDistance;
+    resolvedX = closestX + normalX * SOC.BALL_R;
+    resolvedY = closestY + normalY * SOC.BALL_R;
+  } else {
+    const exitX = SOCCER_CAR_COLLIDER_HALF_W + SOC.BALL_R - Math.abs(localX);
+    const exitY = SOCCER_CAR_COLLIDER_HALF_H + SOC.BALL_R - Math.abs(localY);
+    if (exitX <= exitY) {
+      normalX = localX < 0 ? -1 : 1;
+      normalY = 0;
+      resolvedX = normalX * (SOCCER_CAR_COLLIDER_HALF_W + SOC.BALL_R);
+      resolvedY = localY;
+    } else {
+      normalX = 0;
+      normalY = localY < 0 ? -1 : 1;
+      resolvedX = localX;
+      resolvedY = normalY * (SOCCER_CAR_COLLIDER_HALF_H + SOC.BALL_R);
+    }
+  }
+
+  return {
+    nx: cos * normalX - sin * normalY,
+    ny: sin * normalX + cos * normalY,
+    x: car.x + cos * resolvedX - sin * resolvedY,
+    y: car.y + sin * resolvedX + cos * resolvedY,
+  };
+}
 
 export function socInitial() {
   return {
@@ -112,15 +170,9 @@ export function socStep(st, inputs, dt, opts = {}) {
   let hit = null;
   for (const role of ROLES) {
     const c = s.cars[role];
-    const dx = b.x - c.x;
-    const dy = b.y - c.y;
-    const dist = Math.hypot(dx, dy);
-    const min = SOCCER_CONTACT_RADIUS;
-    if (dist < min) {
-      // A zero-distance fallback keeps even a corrected/snapshotted overlap
-      // finite and places the ball in front of the car.
-      const nx = dist > 1e-6 ? dx / dist : Math.cos(c.a);
-      const ny = dist > 1e-6 ? dy / dist : Math.sin(c.a);
+    const contact = socResolveCarBallContact(c, b);
+    if (contact) {
+      const { nx, ny } = contact;
       const carVx = Math.cos(c.a) * c.v;
       const carVy = Math.sin(c.a) * c.v;
       const carToward = carVx * nx + carVy * ny;
@@ -135,8 +187,8 @@ export function socStep(st, inputs, dt, opts = {}) {
       // artificial launch on every overlapping tick.
       b.vx = tangentX * 0.92 + nx * targetOut;
       b.vy = tangentY * 0.92 + ny * targetOut;
-      b.x = c.x + nx * min;
-      b.y = c.y + ny * min;
+      b.x = contact.x;
+      b.y = contact.y;
       hit = role;
     }
   }
