@@ -4,6 +4,10 @@ import {
   MicroSoccerRooms,
   validateSoccerClientMessage,
 } from '../src/microSoccerRooms.js';
+import {
+  SOCCER_PROTOCOL_VERSION,
+  validateSoccerServerMessage,
+} from '../../shared/microSoccerProtocol.js';
 
 const ROOM = 'rt-duo123';
 const MATCH = 'match-1700000000000';
@@ -81,6 +85,10 @@ test('starts only after authenticated A and B join and sends identical full snap
   assert.deepEqual(starts.map(event => event.socketId).sort(), ['socket-A', 'socket-B']);
   assert.equal(snapshots.length, 2);
   assert.deepEqual(snapshots[0].payload, snapshots[1].payload);
+  assert.equal(snapshots[0].payload.v, 2);
+  assert.deepEqual(snapshots[0].payload.inputsApplied, { A: null, B: null });
+  assert.deepEqual(snapshots[0].payload.acks, { A: null, B: null });
+  assert.equal(validateSoccerServerMessage(snapshots[0].payload).ok, true);
 
   h.events.length = 0;
   h.manager.advanceOne(1_017);
@@ -90,6 +98,69 @@ test('starts only after authenticated A and B join and sends identical full snap
   assert.equal(periodic.length, 2);
   assert.equal(periodic[0].payload.tick, 3);
   assert.deepEqual(periodic[0].payload, periodic[1].payload);
+});
+
+test('applies only the newest queued input on a server tick and then unicasts its ack', () => {
+  const h = harness();
+  joinBoth(h);
+  h.events.length = 0;
+  const base = {
+    room: ROOM,
+    matchId: MATCH,
+    role: 'A',
+    socketId: 'socket-A',
+  };
+  h.manager.receiveInput({
+    ...base,
+    seq: 10,
+    keys: { up: true, down: false, left: false, right: false },
+    tick: 50_000,
+  }, 1_001);
+  h.manager.receiveInput({
+    ...base,
+    seq: 11,
+    keys: { up: false, down: false, left: false, right: true },
+    tick: 1,
+  }, 1_002);
+
+  assert.equal(h.events.some(event => event.payload.k === 'soccer:ack'), false);
+  assert.equal(h.manager.getMatch(ROOM, MATCH).state.cars.A.a, 0);
+
+  h.manager.advanceOne(1_017);
+
+  const acks = h.events.filter(event => event.payload.k === 'soccer:ack');
+  assert.equal(acks.length, 1);
+  assert.equal(acks[0].socketId, 'socket-A');
+  assert.deepEqual(acks[0].payload, {
+    v: 2,
+    k: 'soccer:ack',
+    matchId: MATCH,
+    seq: 11,
+    appliedTick: 1,
+    tick: 1,
+    keys: { up: false, down: false, left: false, right: true },
+  });
+  assert.equal(validateSoccerServerMessage(acks[0].payload).ok, true);
+  const match = h.manager.getMatch(ROOM, MATCH);
+  assert.ok(match.state.cars.A.a > 0);
+  assert.deepEqual(match.players.A.lastApplied, {
+    seq: 11,
+    appliedTick: 1,
+    keys: { up: false, down: false, left: false, right: true },
+  });
+  h.manager.advanceOne(1_034);
+  h.manager.advanceOne(1_050);
+  const snapshot = h.events.find(event =>
+    event.socketId === 'socket-A' && event.payload.k === 'soccer:snapshot');
+  assert.deepEqual(snapshot.payload.inputsApplied, {
+    A: {
+      seq: 11,
+      appliedTick: 1,
+      keys: { up: false, down: false, left: false, right: true },
+    },
+    B: null,
+  });
+  assert.deepEqual(snapshot.payload.acks, { A: 11, B: null });
 });
 
 test('rejects stale, invalid, and rate-limited input', () => {
@@ -110,6 +181,18 @@ test('rejects stale, invalid, and rate-limited input', () => {
     h.manager.receiveInput({ ...base, seq: 4, keys: { up: 'yes' } }, 2_100).error,
     'invalid_keys',
   );
+  const rejects = h.events.filter(event => event.payload.k === 'soccer:reject');
+  assert.deepEqual(rejects.map(event => event.payload.reason), [
+    'stale_sequence',
+    'rate_limited',
+    'invalid_keys',
+  ]);
+  assert.ok(rejects.every(event => event.socketId === 'socket-A'));
+  assert.deepEqual(h.manager.metrics().rejectsByReason, {
+    stale_sequence: 1,
+    rate_limited: 1,
+    invalid_keys: 1,
+  });
 });
 
 test('neutralizes input after 250ms without changing the fixed step', () => {
@@ -137,6 +220,14 @@ test('neutralizes input after 250ms without changing the fixed step', () => {
 test('pauses on disconnect and resumes the same tick on authenticated reconnect', () => {
   const h = harness();
   joinBoth(h);
+  h.manager.receiveInput({
+    room: ROOM,
+    matchId: MATCH,
+    role: 'B',
+    socketId: 'socket-B',
+    seq: 9,
+    keys: { up: true, down: false, left: false, right: false },
+  }, 1_001);
   h.manager.advanceOne(1_017);
   const beforeDisconnect = h.manager.getMatch(ROOM, MATCH).tick;
 
@@ -166,7 +257,11 @@ test('pauses on disconnect and resumes the same tick on authenticated reconnect'
   assert.ok(h.events.some(event =>
     event.socketId === 'socket-B2'
     && event.payload.k === 'soccer:snapshot'
-    && event.payload.tick === beforeDisconnect));
+    && event.payload.tick === beforeDisconnect
+    && event.payload.v === 2
+    && Object.hasOwn(event.payload, 'inputsApplied')
+    && event.payload.acks.B === 9
+    && event.payload.inputsApplied.B.seq === 9));
   assert.equal(h.timers[0].cancelled, true);
 });
 
@@ -212,6 +307,8 @@ test('finishes at the authoritative tick with a server-owned result', () => {
   const overPayloads = h.events.filter(event => event.payload.k === 'soccer:over');
   assert.equal(overPayloads.length, 2);
   assert.deepEqual(overPayloads[0].payload, overPayloads[1].payload);
+  assert.equal(overPayloads[0].payload.v, 2);
+  assert.equal(validateSoccerServerMessage(overPayloads[0].payload).ok, true);
 });
 
 test('runs a complete 90-second match with identical snapshot streams for both seats', () => {
@@ -244,16 +341,19 @@ test('runs a complete 90-second match with identical snapshot streams for both s
 
 test('client protocol accepts only join and validated key-state input', () => {
   assert.equal(validateSoccerClientMessage({
+    v: SOCCER_PROTOCOL_VERSION,
     k: 'soccer:join',
     matchId: MATCH,
   }).ok, true);
   assert.equal(validateSoccerClientMessage({
+    v: SOCCER_PROTOCOL_VERSION,
     k: 'soccer:input',
     matchId: MATCH,
     seq: 5,
     keys: { up: true, down: false, left: false, right: false },
   }).ok, true);
   assert.equal(validateSoccerClientMessage({
+    v: SOCCER_PROTOCOL_VERSION,
     k: 'soccer:snapshot',
     matchId: MATCH,
   }).error, 'server_owned_kind');

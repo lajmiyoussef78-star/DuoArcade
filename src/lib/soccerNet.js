@@ -1,5 +1,9 @@
 // soccerNet.js — Micro Soccer sync helpers: car interp buffers, ball converge, metrics.
 // Ball: moveTowardBall (latest-converge). Cars: createInterpBuffer. Transport: sync.rt().
+import {
+  SOCCER_PROTOCOL_VERSION,
+  sanitizeSoccerMessage,
+} from '../../shared/microSoccerProtocol.js';
 
 const KEYS = new Set(['up', 'down', 'left', 'right']);
 
@@ -85,6 +89,47 @@ function validScore(s) {
     && s.A >= 0 && s.B >= 0 && s.A < 100 && s.B < 100;
 }
 
+function protocolVersion(m) {
+  const value = m.protocolVersion ?? m.v;
+  return value == null ? null : value;
+}
+
+function validProtocolVersion(value) {
+  return value == null || (Number.isInteger(value) && value > 0 && value <= 32);
+}
+
+function normalizeAckEntry(value, fallbackAppliedTick = null) {
+  if (Number.isSafeInteger(value) && value >= -1) {
+    return {
+      seq: value,
+      appliedTick: Number.isInteger(fallbackAppliedTick) && fallbackAppliedTick >= 0
+        ? fallbackAppliedTick
+        : null,
+    };
+  }
+  if (!value || typeof value !== 'object'
+    || !Number.isSafeInteger(value.seq) || value.seq < -1) return null;
+  const appliedTick = value.appliedTick ?? fallbackAppliedTick;
+  if (appliedTick != null && (!Number.isInteger(appliedTick) || appliedTick < 0)) return null;
+  return { seq: value.seq, appliedTick: appliedTick ?? null };
+}
+
+function normalizeAckMap(value, appliedTicks) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const A = normalizeAckEntry(value.A, appliedTicks?.A);
+  const B = normalizeAckEntry(value.B, appliedTicks?.B);
+  if (!A || !B) return undefined;
+  return { A, B };
+}
+
+function normalizeHeldInputs(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || !validKeys(value.A) || !validKeys(value.B)) return undefined;
+  return { A: { ...value.A }, B: { ...value.B } };
+}
+
 function validState(state) {
   return state && validCar(state.cars?.A) && validCar(state.cars?.B)
     && validBall(state.ball) && validScore(state.score);
@@ -111,10 +156,49 @@ function timingFields(m, tick, serverTime) {
   return { endTick, tickHz };
 }
 
+function adaptV2ServerMessage(message) {
+  const base = {
+    ...message,
+    protocolVersion: SOCCER_PROTOCOL_VERSION,
+  };
+  if (message.k === 'soccer:snapshot') {
+    const ack = {};
+    const inputs = {};
+    for (const role of ['A', 'B']) {
+      const applied = message.inputsApplied[role];
+      const seq = message.acks[role] ?? -1;
+      ack[role] = {
+        seq,
+        appliedTick: applied?.seq === seq ? applied.appliedTick : null,
+      };
+      inputs[role] = applied?.keys ? { ...applied.keys } : {};
+    }
+    return {
+      ...base,
+      state: cloneValidatedState(message.state),
+      ack,
+      inputs,
+    };
+  }
+  if (message.k === 'soccer:over') {
+    return {
+      ...base,
+      state: cloneValidatedState(message.state),
+    };
+  }
+  return base;
+}
+
 /** Reject malformed Micro Soccer RT messages. Returns sanitized copy or null. */
 export function validateSoccerMsg(m) {
   if (!m || typeof m !== 'object') return null;
   if (typeof m.k !== 'string' || m.k.length > 24) return null;
+  if (m.v === SOCCER_PROTOCOL_VERSION && m.k.startsWith('soccer:')) {
+    const message = sanitizeSoccerMessage(m, { direction: 'server' });
+    return message ? adaptV2ServerMessage(message) : null;
+  }
+  const version = protocolVersion(m);
+  if (!validProtocolVersion(version)) return null;
 
   if (m.k === 'start') {
     if (!isFiniteNum(m.endAt)) return null;
@@ -135,6 +219,7 @@ export function validateSoccerMsg(m) {
     if (!Number.isInteger(timing.endTick) || timing.endTick <= m.tick) return null;
     return {
       k: m.k,
+      protocolVersion: version,
       matchId: m.matchId,
       tick: m.tick,
       ...timing,
@@ -147,15 +232,63 @@ export function validateSoccerMsg(m) {
     if (typeof m.matchId !== 'string' || !m.matchId) return null;
     if (!Number.isInteger(m.tick) || m.tick < 0 || !isFiniteNum(m.serverTime)) return null;
     if (!validState(state)) return null;
+    const ack = normalizeAckMap(m.ack ?? m.acks, m.appliedTick);
+    if (ack === undefined) return null;
+    const inputs = normalizeHeldInputs(m.inputs ?? m.heldInputs);
+    if (inputs === undefined) return null;
     const timing = timingFields(m, m.tick, m.serverTime);
     return {
       k: m.k,
+      protocolVersion: version,
       matchId: m.matchId,
       tick: m.tick,
       ...timing,
       serverTime: m.serverTime,
       goal: m.goal === 'A' || m.goal === 'B' ? m.goal : null,
       state: cloneValidatedState(state),
+      ack,
+      inputs,
+    };
+  }
+
+  if (m.k === 'soccer:ack') {
+    if (typeof m.matchId !== 'string' || !m.matchId) return null;
+    if (m.role !== 'A' && m.role !== 'B') return null;
+    const ack = normalizeAckEntry(m.ack ?? {
+      seq: m.seq,
+      appliedTick: m.appliedTick,
+    });
+    if (!ack || !Number.isFinite(m.serverTime)) return null;
+    if (m.tick != null && (!Number.isInteger(m.tick) || m.tick < 0)) return null;
+    return {
+      k: m.k,
+      protocolVersion: version,
+      matchId: m.matchId,
+      role: m.role,
+      ...ack,
+      tick: m.tick ?? null,
+      serverTime: m.serverTime,
+    };
+  }
+
+  if (m.k === 'soccer:reject') {
+    if (typeof m.matchId !== 'string' || !m.matchId) return null;
+    const reason = m.reason ?? m.error ?? m.code;
+    if (typeof reason !== 'string' || !reason || reason.length > 64) return null;
+    if (m.role != null && m.role !== 'A' && m.role !== 'B') return null;
+    if (m.seq != null && (!Number.isSafeInteger(m.seq) || m.seq < 0)) return null;
+    if (m.tick != null && (!Number.isInteger(m.tick) || m.tick < 0)) return null;
+    if (m.serverTime != null && !Number.isFinite(m.serverTime)) return null;
+    return {
+      k: m.k,
+      protocolVersion: version,
+      matchId: m.matchId,
+      role: m.role ?? null,
+      seq: m.seq ?? null,
+      reason,
+      tick: m.tick ?? null,
+      serverTime: m.serverTime ?? null,
+      retryable: m.retryable === true,
     };
   }
 
@@ -164,6 +297,7 @@ export function validateSoccerMsg(m) {
     if (!Number.isInteger(m.tick) || m.tick < 0 || !isFiniteNum(m.serverTime)) return null;
     return {
       k: m.k,
+      protocolVersion: version,
       matchId: m.matchId,
       tick: m.tick,
       serverTime: m.serverTime,
@@ -180,6 +314,7 @@ export function validateSoccerMsg(m) {
     if (state != null && !validState(state)) return null;
     return {
       k: m.k,
+      protocolVersion: version,
       matchId: m.matchId,
       winner,
       tick: m.tick,
@@ -538,6 +673,7 @@ export function createSoccerMetrics() {
     ballCorrSum: 0,
     ballCorrCount: 0,
     ballCorrMax: 0,
+    ballCorrSamples: [],
     ballErrSum: 0,
     ballErrCount: 0,
     playerInterpSum: 0,
@@ -545,6 +681,23 @@ export function createSoccerMetrics() {
     playerInterpMax: 0,
     predErrSum: 0,
     predErrCount: 0,
+    predErrSamples: [],
+    acksIn: 0,
+    rejectsIn: 0,
+    pendingInputs: 0,
+    replayTicks: 0,
+    replayTicksLast: 0,
+    replayTicksMax: 0,
+    replayErrors: 0,
+    predictorHardResets: 0,
+    predictorHardResetReasons: {},
+    protocolMismatches: 0,
+    predictionEnabled: true,
+    ackLagTicks: null,
+    contactFrameDeltas: [],
+    adaptiveDelaySamples: [],
+    adaptiveNoiseMs: null,
+    adaptiveReplayWindowTicks: null,
     hardSnaps: 0,
     corrections: 0,
     teleports: 0,
@@ -569,6 +722,12 @@ export function createSoccerMetrics() {
     return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
   }
 
+  function percentile(arr, quantile) {
+    if (!arr.length) return null;
+    const sorted = [...arr].sort((a, b) => a - b);
+    return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * quantile) - 1)];
+  }
+
   return {
     noteIn(msg) {
       const n = sizeOf(msg);
@@ -586,6 +745,8 @@ export function createSoccerMetrics() {
         if (m.lastPoseAt) m.poseGaps.push(now - m.lastPoseAt);
         m.lastPoseAt = now;
       }
+      if (msg?.k === 'soccer:ack') m.acksIn += 1;
+      if (msg?.k === 'soccer:reject') m.rejectsIn += 1;
     },
     noteOut(msg) {
       const n = sizeOf(msg);
@@ -604,6 +765,62 @@ export function createSoccerMetrics() {
       if (Number.isFinite(ms) && ms >= 0 && ms < 5000) m.rtts.push(ms);
     },
     noteReconnect() { m.reconnects += 1; },
+    noteInputAck() { m.acksIn += 1; },
+    noteInputReject() { m.rejectsIn += 1; },
+    noteContactFrameDelta(frames) {
+      if (!Number.isInteger(frames) || frames < 0 || frames > 60) return;
+      m.contactFrameDeltas.push(frames);
+      if (m.contactFrameDeltas.length > 240) m.contactFrameDeltas.shift();
+    },
+    /**
+     * Consume createSoccerPredictor().getMetrics(). Gauges are replaced while
+     * adaptive delay is sampled for a stable session summary.
+     */
+    notePrediction(metrics) {
+      if (!metrics || typeof metrics !== 'object') return;
+      if (Number.isInteger(metrics.pendingInputs) && metrics.pendingInputs >= 0) {
+        m.pendingInputs = metrics.pendingInputs;
+      }
+      if (Number.isFinite(metrics.replayTicks) && metrics.replayTicks >= 0) {
+        m.replayTicks = metrics.replayTicks;
+      }
+      if (Number.isFinite(metrics.replayTicksLast) && metrics.replayTicksLast >= 0) {
+        m.replayTicksLast = metrics.replayTicksLast;
+      }
+      if (Number.isFinite(metrics.replayTicksMax) && metrics.replayTicksMax >= 0) {
+        m.replayTicksMax = metrics.replayTicksMax;
+      }
+      if (Number.isFinite(metrics.replayErrors) && metrics.replayErrors >= 0) {
+        m.replayErrors = metrics.replayErrors;
+      }
+      if (Number.isFinite(metrics.hardResets) && metrics.hardResets >= 0) {
+        m.predictorHardResets = metrics.hardResets;
+      }
+      if (metrics.hardResetReasons && typeof metrics.hardResetReasons === 'object') {
+        m.predictorHardResetReasons = { ...metrics.hardResetReasons };
+      }
+      if (Number.isFinite(metrics.protocolMismatches) && metrics.protocolMismatches >= 0) {
+        m.protocolMismatches = metrics.protocolMismatches;
+      }
+      if (typeof metrics.predictionEnabled === 'boolean') {
+        m.predictionEnabled = metrics.predictionEnabled;
+      }
+      if (metrics.ackLagTicks == null
+        || (Number.isInteger(metrics.ackLagTicks) && metrics.ackLagTicks >= 0)) {
+        m.ackLagTicks = metrics.ackLagTicks;
+      }
+      if (Number.isFinite(metrics.adaptiveDelayMs) && metrics.adaptiveDelayMs >= 0) {
+        m.adaptiveDelaySamples.push(metrics.adaptiveDelayMs);
+        if (m.adaptiveDelaySamples.length > 240) m.adaptiveDelaySamples.shift();
+      }
+      if (Number.isFinite(metrics.adaptiveNoiseMs) && metrics.adaptiveNoiseMs >= 0) {
+        m.adaptiveNoiseMs = metrics.adaptiveNoiseMs;
+      }
+      if (Number.isFinite(metrics.adaptiveReplayWindowTicks)
+        && metrics.adaptiveReplayWindowTicks >= 0) {
+        m.adaptiveReplayWindowTicks = metrics.adaptiveReplayWindowTicks;
+      }
+    },
     /** Guest: auth ball update — start kick-reaction clock on velocity jump. */
     noteAuthBall(ball) {
       if (!ball) return;
@@ -637,6 +854,8 @@ export function createSoccerMetrics() {
       m.ballCorrSum += px;
       m.ballCorrCount += 1;
       if (px > m.ballCorrMax) m.ballCorrMax = px;
+      m.ballCorrSamples.push(px);
+      if (m.ballCorrSamples.length > 600) m.ballCorrSamples.shift();
       m.corrections += 1;
       if (hard) m.hardSnaps += 1;
       if (px > 2) m.convergePendingAt = performance.now();
@@ -663,6 +882,8 @@ export function createSoccerMetrics() {
       if (!Number.isFinite(px) || px < 0) return;
       m.predErrSum += px;
       m.predErrCount += 1;
+      m.predErrSamples.push(px);
+      if (m.predErrSamples.length > 600) m.predErrSamples.shift();
     },
     summary() {
       const elapsedSec = Math.max(0.001, (performance.now() - t0) / 1000);
@@ -678,6 +899,10 @@ export function createSoccerMetrics() {
       const avgConverge = m.convergeCount ? m.convergeSumMs / m.convergeCount : null;
       const avgKickReact = m.kickReactCount ? m.kickReactSumMs / m.kickReactCount : null;
       const avgFrameCpu = m.frameCpuCount ? m.frameCpuSumMs / m.frameCpuCount : null;
+      const avgAdaptiveDelay = avg(m.adaptiveDelaySamples);
+      const p95BallCorr = percentile(m.ballCorrSamples, 0.95);
+      const p95Pred = percentile(m.predErrSamples, 0.95);
+      const p95ContactFrames = percentile(m.contactFrameDeltas, 0.95);
       const stOutCount = m.snapsOut;
       const avgStOutBytes = stOutCount ? m.stBytesOut / stOutCount : null;
       const avgStInBytes = m.snapsIn ? m.stBytesIn / m.snapsIn : null;
@@ -690,7 +915,7 @@ export function createSoccerMetrics() {
           carInterpDelayMs: SOC_INTERP_DELAY_MS,
         },
         elapsedSec: Math.round(elapsedSec * 10) / 10,
-        ballSyncMode: 'latest-converge',
+        ballSyncMode: 'predictive-authoritative-v2',
         // Bandwidth / rate
         avgOutgoingStHz: Math.round((m.snapsOut / elapsedSec) * 10) / 10,
         avgOutgoingStPacketsPerSec: Math.round((m.snapsOut / elapsedSec) * 10) / 10,
@@ -722,11 +947,33 @@ export function createSoccerMetrics() {
         poseHzIn: avgPoseGap ? Math.round((1000 / avgPoseGap) * 10) / 10 : null,
         avgBallCorrectionPx: avgBallCorr != null ? Math.round(avgBallCorr * 10) / 10 : null,
         maxBallCorrectionPx: m.ballCorrCount ? Math.round(m.ballCorrMax * 10) / 10 : null,
+        p95BallCorrectionPx: p95BallCorr != null ? Math.round(p95BallCorr * 10) / 10 : null,
         correctionsPerSec: Math.round((m.corrections / elapsedSec) * 10) / 10,
         hardSnaps: m.hardSnaps,
         avgPlayerInterpErrorPx: avgPlayerInterp != null ? Math.round(avgPlayerInterp * 10) / 10 : null,
         maxPlayerInterpErrorPx: m.playerInterpCount ? Math.round(m.playerInterpMax * 10) / 10 : null,
         avgPredictionErrorPx: avgPred != null ? Math.round(avgPred * 10) / 10 : null,
+        p95PredictionErrorPx: p95Pred != null ? Math.round(p95Pred * 10) / 10 : null,
+        inputAcksIn: m.acksIn,
+        inputRejectsIn: m.rejectsIn,
+        pendingInputs: m.pendingInputs,
+        replayTicks: m.replayTicks,
+        replayTicksLast: m.replayTicksLast,
+        replayTicksMax: m.replayTicksMax,
+        replayErrors: m.replayErrors,
+        predictorHardResets: m.predictorHardResets,
+        predictorHardResetReasons: { ...m.predictorHardResetReasons },
+        protocolMismatches: m.protocolMismatches,
+        predictionEnabled: m.predictionEnabled,
+        acknowledgementLagTicks: m.ackLagTicks,
+        contactResponseP95Frames: p95ContactFrames,
+        adaptiveDelayMs: avgAdaptiveDelay != null
+          ? Math.round(avgAdaptiveDelay * 10) / 10
+          : null,
+        adaptiveNoiseMs: m.adaptiveNoiseMs != null
+          ? Math.round(m.adaptiveNoiseMs * 10) / 10
+          : null,
+        adaptiveReplayWindowTicks: m.adaptiveReplayWindowTicks,
         snapsIn: m.snapsIn,
         snapsOut: m.snapsOut,
         droppedMalformed: m.dropped,

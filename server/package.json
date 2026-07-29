@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "DuoArcade Socket.IO game relay (Step 1 — server only, not wired to the React client yet)",
+  "description": "DuoArcade Socket.IO relay and authoritative Micro Soccer v2 server",
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",

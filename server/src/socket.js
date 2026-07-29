@@ -10,6 +10,7 @@ import {
   MicroSoccerRooms,
   validateSoccerClientMessage,
 } from './microSoccerRooms.js';
+import { SOCCER_PROTOCOL_VERSION } from '../../shared/microSoccerProtocol.js';
 
 /**
  * Socket.IO game relay — Step 3 (JWT + room membership + payload gate).
@@ -80,6 +81,7 @@ export function attachSocketServer(httpServer) {
       roomAuth: config.roomAuth,
       events: ['join-room', 'leave-room', 'm', 'latency:ping', 'latency:pong'],
       authoritativeGames: ['microsoccer'],
+      soccerProtocolVersion: SOCCER_PROTOCOL_VERSION,
     });
 
     socket.on('join-room', async (payload, ack) => {
@@ -93,7 +95,11 @@ export function attachSocketServer(httpServer) {
           return;
         }
         if (authoritativeSoccer
-          && !validateSoccerClientMessage({ k: 'soccer:join', matchId }).ok) {
+          && !validateSoccerClientMessage({
+            v: SOCCER_PROTOCOL_VERSION,
+            k: 'soccer:join',
+            matchId,
+          }).ok) {
           const err = { ok: false, error: 'invalid_match_id' };
           if (typeof ack === 'function') ack(err);
           return;
@@ -186,11 +192,29 @@ export function attachSocketServer(httpServer) {
     socket.on('m', payload => {
       const room = socket.data.room;
       if (!room) {
+        if (isSoccerProtocolKind(payload?.k)) {
+          soccerRooms.reject({
+            room: '',
+            matchId: socket.data.matchId || payload?.matchId,
+            socketId: socket.id,
+            seq: Number.isSafeInteger(payload?.seq) ? payload.seq : null,
+            reason: 'not_in_room',
+          });
+        }
         log.warn('m dropped — not in a room', { id: socket.id });
         return;
       }
       const gate = validateRelayPayload(payload);
       if (!gate.ok) {
+        if (isSoccerProtocolKind(payload?.k)) {
+          soccerRooms.reject({
+            room,
+            matchId: socket.data.matchId || payload?.matchId,
+            socketId: socket.id,
+            seq: Number.isSafeInteger(payload?.seq) ? payload.seq : null,
+            reason: gate.error,
+          });
+        }
         log.warn('m dropped — invalid payload', {
           id: socket.id,
           room,
@@ -209,6 +233,13 @@ export function attachSocketServer(httpServer) {
             room,
             kind: payload.k,
           });
+          soccerRooms.reject({
+            room,
+            matchId: socket.data.matchId || payload.matchId,
+            socketId: socket.id,
+            seq: Number.isSafeInteger(payload.seq) ? payload.seq : null,
+            reason: 'invalid_room_context',
+          });
           return;
         }
         const validated = validateSoccerClientMessage(payload);
@@ -218,6 +249,14 @@ export function attachSocketServer(httpServer) {
             room,
             kind: payload.k,
             error: validated.error,
+          });
+          soccerRooms.reject({
+            room,
+            matchId: socket.data.matchId,
+            socketId: socket.id,
+            seq: Number.isSafeInteger(payload.seq) ? payload.seq : null,
+            reason: validated.error,
+            input: payload.k === 'soccer:input',
           });
           return;
         }
@@ -248,6 +287,15 @@ export function attachSocketServer(httpServer) {
             kind: payload.k,
             error: result.error,
           });
+          if (validated.value.k === 'soccer:join' && result.error !== 'match_over') {
+            soccerRooms.reject({
+              room,
+              matchId: socket.data.matchId,
+              socketId: socket.id,
+              seq: null,
+              reason: result.error,
+            });
+          }
         }
         return;
       }

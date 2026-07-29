@@ -19,11 +19,24 @@ import {
   SOC_RENDER_DELAY_MS,
   validateSoccerMsg,
 } from '../lib/soccerNet.js';
+import {
+  createSoccerPredictor,
+  reconcileSoccerPresentation,
+} from '../lib/soccerPredict.js';
+import { SOCCER_PROTOCOL_VERSION } from '../../shared/microSoccerProtocol.js';
 import Dpad, { useKeys } from '../games-soccer/Dpad.jsx';
 import '../styles/soccer.css';
 
-const INPUT_INTERVAL_MS = 40; // 25 Hz, below the server's input-rate ceiling.
+const INPUT_POLL_MS = 16;
+const INPUT_CHANGE_MIN_MS = 30;
+const INPUT_HEARTBEAT_MS = 100;
 const DEFAULT_TICK_HZ = 60;
+const PREDICTION_MODE = (() => {
+  const raw = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SOC_PREDICTION_MODE)
+    ? String(import.meta.env.VITE_SOC_PREDICTION_MODE).toLowerCase()
+    : 'render';
+  return raw === 'off' || raw === 'shadow' || raw === 'render' ? raw : 'render';
+})();
 
 function cloneState(state) {
   return {
@@ -40,6 +53,20 @@ function normalizedKeys(keys) {
     left: keys?.left === true,
     right: keys?.right === true,
   };
+}
+
+function hasLocalContactResponse(before, after, role) {
+  if (!before || !after) return false;
+  const car = after.cars?.[role];
+  const ball = after.ball;
+  if (!car || !ball) return false;
+  const touching = Math.hypot(ball.x - car.x, ball.y - car.y)
+    <= SOCCER_CONTACT_RADIUS + 1;
+  const velocityDelta = Math.hypot(
+    ball.vx - before.ball.vx,
+    ball.vy - before.ball.vy,
+  );
+  return touching && velocityDelta > 5;
 }
 
 export default function Soccer({
@@ -64,8 +91,12 @@ export default function Soccer({
   const latestSnapshotRef = useRef(null);
   const snapshotsRef = useRef(null);
   const clockRef = useRef(null);
+  const predictorRef = useRef(null);
+  const predictionHardReasonRef = useRef(null);
+  const reconnectSnapshotRef = useRef(false);
   if (!snapshotsRef.current) snapshotsRef.current = createSoccerSnapshotBuffer();
   if (!clockRef.current) clockRef.current = createSoccerClock();
+  if (!predictorRef.current) predictorRef.current = createSoccerPredictor({ localRole: role });
 
   const metricsRef = useRef(null);
   const rttRef = useRef(0);
@@ -123,10 +154,12 @@ export default function Soccer({
       window.__DUO_GAME_RT_TRANSPORT__ = rt?.transport?.() || null;
       window.__SOC_NET__ = metrics;
       window.__SOC_NET_EXPERIMENT__ = {
-        inputHz: 1000 / INPUT_INTERVAL_MS,
+        inputHeartbeatHz: 1000 / INPUT_HEARTBEAT_MS,
         snapshotHz: SOC_NET_HZ,
         snapshotIntervalMs: SOC_NET_INTERVAL_MS,
-        renderDelayMs: SOC_RENDER_DELAY_MS,
+        legacyRenderDelayMs: SOC_RENDER_DELAY_MS,
+        predictionMode: PREDICTION_MODE,
+        protocolVersion: SOCCER_PROTOCOL_VERSION,
         authority: 'server',
       };
     }
@@ -146,9 +179,14 @@ export default function Soccer({
     }
     const onReconnect = () => {
       metricsRef.current?.noteReconnect();
+      reconnectSnapshotRef.current = true;
       // Re-authenticate the same seat and request the current full snapshot.
       // The server resumes a paused match when both authenticated seats rejoin.
-      const msg = { k: 'soccer:join', matchId: safeMatchId };
+      const msg = {
+        v: SOCCER_PROTOCOL_VERSION,
+        k: 'soccer:join',
+        matchId: safeMatchId,
+      };
       metricsRef.current?.noteOut(msg);
       rt.send?.(msg);
     };
@@ -171,6 +209,11 @@ export default function Soccer({
       metricsRef.current?.noteIn(msg);
 
       if (msg.k === 'soccer:start') {
+        if (msg.protocolVersion !== SOCCER_PROTOCOL_VERSION) {
+          predictionHardReasonRef.current = 'protocol_mismatch';
+          setPhase('unavailable');
+          return;
+        }
         noteServerTime(msg);
         updateTimeline(msg);
         setPhase('live');
@@ -178,6 +221,31 @@ export default function Soccer({
       }
 
       if (msg.k === 'soccer:snapshot') {
+        const prediction = reconnectSnapshotRef.current
+          ? predictorRef.current.noteReconnect(msg, {
+            localTime: Date.now(),
+            rttMs: rttRef.current,
+          })
+          : predictorRef.current.applySnapshot(msg, {
+            localTime: Date.now(),
+            rttMs: rttRef.current,
+          });
+        reconnectSnapshotRef.current = false;
+        metricsRef.current?.notePrediction(predictorRef.current.getMetrics());
+        if (prediction.accepted && prediction.positionErrors) {
+          metricsRef.current?.noteBallCorrection(
+            prediction.positionErrors.ball,
+            { hard: prediction.hardSeed },
+          );
+          metricsRef.current?.notePredictionError(prediction.positionalError);
+        }
+        if (prediction.protocolMismatch) {
+          predictionHardReasonRef.current = 'protocol_mismatch';
+          setPhase('unavailable');
+          return;
+        }
+        if (prediction.reason) predictionHardReasonRef.current = prediction.reason;
+
         if (!snapshotsRef.current.push(msg)) {
           metricsRef.current?.noteDrop();
           return;
@@ -194,11 +262,11 @@ export default function Soccer({
             previous.state.score.A !== msg.state.score.A
             || previous.state.score.B !== msg.state.score.B
           ));
-        const prediction = ownCarRef.current;
-        if (prediction) {
+        const legacyPrediction = PREDICTION_MODE === 'render' ? null : ownCarRef.current;
+        if (legacyPrediction) {
           metricsRef.current?.notePredictionError(Math.hypot(
-            prediction.x - msg.state.cars[role].x,
-            prediction.y - msg.state.cars[role].y,
+            legacyPrediction.x - msg.state.cars[role].x,
+            legacyPrediction.y - msg.state.cars[role].y,
           ));
         }
 
@@ -222,6 +290,22 @@ export default function Soccer({
         return;
       }
 
+      if (msg.k === 'soccer:ack') {
+        predictorRef.current.noteAck({
+          role,
+          seq: msg.seq,
+          appliedTick: msg.appliedTick,
+        });
+        metricsRef.current?.notePrediction(predictorRef.current.getMetrics());
+        return;
+      }
+
+      if (msg.k === 'soccer:reject') {
+        if (msg.seq != null) predictorRef.current.noteReject(msg);
+        metricsRef.current?.notePrediction(predictorRef.current.getMetrics());
+        return;
+      }
+
       if (msg.k === 'soccer:paused') {
         noteServerTime(msg);
         updateTimeline(msg);
@@ -232,6 +316,7 @@ export default function Soccer({
       if (msg.k === 'soccer:resumed') {
         noteServerTime(msg);
         updateTimeline(msg);
+        reconnectSnapshotRef.current = true;
         setPhase('live');
         return;
       }
@@ -274,7 +359,11 @@ export default function Soccer({
         return;
       }
       setPhase(current => current === 'connecting' ? 'waiting' : current);
-      const msg = { k: 'soccer:join', matchId: safeMatchId };
+      const msg = {
+        v: SOCCER_PROTOCOL_VERSION,
+        k: 'soccer:join',
+        matchId: safeMatchId,
+      };
       metricsRef.current?.noteOut(msg);
       rt.send(msg);
     })();
@@ -283,22 +372,44 @@ export default function Soccer({
 
   useEffect(() => {
     if (phase !== 'live') return undefined;
+    let lastSignature = '';
+    let lastSentAt = 0;
     const sendInput = () => {
       if (pausedRef?.current || phaseRef.current !== 'live') return;
+      const input = normalizedKeys(keys.current);
+      const signature = `${+input.up}${+input.down}${+input.left}${+input.right}`;
+      const now = Date.now();
+      const changed = signature !== lastSignature;
+      if ((!changed || now - lastSentAt < INPUT_CHANGE_MIN_MS)
+        && now - lastSentAt < INPUT_HEARTBEAT_MS) {
+        return;
+      }
+      const seq = ++inputSeqRef.current;
+      const beforePrediction = predictorRef.current.getState();
+      predictorRef.current.pushLocalInput({
+        seq,
+        keys: input,
+        localTime: now,
+      });
+      if (hasLocalContactResponse(beforePrediction, predictorRef.current.getState(), role)) {
+        metricsRef.current?.noteContactFrameDelta(0);
+      }
       const msg = {
+        v: SOCCER_PROTOCOL_VERSION,
         k: 'soccer:input',
         matchId: safeMatchId,
-        seq: ++inputSeqRef.current,
-        keys: normalizedKeys(keys.current),
-        clientTime: Date.now(),
+        seq,
+        keys: input,
       };
       metricsRef.current?.noteOut(msg);
       rt?.send?.(msg);
+      lastSignature = signature;
+      lastSentAt = now;
     };
     sendInput();
-    const id = setInterval(sendInput, INPUT_INTERVAL_MS);
+    const id = setInterval(sendInput, INPUT_POLL_MS);
     return () => clearInterval(id);
-  }, [keys, pausedRef, phase, rt, safeMatchId]);
+  }, [keys, pausedRef, phase, role, rt, safeMatchId]);
 
   useEffect(() => {
     if (!rt?.probeClock && !rt?.probeRtt) return undefined;
@@ -345,7 +456,27 @@ export default function Soccer({
       const serverNow = clockRef.current.serverNow();
       const sampled = snapshotsRef.current.sampleAt(serverNow - SOC_RENDER_DELAY_MS);
       const latest = latestSnapshotRef.current;
-      if (sampled && latest) {
+      const predicting = PREDICTION_MODE !== 'off'
+        && phaseRef.current === 'live'
+        && !pausedRef?.current;
+      const beforePrediction = predicting ? predictorRef.current.getState() : null;
+      const predicted = predicting
+        ? predictorRef.current.advance(Date.now())
+        : predictorRef.current.getState();
+      if (predicting && hasLocalContactResponse(beforePrediction, predicted, role)) {
+        metricsRef.current?.noteContactFrameDelta(0);
+      }
+      if (PREDICTION_MODE === 'render' && predicted) {
+        const correction = reconcileSoccerPresentation(
+          renderStateRef.current,
+          predicted,
+          dt,
+          { hardReason: predictionHardReasonRef.current },
+        );
+        predictionHardReasonRef.current = null;
+        renderStateRef.current = correction.state;
+        metricsRef.current?.notePrediction(predictorRef.current.getMetrics());
+      } else if (sampled && latest) {
         let ownCar = ownCarRef.current || { ...sampled.state.cars[role] };
         if (phaseRef.current === 'live' && !pausedRef?.current) {
           const previousOwnCar = ownCar;

@@ -2,11 +2,10 @@
 
 export const COALESCE = new Set([
   'pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim', 'trail',
-  'soccer:input',
 ]);
 export const CRITICAL = new Set([
   'try', 'ev', 'throw', 'over', 'nextEnd', 'grab',
-  'soccer:join',
+  'soccer:join', 'soccer:input',
 ]);
 
 export function clonePayload(payload) {

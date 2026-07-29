@@ -5,14 +5,22 @@ import {
   socInitial,
   socStep,
 } from '../../shared/microSoccerPhysics.js';
+import {
+  SOCCER_KINDS,
+  SOCCER_NEUTRAL_KEYS,
+  SOCCER_PROTOCOL_VERSION,
+  isSoccerProtocolKind,
+  sanitizeSoccerKeys,
+  validateSoccerClientMessage,
+} from '../../shared/microSoccerProtocol.js';
+
+export {
+  isSoccerProtocolKind,
+  validateSoccerClientMessage,
+} from '../../shared/microSoccerProtocol.js';
 
 const ROLES = Object.freeze(['A', 'B']);
-const NEUTRAL_KEYS = Object.freeze({
-  up: false,
-  down: false,
-  left: false,
-  right: false,
-});
+const NEUTRAL_KEYS = SOCCER_NEUTRAL_KEYS;
 
 function validId(value, maxLength = 128) {
   return typeof value === 'string'
@@ -21,53 +29,15 @@ function validId(value, maxLength = 128) {
     && /^[A-Za-z0-9_.:-]+$/.test(value);
 }
 
-function normalizeKeys(keys) {
-  if (!keys || typeof keys !== 'object' || Array.isArray(keys)) return null;
-  const allowed = new Set(['up', 'down', 'left', 'right']);
-  if (Object.keys(keys).some(key => !allowed.has(key) || typeof keys[key] !== 'boolean')) {
-    return null;
-  }
-  return {
-    up: keys.up === true,
-    down: keys.down === true,
-    left: keys.left === true,
-    right: keys.right === true,
-  };
-}
-
-export function isSoccerProtocolKind(kind) {
-  return typeof kind === 'string' && kind.startsWith('soccer:');
-}
-
-export function validateSoccerClientMessage(payload) {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    return { ok: false, error: 'invalid_payload' };
-  }
-  if (!validId(payload.matchId)) return { ok: false, error: 'invalid_match_id' };
-  if (payload.k === 'soccer:join') {
-    return { ok: true, value: { k: payload.k, matchId: payload.matchId } };
-  }
-  if (payload.k === 'soccer:input') {
-    if (!Number.isSafeInteger(payload.seq) || payload.seq < 0) {
-      return { ok: false, error: 'invalid_sequence' };
-    }
-    const keys = normalizeKeys(payload.keys);
-    if (!keys) return { ok: false, error: 'invalid_keys' };
-    return {
-      ok: true,
-      value: { k: payload.k, matchId: payload.matchId, seq: payload.seq, keys },
-    };
-  }
-  return { ok: false, error: 'server_owned_kind' };
-}
-
 function makePlayer() {
   return {
     userId: null,
     socketId: null,
     connected: false,
     keys: { ...NEUTRAL_KEYS },
-    seq: -1,
+    receivedSeq: -1,
+    pendingInput: null,
+    lastApplied: null,
     lastInputAt: null,
     acceptedInputTimes: [],
     disconnectTimer: null,
@@ -105,6 +75,8 @@ export class MicroSoccerRooms {
       snapshots: 0,
       inputsAccepted: 0,
       inputsRejected: 0,
+      rejected: 0,
+      rejectsByReason: Object.create(null),
       disconnects: 0,
       resumes: 0,
     };
@@ -181,6 +153,7 @@ export class MicroSoccerRooms {
     player.socketId = socketId;
     player.connected = true;
     player.keys = { ...NEUTRAL_KEYS };
+    player.pendingInput = null;
     player.lastInputAt = null;
     player.acceptedInputTimes = [];
 
@@ -206,7 +179,8 @@ export class MicroSoccerRooms {
     this.counters.started++;
     const now = this.now();
     this.emitToMatch(match, {
-      k: 'soccer:start',
+      v: SOCCER_PROTOCOL_VERSION,
+      k: SOCCER_KINDS.START,
       matchId: match.matchId,
       tick: match.tick,
       endTick: this.matchTicks,
@@ -222,7 +196,8 @@ export class MicroSoccerRooms {
     this.counters.resumes++;
     const now = this.now();
     this.emitToMatch(match, {
-      k: 'soccer:resumed',
+      v: SOCCER_PROTOCOL_VERSION,
+      k: SOCCER_KINDS.RESUMED,
       matchId: match.matchId,
       tick: match.tick,
       endTick: this.matchTicks,
@@ -234,20 +209,25 @@ export class MicroSoccerRooms {
   }
 
   receiveInput({ room, matchId, role, socketId, seq, keys }, now = this.now()) {
-    const reject = error => {
-      this.counters.inputsRejected++;
-      return { ok: false, error };
-    };
+    const reject = error => this.reject({
+      room,
+      matchId,
+      socketId,
+      seq: Number.isSafeInteger(seq) && seq >= 0 ? seq : null,
+      reason: error,
+      input: true,
+    });
     const match = this.getMatch(room, matchId);
-    if (!match || match.status === 'over') return reject('match_not_active');
+    if (!match || match.status !== 'running') return reject('match_not_active');
     const player = match.players[role];
     if (!player || !player.connected || player.socketId !== socketId) {
       return reject('not_seat_socket');
     }
-    if (!Number.isSafeInteger(seq) || seq < 0 || seq <= player.seq) {
+    if (!Number.isSafeInteger(seq) || seq < 0) return reject('invalid_sequence');
+    if (seq <= player.receivedSeq) {
       return reject('stale_sequence');
     }
-    const normalized = normalizeKeys(keys);
+    const normalized = sanitizeSoccerKeys(keys);
     if (!normalized) return reject('invalid_keys');
 
     player.acceptedInputTimes = player.acceptedInputTimes.filter(
@@ -257,12 +237,38 @@ export class MicroSoccerRooms {
       return reject('rate_limited');
     }
 
-    player.seq = seq;
-    player.keys = normalized;
-    player.lastInputAt = now;
+    player.receivedSeq = seq;
+    player.pendingInput = { seq, keys: normalized, receivedAt: now };
     player.acceptedInputTimes.push(now);
     this.counters.inputsAccepted++;
     return { ok: true };
+  }
+
+  reject({
+    room,
+    matchId,
+    socketId,
+    seq = null,
+    reason,
+    input = false,
+  }) {
+    const safeReason = validId(reason, 64) ? reason : 'invalid_payload';
+    const match = this.getMatch(room, matchId);
+    this.counters.rejected++;
+    if (input) this.counters.inputsRejected++;
+    this.counters.rejectsByReason[safeReason] =
+      (this.counters.rejectsByReason[safeReason] || 0) + 1;
+    if (validId(socketId, 256) && validId(matchId)) {
+      this.emit(socketId, {
+        v: SOCCER_PROTOCOL_VERSION,
+        k: SOCCER_KINDS.REJECT,
+        matchId,
+        tick: match?.tick ?? 0,
+        seq: Number.isSafeInteger(seq) && seq >= 0 ? seq : null,
+        reason: safeReason,
+      });
+    }
+    return { ok: false, error: safeReason };
   }
 
   disconnect({ room, matchId, role, socketId }) {
@@ -274,13 +280,15 @@ export class MicroSoccerRooms {
     player.connected = false;
     player.socketId = null;
     player.keys = { ...NEUTRAL_KEYS };
+    player.pendingInput = null;
     player.lastInputAt = null;
     this.counters.disconnects++;
     if (match.status === 'running') {
       match.status = 'paused';
       const now = this.now();
       this.emitToMatch(match, {
-        k: 'soccer:paused',
+        v: SOCCER_PROTOCOL_VERSION,
+        k: SOCCER_KINDS.PAUSED,
         matchId: match.matchId,
         tick: match.tick,
         serverTime: now,
@@ -313,8 +321,26 @@ export class MicroSoccerRooms {
     for (const match of this.matches.values()) {
       if (match.status !== 'running') continue;
       const inputs = {};
+      const applied = [];
+      const appliedTick = match.tick + 1;
       for (const role of ROLES) {
         const player = match.players[role];
+        if (player.pendingInput) {
+          const pending = player.pendingInput;
+          player.pendingInput = null;
+          player.keys = { ...pending.keys };
+          player.lastInputAt = pending.receivedAt;
+          player.lastApplied = {
+            seq: pending.seq,
+            appliedTick,
+            keys: { ...pending.keys },
+          };
+          applied.push({
+            role,
+            socketId: player.socketId,
+            ...player.lastApplied,
+          });
+        }
         inputs[role] = player.lastInputAt !== null
           && now - player.lastInputAt <= this.inputTimeoutMs
           ? player.keys
@@ -326,6 +352,18 @@ export class MicroSoccerRooms {
       match.tick++;
       this.counters.ticks++;
 
+      for (const application of applied) {
+        if (!application.socketId) continue;
+        this.emit(application.socketId, {
+          v: SOCCER_PROTOCOL_VERSION,
+          k: SOCCER_KINDS.ACK,
+          matchId: match.matchId,
+          seq: application.seq,
+          appliedTick: application.appliedTick,
+          tick: match.tick,
+          keys: { ...application.keys },
+        });
+      }
       if (match.tick % this.snapshotEveryTicks === 0) {
         this.broadcastSnapshot(match, now);
       }
@@ -350,6 +388,7 @@ export class MicroSoccerRooms {
     for (const role of ROLES) {
       const player = match.players[role];
       player.keys = { ...NEUTRAL_KEYS };
+      player.pendingInput = null;
       if (player.disconnectTimer) this.clearTimeoutFn(player.disconnectTimer);
       player.disconnectTimer = null;
     }
@@ -368,7 +407,8 @@ export class MicroSoccerRooms {
 
   snapshotPayload(match, serverTime) {
     return {
-      k: 'soccer:snapshot',
+      v: SOCCER_PROTOCOL_VERSION,
+      k: SOCCER_KINDS.SNAPSHOT,
       matchId: match.matchId,
       tick: match.tick,
       endTick: this.matchTicks,
@@ -376,15 +416,45 @@ export class MicroSoccerRooms {
       serverTime,
       state: match.state,
       goal: match.pendingGoal,
+      inputsApplied: this.inputsAppliedPayload(match, serverTime),
+      acks: this.acksPayload(match),
     };
   }
 
   overPayload(match) {
     return {
-      k: 'soccer:over',
+      v: SOCCER_PROTOCOL_VERSION,
+      k: SOCCER_KINDS.OVER,
       matchId: match.matchId,
       ...match.result,
       state: match.state,
+      inputsApplied: this.inputsAppliedPayload(match, match.result.serverTime),
+      acks: this.acksPayload(match),
+    };
+  }
+
+  inputsAppliedPayload(match, now = this.now()) {
+    const appliedFor = role => {
+      const player = match.players[role];
+      if (!player.lastApplied) return null;
+      const active = player.lastInputAt !== null
+        && now - player.lastInputAt <= this.inputTimeoutMs;
+      return {
+        seq: player.lastApplied.seq,
+        appliedTick: player.lastApplied.appliedTick,
+        keys: active ? { ...player.keys } : { ...NEUTRAL_KEYS },
+      };
+    };
+    return {
+      A: appliedFor('A'),
+      B: appliedFor('B'),
+    };
+  }
+
+  acksPayload(match) {
+    return {
+      A: match.players.A.lastApplied?.seq ?? null,
+      B: match.players.B.lastApplied?.seq ?? null,
     };
   }
 
@@ -409,6 +479,7 @@ export class MicroSoccerRooms {
     const statuses = { waiting: 0, running: 0, paused: 0, over: 0 };
     for (const match of this.matches.values()) statuses[match.status]++;
     return {
+      protocolVersion: SOCCER_PROTOCOL_VERSION,
       tickHz: this.tickHz,
       snapshotHz: this.snapshotHz,
       inputTimeoutMs: this.inputTimeoutMs,
@@ -418,6 +489,7 @@ export class MicroSoccerRooms {
       activeMatches: statuses.waiting + statuses.running + statuses.paused,
       statuses,
       ...this.counters,
+      rejectsByReason: { ...this.counters.rejectsByReason },
     };
   }
 }

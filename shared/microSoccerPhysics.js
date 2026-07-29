@@ -33,6 +33,14 @@ export function socInitial() {
   };
 }
 
+export function socCloneState(state) {
+  return {
+    cars: { A: { ...state.cars.A }, B: { ...state.cars.B } },
+    ball: { ...state.ball },
+    score: { ...state.score },
+  };
+}
+
 export function socStepCar(car, keys, dt) {
   const c = { ...car };
   const k = keys || {};
@@ -53,11 +61,8 @@ export function socStepCar(car, keys, dt) {
  * Authoritative callers must always pass SOCCER_FIXED_DT.
  */
 export function socStep(st, inputs, dt, opts = {}) {
-  const s = {
-    cars: { A: { ...st.cars.A }, B: { ...st.cars.B } },
-    ball: { ...st.ball },
-    score: { ...st.score },
-  };
+  const s = socCloneState(st);
+  const authoritativeGoals = opts.authoritativeGoals !== false;
   const poseLock = opts.poseLock || {};
   for (const role of ROLES) {
     if (poseLock[role]) {
@@ -123,13 +128,148 @@ export function socStep(st, inputs, dt, opts = {}) {
     }
   }
 
-  if (goal) {
+  if (goal && authoritativeGoals) {
     s.score[goal]++;
     const fresh = socInitial();
     s.ball = fresh.ball;
     s.cars = fresh.cars;
+  } else if (goal) {
+    // Prediction may show the crossing immediately, but only the server may
+    // score and reset kickoff. Hold at the line until that snapshot arrives.
+    b.x = goal === 'A' ? SOC.W - SOC.BALL_R : SOC.BALL_R;
+    b.vx = 0;
+    b.vy = 0;
   }
-  return { state: s, goal, hit };
+  return {
+    state: s,
+    goal: authoritativeGoals ? goal : null,
+    goalCandidate: goal,
+    hit,
+  };
+}
+
+/** Advance exactly one authoritative/prediction tick without accepting a dt. */
+export function socStepFixed(state, inputs, opts = {}) {
+  return socStep(state, inputs, SOCCER_FIXED_DT, opts);
+}
+
+function cloneInputs(inputs = {}) {
+  return {
+    A: { ...(inputs.A || {}) },
+    B: { ...(inputs.B || {}) },
+  };
+}
+
+/**
+ * Deterministically replay [startTick, endTick) at the shared 60 Hz step.
+ * inputForTick receives the input tick and copies of the current inputs/state.
+ */
+export function socReplayFixedTicks(initialState, {
+  startTick = 0,
+  endTick,
+  ticks,
+  inputs = {},
+  inputForTick = null,
+  authoritativeGoals = false,
+  poseLock = null,
+} = {}) {
+  if (!Number.isSafeInteger(startTick) || startTick < 0) {
+    throw new TypeError('startTick must be a non-negative safe integer');
+  }
+  const resolvedEndTick = endTick ?? (
+    Number.isSafeInteger(ticks) ? startTick + ticks : null
+  );
+  if (!Number.isSafeInteger(resolvedEndTick) || resolvedEndTick < startTick) {
+    throw new TypeError('endTick must be a safe integer at or after startTick');
+  }
+  if (inputForTick !== null && typeof inputForTick !== 'function') {
+    throw new TypeError('inputForTick must be a function or null');
+  }
+
+  let state = socCloneState(initialState);
+  let currentInputs = cloneInputs(inputs);
+  const events = [];
+  for (let tick = startTick; tick < resolvedEndTick; tick++) {
+    if (inputForTick) {
+      const supplied = inputForTick(tick, cloneInputs(currentInputs), socCloneState(state));
+      if (supplied) currentInputs = cloneInputs(supplied);
+    }
+    const stepped = socStepFixed(state, currentInputs, {
+      authoritativeGoals,
+      ...(poseLock ? { poseLock } : {}),
+    });
+    state = stepped.state;
+    if (stepped.goalCandidate || stepped.hit) {
+      events.push({
+        tick: tick + 1,
+        goal: stepped.goal,
+        goalCandidate: stepped.goalCandidate,
+        hit: stepped.hit,
+      });
+    }
+  }
+  return {
+    state,
+    tick: resolvedEndTick,
+    inputs: cloneInputs(currentInputs),
+    events,
+  };
+}
+
+/**
+ * Replay sequenced input-state changes. A change is active for the simulation
+ * result at its appliedTick; ties collapse deterministically to the highest seq.
+ */
+export function socReplayInputChanges(initialState, {
+  startTick = 0,
+  endTick,
+  inputs = {},
+  inputChanges = [],
+  authoritativeGoals = false,
+  poseLock = null,
+} = {}) {
+  if (!Array.isArray(inputChanges)) {
+    throw new TypeError('inputChanges must be an array');
+  }
+  const changes = inputChanges
+    .map((change, index) => ({ ...change, index }))
+    .sort((a, b) =>
+      a.appliedTick - b.appliedTick
+      || String(a.role).localeCompare(String(b.role))
+      || a.seq - b.seq
+      || a.index - b.index);
+  if (changes.some(change =>
+    !ROLES.includes(change.role)
+    || !Number.isSafeInteger(change.seq)
+    || change.seq < 0
+    || !Number.isSafeInteger(change.appliedTick)
+    || change.appliedTick < 0
+    || !change.keys
+    || typeof change.keys !== 'object')) {
+    throw new TypeError('inputChanges contains an invalid change');
+  }
+
+  let cursor = 0;
+  let replayInputs = cloneInputs(inputs);
+  while (cursor < changes.length && changes[cursor].appliedTick <= startTick) {
+    replayInputs[changes[cursor].role] = { ...changes[cursor].keys };
+    cursor++;
+  }
+  return socReplayFixedTicks(initialState, {
+    startTick,
+    endTick,
+    inputs: replayInputs,
+    authoritativeGoals,
+    poseLock,
+    inputForTick(tick, current) {
+      const outputTick = tick + 1;
+      while (cursor < changes.length && changes[cursor].appliedTick <= outputTick) {
+        current[changes[cursor].role] = { ...changes[cursor].keys };
+        cursor++;
+      }
+      return current;
+    },
+  });
 }
 
 export function socExtrapolateBall(ball, dt) {
