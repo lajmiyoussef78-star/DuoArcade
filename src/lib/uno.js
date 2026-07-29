@@ -88,9 +88,20 @@ function other(role) {
   return role === 'A' ? 'B' : 'A';
 }
 
+/** Always bump actionSeq so UI clocks/sync keys advance, even on skip-stay. */
+function bump(state, patch = {}) {
+  return {
+    ...state,
+    ...patch,
+    actionSeq: (state.actionSeq || 0) + 1
+  };
+}
+
 /** Switch turn; bumps turnCount only when the active seat changes. */
 function passTurn(state, nextTurn) {
-  if (state.turn === nextTurn) return { ...state, turn: nextTurn };
+  if (state.turn === nextTurn) {
+    return { ...state, turn: nextTurn };
+  }
   return {
     ...state,
     turn: nextTurn,
@@ -99,18 +110,37 @@ function passTurn(state, nextTurn) {
 }
 
 function drawFromPile(state, role, n) {
-  const next = { ...state, hands: { A: state.hands.A.slice(), B: state.hands.B.slice() }, pile: state.pile.slice(), discard: state.discard.slice() };
+  const next = {
+    ...state,
+    hands: { A: state.hands.A.slice(), B: state.hands.B.slice() },
+    pile: state.pile.slice(),
+    discard: state.discard.slice()
+  };
+  let drew = 0;
   for (let i = 0; i < n; i++) {
     if (!next.pile.length) {
       if (next.discard.length <= 1) break;
       const top = next.discard[next.discard.length - 1];
       const rest = next.discard.slice(0, -1);
-      next.pile = shuffle(rest, (state.seed ^ ((state.reshuffles + 1) * 0x9E37) ^ 0x554E4F) >>> 0);
+      next.pile = shuffle(
+        rest,
+        (state.seed ^ ((state.reshuffles + 1) * 0x9E37) ^ 0x554E4F) >>> 0
+      );
       next.discard = [top];
       next.reshuffles = (next.reshuffles || 0) + 1;
     }
     if (!next.pile.length) break;
     next.hands[role].push(next.pile.pop());
+    drew += 1;
+  }
+  next._drew = drew;
+  return next;
+}
+
+function clearUnoIfNotOne(next, role) {
+  if (next.hands[role].length !== 1) {
+    next.unoPending = next.unoPending === role ? null : next.unoPending;
+    next.unoArmed = { ...(next.unoArmed || { A: false, B: false }), [role]: false };
   }
   return next;
 }
@@ -144,10 +174,12 @@ export function createMatch(seed) {
     hands,
     turn: 'A',
     turnCount: 1,
+    actionSeq: 0,
     color: top.color,
-    mustDraw: false,       // drew already this turn — may pass
-    unoArmed: { A: false, B: false }, // pressed UNO while at 2 (or 1) cards
-    unoPending: null,      // role at 1 card who forgot to call — catchable
+    mustDraw: false,
+    drawnId: null, // card id drawn this turn (must play this or pass)
+    unoArmed: { A: false, B: false },
+    unoPending: null,
     winner: null,
     reshuffles: 0,
     log: 'Match deal — A starts.'
@@ -168,10 +200,10 @@ export function applyAction(state, role, action) {
     if (n !== 1 && n !== 2) {
       return { ok: false, reason: 'UNO when you have 1–2 cards', state };
     }
+    // Don't bump actionSeq — yelling UNO shouldn't reset the turn clock.
     const next = {
       ...state,
       unoArmed: { ...(state.unoArmed || { A: false, B: false }), [role]: true },
-      // Saying UNO while already at 1 clears the catch window
       unoPending: state.unoPending === role ? null : state.unoPending,
       log: `${role} yelled UNO!`
     };
@@ -188,6 +220,7 @@ export function applyAction(state, role, action) {
       return { ok: false, reason: 'they called UNO (or not at one)', state };
     }
     let next = drawFromPile(state, target, 2);
+    delete next._drew;
     next = {
       ...next,
       unoPending: null,
@@ -201,36 +234,61 @@ export function applyAction(state, role, action) {
 
   if (action.type === 'draw') {
     if (state.mustDraw) return { ok: false, reason: 'already drew', state };
+    const before = state.hands[role].length;
     let next = drawFromPile(state, role, 1);
+    const drew = next._drew || 0;
+    delete next._drew;
+
+    if (drew < 1) {
+      // Nothing left to draw — pass the turn.
+      next = bump(passTurn(next, other(role)), {
+        mustDraw: false,
+        drawnId: null,
+        log: `${role} — deck empty, turn passed.`
+      });
+      return { ok: true, state: next };
+    }
+
     const drawn = next.hands[role][next.hands[role].length - 1];
     const playable = drawn && canPlay(drawn, next.discard[next.discard.length - 1], next.color);
     const count = next.hands[role].length;
     next = {
       ...next,
       mustDraw: true,
+      drawnId: drawn.id,
       unoArmed: {
         ...(next.unoArmed || { A: false, B: false }),
         [role]: count <= 2 ? !!(next.unoArmed || {})[role] : false
       },
-      unoPending: count === 1 ? next.unoPending : (next.unoPending === role ? null : next.unoPending),
-      log: playable ? `${role} drew a card — play it or pass.` : `${role} drew a card.`
+      unoPending: count === 1 ? next.unoPending : (next.unoPending === role ? null : next.unoPending)
     };
-    // If not playable, auto-pass turn
+
     if (!playable) {
-      next = passTurn(next, other(role));
-      next.mustDraw = false;
-      next.log = `${role} drew and cannot play.`;
+      next = bump(passTurn(next, other(role)), {
+        mustDraw: false,
+        drawnId: null,
+        log: `${role} drew and cannot play.`
+      });
+      return { ok: true, state: next };
+    }
+
+    next = bump(next, {
+      log: `${role} drew a card — play it or pass.`
+    });
+    // Sanity: hand grew
+    if (next.hands[role].length !== before + 1) {
+      /* keep state as-is */
     }
     return { ok: true, state: next };
   }
 
   if (action.type === 'pass') {
     if (!state.mustDraw) return { ok: false, reason: 'draw first', state };
-    const next = {
-      ...passTurn(state, other(role)),
+    const next = bump(passTurn(state, other(role)), {
       mustDraw: false,
+      drawnId: null,
       log: `${role} passed.`
-    };
+    });
     return { ok: true, state: next };
   }
 
@@ -243,8 +301,10 @@ export function applyAction(state, role, action) {
 
     // After drawing, may only play the drawn card
     if (state.mustDraw) {
-      const drawn = hand[hand.length - 1];
-      if (card.id !== drawn.id) return { ok: false, reason: 'play the drawn card or pass', state };
+      const drawnId = state.drawnId || hand[hand.length - 1]?.id;
+      if (card.id !== drawnId) {
+        return { ok: false, reason: 'play the drawn card or pass', state };
+      }
     }
 
     if (!canPlay(card, top, state.color)) return { ok: false, reason: 'cannot play that', state };
@@ -264,6 +324,7 @@ export function applyAction(state, role, action) {
       discard: state.discard.concat([card]),
       color: isWild(card) ? chosenColor : card.color,
       mustDraw: false,
+      drawnId: null,
       unoArmed: armed
     };
 
@@ -277,13 +338,14 @@ export function applyAction(state, role, action) {
         next.log = `${role} forgot UNO — catch them!`;
       }
     } else if (newHand.length === 0) {
-      next.winner = role;
-      next.unoPending = null;
-      next.unoArmed = { A: false, B: false };
-      next.log = `${role} wins!`;
+      next = bump(next, {
+        winner: role,
+        unoPending: null,
+        unoArmed: { A: false, B: false },
+        log: `${role} wins!`
+      });
       return { ok: true, state: next };
     } else {
-      // Back above 1 — arm expires
       next.unoArmed = { ...armed, [role]: false };
       if (next.unoPending === role) next.unoPending = null;
       next.log = `${role} played.`;
@@ -294,44 +356,35 @@ export function applyAction(state, role, action) {
     let effectLog = next.log;
     if (card.kind === 'draw2') {
       next = drawFromPile(next, foe, 2);
+      delete next._drew;
       next = passTurn(next, role);
-      // foe may no longer be at 1
-      if (next.hands[foe].length !== 1) {
-        next.unoPending = next.unoPending === foe ? null : next.unoPending;
-        next.unoArmed = { ...(next.unoArmed || {}), [foe]: false };
-      }
-      effectLog = `${role} played +2. ${effectLog}`;
+      next = clearUnoIfNotOne(next, foe);
+      effectLog = `${role} played +2.`;
     } else if (card.kind === 'wild4') {
       next = drawFromPile(next, foe, 4);
+      delete next._drew;
       next = passTurn(next, role);
-      if (next.hands[foe].length !== 1) {
-        next.unoPending = next.unoPending === foe ? null : next.unoPending;
-        next.unoArmed = { ...(next.unoArmed || {}), [foe]: false };
-      }
+      next = clearUnoIfNotOne(next, foe);
       effectLog = `${role} played +4 → ${chosenColor}.`;
     } else if (card.kind === 'skip' || card.kind === 'reverse') {
       next = passTurn(next, role);
       effectLog = card.kind === 'reverse'
         ? `${role} reversed (skip in duo).`
         : `${role} played skip.`;
-      if (next.unoPending === role && newHand.length === 1) {
-        /* keep catch window */
-      }
     } else if (card.kind === 'wild') {
       next = passTurn(next, foe);
       effectLog = `${role} wild → ${chosenColor}.`;
     } else {
       next = passTurn(next, foe);
     }
-    // Prefer UNO reminder in the log when relevant
+
     if (newHand.length === 1 && next.unoPending === role) {
-      next.log = `${role} forgot UNO — catch them!`;
+      effectLog = `${role} forgot UNO — catch them!`;
     } else if (newHand.length === 1 && armed[role]) {
-      next.log = `${role} — UNO!`;
-    } else {
-      next.log = effectLog;
+      effectLog = `${role} — UNO!`;
     }
 
+    next = bump(next, { log: effectLog });
     return { ok: true, state: next };
   }
 
@@ -345,11 +398,13 @@ export function publicView(state) {
     seed: state.seed,
     turn: state.turn,
     turnCount: state.turnCount || 1,
+    actionSeq: state.actionSeq || 0,
     color: state.color,
     top: state.discard[state.discard.length - 1],
     pileLen: state.pile.length,
     counts: { A: state.hands.A.length, B: state.hands.B.length },
     mustDraw: state.mustDraw,
+    drawnId: state.drawnId,
     unoPending: state.unoPending,
     unoArmed: state.unoArmed,
     winner: state.winner,

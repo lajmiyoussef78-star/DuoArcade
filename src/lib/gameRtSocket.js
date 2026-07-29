@@ -2,7 +2,7 @@
 // Same public API as Supabase broadcast RT. Event `m` + payloads unchanged.
 
 import { io } from 'socket.io-client';
-import { createEnqueue } from './gameRtShared.js';
+import { createEnqueue, createOutboxSend } from './gameRtShared.js';
 
 /**
  * @param {object} opts
@@ -45,6 +45,22 @@ export function createSocketGameRt({
     }
   };
 
+  const outbox = createOutboxSend(
+    () => {
+      if (closed) return false;
+      if (usingFallback && fallbackRt) return true;
+      return !!(socket?.connected && subscribed);
+    },
+    (msg) => {
+      if (usingFallback && fallbackRt) {
+        if (typeof fallbackRt.sendNow === 'function') fallbackRt.sendNow(msg);
+        else fallbackRt.send(msg);
+        return;
+      }
+      socket.emit('m', msg);
+    }
+  );
+
   function activateFallback(reason) {
     if (closed || usingFallback || typeof createFallback !== 'function') return false;
     usingFallback = true;
@@ -58,26 +74,19 @@ export function createSocketGameRt({
     fallbackRt.on(payload => dispatch(payload));
     fallbackRt.subscribe?.(payload => dispatch(payload));
     subscribed = true;
+    outbox.flush();
     resolveReady();
     return true;
   }
 
-  function sendRaw(msg) {
-    if (closed) return;
-    if (usingFallback && fallbackRt) {
-      fallbackRt.send(msg);
-      return;
-    }
-    if (socket?.connected && subscribed) socket.emit('m', msg);
-  }
-
-  const enqueue = createEnqueue({ readyPromise, sendRaw });
+  const enqueue = createEnqueue({ readyPromise, sendRaw: outbox.send });
 
   const handle = {
     ready: readyPromise,
     isReady: () => subscribed || (usingFallback && !!fallbackRt?.isReady?.()),
     whenReady: () => readyPromise.then(() => handle.isReady()),
     send: payload => enqueue(payload),
+    sendNow: msg => outbox.send(msg),
     on: f => { rcb = f || (() => {}); },
     subscribe: f => {
       if (typeof f !== 'function') return () => {};
@@ -100,9 +109,7 @@ export function createSocketGameRt({
         socket = null;
       }
     },
-    /** Diagnostics for verifying the active transport. */
     transport: () => (usingFallback ? 'supabase-fallback' : 'socket'),
-    /** One-shot RTT via latency:ping / latency:pong (ms), or null. */
     probeRtt: () => new Promise(resolve => {
       if (usingFallback && fallbackRt?.probeRtt) {
         fallbackRt.probeRtt().then(resolve);
@@ -161,6 +168,7 @@ export function createSocketGameRt({
               room: ack.room,
               occupants: ack.occupants,
             });
+            outbox.flush();
             resolveReady();
           } else {
             activateFallback(ack?.error || 'join_failed');
@@ -185,6 +193,7 @@ export function createSocketGameRt({
         socket.emit('join-room', { code, kind }, (ack) => {
           if (ack?.ok) {
             subscribed = true;
+            outbox.flush();
             console.info('[game-rt] re-joined room after reconnect', { room: ack.room });
           } else {
             console.warn('[game-rt] re-join failed', ack);
@@ -203,6 +212,7 @@ export function createSocketGameRt({
 
       socket.on('disconnect', (reason) => {
         console.warn('[game-rt] Socket.IO disconnect', { reason });
+        subscribed = false;
       });
     } catch (e) {
       activateFallback(String(e?.message || e));

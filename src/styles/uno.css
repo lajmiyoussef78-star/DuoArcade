@@ -28,7 +28,13 @@
 .arcade-page .uno-turn-av.corner-tl { top: 26px; left: 26px; }
 .arcade-page .uno-turn-av.corner-br { right: 26px; bottom: 26px; }
 
-.uno-page { max-width: 720px; margin: 0 auto; padding: 12px 10px 28px; color: var(--text); }
+.uno-page {
+  --uno-red: #d32f2f;
+  --uno-yellow: #f9a825;
+  --uno-green: #388e3c;
+  --uno-blue: #1976d2;
+  max-width: 720px; margin: 0 auto; padding: 12px 10px 28px; color: var(--text);
+}
 .uno-embedded { padding: 4px 0 12px; width: 100%; }
 .uno-status {
   text-align: center; padding: 48px 12px; color: var(--dim);
@@ -36,10 +42,6 @@
 }
 
 .uno-table {
-  --uno-red: #d32f2f;
-  --uno-yellow: #f9a825;
-  --uno-green: #388e3c;
-  --uno-blue: #1976d2;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -355,7 +357,16 @@ button.uno-card:disabled { cursor: default; }
 .uno-turn-timer .track { stroke: rgba(0, 0, 0, .55); }
 .uno-turn-timer .arc {
   stroke: var(--candle);
-  transition: stroke-dashoffset .05s linear;
+  stroke-dashoffset: 0;
+}
+.uno-turn-timer .arc.draining {
+  animation-name: uno-timer-drain;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes uno-timer-drain {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 81.68; } /* 2 * PI * 13 */
 }
 .uno-turn-timer.mine {
   right: 31px;
@@ -515,12 +526,17 @@ button.uno-card:disabled { cursor: default; }
 .uno-color {
   height: 52px; border-radius: 14px; border: 2px solid rgba(255,255,255,.25); cursor: pointer;
   transition: transform .12s ease;
+  appearance: none; -webkit-appearance: none;
 }
 .uno-color:hover { transform: scale(1.04); }
-.uno-color.c-red { background: var(--uno-red); }
-.uno-color.c-yellow { background: var(--uno-yellow); }
-.uno-color.c-green { background: var(--uno-green); }
-.uno-color.c-blue { background: var(--uno-blue); }
+.uno-color.c-red,
+.arcade-page .uno-color.c-red { background: #d32f2f; background: var(--uno-red, #d32f2f); }
+.uno-color.c-yellow,
+.arcade-page .uno-color.c-yellow { background: #f9a825; background: var(--uno-yellow, #f9a825); }
+.uno-color.c-green,
+.arcade-page .uno-color.c-green { background: #388e3c; background: var(--uno-green, #388e3c); }
+.uno-color.c-blue,
+.arcade-page .uno-color.c-blue { background: #1976d2; background: var(--uno-blue, #1976d2); }
 
 .uno-done {
   margin-top: 12px; text-align: center; padding: 16px;
@@ -555,4 +571,205 @@ button.uno-card:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .uno-drawpile.go .uno-draw-stack, .uno-uno-btn, .uno-hand .uno-card,
   .uno-shuffle-card, .uno-hand.deal-in .uno-card, .uno-turn-av.lit { animation: none; transition: none; }
+  .uno-turn-timer .arc.draining { animation: none; stroke-dashoffset: 81.68; }
+}
+
+/* ── Fullscreen: felt table fills the stage ── */
+.arcade-page .gv-fs-root.is-fullscreen .gv-board:has(.uno-wrap),
+.arcade-page .gv-fs-root:fullscreen .gv-board:has(.uno-wrap),
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board:has(.uno-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board:has(.uno-wrap) > *,
+.arcade-page .gv-fs-root:fullscreen .gv-board:has(.uno-wrap) > *,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board:has(.uno-wrap) > *,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.uno-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.uno-wrap) > div {
+  position: relative !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  background: var(--night, #141018) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  background: var(--night, #141018) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-page,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-page,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-page,
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-page.uno-embedded,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-page.uno-embedded,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-page.uno-embedded {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-table,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-table,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-table {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: clamp(14px, 2.2vh, 28px) clamp(16px, 3vw, 40px) clamp(18px, 2.8vh, 32px) !important;
+  border-radius: 0 !important;
+  border: none !important;
+  gap: clamp(10px, 1.8vh, 22px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-table::after,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-table::after,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-table::after {
+  inset: clamp(8px, 1.4vh, 16px) !important;
+  border-radius: 16px !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-rail,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-rail,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-rail {
+  flex: 0 0 auto;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-mid,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-mid,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-mid {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: clamp(10px, 1.6vh, 18px) !important;
+  padding: clamp(8px, 1.5vh, 18px) 0 !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-piles,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-piles,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-piles {
+  min-height: clamp(160px, 22vh, 240px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-discard .uno-card,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-discard .uno-card,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-discard .uno-card {
+  width: clamp(86px, 11vh, 118px) !important;
+  height: clamp(130px, 16.5vh, 178px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-drawpile,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-drawpile,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-drawpile {
+  left: clamp(48px, 8vw, 110px) !important;
+  width: clamp(72px, 9vh, 96px) !important;
+  height: clamp(108px, 13.5vh, 144px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-draw-stack,
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-drawpile .uno-card,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-draw-stack,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-drawpile .uno-card,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-draw-stack,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-drawpile .uno-card {
+  width: clamp(72px, 9vh, 96px) !important;
+  height: clamp(108px, 13.5vh, 144px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-hand .uno-card,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-hand .uno-card,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-hand .uno-card {
+  width: clamp(64px, 8.2vh, 92px) !important;
+  height: clamp(96px, 12.4vh, 138px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-opp-hand .uno-card,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-opp-hand .uno-card,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-opp-hand .uno-card {
+  width: clamp(48px, 6.2vh, 72px) !important;
+  height: clamp(72px, 9.3vh, 108px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-hand,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-hand,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-hand {
+  padding: clamp(10px, 1.6vh, 18px) clamp(48px, 8vw, 96px) clamp(14px, 2vh, 24px) !important;
+  min-height: clamp(100px, 14vh, 150px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-opp-hand,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-opp-hand,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-opp-hand {
+  padding: clamp(6px, 1vh, 12px) clamp(48px, 8vw, 96px) 4px !important;
+  min-height: clamp(80px, 11vh, 120px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-turn-line,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-turn-line,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-turn-line {
+  font-size: clamp(18px, 2.4vh, 28px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-status,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-status,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-status {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(18px, 2.6vh, 28px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .uno-wrap .uno-shuffle,
+.arcade-page .gv-fs-root:fullscreen .uno-wrap .uno-shuffle,
+.arcade-page .gv-fs-root:-webkit-full-screen .uno-wrap .uno-shuffle {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen:has(.uno-wrap) .banner,
+.arcade-page .gv-fs-root:fullscreen:has(.uno-wrap) .banner,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.uno-wrap) .banner {
+  display: none !important;
 }

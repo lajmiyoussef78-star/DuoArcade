@@ -14,7 +14,9 @@ export const meta = {
   name: 'Stickman Racing',
   tag: 'online duo · parkour · first to the flag',
   accent: 'p1',
-  realtime: true
+  realtime: true,
+  /** Stay on the racing lobby after a win — no DuoArcade "Back to shelf" panel */
+  keepInGame: true
 };
 
 export function mount(el, ctx) {
@@ -31,6 +33,8 @@ export function mount(el, ctx) {
     if (finished) return;
     finished = true;
     ctx.onFinish(w);
+    // keepInGame: allow another race in the same lobby session to tally.
+    window.setTimeout(() => { finished = false; }, 2500);
   };
 
   root = createRoot(wrap);

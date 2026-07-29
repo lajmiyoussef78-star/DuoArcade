@@ -1,6 +1,6 @@
-// gameRtSupabase.js — existing Supabase broadcast transport extracted for sync.rt().
+// gameRtSupabase.js — Supabase broadcast transport for sync.rt().
 
-import { createEnqueue } from './gameRtShared.js';
+import { createEnqueue, createOutboxSend } from './gameRtShared.js';
 
 export function createSupabaseGameRt(sb, code) {
   let rcb = () => {};
@@ -29,6 +29,13 @@ export function createSupabaseGameRt(sb, code) {
     setTimeout(res, 8000);
   });
 
+  const outbox = createOutboxSend(
+    () => subscribed,
+    (msg) => {
+      ch.send({ type: 'broadcast', event: 'm', payload: msg }).catch(() => {});
+    }
+  );
+
   const ch = sb.channel(name, { config: { broadcast: { ack: false, self: false } } })
     .on('broadcast', { event: 'm' }, p => {
       dispatch(p?.payload);
@@ -36,21 +43,20 @@ export function createSupabaseGameRt(sb, code) {
     .subscribe(status => {
       if (status === 'SUBSCRIBED' && !subscribed) {
         subscribed = true;
+        outbox.flush();
         resolveReady();
       }
     });
 
-  const sendRaw = (msg) => {
-    ch.send({ type: 'broadcast', event: 'm', payload: msg }).catch(() => {});
-  };
-
-  const enqueue = createEnqueue({ readyPromise, sendRaw });
+  const enqueue = createEnqueue({ readyPromise, sendRaw: outbox.send });
 
   return {
     ready: readyPromise,
     isReady: () => subscribed,
     whenReady: () => readyPromise.then(() => subscribed),
     send: payload => enqueue(payload),
+    /** Bypass coalesce — for turn-based acts that must leave immediately. */
+    sendNow: msg => outbox.send(msg),
     on: f => { rcb = f || (() => {}); },
     subscribe: f => {
       if (typeof f !== 'function') return () => {};
@@ -60,10 +66,10 @@ export function createSupabaseGameRt(sb, code) {
     close: () => {
       listeners.clear();
       rcb = () => {};
+      subscribed = false;
       try { sb.removeChannel(ch); } catch { /* already gone */ }
     },
     transport: () => 'supabase',
-    /** No server RTT probe on broadcast channels. */
     probeRtt: async () => null,
   };
 }

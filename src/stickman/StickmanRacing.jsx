@@ -289,8 +289,10 @@ function makeRacer(id) {
   };
 }
 
-export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
+export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = {}) {
   const duoNetRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   const nameA = (names?.A || names?.a || "Player A").trim() || "Player A";
   const nameB = (names?.B || names?.b || "Player B").trim() || "Player B";
   const nameOf = (slot) => (slot === 0 ? nameA : nameB);
@@ -312,18 +314,30 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
   const [touchUI, setTouchUI] = useState(false);
   const [guestReady, setGuestReady] = useState(false);
   const [netOk, setNetOk] = useState(false);
+  const [wins, setWins] = useState({ A: 0, B: 0 });
+  const scoreRecordedRef = useRef(false);
   const stateRef = useRef({});
   const mapIdxRef = useRef(0);
   mapIdxRef.current = mapIdx;
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  const roleRef = useRef(role);
+  roleRef.current = role;
+
+  const recordRoundWin = (winnerRole) => {
+    if ((winnerRole !== "A" && winnerRole !== "B") || scoreRecordedRef.current) return;
+    scoreRecordedRef.current = true;
+    setWins((prev) => ({ ...prev, [winnerRole]: prev[winnerRole] + 1 }));
+  };
 
   const beginMatch = (mi) => {
     const idx = typeof mi === "number" && MAPS[mi] ? mi : (mapIdxRef.current || 0);
     setGuestReady(false);
     setMapIdx(idx);
     setResult(null);
+    scoreRecordedRef.current = false;
     stateRef.current.launch = { mapIdx: idx };
+    try { duoNetRef.current?.clearState?.(); } catch { /* ignore */ }
     setPhase("playing");
     try { SFX.unlock(); } catch { /* ignore */ }
   };
@@ -346,11 +360,26 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
       if (!m) return;
       const type = m.type || m.k;
       if (type === "start") {
+        // Delayed start blasts must not wipe net state mid-race.
+        if (phaseRef.current === "playing") return;
         beginMatch(typeof m.mapIdx === "number" ? m.mapIdx : 0);
       } else if (type === "ready") {
         setGuestReady(!!m.ready);
       } else if ((type === "sel") && m.key === "map" && typeof m.val === "number") {
         setMapIdx(m.val);
+      } else if (type === "finish") {
+        // Partner already crossed the line — back to this game's lobby menu.
+        if (phaseRef.current === "menu") return;
+        const winner = typeof m.winner === "number" ? m.winner : 2;
+        recordRoundWin(winner === 1 ? "A" : "B");
+        try { SFX.finish(); } catch { /* ignore */ }
+        try {
+          onCompleteRef.current?.(winner === 1 ? "A" : "B");
+        } catch { /* ignore */ }
+        // End promptly — don't leave the host staring at a finished race.
+        setResult(null);
+        setGuestReady(false);
+        setPhase("menu");
       }
     };
     net.onUi(onLobby);
@@ -374,7 +403,7 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
   useEffect(() => { SFX.setMuted(muted); }, [muted]);
 
   const selectMap = (mi) => {
-    if (online && isGuest) return;
+    if (typeof mi !== "number" || !MAPS[mi]) return;
     setMapIdx(mi);
     if (online) {
       duoNetRef.current?.sendUi({ type: "sel", key: "map", val: mi });
@@ -420,9 +449,19 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
     let raf = 0;
     let roving = 0;
     let teardown = () => {};
+    let netWait = 0;
 
     const boot = () => {
       if (cancelled) return;
+      // Online races MUST have the duo bridge — otherwise each side is a local solo sim
+      // and the invited player never sees the host leave spawn.
+      if (rt && !duoNetRef.current?.online) {
+        netWait += 1;
+        if (netWait < 180) {
+          roving = requestAnimationFrame(boot);
+          return;
+        }
+      }
       const canvas = canvasRef.current;
       if (!canvas) {
         roving = requestAnimationFrame(boot);
@@ -433,6 +472,48 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
         roving = requestAnimationFrame(boot);
         return;
       }
+
+      /** Match backing-store to screen — capped so fullscreen doesn't melt the host GPU. */
+      let lastBw = 0;
+      let lastBh = 0;
+      let resizeTimer = 0;
+      const syncCanvasRes = () => {
+        const rect = canvas.getBoundingClientRect();
+        const cssW = Math.max(1, rect.width || CW);
+        const cssH = Math.max(1, rect.height || CH);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        let scale = Math.min(cssW / CW, cssH / CH) * dpr;
+        // Hard cap — dual split-screen draw is heavy; keep network room on the main thread.
+        const maxW = 1400;
+        if (CW * scale > maxW) scale = maxW / CW;
+        const bw = Math.max(1, Math.round(CW * scale));
+        const bh = Math.max(1, Math.round(CH * scale));
+        if (bw === lastBw && bh === lastBh && canvas.width === bw && canvas.height === bh) {
+          return;
+        }
+        lastBw = bw;
+        lastBh = bh;
+        canvas.width = bw;
+        canvas.height = bh;
+        ctx.setTransform(bw / CW, 0, 0, bh / CH, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "medium";
+      };
+      syncCanvasRes();
+      requestAnimationFrame(syncCanvasRes);
+      setTimeout(syncCanvasRes, 120);
+      const onWinResize = () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => { try { syncCanvasRes(); } catch { /* */ } }, 60);
+      };
+      window.addEventListener("resize", onWinResize);
+      document.addEventListener("fullscreenchange", onWinResize);
+      document.addEventListener("webkitfullscreenchange", onWinResize);
+      let ro = null;
+      try {
+        ro = new ResizeObserver(onWinResize);
+        ro.observe(canvas.parentElement || canvas);
+      } catch { /* older browsers */ }
       const mi = stateRef.current.launch?.mapIdx ?? mapIdxRef.current ?? 0;
       const map = MAPS[mi] || MAPS[0];
       const T = map.make();
@@ -450,12 +531,14 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
         p.camY = p.y - VIEW_H * 0.62;
       });
 
-      const net = duoNetRef.current || {
+      const netStub = {
         online: false, isHost: true,
         onKeyDown: (code, st) => { st.keys = st.keys || {}; st.pressed = st.pressed || {}; st.keys[code] = true; st.pressed[code] = true; },
         onKeyUp: (code, st) => { if (st.keys) st.keys[code] = false; },
         mergeRemoteInto: () => [],
         takeState: () => null, peekState: () => null,
+        takeRemoteExtra: () => null,
+        peekRemoteExtra: () => null,
         netTick: () => {},
         touchSet: (code, isDown, st) => {
           st.keys = st.keys || {}; st.pressed = st.pressed || {};
@@ -463,53 +546,245 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
           st.keys[code] = isDown;
         },
       };
+      const liveNet = () => duoNetRef.current || netStub;
 
     let netAcc = 0;
-    const packPlayer = (p) => ({
-      id: p.id, x: p.x, y: p.y, vx: p.vx, vy: p.vy,
-      onGround: p.onGround, sliding: p.sliding, slideFx: p.slideFx,
-      wallDir: p.wallDir, stumbleT: p.stumbleT, respawnT: p.respawnT,
-      turbo: p.turbo, turboT: p.turboT,
-      finished: p.finished, finishTime: p.finishTime,
-      runPhase: p.runPhase, facing: p.facing, airT: p.airT,
-      camX: p.camX, camY: p.camY,
-      ropeTh: p.ropeTh, ropeW: p.ropeW, ropeLen: p.ropeLen, ropeCd: p.ropeCd,
-      checkpoint: p.checkpoint ? { x: p.checkpoint.x, y: p.checkpoint.y } : null,
-      rope: p.rope ? { ax: p.rope.ax, ay: p.rope.ay } : null,
-      neon: p.neon, glow: p.glow,
+    let lastGuestPose = null;
+    let lastGuestPoseT = -1;
+    /**
+     * Once we know this client is the guest we NEVER go back to simulating P1.
+     * A single frame of `role == null` used to drop the guest into the host
+     * branch, where gravity pulled the network-only blue racer into a pit and
+     * respawned it at the start line — on the guest screen only.
+     */
+    let guestLatched = role === 'B';
+    const isRemote = (p) => (
+      !!rt && ((guestLatched && p.id === 0) || (!guestLatched && role === 'A' && p.id === 1))
+    );
+
+    // Slim snapshot — keep payloads small so host→guest never starves.
+    const packRemote = (p) => {
+      const o = {
+        x: Math.round(p.x * 10) / 10,
+        y: Math.round(p.y * 10) / 10,
+        vx: Math.round((p.vx || 0) * 10) / 10,
+        vy: Math.round((p.vy || 0) * 10) / 10,
+        facing: p.facing || 1,
+        onGround: p.onGround ? 1 : 0,
+        sliding: p.sliding ? 1 : 0,
+        runPhase: Math.round((p.runPhase || 0) * 100) / 100,
+        turbo: Math.round((p.turbo || 0) * 100) / 100,
+        turboT: Math.round((p.turboT || 0) * 100) / 100,
+        finished: p.finished ? 1 : 0,
+        cpX: p.checkpoint?.x ?? 200,
+        cpY: p.checkpoint?.y ?? GY,
+      };
+      if (p.respawnT > 0) o.respawnT = Math.round(p.respawnT * 100) / 100;
+      if (p.finished && p.finishTime != null) o.finishTime = p.finishTime;
+      if (p.rope && typeof p.rope.ax === 'number') {
+        o.rx = Math.round(p.rope.ax * 10) / 10;
+        o.ry = Math.round(p.rope.ay * 10) / 10;
+        o.ropeTh = Math.round((p.ropeTh || 0) * 1000) / 1000;
+        o.ropeW = Math.round((p.ropeW || 0) * 1000) / 1000;
+        o.ropeLen = Math.round((p.ropeLen || p.rope.len || 130) * 10) / 10;
+      }
+      return o;
+    };
+
+    const bindRope = (ax, ay, len) => {
+      if (typeof ax !== 'number') return null;
+      let best = null;
+      let bestD = Infinity;
+      for (const r of T.ropes) {
+        const d = Math.hypot(r.ax - ax, r.ay - (ay ?? r.ay));
+        if (d < bestD) { bestD = d; best = r; }
+      }
+      if (bestD < 48) return best;
+      return { ax, ay: ay ?? GY - 200, len: len || 130 };
+    };
+
+    const syncCheckpointFromX = (p, x) => {
+      if (!p || typeof x !== 'number') return;
+      for (const c of T.checks) {
+        if (x >= c.x && p.checkpoint.x < c.x) p.checkpoint = { x: c.x, y: c.y };
+      }
+    };
+
+    /**
+     * ALWAYS trust packet x/y. Never recompute from rope (wrong anchor
+     * looked exactly like a spawn/respawn snap on the invited screen).
+     */
+    const placeBody = (p, sp) => {
+      if (!p || !sp || !Number.isFinite(sp.x) || !Number.isFinite(sp.y)) return false;
+      p.x = sp.x;
+      p.y = sp.y;
+      p.vx = sp.vx || 0;
+      p.vy = sp.vy || 0;
+      if (sp.onGround != null) p.onGround = !!sp.onGround;
+      if (sp.sliding != null) p.sliding = !!sp.sliding;
+      if (sp.facing != null) p.facing = sp.facing;
+      if (sp.runPhase != null) p.runPhase = sp.runPhase;
+      if (sp.turbo != null) p.turbo = sp.turbo;
+      if (sp.turboT != null) p.turboT = sp.turboT;
+      if (typeof sp.respawnT === 'number') p.respawnT = sp.respawnT;
+      if (typeof sp.cpX === 'number') {
+        p.checkpoint = { x: sp.cpX, y: typeof sp.cpY === 'number' ? sp.cpY : GY };
+      } else {
+        syncCheckpointFromX(p, p.x);
+      }
+      if (typeof sp.rx === 'number') {
+        p.ropeTh = sp.ropeTh || 0;
+        p.ropeW = sp.ropeW || 0;
+        p.ropeLen = sp.ropeLen || 130;
+        p.rope = bindRope(sp.rx, sp.ry, p.ropeLen);
+      } else if (sp.rope && typeof sp.rope.ax === 'number') {
+        p.ropeTh = sp.ropeTh || 0;
+        p.ropeW = sp.ropeW || 0;
+        p.ropeLen = sp.ropeLen || sp.rope.len || 130;
+        p.rope = bindRope(sp.rope.ax, sp.rope.ay, p.ropeLen);
+      } else {
+        p.rope = null;
+        p.ropeLen = 0;
+      }
+      if (sp.finished) {
+        p.finished = true;
+        if (sp.finishTime != null) p.finishTime = sp.finishTime;
+      }
+      return true;
+    };
+
+    // Kart-identical wire format: host st.players[0], guest inp.extra.pose
+    const packHostSt = () => ({
+      raceT: S.raceT,
+      mode: S.mode,
+      modeT: S.modeT,
+      done: !!S.done,
+      players: [packRemote(S.players[0])],
     });
-    const packDuoState = () => ({
-      t: S.t, raceT: S.raceT, mode: S.mode, modeT: S.modeT, done: S.done,
-      players: S.players.map(packPlayer),
+
+    const packGuestPose = () => ({
+      pose: { t: performance.now(), ...packRemote(S.players[1]) },
     });
-    const applyDuoState = (st) => {
-      if (!st) return;
-      if (st.t != null) S.t = st.t;
-      if (st.raceT != null) S.raceT = st.raceT;
-      if (st.mode != null) S.mode = st.mode;
-      if (st.modeT != null) S.modeT = st.modeT;
-      if (st.done != null) S.done = st.done;
-      if (Array.isArray(st.players)) {
-        st.players.forEach((sp, i) => {
-          if (!S.players[i] || !sp) return;
-          const rope = sp.rope;
-          Object.assign(S.players[i], sp);
-          // restore rope handle as plain anchor (not a live track ref)
-          S.players[i].rope = rope ? { ax: rope.ax, ay: rope.ay } : null;
-        });
+
+    const applyClock = (m) => {
+      if (!m || S.done) return;
+      if (m.raceT != null) S.raceT = m.raceT;
+      if (m.mode != null) S.mode = m.mode;
+      if (m.modeT != null) S.modeT = m.modeT;
+      if (m.done) S.done = true;
+    };
+
+    let poseAcc = 0;
+    let hostSeq = 0;
+
+    let finishBlastTimer = 0;
+    const endToMenu = () => {
+      setResult(null);
+      setGuestReady(false);
+      setPhase("menu");
+    };
+    const blastFinish = (payload) => {
+      const send = () => {
+        try {
+          const fn = rt?.sendNow || rt?.send;
+          fn?.({ k: "finish", type: "finish", ...payload });
+        } catch { /* ignore */ }
+      };
+      send();
+      setTimeout(send, 200);
+      setTimeout(send, 500);
+    };
+    const declareFinish = (p, finishTime) => {
+      if (!p) return;
+      // Pose apply may already have stamped finished=true — still announce once.
+      if (S.done) {
+        p.finished = true;
+        if (finishTime != null) p.finishTime = finishTime;
+        return;
+      }
+      p.finished = true;
+      p.finishTime = finishTime != null ? finishTime : (p.finishTime || S.raceT);
+      S.done = true;
+      S.mode = "race";
+      SFX.finish();
+      const other = S.players[1 - p.id];
+      const gap = T.finishX - (other?.x || 0);
+      const payload = {
+        winner: p.id + 1,
+        time: p.finishTime,
+        gap: Math.max(0, Math.round(gap / 10)),
+      };
+      recordRoundWin(p.id === 0 ? "A" : "B");
+      try {
+        onCompleteRef.current?.(p.id === 0 ? "A" : "B");
+      } catch { /* ignore */ }
+      blastFinish(payload);
+      // Keep sending a few more poses so the host sees finished=true, then lobby.
+      if (finishBlastTimer) clearTimeout(finishBlastTimer);
+      finishBlastTimer = window.setTimeout(endToMenu, 1400);
+    };
+    const applyGuestPoseOnHost = (p, sp) => {
+      if (!p || !sp || sp.x == null) return;
+      const wasFinished = !!p.finished;
+      lastGuestPose = sp;
+      placeBody(p, sp);
+      const crossed =
+        !!sp.finished ||
+        (typeof sp.x === 'number' && sp.x >= T.finishX - 4) ||
+        (typeof p.x === 'number' && p.x >= T.finishX - 4);
+      if (crossed && !wasFinished) declareFinish(p, sp.finishTime);
+    };
+
+    const extrapPose = (p, dt) => {
+      if (!p || p.finished) return;
+      p.x += (p.vx || 0) * dt;
+      p.y += (p.vy || 0) * dt;
+      if (p.rope && p.ropeW) p.ropeTh = (p.ropeTh || 0) + p.ropeW * dt;
+      if (Math.abs(p.vx) > 20) p.runPhase = (p.runPhase || 0) + Math.abs(p.vx) * dt * 0.08;
+    };
+
+    /** Apply newest host body onto guest P1 — always from peek/take, never stick on spawn. */
+    const applyHostBodyOnGuest = () => {
+      const net = liveNet();
+      const fresh = typeof net.takeState === 'function' ? net.takeState() : null;
+      const st = fresh || (typeof net.peekState === 'function' ? net.peekState() : null);
+      if (!st) return false;
+      applyClock(st);
+      const sp = st.p || st.players?.[0];
+      if (!sp || typeof sp.x !== 'number') return false;
+      placeBody(S.players[0], sp);
+      if (sp.finished && !S.players[0].finished) {
+        declareFinish(S.players[0], sp.finishTime);
+      }
+      return true;
+    };
+
+    /** Host safety net — catch a finish even if the last inp/finish packet dropped. */
+    const hostWatchFinish = () => {
+      if (S.done || !rt || role !== "A") return;
+      const p2 = S.players[1];
+      if (!p2) return;
+      const pose = lastGuestPose;
+      if (
+        p2.finished ||
+        p2.x >= T.finishX - 4 ||
+        (pose && (pose.finished || (typeof pose.x === "number" && pose.x >= T.finishX - 4)))
+      ) {
+        declareFinish(p2, p2.finishTime || pose?.finishTime);
       }
     };
 
     const down = (e) => {
       if (ALL_KEYS.includes(e.code)) e.preventDefault();
-      net.onKeyDown(e.code, S);
+      liveNet().onKeyDown(e.code, S);
     };
-    const up = (e) => { net.onKeyUp(e.code, S); };
+    const up = (e) => { liveNet().onKeyUp(e.code, S); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
 
     // touch-control bridge — goes through net so guest inputs sync
     stateRef.current.setKey = (code, isDown) => {
+      const net = liveNet();
       if (net.online && net.touchSet) net.touchSet(code, isDown, S);
       else {
         if (isDown && !S.keys[code]) S.pressed[code] = true;
@@ -561,6 +836,12 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
     };
 
     const respawn = (p) => {
+      // Network-owned racers only respawn when their OWNER says so. Respawning
+      // them locally teleported them to the start line on the other screen.
+      if (isRemote(p)) {
+        p.vy = 0;
+        return;
+      }
       SFX.fall();
       p.x = p.checkpoint.x; p.y = p.checkpoint.y;
       p.vx = 0; p.vy = 0; p.rope = null; p.ropeLen = 0; p.sliding = false;
@@ -592,6 +873,11 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
 
     // ---------------- PLAYER UPDATE ----------------
     const updateRacer = (p, dt) => {
+      // Hard rule: the owner simulates, everyone else only replays packets.
+      if (isRemote(p)) {
+        extrapPose(p, dt);
+        return;
+      }
       const k = p.id === 0 ? KEYS.p1 : KEYS.p2;
       const canControl = S.mode === "race" && p.respawnT <= 0 && !p.finished;
       if (p.stumbleT > 0) p.stumbleT -= dt;
@@ -785,22 +1071,7 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
         }
         if (p.y > GY + 220) respawn(p);
         if (p.x >= T.finishX && !p.finished) {
-          p.finished = true;
-          p.finishTime = S.raceT;
-          if (!S.done) {
-            S.done = true;
-            SFX.finish();
-            const other = S.players[1 - p.id];
-            const gap = T.finishX - other.x;
-            setTimeout(() => {
-              setResult({
-                winner: p.id + 1,
-                time: p.finishTime,
-                gap: Math.max(0, Math.round(gap / 10)),
-              });
-              setPhase("matchEnd");
-            }, 1600);
-          }
+          declareFinish(p);
         }
       }
 
@@ -1313,7 +1584,12 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
 
       T.ropes.forEach((r) => {
         if (r.ax < camX - 300 || r.ax > camX + CW + 300) return;
-        const swingers = S.players.filter((pp) => pp.rope === r);
+        // Match by reference OR by anchor — guest poses rebind by ax/ay on the host.
+        const swingers = S.players.filter((pp) => {
+          if (!pp.rope) return false;
+          if (pp.rope === r) return true;
+          return Math.hypot((pp.rope.ax || 0) - r.ax, (pp.rope.ay || 0) - r.ay) < 12;
+        });
         const [ax0, ay0] = P(r.ax, r.ay);
         ctx.save();
         ctx.shadowColor = "#ffd27a"; ctx.shadowBlur = 8;
@@ -1340,7 +1616,10 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
         }
       });
 
-      S.players.forEach((pl) => drawRacer(pl, P));
+      // Draw the strip's own racer last so they aren't covered at the start line.
+      const rival = S.players[1 - pov.id];
+      if (rival) drawRacer(rival, P);
+      drawRacer(pov, P);
 
       S.particles.forEach((pt) => {
         const [x0, y0] = P(pt.x, pt.y);
@@ -1531,38 +1810,43 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
     };
 
     let raf, last = performance.now();
+
     const loop = (now) => {
-      const __guest = !!(net.online && !net.isHost);
+      const net = liveNet();
+      const roleNow = roleRef.current || role;
+      if (roleNow === 'B' || net.myRole === 'B' || (net.online && net.isHost === false)) {
+        guestLatched = true;
+      }
+      const __guest = !!(rt && (guestLatched || roleNow === 'B'));
+      const __online = !!(rt && (roleNow || guestLatched));
       const dt = Math.min((now - last) / 1000, 0.033);
       last = now;
 
       if (__guest) {
-        net.netTick();
-        const fresh = net.takeState?.() || null;
-        if (fresh) applyDuoState(fresh);
-        else {
-          const peek = net.peekState?.();
-          if (peek) applyDuoState(peek);
-        }
-        S.players.forEach((p) => updateCam(p, dt));
-      } else {
-        if (net.online) net.mergeRemoteInto(S);
-        S.t += dt;
+        // P1 from host — take OR peek so we never freeze on the first spawn snap.
+        if (!applyHostBodyOnGuest()) extrapPose(S.players[0], dt);
 
-        if (S.mode === "countdown") {
+        S.t += dt;
+        if (S.mode === 'countdown') {
           S.modeT += dt;
           const n = Math.ceil(3 - S.modeT);
           if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
-          if (S.modeT >= 3) { S.mode = "race"; }
-        } else if (S.mode === "race") {
+          if (S.modeT >= 3) { S.mode = 'race'; }
+        } else if (S.mode === 'race' && !S.done) {
           S.raceT += dt;
         }
 
-        S.players.forEach((p) => {
-          updateRacer(p, dt);
-          updateCam(p, dt);
-        });
+        updateRacer(S.players[1], dt);
+        S.players.forEach((p) => updateCam(p, dt));
 
+        // ~20Hz guest pose — leave headroom so host→guest `st` (blue) is not starved.
+        poseAcc += dt;
+        if (poseAcc >= 0.05) {
+          poseAcc = 0;
+          try { net.netTick?.(null, packGuestPose); } catch { /* */ }
+        }
+
+        if (S.particles.length > 40) S.particles.splice(0, S.particles.length - 40);
         S.particles = S.particles.filter((pt) => {
           pt.life -= dt;
           pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
@@ -1570,6 +1854,59 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
           return pt.life > 0;
         });
         S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
+      } else {
+        let guestPoseApplied = false;
+        if (__online) {
+          const pose = typeof net.peekRemoteExtra === 'function' ? net.peekRemoteExtra()?.pose : null;
+          if (pose && typeof pose.x === 'number' && pose.t !== lastGuestPoseT) {
+            lastGuestPoseT = pose.t;
+            applyGuestPoseOnHost(S.players[1], pose);
+            guestPoseApplied = true;
+          }
+        }
+        S.t += dt;
+
+        if (S.mode === 'countdown') {
+          S.modeT += dt;
+          const n = Math.ceil(3 - S.modeT);
+          if (n !== S.lastBeep && n >= 0) { S.lastBeep = n; SFX.beep(n === 0); }
+          if (S.modeT >= 3) { S.mode = 'race'; }
+        } else if (S.mode === 'race' && !S.done) {
+          S.raceT += dt;
+        }
+
+        S.players.forEach((p) => {
+          if (__online && p.id === 1 && lastGuestPose) {
+            if (!guestPoseApplied) extrapPose(p, dt);
+          } else if (!__online || p.id === 0) {
+            updateRacer(p, dt);
+          }
+          updateCam(p, dt);
+        });
+        if (__online) hostWatchFinish();
+
+        if (S.particles.length > 50) S.particles.splice(0, S.particles.length - 50);
+        S.particles = S.particles.filter((pt) => {
+          pt.life -= dt;
+          pt.vy += (pt.grav === undefined ? 1 : pt.grav) * 900 * dt;
+          pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+          return pt.life > 0;
+        });
+        S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
+
+        // Host→guest blue body via sendNow (~20Hz) — bypasses enqueue so it
+        // cannot get stuck behind guest inp traffic.
+        if (__online) {
+          netAcc += dt;
+          if (netAcc >= 0.05) {
+            netAcc = 0;
+            hostSeq += 1;
+            try {
+              const send = rt.sendNow || rt.send;
+              send?.({ k: 'st', seq: hostSeq, st: packHostSt() });
+            } catch { /* */ }
+          }
+        }
       }
 
       ctx.clearRect(0, 0, CW, CH);
@@ -1577,39 +1914,41 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
       drawWorld(S.players[1], STRIP_Y + STRIP_H);
       drawStrip();
 
-      if (S.mode === "countdown") {
+      if (S.mode === 'countdown') {
         const n = Math.ceil(3 - S.modeT);
-        ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(0, 0, CW, CH);
+        ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 0, CW, CH);
         ctx.save();
-        ctx.shadowColor = "#fff"; ctx.shadowBlur = 22;
-        ctx.fillStyle = "#fff"; ctx.font = "bold 90px monospace"; ctx.textAlign = "center";
-        ctx.fillText(n > 0 ? n : "GO!", CW / 2, CH / 2 + 20);
+        ctx.shadowColor = '#fff'; ctx.shadowBlur = 22;
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 90px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(n > 0 ? n : 'GO!', CW / 2, CH / 2 + 20);
         ctx.restore();
-        ctx.font = "15px monospace"; ctx.fillStyle = "#fff";
+        ctx.font = '15px monospace'; ctx.fillStyle = '#fff';
         ctx.fillText(MAPS[mi].name, CW / 2, CH / 2 + 60);
       }
       const fin = S.players.find((p) => p.finished);
       if (fin) {
         ctx.save();
         ctx.shadowColor = fin.neon; ctx.shadowBlur = 22;
-        ctx.fillStyle = fin.neon; ctx.font = "bold 44px monospace"; ctx.textAlign = "center";
+        ctx.fillStyle = fin.neon; ctx.font = 'bold 44px monospace'; ctx.textAlign = 'center';
         const finName = fin.id === 0 ? namesRef.current.A : namesRef.current.B;
         ctx.fillText(`${finName} FINISHES — ${fin.finishTime.toFixed(2)}s`, CW / 2, CH / 2);
         ctx.restore();
       }
 
-      if (!__guest && net.online) {
-        netAcc += dt;
-        if (netAcc >= 0.025) { netAcc = 0; net.netTick(packDuoState); }
-      }
       S.pressed = {};
       raf = requestAnimationFrame(loop);
     };
       raf = requestAnimationFrame(loop);
       teardown = () => {
         cancelAnimationFrame(raf);
-        window.removeEventListener("keydown", down);
-        window.removeEventListener("keyup", up);
+        window.removeEventListener('keydown', down);
+        window.removeEventListener('keyup', up);
+        window.removeEventListener('resize', onWinResize);
+        document.removeEventListener('fullscreenchange', onWinResize);
+        document.removeEventListener('webkitfullscreenchange', onWinResize);
+        try { ro?.disconnect(); } catch { /* */ }
+        if (finishBlastTimer) clearTimeout(finishBlastTimer);
+        if (resizeTimer) clearTimeout(resizeTimer);
       };
     }; // end boot
 
@@ -1767,9 +2106,39 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
     );
   };
 
-  if (phase === "menu" || phase === "matchEnd") {
+  const WinCounter = ({ inCanvas = false }) => (
+    <div style={{
+      position: "absolute",
+      top: inCanvas ? 8 : 16,
+      left: inCanvas ? 8 : 16,
+      zIndex: 6,
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: inCanvas ? "4px 7px" : "7px 10px",
+      borderRadius: 8,
+      border: "1px solid rgba(255,255,255,.18)",
+      background: "rgba(5,8,16,.82)",
+      boxShadow: "0 0 14px rgba(40,100,190,.16)",
+      fontFamily: "monospace",
+      fontSize: inCanvas ? 10 : 12,
+      whiteSpace: "nowrap",
+      pointerEvents: "none",
+    }}>
+      <span style={{ color: "#3aa0ff", textShadow: "0 0 7px #3aa0ff" }}>
+        {nameA} {wins.A}
+      </span>
+      <span style={{ opacity: 0.45 }}>—</span>
+      <span style={{ color: "#ff3b4d", textShadow: "0 0 7px #ff3b4d" }}>
+        {wins.B} {nameB}
+      </span>
+    </div>
+  );
+
+  if (phase === "menu") {
     return (
-      <div style={wrap}>
+      <div className="sr-menu" style={{ ...wrap, position: "relative" }}>
+        <WinCounter />
         <style>{`
           /* run cycle — 4 poses, linear for that "sprinting" feel */
           @keyframes msRunBody {
@@ -1882,23 +2251,7 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
             : "10 tracks · split-screen duel · long parkour marathons"}
         </p>
 
-        {phase === "matchEnd" && result && (
-          <div
-            data-sr-winner={result.winner === 1 ? "A" : "B"}
-            style={{
-              margin: "8px 0 16px", padding: "14px 36px", borderRadius: 10,
-              background: result.winner === 1 ? "rgba(58,160,255,0.12)" : "rgba(255,59,77,0.12)",
-              border: `2px solid ${result.winner === 1 ? "#3aa0ff" : "#ff3b4d"}`,
-              boxShadow: `0 0 24px ${result.winner === 1 ? "rgba(58,160,255,0.35)" : "rgba(255,59,77,0.35)"}`,
-              fontSize: 22, fontWeight: "bold", textAlign: "center",
-            }}
-          >
-            🏆 {nameOf(result.winner - 1).toUpperCase()} WINS — {result.time.toFixed(2)}s
-            <div style={{ fontSize: 13, opacity: 0.75, fontWeight: "normal", marginTop: 4 }}>
-              rival was {result.gap}m behind
-            </div>
-          </div>
-        )}
+        {/* Winner banner removed — race returns straight to this lobby. */}
 
         {/* Big lobby CTA — host: Start Match · invited guest: I'm Ready (same slot) */}
         <div style={{
@@ -1968,7 +2321,7 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
               )}
               <div style={{ fontSize: 12, opacity: 0.75 }}>
                 Shared track: <b style={{ color: "#ffe97a" }}>{MAPS[mapIdx]?.name}</b>
-                {isGuest ? ` · picked by ${nameA}` : " · tap a card below to choose"}
+                {" · either of you can tap a card to choose"}
               </div>
             </>
           ) : (
@@ -1978,21 +2331,19 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
 
         <p style={{ marginBottom: 8, opacity: 0.85 }}>
           {online
-            ? (isHost ? "Choose the track (same for both):" : `Track (${nameA} picks):`)
+            ? "Choose the track (same for both — either player can pick):"
             : "Pick a track (roughly easiest → hardest):"}
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", maxWidth: 940 }}>
           {MAPS.map((m, i) => {
             const selected = mapIdx === i;
-            const canPick = !online || isHost;
             return (
               <button
                 key={m.name}
                 type="button"
-                disabled={!canPick}
                 onClick={() => selectMap(i)}
                 style={{
-                  cursor: canPick ? "pointer" : "default",
+                  cursor: "pointer",
                   width: 168, padding: 0, borderRadius: 10, overflow: "hidden",
                   border: selected
                     ? "2px solid #ffe97a"
@@ -2000,10 +2351,9 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
                   boxShadow: selected ? "0 0 16px rgba(255,233,122,.35)" : "none",
                   background: "#10141d", color: "#e8eef5",
                   fontFamily: "monospace", transition: "transform .15s, box-shadow .15s",
-                  opacity: !canPick && !selected ? 0.65 : 1,
+                  opacity: 1,
                 }}
                 onMouseEnter={(e) => {
-                  if (!canPick) return;
                   e.currentTarget.style.transform = "translateY(-3px)";
                   e.currentTarget.style.boxShadow = selected
                     ? "0 0 16px rgba(255,233,122,.45)"
@@ -2049,8 +2399,9 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
         }}>
           <div>
             <b style={neonText("#3aa0ff")}>{nameA} — top</b><br />
-            A / D — run · W — jump<br />
-            S — slide · <b>F — TURBO 🔥</b>
+            {online
+              ? <>WASD or ←↑→↓ — run / jump / slide · <b>F / K — TURBO 🔥</b></>
+              : <>A / D — run · W — jump<br />S — slide · <b>F — TURBO 🔥</b></>}
           </div>
           <div>
             <b style={neonText("#ff3b4d")}>{nameB} — bottom{online ? " (WASD)" : ""}</b><br />
@@ -2099,8 +2450,8 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
   );
 
   return (
-    <div style={wrap}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 10px" }}>
+    <div className="sr-play">
+      <div className="sr-play-bar">
         <span style={{ opacity: 0.7, fontSize: 13 }}>{MAPS[mapIdx].name} · first to the flag 🏁</span>
         <button onClick={() => setMuted((m) => !m)}
           style={{ cursor: "pointer", background: "none", border: "1px solid rgba(255,255,255,0.3)", color: "#e8eef5", borderRadius: 6, padding: "4px 10px", fontFamily: "monospace", fontSize: 12 }}>
@@ -2111,31 +2462,38 @@ export default function StickmanRacing({ myRole, rt, names = {} } = {}) {
           quit to menu
         </button>
       </div>
-      <div style={{ position: "relative", width: "100%", maxWidth: CW }}>
-        <canvas ref={canvasRef} width={CW} height={CH}
-          style={{ width: "100%", display: "block", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "#000", boxShadow: "0 0 40px rgba(80,140,255,0.12)" }} />
-        {touchUI && (
-          <>
-            {/* P1 — overlays the TOP screen */}
-            <TouchBtn label="◀" code={KEYS.p1.left} color="#3aa0ff" style={{ left: 10, top: "26%" }} />
-            <TouchBtn label="▶" code={KEYS.p1.right} color="#3aa0ff" style={{ left: 74, top: "26%" }} />
-            <TouchBtn label="⭡" code={KEYS.p1.jump} color="#3aa0ff" style={{ right: 74, top: "16%" }} />
-            <TouchBtn label="⭣" code={KEYS.p1.slide} color="#3aa0ff" style={{ right: 138, top: "29%" }} />
-            <TouchBtn label="🔥" code={KEYS.p1.turbo} color="#ffe97a" style={{ right: 10, top: "29%" }} />
-            {/* P2 — overlays the BOTTOM screen */}
-            <TouchBtn label="◀" code={KEYS.p2.left} color="#ff3b4d" style={{ left: 10, top: "77%" }} />
-            <TouchBtn label="▶" code={KEYS.p2.right} color="#ff3b4d" style={{ left: 74, top: "77%" }} />
-            <TouchBtn label="⭡" code={KEYS.p2.jump} color="#ff3b4d" style={{ right: 74, top: "67%" }} />
-            <TouchBtn label="⭣" code={KEYS.p2.slide} color="#ff3b4d" style={{ right: 138, top: "80%" }} />
-            <TouchBtn label="🔥" code={KEYS.p2.turbo} color="#ffe97a" style={{ right: 10, top: "80%" }} />
-          </>
-        )}
+      <div className="sr-stage">
+        <div className="sr-stage-inner">
+          <WinCounter inCanvas />
+          <canvas
+            ref={canvasRef}
+            className="sr-canvas"
+            width={CW}
+            height={CH}
+          />
+          {touchUI && (
+            <>
+              {/* P1 — overlays the TOP screen */}
+              <TouchBtn label="◀" code={KEYS.p1.left} color="#3aa0ff" style={{ left: 10, top: "26%" }} />
+              <TouchBtn label="▶" code={KEYS.p1.right} color="#3aa0ff" style={{ left: 74, top: "26%" }} />
+              <TouchBtn label="⭡" code={KEYS.p1.jump} color="#3aa0ff" style={{ right: 74, top: "16%" }} />
+              <TouchBtn label="⭣" code={KEYS.p1.slide} color="#3aa0ff" style={{ right: 138, top: "29%" }} />
+              <TouchBtn label="🔥" code={KEYS.p1.turbo} color="#ffe97a" style={{ right: 10, top: "29%" }} />
+              {/* P2 — overlays the BOTTOM screen */}
+              <TouchBtn label="◀" code={KEYS.p2.left} color="#ff3b4d" style={{ left: 10, top: "77%" }} />
+              <TouchBtn label="▶" code={KEYS.p2.right} color="#ff3b4d" style={{ left: 74, top: "77%" }} />
+              <TouchBtn label="⭡" code={KEYS.p2.jump} color="#ff3b4d" style={{ right: 74, top: "67%" }} />
+              <TouchBtn label="⭣" code={KEYS.p2.slide} color="#ff3b4d" style={{ right: 138, top: "80%" }} />
+              <TouchBtn label="🔥" code={KEYS.p2.turbo} color="#ffe97a" style={{ right: 10, top: "80%" }} />
+            </>
+          )}
+        </div>
       </div>
-      <p style={{ opacity: 0.5, fontSize: 12, marginTop: 8 }}>
+      <p className="sr-hint">
         {touchUI
           ? `${nameA} = blue · ${nameB} = red · ⭡ jump/rope · ⭣ slide · 🔥 turbo`
           : online
-            ? `top = ${nameA} · bottom = ${nameB} (WASD) · same track — pace your turbo!`
+            ? `top = ${nameA} (WASD or arrows) · bottom = ${nameB} (WASD) · same track — pace your turbo!`
             : `top = ${nameA} (WASD + F) · bottom = ${nameB} (arrows + K) · pace your turbo!`}
       </p>
     </div>

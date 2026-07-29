@@ -1,44 +1,28 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import StickmanRacing from './StickmanRacing.jsx';
+import '../styles/stickmanracing.css';
 
 /**
- * Thin DuoArcade adapter — renders the original racing game unchanged.
- * Watches the match-end banner to report the winner to the shell.
+ * Thin DuoArcade adapter — reports winners to the shell, then the race
+ * returns to its own lobby (keepInGame — no "Back to shelf" panel).
  */
 export default function StickmanRacingShell({ onComplete, pausedRef, myRole, rt, names }) {
-  const rootRef = useRef(null);
   const doneRef = useRef(false);
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const check = () => {
-      if (doneRef.current || pausedRef?.current) return;
-      const el = root.querySelector('[data-sr-winner]');
-      const role = el?.getAttribute('data-sr-winner');
-      if (role !== 'A' && role !== 'B') {
-        // fallback for in-canvas finish text during race
-        const text = root.textContent || '';
-        const m = text.match(/PLAYER\s+([12])\s+WINS/);
-        if (!m) return;
-        doneRef.current = true;
-        onComplete?.(m[1] === '1' ? 'A' : 'B');
-        return;
-      }
-      doneRef.current = true;
-      onComplete?.(role);
-    };
-
-    const mo = new MutationObserver(check);
-    mo.observe(root, { childList: true, subtree: true, characterData: true });
-    check();
-    return () => mo.disconnect();
-  }, [onComplete, pausedRef]);
-
   return (
-    <div ref={rootRef} className="sr-shell">
-      <StickmanRacing myRole={myRole} rt={rt} names={names} />
+    <div className="sr-shell">
+      <StickmanRacing
+        myRole={myRole}
+        rt={rt}
+        names={names}
+        onComplete={(role) => {
+          if (doneRef.current || pausedRef?.current) return;
+          if (role !== 'A' && role !== 'B') return;
+          doneRef.current = true;
+          onComplete?.(role);
+          window.setTimeout(() => { doneRef.current = false; }, 2500);
+        }}
+      />
     </div>
   );
 }

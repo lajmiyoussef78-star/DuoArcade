@@ -59,7 +59,13 @@ function FullscreenEnterIcon() {
 function FullscreenExitIcon() {
   return (
     <svg className="gv-fs-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
-      <path d="M8 8H4V4M16 8h4V4M8 16H4v4M16 16h4v4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -672,11 +678,12 @@ export default function GameScreen({
                   aria-label="Exit fullscreen"
                 >
                   <FullscreenExitIcon />
-                  <span>Exit</span>
                 </button>
               )}
               <div className="gv-board">{board}</div>
-              {(bannerStatus || banner) && (
+              {/* Banner sits under the board in windowed mode only — in fullscreen
+                  it left a black strip at the bottom of the monitor. */}
+              {!isFullscreen && (bannerStatus || banner) && (
                 <div className={bannerClass}>{bannerStatus || banner}</div>
               )}
             </div>

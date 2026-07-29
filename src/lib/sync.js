@@ -315,33 +315,53 @@ async function supabaseSync() {
     },
 
     rt(code) {
+      // Reuse one live channel per duo code — remounting the board must not
+      // tear down Supabase/Socket.IO mid-match (that caused multi-second lag).
+      if (!this._rtByCode) this._rtByCode = new Map();
+      const existing = this._rtByCode.get(code);
+      if (existing) {
+        existing._refs = (existing._refs || 1) + 1;
+        return existing;
+      }
+
       const makeSupabase = () => createSupabaseGameRt(sb, code);
       const preferSocket = String(CONFIG.GAME_RT || 'supabase').toLowerCase() === 'socket';
 
+      let handle;
       if (!preferSocket) {
         console.info('[game-rt] transport=supabase', { code });
-        return makeSupabase();
+        handle = makeSupabase();
+      } else {
+        console.info('[game-rt] transport=socket (requested)', {
+          code,
+          url: CONFIG.GAME_RT_URL,
+        });
+        handle = createSocketGameRt({
+          code,
+          url: CONFIG.GAME_RT_URL,
+          kind: 'duo',
+          getAccessToken: async () => {
+            try {
+              const { data: { session } } = await sb.auth.getSession();
+              return session?.access_token ?? null;
+            } catch {
+              return null;
+            }
+          },
+          createFallback: makeSupabase,
+        });
       }
 
-      console.info('[game-rt] transport=socket (requested)', {
-        code,
-        url: CONFIG.GAME_RT_URL,
-      });
-
-      return createSocketGameRt({
-        code,
-        url: CONFIG.GAME_RT_URL,
-        kind: 'duo',
-        getAccessToken: async () => {
-          try {
-            const { data: { session } } = await sb.auth.getSession();
-            return session?.access_token ?? null;
-          } catch {
-            return null;
-          }
-        },
-        createFallback: makeSupabase,
-      });
+      handle._refs = 1;
+      const realClose = handle.close.bind(handle);
+      handle.close = () => {
+        handle._refs = Math.max(0, (handle._refs || 1) - 1);
+        if (handle._refs > 0) return;
+        this._rtByCode.delete(code);
+        realClose();
+      };
+      this._rtByCode.set(code, handle);
+      return handle;
     },
 
     async updateDuo(code, patch, { guardTurn = null, force = false } = {}) {
@@ -448,22 +468,40 @@ function localSync() {
     },
     rt(code) {
       let rcb = () => {};
+      const listeners = new Set();
       const chName = 'duoarcade-rt-' + code;
       let ch = null;
+      const dispatch = (payload) => {
+        try { rcb(payload); } catch { /* */ }
+        for (const f of listeners) {
+          try { f(payload); } catch { /* */ }
+        }
+      };
       try {
         ch = new BroadcastChannel(chName);
-        ch.onmessage = e => { try { rcb(e.data); } catch { /* */ } };
+        ch.onmessage = e => { dispatch(e.data); };
       } catch { /* BroadcastChannel missing */ }
+      const sendNow = (payload) => {
+        try { ch?.postMessage(payload); }
+        catch { try { ch?.postMessage(JSON.parse(JSON.stringify(payload))); } catch { /* */ } }
+      };
       return {
-        send: payload => {
-          try { ch?.postMessage(JSON.parse(JSON.stringify(payload))); }
-          catch { try { ch?.postMessage(payload); } catch { /* */ } }
+        send: sendNow,
+        sendNow,
+        on: f => { rcb = f || (() => {}); },
+        subscribe: f => {
+          if (typeof f !== 'function') return () => {};
+          listeners.add(f);
+          return () => listeners.delete(f);
         },
-        on: f => { rcb = f; },
         ready: Promise.resolve(),
         isReady: () => true,
         whenReady: async () => true,
-        close: () => { try { ch?.close(); } catch { /* */ } }
+        close: () => {
+          listeners.clear();
+          rcb = () => {};
+          try { ch?.close(); } catch { /* */ }
+        }
       };
     }
   };

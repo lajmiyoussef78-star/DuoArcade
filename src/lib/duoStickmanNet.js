@@ -2,8 +2,9 @@
  * Online duo bridge for stickman / laser-wall couch games.
  *
  * Role A (host) = Player 1 · Role B (guest) = Player 2.
- * Host runs the sim and streams state; guest streams input.
+ * Host streams `st` snapshots; guest streams `inp` (+ optional pose in extra).
  * Guest may press the P1 key layout locally — codes remap to P2 when sent.
+ * Host may press the P2 key layout (arrows) locally — codes remap to P1.
  */
 
 /** Build P1→P2 remap from parallel KEYS objects: { left, right, ... }. */
@@ -21,7 +22,7 @@ export function remapFromKeys(p1Keys, p2Keys) {
  * @param {'A'|'B'} opts.myRole
  * @param {string[]} opts.p1Codes
  * @param {string[]} opts.p2Codes
- * @param {Record<string,string>|null} [opts.remap] P1 code → P2 code for guest comfort
+ * @param {Record<string,string>|null} [opts.remap]
  */
 export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = null }) {
   const online = !!(rt && myRole);
@@ -29,14 +30,14 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
   const myCodes = new Set(isHost ? p1Codes : p2Codes);
   const otherCodes = isHost ? p2Codes : p1Codes;
   const guestRemap = remap || {};
+  const hostRemap = {};
+  for (const [from, to] of Object.entries(guestRemap)) {
+    if (to) hostRemap[to] = from;
+  }
 
-  /** @type {Record<string, boolean>} */
   let remoteKeys = {};
-  /** @type {Record<string, boolean>} */
   let prevRemoteKeys = {};
-  /** @type {string[]} */
   let remotePressed = [];
-  /** @type {object|null} */
   let remoteExtra = null;
   let remoteState = null;
   let lastState = null;
@@ -45,41 +46,65 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
   let lastSeq = -1;
   let trailSeq = 0;
   let lastTrailSeq = -1;
-  /** @type {((m:any)=>void)|null} */
   let uiHandler = null;
-  /** edge buffer for local presses to send */
   let localPressedBuf = [];
-
   const localHeld = {};
   let unsub = null;
 
   const onMsg = (m) => {
     if (!m || !m.k) return;
     if (m.k === 'inp') {
-      // Host receives guest (P2). Guest may also receive host P1 if we mirror — host only needs guest.
-      if (isHost) {
+      if (isHost && (m.role === 'B' || m.role == null)) {
         remoteKeys = { ...(m.keys || {}) };
         if (Array.isArray(m.pressed)) remotePressed.push(...m.pressed);
         if (m.extra) remoteExtra = m.extra;
-      } else if (m.role === 'A') {
+      } else if (!isHost && m.role === 'A') {
         remoteKeys = { ...(m.keys || {}) };
         if (Array.isArray(m.pressed)) remotePressed.push(...m.pressed);
         if (m.extra) remoteExtra = m.extra;
       }
+    } else if (m.k === 'pose' && m.pose) {
+      // Optional dedicated pose (racing may send both inp.extra + pose).
+      if (isHost && m.role === 'B') remoteExtra = { pose: m.pose };
+      else if (!isHost && m.role === 'A') remoteExtra = { pose: m.pose };
+    } else if (m.k === 'p1' && !isHost) {
+      // Flat host body → same shape as st so takeState/peekState both work.
+      if (typeof m.seq === 'number') {
+        if (m.seq <= lastSeq) {
+          const hostRestarted = lastSeq > 60 && m.seq < 15;
+          if (!hostRestarted) return;
+        }
+        lastSeq = m.seq;
+      }
+      if (typeof m.x === 'number') {
+        remoteState = {
+          raceT: m.raceT, mode: m.mode, modeT: m.modeT, done: m.done,
+          players: [m],
+          p: m,
+        };
+        lastState = remoteState;
+      }
+    } else if (m.k === 'p2' && isHost) {
+      if (typeof m.x === 'number') remoteExtra = { pose: m };
     } else if (m.k === 'st' && !isHost) {
-      if (typeof m.seq === 'number' && m.seq <= lastSeq) return;
-      if (typeof m.seq === 'number') lastSeq = m.seq;
+      if (typeof m.seq === 'number') {
+        // Drop older snapshots, but accept host remount / seq reset so P1
+        // doesn't freeze forever on the invited screen.
+        if (m.seq <= lastSeq) {
+          const hostRestarted = lastSeq > 60 && m.seq < 15;
+          if (!hostRestarted) return;
+        }
+        lastSeq = m.seq;
+      }
       remoteState = m.st;
       lastState = m.st;
     } else if (m.k === 'trail' && !isHost) {
-      // Dedicated laser trail channel — never blocked by empty st snapshots
       if (typeof m.seq === 'number' && m.seq <= lastTrailSeq) return;
       if (typeof m.seq === 'number') lastTrailSeq = m.seq;
       remoteTrail = m;
     } else if (m.k === 'ui' && uiHandler) {
       uiHandler(m);
-    } else if ((m.k === 'start' || m.k === 'ready' || m.k === 'sel' || m.k === 'menu' || m.k === 'round') && uiHandler) {
-      // Top-level lobby events (more reliable than nested ui for some clients)
+    } else if ((m.k === 'start' || m.k === 'ready' || m.k === 'sel' || m.k === 'menu' || m.k === 'round' || m.k === 'finish') && uiHandler) {
       uiHandler({ type: m.k, ...m });
     }
   };
@@ -91,10 +116,8 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
 
   function resolveLocalCode(code) {
     if (!online) return code;
-    if (isHost) return myCodes.has(code) ? code : null;
-    // Guest: accept native P2 codes, or P1 layout remapped to P2
     if (myCodes.has(code)) return code;
-    const mapped = guestRemap[code];
+    const mapped = isHost ? hostRemap[code] : guestRemap[code];
     if (mapped && myCodes.has(mapped)) return mapped;
     return null;
   }
@@ -104,7 +127,6 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     if (!S.pressed) S.pressed = {};
   }
 
-  /** Call from keydown. Returns the code written into S.keys, or null if ignored. */
   function onKeyDown(code, S) {
     ensureKeyBags(S);
     if (!online) {
@@ -124,7 +146,6 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     return resolved;
   }
 
-  /** Call from keyup. */
   function onKeyUp(code, S) {
     ensureKeyBags(S);
     if (!online) {
@@ -139,10 +160,6 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     return resolved;
   }
 
-  /**
-   * Merge remote player's keys into S before the sim step.
-   * Returns key codes that were just released remotely (for hold-to-fire games).
-   */
   function mergeRemoteInto(S) {
     if (!online) return [];
     ensureKeyBags(S);
@@ -153,14 +170,11 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
       S.keys[code] = next;
     }
     prevRemoteKeys = { ...remoteKeys };
-    for (const code of remotePressed) {
-      S.pressed[code] = true;
-    }
+    for (const code of remotePressed) S.pressed[code] = true;
     remotePressed = [];
     return released;
   }
 
-  /** Guest: pull newest unread host snapshot (clears unread flag). */
   function takeState() {
     if (!remoteState) return null;
     const st = remoteState;
@@ -168,24 +182,24 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     return st;
   }
 
-  /** Guest: last known host snapshot (kept between packets). */
   function peekState() {
     return lastState;
   }
 
-  /** Drop cached host snapshots (menu / leave match). */
   function clearState() {
     remoteState = null;
     lastState = null;
     remoteTrail = null;
+    remoteExtra = null;
+    remoteKeys = {};
+    prevRemoteKeys = {};
+    remotePressed = [];
     lastSeq = -1;
     lastTrailSeq = -1;
   }
 
-  /** Host: send laser ink on its own coalesced channel (separate from st). */
   function sendTrail(data) {
-    if (!online || !rt?.send || !isHost) return;
-    if (!data) return;
+    if (!online || !rt?.send || !isHost || !data) return;
     trailSeq += 1;
     rt.send({
       k: 'trail',
@@ -197,7 +211,6 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     });
   }
 
-  /** Guest: pull newest unread trail packet. */
   function takeTrail() {
     if (!remoteTrail) return null;
     const t = remoteTrail;
@@ -205,8 +218,11 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     return t;
   }
 
-  /** Host → broadcast state; guest → broadcast input. Call ~20Hz. */
-  function netTick(packState, guestExtra) {
+  /**
+   * Host → { k:'st', st }. Guest → { k:'inp', extra? }.
+   * Matches Kart Racing (proven path).
+   */
+  function netTick(packState, extraPack) {
     if (!online || !rt?.send) return;
     if (isHost) {
       seq += 1;
@@ -217,7 +233,10 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
       for (const code of p2Codes) keys[code] = !!localHeld[code];
       const pressed = localPressedBuf.splice(0, localPressedBuf.length);
       const payload = { k: 'inp', role: 'B', keys, pressed };
-      if (guestExtra != null) payload.extra = typeof guestExtra === 'function' ? guestExtra() : guestExtra;
+      if (extraPack != null) {
+        const extra = typeof extraPack === 'function' ? extraPack() : extraPack;
+        if (extra != null) payload.extra = extra;
+      }
       rt.send(payload);
     }
   }
@@ -232,7 +251,6 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     return remoteExtra;
   }
 
-  /** Optional: host also mirrors P1 keys so a predicting guest can soft-sim. */
   function netTickHostInput() {
     if (!online || !rt?.send || !isHost) return;
     const keys = {};
@@ -244,8 +262,7 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
   function sendUi(payload) {
     if (!online || !rt?.send) return;
     const type = payload?.type;
-    // Prefer dedicated kinds for lobby handshake so they never get lost behind inp/st
-    if (type === 'start' || type === 'ready' || type === 'sel' || type === 'menu' || type === 'round') {
+    if (type === 'start' || type === 'ready' || type === 'sel' || type === 'menu' || type === 'round' || type === 'finish') {
       rt.send({ k: type, ...payload });
     }
     rt.send({ k: 'ui', ...payload });

@@ -36,6 +36,7 @@ export function mount(el, ctx) {
     names: ctx.names,
     rt: ctx.rt,
     code: ctx.code,
+    startedAt: ctx.startedAt || 0,
     onComplete: w => {
       if (isHost) finish(w);
     }

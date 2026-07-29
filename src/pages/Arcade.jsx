@@ -494,6 +494,17 @@ export default function Arcade() {
       await afterChallengeWin(s.challengeId, s.challengeSlot, w);
     } else if (w === 'draw' && s.challengeId && s.challengeSlot) {
       await startGame(s.game, { id: s.challengeId, slot: s.challengeSlot });
+    } else if (ENGINES[gameId]?.meta?.keepInGame) {
+      // Stay on the in-game board/menu — clear winner so another race can tally
+      // without the DuoArcade "takes the match" shelf panel.
+      const live = {
+        ...session,
+        winner: null,
+        phase: 'live',
+        chatEndedPosted: true,
+      };
+      patchLocal({ session: live });
+      await upd(code, { session: live, turn: '-' }, { force: true });
     }
   }, [patchLocal, upd, afterChallengeWin, startGame]);
 
