@@ -417,6 +417,26 @@ function predictorSnapshot({
   });
   assert.equal(hard.hardReset, true);
   assert.deepEqual(hard.state, target);
+
+  const overlapping = socInitial();
+  overlapping.cars.B = {
+    x: overlapping.ball.x + 5,
+    y: overlapping.ball.y,
+    a: Math.PI,
+    v: 80,
+  };
+  const separated = reconcileSoccerPresentation(
+    overlapping,
+    overlapping,
+    1 / 60,
+  ).state;
+  assert.ok(
+    Math.hypot(
+      separated.cars.B.x - separated.ball.x,
+      separated.cars.B.y - separated.ball.y,
+    ) >= SOCCER_CONTACT_RADIUS,
+    'presentation smoothing cannot draw either car inside the ball',
+  );
 }
 
 {

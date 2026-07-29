@@ -8,10 +8,11 @@ export function useKeys() {
   useEffect(() => {
     const map = {
       ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-      w: 'up', s: 'down', a: 'left', d: 'right'
+      w: 'up', z: 'up', s: 'down', a: 'left', q: 'left', d: 'right'
     };
-    const down = e => { const k = map[e.key]; if (k) { keys.current[k] = true; e.preventDefault(); } };
-    const up = e => { const k = map[e.key]; if (k) { keys.current[k] = false; e.preventDefault(); } };
+    const direction = e => map[e.key] || map[String(e.key).toLowerCase()];
+    const down = e => { const k = direction(e); if (k) { keys.current[k] = true; e.preventDefault(); } };
+    const up = e => { const k = direction(e); if (k) { keys.current[k] = false; e.preventDefault(); } };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };

@@ -1,4 +1,5 @@
 import {
+  SOCCER_CONTACT_RADIUS,
   SOCCER_TICK_HZ,
   socReplayInputChanges,
 } from '../../shared/microSoccerPhysics.js';
@@ -196,6 +197,27 @@ function boundedMove(from, to, alpha, maxStep) {
   return { x: from.x + mx, y: from.y + my };
 }
 
+function separatePresentationCar(car, previousCar, ball) {
+  const dx = car.x - ball.x;
+  const dy = car.y - ball.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist >= SOCCER_CONTACT_RADIUS) return car;
+  const previousDx = previousCar?.x - ball.x;
+  const previousDy = previousCar?.y - ball.y;
+  const previousDist = Math.hypot(previousDx, previousDy);
+  const nx = dist > 1e-6
+    ? dx / dist
+    : (previousDist > 1e-6 ? previousDx / previousDist : -Math.cos(car.a));
+  const ny = dist > 1e-6
+    ? dy / dist
+    : (previousDist > 1e-6 ? previousDy / previousDist : -Math.sin(car.a));
+  return {
+    ...car,
+    x: ball.x + nx * SOCCER_CONTACT_RADIUS,
+    y: ball.y + ny * SOCCER_CONTACT_RADIUS,
+  };
+}
+
 /**
  * Reconciles visual state only. The simulation state passed as `target` is
  * never modified. Callers retain the returned state as their presentation
@@ -248,6 +270,13 @@ export function reconcileSoccerPresentation(current, target, dt, {
     vx: source.ball.vx + (destination.ball.vx - source.ball.vx) * ballAlpha,
     vy: source.ball.vy + (destination.ball.vy - source.ball.vy) * ballAlpha,
   };
+  for (const role of ROLES) {
+    state.cars[role] = separatePresentationCar(
+      state.cars[role],
+      source.cars[role],
+      state.ball,
+    );
+  }
   state.score = { ...destination.score };
   return { state, hardReset: false, reason: null, errors };
 }

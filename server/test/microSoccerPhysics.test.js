@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  SOCCER_CONTACT_RADIUS,
   SOCCER_FIXED_DT,
   socInitial,
   socReplayFixedTicks,
@@ -82,6 +83,34 @@ test('prediction-safe mode keeps car-ball collisions active', () => {
   assert.equal(result.hit, 'A');
   assert.ok(result.state.ball.vx >= 120);
   assert.deepEqual(result.state.score, state.score);
+});
+
+test('slow contact stays gentle and always resolves car-ball penetration', () => {
+  const state = socInitial();
+  state.cars.A = { x: 200, y: 200, a: 0, v: 20 };
+  state.ball = { x: 225, y: 200, vx: 0, vy: 0 };
+
+  const result = socStepFixed(state, {});
+  const distance = Math.hypot(
+    result.state.ball.x - result.state.cars.A.x,
+    result.state.ball.y - result.state.cars.A.y,
+  );
+  assert.equal(result.hit, 'A');
+  assert.ok(result.state.ball.vx > 0 && result.state.ball.vx < 50);
+  assert.ok(distance >= SOCCER_CONTACT_RADIUS - 1e-9);
+
+  const centered = socInitial();
+  centered.cars.A = { x: 300, y: 200, a: 0, v: 0 };
+  centered.ball = { x: 300, y: 200, vx: 0, vy: 0 };
+  const separated = socStepFixed(centered, {});
+  assert.ok(Number.isFinite(separated.state.ball.x));
+  assert.equal(
+    Math.hypot(
+      separated.state.ball.x - separated.state.cars.A.x,
+      separated.state.ball.y - separated.state.cars.A.y,
+    ),
+    SOCCER_CONTACT_RADIUS,
+  );
 });
 
 test('fixed-tick replay is deterministic and matches manual stepping', () => {

@@ -116,12 +116,25 @@ export function socStep(st, inputs, dt, opts = {}) {
     const dy = b.y - c.y;
     const dist = Math.hypot(dx, dy);
     const min = SOCCER_CONTACT_RADIUS;
-    if (dist > 0 && dist < min) {
-      const nx = dx / dist;
-      const ny = dy / dist;
-      const push = Math.max(120, Math.abs(c.v) * 1.15);
-      b.vx = nx * push;
-      b.vy = ny * push;
+    if (dist < min) {
+      // A zero-distance fallback keeps even a corrected/snapshotted overlap
+      // finite and places the ball in front of the car.
+      const nx = dist > 1e-6 ? dx / dist : Math.cos(c.a);
+      const ny = dist > 1e-6 ? dy / dist : Math.sin(c.a);
+      const carVx = Math.cos(c.a) * c.v;
+      const carVy = Math.sin(c.a) * c.v;
+      const carToward = carVx * nx + carVy * ny;
+      const ballOut = b.vx * nx + b.vy * ny;
+      const tangentX = b.vx - nx * ballOut;
+      const tangentY = b.vy - ny * ballOut;
+      const targetOut = ballOut < 0
+        ? Math.max(-ballOut * 0.72, carToward * 1.08, 0)
+        : Math.max(ballOut, carToward * 1.08, 0);
+      // Preserve most tangential motion and replace only the inward/impact
+      // component. Slow contact stays gentle instead of receiving a 120 px/s
+      // artificial launch on every overlapping tick.
+      b.vx = tangentX * 0.92 + nx * targetOut;
+      b.vy = tangentY * 0.92 + ny * targetOut;
       b.x = c.x + nx * min;
       b.y = c.y + ny * min;
       hit = role;
