@@ -1,19 +1,14 @@
 // src/lib/chat.js — partner chat data layer (Supabase).
 
 import { CONFIG } from './config.js';
-
-let clientPromise = null;
+import { getSupabase } from './supabaseClient.js';
 
 export function chatConfigured() {
   return CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes('YOUR-PROJECT');
 }
 
 export async function getChatClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 export async function listChatMessages(duoCode) {

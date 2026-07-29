@@ -1,15 +1,9 @@
 // src/lib/xp.js — Duo shared XP (Supabase + pure level/title math).
 
-import { CONFIG } from './config.js';
-
-let clientPromise = null;
+import { getSupabase } from './supabaseClient.js';
 
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 /** Award 10 XP for a finished match (side A only). Fire-and-forget safe. */

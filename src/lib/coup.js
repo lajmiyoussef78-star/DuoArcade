@@ -6,16 +6,10 @@
 // NEVER again — returned/revealed cards go to the BOTTOM, so counting
 // cards is a real skill, as designed.
 
-import { CONFIG } from './config.js';
-
-let clientPromise = null;
+import { getSupabase } from './supabaseClient.js';
 
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 export async function myRoleInDuo(code) {

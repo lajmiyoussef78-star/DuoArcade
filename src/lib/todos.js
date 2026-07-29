@@ -1,6 +1,7 @@
 // src/lib/todos.js — shared couple todo list data layer.
 
 import { CONFIG } from './config.js';
+import { getSupabase } from './supabaseClient.js';
 
 const localKey = code => 'duoarcade-todos-' + code;
 
@@ -28,14 +29,8 @@ export function newTodo({ text, note, urgency, by }) {
   };
 }
 
-let clientPromise = null;
-
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 function configured() {

@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { getSupabase } from './supabaseClient.js';
 
 const schemaHint = error => {
   const msg = error?.message || String(error);
@@ -40,8 +40,7 @@ export function normalizeMatch(row) {
 }
 
 export async function createArenaClient() {
-  const { createClient } = await import('@supabase/supabase-js');
-  const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  const sb = await getSupabase();
   const rpc = async (name, args = {}) => {
     const { data, error } = await sb.rpc(name, args);
     if (error) throw schemaHint(error);

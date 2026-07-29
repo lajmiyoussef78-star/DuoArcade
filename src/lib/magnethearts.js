@@ -4,16 +4,10 @@
 // Magnet pods pull items into orbit; THROW flings them. Bank in your zone.
 // 90 seconds, highest bank wins (draws allowed).
 
-import { CONFIG } from './config.js';
-
-let clientPromise = null;
+import { getSupabase } from './supabaseClient.js';
 
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 export async function loadMagnetHearts(code) {

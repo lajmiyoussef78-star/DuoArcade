@@ -4,16 +4,10 @@
 // The center cannon fires the bomb at a random sumo. The holder's aim
 // sweeps; tap to throw along the arrow. Hidden fuse (5–20s). Best of 5.
 
-import { CONFIG } from './config.js';
-
-let clientPromise = null;
+import { getSupabase } from './supabaseClient.js';
 
 async function getClient() {
-  if (!clientPromise) {
-    const { createClient } = await import('@supabase/supabase-js');
-    clientPromise = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  }
-  return clientPromise;
+  return getSupabase();
 }
 
 export async function loadSumoBomb(code) {
