@@ -1,371 +1,381 @@
-// src/pages/Soccer.jsx — Micro Soccer play UI (mounted by the microsoccer engine).
-// Ball sync: host authoritative; guest converges renderBall → latestAuthoritativeBall.
-// Snapshot rate experiment: VITE_SOC_NET_HZ=20|60 (or VITE_SOC_NET_INTERVAL_MS).
-// Remote cars still use pose/snapshot buffers. Transport sync.rt() unchanged.
+// src/pages/Soccer.jsx — symmetric browser client for server-authoritative Micro Soccer.
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MATCH_SECONDS, SOC, socInitial, socStepCar } from '../lib/soccer.js';
 import {
-  socInitial, socStep, socStepCar, SOC, MATCH_SECONDS
-} from '../lib/soccer.js';
-import {
-  validateSoccerMsg,
-  lerpCar,
-  moveTowardBall,
-  createInterpBuffer,
+  createSoccerClock,
   createSoccerMetrics,
-  SOC_NET_INTERVAL_MS,
+  createSoccerSnapshotBuffer,
+  reconcileOwnCar,
   SOC_NET_HZ,
-  SOC_INTERP_DELAY_MS,
-  SOC_BALL_EXTREME_PX,
+  SOC_NET_INTERVAL_MS,
+  SOC_RENDER_DELAY_MS,
+  validateSoccerMsg,
 } from '../lib/soccerNet.js';
-import { CONFIG } from '../lib/config.js';
 import Dpad, { useKeys } from '../games-soccer/Dpad.jsx';
 import '../styles/soccer.css';
-import {
-  logHostSend,
-  logGuestRecv,
-  socVerifyTickFrame,
-} from '../lib/soccerVerify.js';
 
-const BALL_CONVERGE_RATE = 18; // 1/s exponential
-const BALL_MAX_STEP_PX = 12;   // cap per frame — prevents teleports
+const INPUT_INTERVAL_MS = 40; // 25 Hz, below the server's input-rate ceiling.
+const DEFAULT_TICK_HZ = 60;
 
-export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }) {
+function cloneState(state) {
+  return {
+    cars: { A: { ...state.cars.A }, B: { ...state.cars.B } },
+    ball: { ...state.ball },
+    score: { ...state.score },
+  };
+}
+
+function normalizedKeys(keys) {
+  return {
+    up: keys?.up === true,
+    down: keys?.down === true,
+    left: keys?.left === true,
+    right: keys?.right === true,
+  };
+}
+
+export default function Soccer({
+  myRole,
+  matchId,
+  names = {},
+  rt,
+  onComplete,
+  pausedRef,
+}) {
   const role = myRole;
-  const [phase, setPhase] = useState('live');
+  const peerRole = role === 'A' ? 'B' : 'A';
+  const safeMatchId = String(matchId || '');
+  const [phase, setPhase] = useState('connecting');
   const [hud, setHud] = useState({ A: 0, B: 0, t: MATCH_SECONDS });
   const [result, setResult] = useState(null);
 
   const canvasRef = useRef(null);
-  const stRef = useRef(socInitial());
   const keys = useKeys();
-  const guestKeys = useRef({});
+  const renderStateRef = useRef(socInitial());
+  const ownCarRef = useRef(null);
+  const latestSnapshotRef = useRef(null);
+  const snapshotsRef = useRef(null);
+  const clockRef = useRef(null);
+  if (!snapshotsRef.current) snapshotsRef.current = createSoccerSnapshotBuffer();
+  if (!clockRef.current) clockRef.current = createSoccerClock();
 
-  // Host: buffered interpolation of guest B poses.
-  const poseBufRef = useRef(null);
-  // Guest: buffered interpolation of peer car from host st.
-  const peerBufRef = useRef(null);
-
-  // Guest ball: exactly two objects — latest auth target + what we draw (stRef.ball).
-  const latestAuthBallRef = useRef(null);
-  const prevRenderBallRef = useRef(null);
-
-  const lastSeqRef = useRef(0);
-  const outSeqRef = useRef(0);
   const metricsRef = useRef(null);
-  const startedRef = useRef(false);
-  const endedRef = useRef(false);
-  const phaseRef = useRef('live');
-  phaseRef.current = phase;
-  const endAtRef = useRef(Date.now() + MATCH_SECONDS * 1000);
+  const rttRef = useRef(0);
+  const inputSeqRef = useRef(Date.now());
+  const lastSnapshotTickRef = useRef(-1);
+  const phaseRef = useRef(phase);
   const finishedRef = useRef(false);
   const hudSnapRef = useRef({ A: 0, B: 0, t: MATCH_SECONDS });
+  const timelineRef = useRef({ tick: 0, serverTime: 0 });
+  const matchMetaRef = useRef({
+    endTick: MATCH_SECONDS * DEFAULT_TICK_HZ,
+    tickHz: DEFAULT_TICK_HZ,
+  });
+  phaseRef.current = phase;
 
-  function ensureBuffers() {
-    if (!poseBufRef.current) {
-      poseBufRef.current = createInterpBuffer({ lerpFn: lerpCar, delayMs: SOC_INTERP_DELAY_MS });
+  const noteServerTime = useCallback((msg) => {
+    if (!Number.isFinite(msg?.serverTime)) return;
+    clockRef.current.note({
+      serverTime: msg.serverTime,
+      localTime: Date.now(),
+      rttMs: rttRef.current,
+    });
+  }, []);
+
+  const updateTimeline = useCallback((msg) => {
+    if (Number.isInteger(msg?.tick)) {
+      timelineRef.current = {
+        tick: msg.tick,
+        serverTime: Number.isFinite(msg.serverTime)
+          ? msg.serverTime
+          : clockRef.current.serverNow(),
+      };
     }
-    if (!peerBufRef.current) {
-      peerBufRef.current = createInterpBuffer({ lerpFn: lerpCar, delayMs: SOC_INTERP_DELAY_MS });
-    }
-  }
+    const previous = matchMetaRef.current;
+    matchMetaRef.current = {
+      endTick: Number.isInteger(msg?.endTick) ? msg.endTick : previous.endTick,
+      tickHz: Number.isFinite(msg?.tickHz) && msg.tickHz > 0 ? msg.tickHz : previous.tickHz,
+    };
+  }, []);
 
-  function beginMatch(endAt) {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    endAtRef.current = endAt;
-    stRef.current = socInitial();
-    ensureBuffers();
-    poseBufRef.current?.clear();
-    peerBufRef.current?.clear();
-    latestAuthBallRef.current = { ...stRef.current.ball };
-    prevRenderBallRef.current = { ...stRef.current.ball };
-    lastSeqRef.current = 0;
-    outSeqRef.current = 0;
-    setHud({ A: 0, B: 0, t: MATCH_SECONDS });
-    setPhase('live');
-  }
-
-  const finish = useCallback((winner, fromHost) => {
+  const finish = useCallback((winner) => {
     if (phaseRef.current === 'done') return;
-    endedRef.current = true;
     setResult(winner);
     setPhase('done');
-    if (fromHost && !finishedRef.current) {
+    if (role === 'A' && !finishedRef.current) {
       finishedRef.current = true;
       onComplete?.(winner);
     }
-  }, [onComplete]);
+  }, [onComplete, role]);
 
   useEffect(() => {
-    ensureBuffers();
     const metrics = createSoccerMetrics();
     metricsRef.current = metrics;
-    const onReconnect = () => metrics.noteReconnect();
-    if (rt && typeof rt === 'object') rt._onReconnect = onReconnect;
     if (typeof window !== 'undefined') {
-      window.__DUO_GAME_RT_TRANSPORT__ = rt?.transport?.()
-        || (String(CONFIG.GAME_RT || 'supabase').toLowerCase() === 'socket' ? 'socket' : 'supabase');
+      window.__DUO_GAME_RT_TRANSPORT__ = rt?.transport?.() || null;
       window.__SOC_NET__ = metrics;
       window.__SOC_NET_EXPERIMENT__ = {
-        socNetHz: SOC_NET_HZ,
-        socNetIntervalMs: SOC_NET_INTERVAL_MS,
-        carInterpDelayMs: SOC_INTERP_DELAY_MS,
-        flag: 'VITE_SOC_NET_HZ | VITE_SOC_NET_INTERVAL_MS',
+        inputHz: 1000 / INPUT_INTERVAL_MS,
+        snapshotHz: SOC_NET_HZ,
+        snapshotIntervalMs: SOC_NET_INTERVAL_MS,
+        renderDelayMs: SOC_RENDER_DELAY_MS,
+        authority: 'server',
       };
     }
     return () => {
-      metrics.logSummary('Micro Soccer sync');
+      metrics.logSummary('Micro Soccer client');
       if (typeof window !== 'undefined' && window.__SOC_NET__ === metrics) {
         delete window.__SOC_NET__;
         delete window.__SOC_NET_EXPERIMENT__;
       }
-      if (rt && rt._onReconnect === onReconnect) rt._onReconnect = null;
     };
   }, [rt]);
 
   useEffect(() => {
-    if (!rt?.on) return;
-    ensureBuffers();
-    const me = role;
-    const opp = role === 'A' ? 'B' : 'A';
+    if (!rt || !safeMatchId) {
+      setPhase('unavailable');
+      return undefined;
+    }
+    const onReconnect = () => {
+      metricsRef.current?.noteReconnect();
+      // Re-authenticate the same seat and request the current full snapshot.
+      // The server resumes a paused match when both authenticated seats rejoin.
+      const msg = { k: 'soccer:join', matchId: safeMatchId };
+      metricsRef.current?.noteOut(msg);
+      rt.send?.(msg);
+    };
+    rt._onReconnect = onReconnect;
+    return () => {
+      if (rt._onReconnect === onReconnect) rt._onReconnect = null;
+    };
+  }, [rt, safeMatchId]);
 
-    rt.on(m => {
-      const rawForVerify = (m && m.k === 'st') ? m : null;
-      const msg = validateSoccerMsg(m);
-      if (!msg) {
+  useEffect(() => {
+    if (!rt || !safeMatchId) return undefined;
+
+    const receive = (raw) => {
+      if (!String(raw?.k || '').startsWith('soccer:')) return;
+      const msg = validateSoccerMsg(raw);
+      if (!msg || msg.matchId !== safeMatchId) {
         metricsRef.current?.noteDrop();
         return;
       }
       metricsRef.current?.noteIn(msg);
 
-      if (msg.k === 'start') beginMatch(msg.endAt);
-      else if (msg.k === 'st') {
-        if (role === 'A') return;
-        if (rawForVerify) logGuestRecv(rawForVerify, msg);
+      if (msg.k === 'soccer:start') {
+        noteServerTime(msg);
+        updateTimeline(msg);
+        setPhase('live');
+        return;
+      }
 
-        if (msg.seq != null) {
-          if (msg.seq <= lastSeqRef.current) {
-            metricsRef.current?.noteDrop();
-            return;
-          }
-          lastSeqRef.current = msg.seq;
+      if (msg.k === 'soccer:snapshot') {
+        if (!snapshotsRef.current.push(msg)) {
+          metricsRef.current?.noteDrop();
+          return;
+        }
+        // Keep late packets inside the 100 ms interpolation window, but never
+        // rewind prediction, HUD, or the latest authoritative reconciliation.
+        if (msg.tick < lastSnapshotTickRef.current) return;
+        noteServerTime(msg);
+        updateTimeline(msg);
+
+        const previous = latestSnapshotRef.current;
+        const goalReset = Boolean(msg.goal)
+          || (previous && (
+            previous.state.score.A !== msg.state.score.A
+            || previous.state.score.B !== msg.state.score.B
+          ));
+        const prediction = ownCarRef.current;
+        if (prediction) {
+          metricsRef.current?.notePredictionError(Math.hypot(
+            prediction.x - msg.state.cars[role].x,
+            prediction.y - msg.state.cars[role].y,
+          ));
         }
 
-        const auth = msg.st;
-        const local = stRef.current;
-        const scoreChanged = auth.score.A !== local.score.A || auth.score.B !== local.score.B;
-
-        let myCar = local.cars[me];
-        if (scoreChanged) {
-          myCar = { ...auth.cars[me] };
-        } else {
-          metricsRef.current?.notePredictionError(
-            Math.hypot(auth.cars[me].x - myCar.x, auth.cars[me].y - myCar.y)
-          );
+        lastSnapshotTickRef.current = msg.tick;
+        latestSnapshotRef.current = msg;
+        if (goalReset) {
+          snapshotsRef.current.clear();
+          snapshotsRef.current.push(msg);
         }
 
-        peerBufRef.current.push(auth.cars[opp]);
+        if (!ownCarRef.current || goalReset) {
+          ownCarRef.current = { ...msg.state.cars[role] };
+        }
+        if (!previous || goalReset) {
+          renderStateRef.current = cloneState(msg.state);
+          renderStateRef.current.cars[role] = { ...ownCarRef.current };
+        }
+        if (phaseRef.current === 'connecting' || phaseRef.current === 'waiting') {
+          setPhase('live');
+        }
+        return;
+      }
 
-        const prevLatest = latestAuthBallRef.current || local.ball;
-        const jump = Math.hypot(auth.ball.x - prevLatest.x, auth.ball.y - prevLatest.y);
-        // Single auth writer: update target only here (plus hard snap of render below).
-        latestAuthBallRef.current = { ...auth.ball };
-        metricsRef.current?.noteAuthBall(auth.ball);
-        metricsRef.current?.noteBallCorrection(jump, {
-          hard: scoreChanged || jump > SOC_BALL_EXTREME_PX,
-        });
+      if (msg.k === 'soccer:paused') {
+        noteServerTime(msg);
+        updateTimeline(msg);
+        setPhase('paused');
+        return;
+      }
 
-        if (scoreChanged) {
-          stRef.current = {
-            cars: {
-              A: me === 'A' ? myCar : auth.cars.A,
-              B: me === 'B' ? myCar : auth.cars.B,
-            },
-            ball: { ...auth.ball },
-            score: { ...auth.score },
+      if (msg.k === 'soccer:resumed') {
+        noteServerTime(msg);
+        updateTimeline(msg);
+        setPhase('live');
+        return;
+      }
+
+      if (msg.k === 'soccer:over') {
+        noteServerTime(msg);
+        updateTimeline(msg);
+        if (msg.state && Number.isInteger(msg.tick)) {
+          const finalSnapshot = {
+            ...msg,
+            k: 'soccer:snapshot',
+            state: msg.state,
           };
-          prevRenderBallRef.current = { ...auth.ball };
-        } else if (jump > SOC_BALL_EXTREME_PX) {
-          stRef.current = {
-            ...local,
-            cars: { ...local.cars, [me]: myCar },
-            ball: { ...auth.ball },
-            score: { ...auth.score },
-          };
-          prevRenderBallRef.current = { ...auth.ball };
-        } else {
-          // Render converges in rAF — do not assign st.ball here.
-          stRef.current = {
-            ...local,
-            cars: { ...local.cars, [me]: myCar },
-            score: { ...auth.score },
-          };
+          snapshotsRef.current.clear();
+          snapshotsRef.current.push(finalSnapshot);
+          latestSnapshotRef.current = finalSnapshot;
+          lastSnapshotTickRef.current = Math.max(lastSnapshotTickRef.current, msg.tick);
+          ownCarRef.current = { ...msg.state.cars[role] };
+          renderStateRef.current = cloneState(msg.state);
         }
-      } else if (msg.k === 'in') {
-        if (role === 'A') guestKeys.current = msg.keys;
-      } else if (msg.k === 'pose') {
-        if (role === 'A' && msg.role === 'B') {
-          const prev = poseBufRef.current.latest();
-          if (prev) {
-            metricsRef.current?.notePlayerInterpError(
-              Math.hypot(msg.car.x - prev.x, msg.car.y - prev.y)
-            );
-          }
-          poseBufRef.current.push(msg.car);
-          if (msg.keys) guestKeys.current = msg.keys;
-        }
-      } else if (msg.k === 'over') finish(msg.winner, false);
-    });
-  }, [rt, role, finish]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (role !== 'A') {
-      const t = setTimeout(() => {
-        if (!startedRef.current) beginMatch(Date.now() + MATCH_SECONDS * 1000);
-      }, 800);
-      return () => clearTimeout(t);
-    }
-    const endAt = Date.now() + MATCH_SECONDS * 1000;
-    const startMsg = { k: 'start', endAt };
-    metricsRef.current?.noteOut(startMsg);
-    rt?.send(startMsg);
-    beginMatch(endAt);
-  }, [role, rt]);
-
-  useEffect(() => {
-    if (!rt?.probeRtt) return;
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const ms = await rt.probeRtt();
-        if (!cancelled && ms != null) metricsRef.current?.noteRtt(ms);
-      } catch { /* ignore */ }
+        finish(msg.winner);
+      }
     };
-    tick();
-    const id = setInterval(tick, 2000);
-    return () => { cancelled = true; clearInterval(id); };
+
+    if (typeof rt.subscribe === 'function') return rt.subscribe(receive);
+    if (typeof rt.on === 'function') {
+      rt.on(receive);
+      return () => rt.on(null);
+    }
+    return undefined;
+  }, [finish, noteServerTime, role, rt, safeMatchId, updateTimeline]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ready = rt?.whenReady ? await rt.whenReady() : false;
+      if (cancelled) return;
+      if (ready === false || !safeMatchId) {
+        setPhase('unavailable');
+        return;
+      }
+      setPhase(current => current === 'connecting' ? 'waiting' : current);
+      const msg = { k: 'soccer:join', matchId: safeMatchId };
+      metricsRef.current?.noteOut(msg);
+      rt.send(msg);
+    })();
+    return () => { cancelled = true; };
+  }, [rt, safeMatchId]);
+
+  useEffect(() => {
+    if (phase !== 'live') return undefined;
+    const sendInput = () => {
+      if (pausedRef?.current || phaseRef.current !== 'live') return;
+      const msg = {
+        k: 'soccer:input',
+        matchId: safeMatchId,
+        seq: ++inputSeqRef.current,
+        keys: normalizedKeys(keys.current),
+        clientTime: Date.now(),
+      };
+      metricsRef.current?.noteOut(msg);
+      rt?.send?.(msg);
+    };
+    sendInput();
+    const id = setInterval(sendInput, INPUT_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [keys, pausedRef, phase, rt, safeMatchId]);
+
+  useEffect(() => {
+    if (!rt?.probeClock && !rt?.probeRtt) return undefined;
+    let cancelled = false;
+    const probe = async () => {
+      try {
+        if (rt.probeClock) {
+          const sample = await rt.probeClock();
+          if (!cancelled && sample) {
+            rttRef.current = sample.rttMs;
+            metricsRef.current?.noteRtt(sample.rttMs);
+            clockRef.current.note({
+              serverTime: sample.serverTime,
+              localTime: sample.localMidpoint,
+            });
+          }
+          return;
+        }
+        const rttMs = await rt.probeRtt();
+        if (!cancelled && Number.isFinite(rttMs)) {
+          rttRef.current = rttMs;
+          metricsRef.current?.noteRtt(rttMs);
+        }
+      } catch { /* diagnostics must not affect play */ }
+    };
+    void probe();
+    const id = setInterval(probe, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [rt]);
 
   useEffect(() => {
-    if (phase !== 'live') return;
-    ensureBuffers();
-    const isHost = role === 'A';
-    const me = role;
-    const opp = role === 'A' ? 'B' : 'A';
-    let raf, last = performance.now();
+    if (phase !== 'live' && phase !== 'paused' && phase !== 'done') return undefined;
+    let raf;
+    let last = performance.now();
 
-    const net = setInterval(() => {
-      if (endedRef.current || pausedRef?.current) return;
-      if (isHost) {
-        outSeqRef.current += 1;
-        const msg = { k: 'st', seq: outSeqRef.current, st: stRef.current };
-        logHostSend(msg);
-        metricsRef.current?.noteOut(msg);
-        rt?.send(msg);
-      } else {
-        const car = stRef.current.cars[me];
-        const msg = {
-          k: 'pose',
-          role: me,
-          car: { x: car.x, y: car.y, a: car.a, v: car.v },
-          keys: { ...keys.current },
-        };
-        metricsRef.current?.noteOut(msg);
-        rt?.send(msg);
-      }
-    }, SOC_NET_INTERVAL_MS);
-
-    const loop = now => {
-      socVerifyTickFrame();
-      if (pausedRef?.current) {
-        raf = requestAnimationFrame(loop);
-        return;
-      }
+    const loop = (now) => {
       const cpuT0 = performance.now();
-      const dt = Math.min(0.033, (now - last) / 1000);
+      const dt = Math.max(0, Math.min(0.033, (now - last) / 1000));
       last = now;
-      const remaining = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
 
-      if (!endedRef.current) {
-        if (isHost) {
-          const poseSample = poseBufRef.current.sample(now);
-          const poseLock = {};
-          if (poseSample.value) poseLock.B = poseSample.value;
+      const serverNow = clockRef.current.serverNow();
+      const sampled = snapshotsRef.current.sampleAt(serverNow - SOC_RENDER_DELAY_MS);
+      const latest = latestSnapshotRef.current;
+      if (sampled && latest) {
+        let ownCar = ownCarRef.current || { ...sampled.state.cars[role] };
+        if (phaseRef.current === 'live' && !pausedRef?.current) {
+          ownCar = socStepCar(ownCar, keys.current, dt);
+          ownCar = reconcileOwnCar(ownCar, latest.state.cars[role], dt);
+          ownCarRef.current = ownCar;
+        }
+        renderStateRef.current = {
+          cars: {
+            [role]: { ...ownCar },
+            [peerRole]: { ...sampled.state.cars[peerRole] },
+          },
+          ball: { ...sampled.state.ball },
+          score: { ...latest.state.score },
+        };
+      }
 
-          const r = socStep(
-            stRef.current,
-            { A: keys.current, B: guestKeys.current },
-            dt,
-            { poseLock }
-          );
-          stRef.current = r.state;
-
-          if (r.goal) {
-            poseBufRef.current.clear();
-            poseBufRef.current.push(stRef.current.cars.B);
-          }
-
-          if (remaining <= 0) {
-            endedRef.current = true;
-            const sc = stRef.current.score;
-            const winner = sc.A === sc.B ? 'draw' : (sc.A > sc.B ? 'A' : 'B');
-            outSeqRef.current += 1;
-            const stMsg = { k: 'st', seq: outSeqRef.current, st: stRef.current };
-            logHostSend(stMsg);
-            const overMsg = { k: 'over', winner };
-            metricsRef.current?.noteOut(stMsg);
-            metricsRef.current?.noteOut(overMsg);
-            rt?.send(stMsg);
-            rt?.send(overMsg);
-            finish(winner, true);
-          }
-        } else {
-          const st = stRef.current;
-          st.cars[me] = socStepCar(st.cars[me], keys.current, dt);
-
-          const peer = peerBufRef.current.sample(now);
-          if (peer.value) st.cars[opp] = peer.value;
-
-          // Single render writer: converge toward latest authoritative ball only.
-          const latest = latestAuthBallRef.current;
-          if (latest) {
-            const prev = prevRenderBallRef.current || st.ball;
-            const next = moveTowardBall(st.ball, latest, dt, BALL_CONVERGE_RATE, BALL_MAX_STEP_PX);
-
-            const step = Math.hypot(next.x - prev.x, next.y - prev.y);
-            if (step > 20) metricsRef.current?.noteTeleport();
-
-            // Sync-induced reverse: move opposite to previous travel while converging.
-            const moveDot = (next.x - prev.x) * prev.vx + (next.y - prev.y) * prev.vy;
-            if (
-              Math.hypot(prev.vx, prev.vy) > 40
-              && step > 1
-              && moveDot < -0.5 * step * Math.hypot(prev.vx, prev.vy)
-            ) {
-              metricsRef.current?.noteReverse();
-            }
-
-            const err = Math.hypot(next.x - latest.x, next.y - latest.y);
-            metricsRef.current?.noteBallError(err);
-            metricsRef.current?.noteRenderBall(next, latest);
-
-            st.ball = next;
-            prevRenderBallRef.current = { ...next };
-          }
+      if (!pausedRef?.current) {
+        const { endTick, tickHz } = matchMetaRef.current;
+        const timeline = timelineRef.current;
+        const displayTick = Math.min(endTick, timeline.tick);
+        const remaining = Math.max(0, Math.ceil((endTick - displayTick) / tickHz));
+        const score = latest?.state.score || renderStateRef.current.score;
+        const nextHud = { A: score.A, B: score.B, t: remaining };
+        const previousHud = hudSnapRef.current;
+        if (
+          previousHud.A !== nextHud.A
+          || previousHud.B !== nextHud.B
+          || previousHud.t !== nextHud.t
+        ) {
+          hudSnapRef.current = nextHud;
+          setHud(nextHud);
         }
       }
 
-      const st = stRef.current;
-      const nextHud = { A: st.score.A, B: st.score.B, t: remaining };
-      const prev = hudSnapRef.current;
-      if (prev.A !== nextHud.A || prev.B !== nextHud.B || prev.t !== nextHud.t) {
-        hudSnapRef.current = nextHud;
-        setHud(nextHud);
-      }
       draw();
       metricsRef.current?.noteFrameCpu(performance.now() - cpuT0);
-      raf = requestAnimationFrame(loop);
+      if (phaseRef.current !== 'done') raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
 
@@ -519,7 +529,7 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
       const cv = canvasRef.current;
       if (!cv) return;
       const g = cv.getContext('2d');
-      const st = stRef.current;
+      const st = renderStateRef.current;
       const css = getComputedStyle(document.documentElement);
       const P1 = css.getPropertyValue('--p1').trim() || '#7FA8FF';
       const P2 = css.getPropertyValue('--p2').trim() || '#FF7FA8';
@@ -559,15 +569,22 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
       g.stroke();
     }
 
-    return () => { cancelAnimationFrame(raf); clearInterval(net); };
-  }, [phase, role, rt, pausedRef, keys, finish]);
+    return () => cancelAnimationFrame(raf);
+  }, [keys, pausedRef, peerRole, phase, role]);
 
   const mm = String(Math.floor(hud.t / 60));
   const ss = String(hud.t % 60).padStart(2, '0');
 
   return (
     <div className="sc-page sc-embedded">
-      {(phase === 'live' || phase === 'done') && (
+      {(phase === 'connecting' || phase === 'waiting') && (
+        <div className="sc-status">Syncing both players…</div>
+      )}
+      {phase === 'unavailable' && (
+        <div className="sc-status">Game server unavailable. Please try again.</div>
+      )}
+
+      {(phase === 'live' || phase === 'paused' || phase === 'done') && (
         <div className="sc-game">
           <div className="sc-hud">
             <span className="pA">{hud.A}</span>
@@ -582,6 +599,9 @@ export default function Soccer({ myRole, names = {}, rt, onComplete, pausedRef }
               </div>
               <Dpad keysRef={keys} />
             </>
+          )}
+          {phase === 'paused' && (
+            <div className="sc-status">Waiting for the other player to reconnect…</div>
           )}
         </div>
       )}

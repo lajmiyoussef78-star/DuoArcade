@@ -115,7 +115,12 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onPr
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !sync?.rt) return undefined;
-    const rt = sync.rt(code);
+    const rt = sync.rt(code, {
+      game: session.game,
+      matchId: session.startedAt || 0,
+      role: myRole,
+      requireSocket: session.game === 'microsoccer',
+    });
     eng.mount(host, {
       myRole,
       rt,

@@ -314,9 +314,10 @@ async function supabaseSync() {
       };
     },
 
-    rt(code) {
+    rt(code, opts = {}) {
       const makeSupabase = () => createSupabaseGameRt(sb, code);
-      const preferSocket = String(CONFIG.GAME_RT || 'supabase').toLowerCase() === 'socket';
+      const preferSocket = !!opts.requireSocket
+        || String(CONFIG.GAME_RT || 'supabase').toLowerCase() === 'socket';
 
       if (!preferSocket) {
         console.info('[game-rt] transport=supabase', { code });
@@ -332,6 +333,10 @@ async function supabaseSync() {
         code,
         url: CONFIG.GAME_RT_URL,
         kind: 'duo',
+        game: opts.game || null,
+        matchId: opts.matchId != null ? String(opts.matchId) : null,
+        role: opts.role || null,
+        requireSocket: !!opts.requireSocket,
         getAccessToken: async () => {
           try {
             const { data: { session } } = await sb.auth.getSession();
@@ -340,7 +345,7 @@ async function supabaseSync() {
             return null;
           }
         },
-        createFallback: makeSupabase,
+        createFallback: opts.requireSocket ? null : makeSupabase,
       });
     },
 
@@ -410,7 +415,20 @@ function localSync() {
     },
     onDuo(fn) { cb = fn; },
     async deleteDuo(code) { localStorage.removeItem(key(code)); },
-    rt(code) {
+    rt(code, opts = {}) {
+      if (opts.requireSocket) {
+        return {
+          send: () => {},
+          on: () => {},
+          subscribe: () => () => {},
+          ready: Promise.resolve(),
+          isReady: () => false,
+          whenReady: async () => false,
+          transport: () => 'unavailable',
+          error: () => 'authenticated_socket_required',
+          close: () => {},
+        };
+      }
       let rcb = () => {};
       const listeners = new Set();
       const dispatch = (payload) => {
@@ -446,7 +464,19 @@ function localSync() {
       bc.postMessage(next);
       return true;
     },
-    rt(code) {
+    rt(code, opts = {}) {
+      if (opts.requireSocket) {
+        return {
+          send: () => {},
+          on: () => {},
+          ready: Promise.resolve(),
+          isReady: () => false,
+          whenReady: async () => false,
+          transport: () => 'unavailable',
+          error: () => 'authenticated_socket_required',
+          close: () => {},
+        };
+      }
       let rcb = () => {};
       const chName = 'duoarcade-rt-' + code;
       let ch = null;

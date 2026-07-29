@@ -6,6 +6,7 @@ import { log } from './logger.js';
 import { attachSocketServer } from './socket.js';
 
 const app = express();
+let soccerRooms = null;
 
 app.use(cors({
   origin(origin, cb) {
@@ -22,19 +23,21 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'duoarcade-game-server',
-    step: 3,
+    step: 4,
     jwtAuthConfigured: !!(config.supabaseUrl && config.supabaseAnonKey),
     roomAuth: config.roomAuth,
+    authoritativeSoccer: soccerRooms?.metrics() ?? null,
     uptimeSec: Math.round(process.uptime()),
   });
 });
 
 app.get('/', (_req, res) => {
-  res.type('text').send('DuoArcade game server (Socket.IO) — Step 3. JWT + room auth. Micro Soccer migrated.');
+  res.type('text').send('DuoArcade game server (Socket.IO) — authoritative Micro Soccer enabled.');
 });
 
 const httpServer = http.createServer(app);
-attachSocketServer(httpServer);
+const io = attachSocketServer(httpServer);
+soccerRooms = io.soccerRooms;
 
 httpServer.listen(config.port, config.host, () => {
   log.info('HTTP + Socket.IO listening', {

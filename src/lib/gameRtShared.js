@@ -1,7 +1,13 @@
 // gameRtShared.js — coalesce / critical sets shared by Supabase + Socket.IO RT adapters.
 
-export const COALESCE = new Set(['pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim', 'trail']);
-export const CRITICAL = new Set(['try', 'ev', 'throw', 'over', 'nextEnd', 'grab']);
+export const COALESCE = new Set([
+  'pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim', 'trail',
+  'soccer:input',
+]);
+export const CRITICAL = new Set([
+  'try', 'ev', 'throw', 'over', 'nextEnd', 'grab',
+  'soccer:join',
+]);
 
 export function clonePayload(payload) {
   try { return JSON.parse(JSON.stringify(payload)); }

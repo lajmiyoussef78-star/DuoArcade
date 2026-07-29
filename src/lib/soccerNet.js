@@ -38,6 +38,15 @@ export const SOC_NET_HZ = Math.round(1000 / SOC_NET_INTERVAL_MS);
  */
 export const SOC_INTERP_DELAY_MS = 50;
 
+function resolveRenderDelayMs() {
+  const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+  const n = Number(env.VITE_SOC_RENDER_DELAY_MS);
+  return Number.isFinite(n) ? Math.max(80, Math.min(120, n)) : 100;
+}
+
+/** Authoritative server timeline delay shared by both clients. */
+export const SOC_RENDER_DELAY_MS = resolveRenderDelayMs();
+
 /** Keep a short queue of authoritative samples. */
 export const SOC_BUFFER_MAX = 8;
 
@@ -76,6 +85,32 @@ function validScore(s) {
     && s.A >= 0 && s.B >= 0 && s.A < 100 && s.B < 100;
 }
 
+function validState(state) {
+  return state && validCar(state.cars?.A) && validCar(state.cars?.B)
+    && validBall(state.ball) && validScore(state.score);
+}
+
+function cloneValidatedState(state) {
+  return {
+    cars: { A: { ...state.cars.A }, B: { ...state.cars.B } },
+    ball: { ...state.ball },
+    score: { ...state.score },
+  };
+}
+
+function validTickHz(value) {
+  return isFiniteNum(value) && value > 0 && value <= 240;
+}
+
+function timingFields(m, tick, serverTime) {
+  const tickHz = validTickHz(m.tickHz) ? m.tickHz : 60;
+  let endTick = Number.isInteger(m.endTick) && m.endTick >= tick ? m.endTick : null;
+  if (endTick == null && isFiniteNum(m.endAt) && m.endAt >= serverTime) {
+    endTick = tick + Math.round((m.endAt - serverTime) * tickHz / 1000);
+  }
+  return { endTick, tickHz };
+}
+
 /** Reject malformed Micro Soccer RT messages. Returns sanitized copy or null. */
 export function validateSoccerMsg(m) {
   if (!m || typeof m !== 'object') return null;
@@ -88,6 +123,72 @@ export function validateSoccerMsg(m) {
     return { k: 'start', endAt: m.endAt };
   }
 
+  if (m.k === 'needstart') {
+    return { k: m.k };
+  }
+
+  if (m.k === 'soccer:start') {
+    if (typeof m.matchId !== 'string' || !m.matchId) return null;
+    if (!Number.isInteger(m.tick) || m.tick < 0) return null;
+    if (!isFiniteNum(m.serverTime)) return null;
+    const timing = timingFields(m, m.tick, m.serverTime);
+    if (!Number.isInteger(timing.endTick) || timing.endTick <= m.tick) return null;
+    return {
+      k: m.k,
+      matchId: m.matchId,
+      tick: m.tick,
+      ...timing,
+      serverTime: m.serverTime,
+    };
+  }
+
+  if (m.k === 'soccer:snapshot') {
+    const state = m.state || m.st;
+    if (typeof m.matchId !== 'string' || !m.matchId) return null;
+    if (!Number.isInteger(m.tick) || m.tick < 0 || !isFiniteNum(m.serverTime)) return null;
+    if (!validState(state)) return null;
+    const timing = timingFields(m, m.tick, m.serverTime);
+    return {
+      k: m.k,
+      matchId: m.matchId,
+      tick: m.tick,
+      ...timing,
+      serverTime: m.serverTime,
+      goal: m.goal === 'A' || m.goal === 'B' ? m.goal : null,
+      state: cloneValidatedState(state),
+    };
+  }
+
+  if (m.k === 'soccer:paused' || m.k === 'soccer:resumed') {
+    if (typeof m.matchId !== 'string' || !m.matchId) return null;
+    if (!Number.isInteger(m.tick) || m.tick < 0 || !isFiniteNum(m.serverTime)) return null;
+    return {
+      k: m.k,
+      matchId: m.matchId,
+      tick: m.tick,
+      serverTime: m.serverTime,
+      ...timingFields(m, m.tick, m.serverTime),
+    };
+  }
+
+  if (m.k === 'soccer:over') {
+    if (typeof m.matchId !== 'string' || !m.matchId) return null;
+    if (!Number.isInteger(m.tick) || m.tick < 0 || !isFiniteNum(m.serverTime)) return null;
+    const winner = m.winner == null ? 'draw' : m.winner;
+    if (winner !== 'A' && winner !== 'B' && winner !== 'draw') return null;
+    const state = m.state || m.st;
+    if (state != null && !validState(state)) return null;
+    return {
+      k: m.k,
+      matchId: m.matchId,
+      winner,
+      tick: m.tick,
+      serverTime: m.serverTime,
+      ...timingFields(m, m.tick, m.serverTime),
+      state: state ? cloneValidatedState(state) : null,
+    };
+  }
+
   if (m.k === 'in') {
     if (!validKeys(m.keys || {})) return null;
     return { k: 'in', keys: { ...m.keys } };
@@ -97,8 +198,10 @@ export function validateSoccerMsg(m) {
     if (m.role !== 'A' && m.role !== 'B') return null;
     if (!validCar(m.car)) return null;
     if (m.keys != null && !validKeys(m.keys)) return null;
+    if (m.seq != null && (!Number.isInteger(m.seq) || m.seq < 0)) return null;
     return {
       k: 'pose',
+      seq: m.seq ?? null,
       role: m.role,
       car: { x: m.car.x, y: m.car.y, a: m.car.a, v: m.car.v },
       keys: m.keys ? { ...m.keys } : undefined,
@@ -122,6 +225,18 @@ export function validateSoccerMsg(m) {
         ball: { ...st.ball },
         score: { A: st.score.A, B: st.score.B },
       },
+    };
+  }
+
+  if (m.k === 'ball' || m.k === 'ballHit') {
+    if (!validBall(m.ball)) return null;
+    if (!Number.isInteger(m.seq) || m.seq < 0) return null;
+    if (m.sentAt != null && !isFiniteNum(m.sentAt)) return null;
+    return {
+      k: m.k,
+      seq: m.seq,
+      ball: { ...m.ball },
+      sentAt: m.sentAt ?? null,
     };
   }
 
@@ -154,6 +269,98 @@ export function lerpBall(from, to, t) {
     y: from.y + (to.y - from.y) * u,
     vx: from.vx + (to.vx - from.vx) * u,
     vy: from.vy + (to.vy - from.vy) * u,
+  };
+}
+
+function cloneState(state) {
+  return {
+    cars: { A: { ...state.cars.A }, B: { ...state.cars.B } },
+    ball: { ...state.ball },
+    score: { ...state.score },
+  };
+}
+
+function lerpState(a, b, alpha) {
+  return {
+    cars: {
+      A: lerpCar(a.cars.A, b.cars.A, alpha),
+      B: lerpCar(a.cars.B, b.cars.B, alpha),
+    },
+    ball: lerpBall(a.ball, b.ball, alpha),
+    score: alpha < 1 ? { ...a.score } : { ...b.score },
+  };
+}
+
+/** Ordered authoritative snapshots sampled by absolute server time. */
+export function createSoccerSnapshotBuffer({ max = 16 } = {}) {
+  const samples = [];
+  return {
+    clear() { samples.length = 0; },
+    size() { return samples.length; },
+    latest() { return samples.length ? samples[samples.length - 1] : null; },
+    push(snapshot) {
+      if (!snapshot?.state || !Number.isFinite(snapshot.serverTime) || !Number.isInteger(snapshot.tick)) return false;
+      if (samples.some(sample => sample.tick === snapshot.tick)) return false;
+      const copy = { ...snapshot, state: cloneState(snapshot.state) };
+      const insertAt = samples.findIndex(sample => sample.tick > snapshot.tick);
+      if (insertAt < 0) samples.push(copy);
+      else samples.splice(insertAt, 0, copy);
+      while (samples.length > max) samples.shift();
+      return true;
+    },
+    sampleAt(serverTime) {
+      if (!samples.length) return null;
+      if (samples.length === 1 || serverTime <= samples[0].serverTime) {
+        return { ...samples[0], state: cloneState(samples[0].state), alpha: 0 };
+      }
+      const latest = samples[samples.length - 1];
+      if (serverTime >= latest.serverTime) {
+        return { ...latest, state: cloneState(latest.state), alpha: 1 };
+      }
+      let i = 0;
+      while (i < samples.length - 1 && samples[i + 1].serverTime < serverTime) i += 1;
+      const a = samples[i];
+      const b = samples[i + 1];
+      const span = Math.max(0.001, b.serverTime - a.serverTime);
+      const alpha = Math.max(0, Math.min(1, (serverTime - a.serverTime) / span));
+      return {
+        ...b,
+        tick: a.tick + (b.tick - a.tick) * alpha,
+        serverTime,
+        state: lerpState(a.state, b.state, alpha),
+        alpha,
+      };
+    },
+  };
+}
+
+export function reconcileOwnCar(predicted, authoritative, dt, {
+  softPx = 8,
+  hardPx = 45,
+  rate = 10,
+} = {}) {
+  if (!predicted) return authoritative ? { ...authoritative } : predicted;
+  if (!authoritative) return { ...predicted };
+  const error = Math.hypot(authoritative.x - predicted.x, authoritative.y - predicted.y);
+  if (error >= hardPx) return { ...authoritative };
+  if (error <= softPx) return { ...predicted };
+  return lerpCar(predicted, authoritative, 1 - Math.exp(-Math.max(0, dt) * rate));
+}
+
+export function createSoccerClock() {
+  let offsetMs = 0;
+  let ready = false;
+  return {
+    note({ serverTime, localTime = Date.now(), rttMs = 0 } = {}) {
+      if (!Number.isFinite(serverTime) || !Number.isFinite(localTime)) return offsetMs;
+      const sample = serverTime + Math.max(0, Number(rttMs) || 0) / 2 - localTime;
+      offsetMs = ready ? offsetMs * 0.85 + sample * 0.15 : sample;
+      ready = true;
+      return offsetMs;
+    },
+    serverNow(localTime = Date.now()) { return localTime + offsetMs; },
+    offset() { return offsetMs; },
+    isReady() { return ready; },
   };
 }
 
@@ -329,7 +536,7 @@ export function createSoccerMetrics() {
     noteIn(msg) {
       const n = sizeOf(msg);
       m.bytesIn += n;
-      if (msg?.k === 'st') {
+      if (msg?.k === 'st' || msg?.k === 'soccer:snapshot') {
         m.snapsIn += 1;
         m.stBytesIn += n;
         const now = performance.now();
@@ -346,14 +553,14 @@ export function createSoccerMetrics() {
     noteOut(msg) {
       const n = sizeOf(msg);
       m.bytesOut += n;
-      if (msg?.k === 'st') {
+      if (msg?.k === 'st' || msg?.k === 'soccer:snapshot') {
         m.snapsOut += 1;
         m.stBytesOut += n;
         const now = performance.now();
         if (m.lastSnapOutAt) m.snapOutGaps.push(now - m.lastSnapOutAt);
         m.lastSnapOutAt = now;
       }
-      if (msg?.k === 'pose' || msg?.k === 'in') m.posesOut += 1;
+      if (msg?.k === 'pose' || msg?.k === 'in' || msg?.k === 'soccer:input') m.posesOut += 1;
     },
     noteDrop() { m.dropped += 1; },
     noteRtt(ms) {

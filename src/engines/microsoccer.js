@@ -1,6 +1,6 @@
 // Micro Soccer — realtime car soccer.
-// Ball: host authoritative; guest converges render → latest snapshot (no delayed buffer).
-// Snapshot rate: VITE_SOC_NET_HZ=20|60 (experiment). Remote cars: interp buffers.
+// Equal-seat local cars with one canonical shared ball and light impact snapshots.
+// Both cars act locally; transport starts only after a ready + needstart handshake.
 // Transport via sync.rt().
 
 import { createRoot } from 'react-dom/client';
@@ -40,6 +40,7 @@ export function mount(el, ctx) {
     myRole: ctx.myRole,
     names: ctx.names,
     rt: ctx.rt,
+    matchId: String(ctx.startedAt || 0),
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

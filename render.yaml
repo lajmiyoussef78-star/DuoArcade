@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: duoarcade-game-server
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci --prefix server
+    startCommand: npm run start --prefix server
+    healthCheckPath: /health
+    autoDeploy: true
+    numInstances: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ROOM_AUTH
+        value: required
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

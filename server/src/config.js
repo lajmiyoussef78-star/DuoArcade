@@ -23,4 +23,10 @@ export const config = {
   roomAuth: String(process.env.ROOM_AUTH || '1') !== '0',
   /** Max JSON size for relayed `m` payloads (bytes). */
   maxPayloadBytes: intEnv('MAX_PAYLOAD_BYTES', 16_384),
+  /** Authoritative Micro Soccer sends one full state every three 60 Hz ticks. */
+  soccerSnapshotHz: intEnv('SOCCER_SNAPSHOT_HZ', 20),
+  soccerInputTimeoutMs: intEnv('SOCCER_INPUT_TIMEOUT_MS', 250),
+  soccerInputRateLimit: intEnv('SOCCER_INPUT_RATE_LIMIT', 40),
+  soccerDisconnectGraceMs: intEnv('SOCCER_DISCONNECT_GRACE_MS', 10_000),
+  soccerFinishedRetentionMs: intEnv('SOCCER_FINISHED_RETENTION_MS', 30_000),
 };
