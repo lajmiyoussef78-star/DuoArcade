@@ -1,11 +1,12 @@
 // gameRtSupabase.js — existing Supabase broadcast transport extracted for sync.rt().
 
-import { createEnqueue } from './gameRtShared.js';
+import { attachRtDebug, createEnqueue, noteInbound } from './gameRtShared.js';
 
 export function createSupabaseGameRt(sb, code) {
   let rcb = () => {};
   const listeners = new Set();
   const dispatch = (payload) => {
+    noteInbound(payload);
     try { rcb(payload); } catch (e) { console.warn('rt handler', e); }
     for (const f of listeners) {
       try { f(payload); } catch (e) { console.warn('rt listener', e); }
@@ -46,7 +47,7 @@ export function createSupabaseGameRt(sb, code) {
 
   const enqueue = createEnqueue({ readyPromise, sendRaw });
 
-  return {
+  const handle = {
     ready: readyPromise,
     isReady: () => subscribed,
     whenReady: () => readyPromise.then(() => subscribed),
@@ -66,4 +67,7 @@ export function createSupabaseGameRt(sb, code) {
     /** No server RTT probe on broadcast channels. */
     probeRtt: async () => null,
   };
+
+  attachRtDebug(handle);
+  return handle;
 }

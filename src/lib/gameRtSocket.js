@@ -2,7 +2,7 @@
 // Same public API as Supabase broadcast RT. Event `m` + payloads unchanged.
 
 import { io } from 'socket.io-client';
-import { createEnqueue } from './gameRtShared.js';
+import { attachRtDebug, createEnqueue, noteInbound } from './gameRtShared.js';
 
 /**
  * @param {object} opts
@@ -53,6 +53,7 @@ export function createSocketGameRt({
   const listeners = new Set();
   const reconnectListeners = new Set();
   const dispatch = (payload) => {
+    noteInbound(payload);
     try { rcb(payload); } catch (e) { console.warn('rt handler', e); }
     for (const f of listeners) {
       try { f(payload); } catch (e) { console.warn('rt listener', e); }
@@ -296,5 +297,6 @@ export function createSocketGameRt({
     }
   })();
 
+  attachRtDebug(handle);
   return handle;
 }
