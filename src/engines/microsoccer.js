@@ -16,7 +16,8 @@ export const meta = {
   name: 'Micro Soccer',
   tag: 'real-time · cars · 90 seconds',
   accent: 'good',
-  realtime: true
+  realtime: true,
+  transport: 'socket'
 };
 
 export function mount(el, ctx) {

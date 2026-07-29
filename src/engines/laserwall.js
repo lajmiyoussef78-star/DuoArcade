@@ -1,4 +1,4 @@
-// Laser Wall Duel — couch co-op (same keyboard), from MohamedAliZegnani/laser-wall-duel.
+// Laser Wall Duel — role-A authoritative online duo over sync.rt().
 // Artist traces glowing outlines with a laser; runner blocks on the wall.
 // No dedicated SQL — match wins go through the shell onFinish tally.
 
@@ -16,6 +16,7 @@ export const meta = {
   tag: 'online duo · laser · wall runner',
   accent: 'p1',
   realtime: true,
+  transport: 'socket',
   keepInGame: true
 };
 
@@ -47,6 +48,7 @@ export function mount(el, ctx) {
     myRole: ctx.myRole,
     rt: ctx.rt,
     names: ctx.names,
+    matchId: String(ctx.startedAt || ''),
     pausedRef,
     onComplete: w => {
       if (isHost) finish(w);

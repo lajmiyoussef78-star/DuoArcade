@@ -119,7 +119,7 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onPr
       game: session.game,
       matchId: session.startedAt || 0,
       role: myRole,
-      requireSocket: session.game === 'microsoccer',
+      requireSocket: eng.meta.transport === 'socket',
     });
     eng.mount(host, {
       myRole,

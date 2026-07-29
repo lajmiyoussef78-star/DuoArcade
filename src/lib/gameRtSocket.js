@@ -51,6 +51,7 @@ export function createSocketGameRt({
 
   let rcb = () => {};
   const listeners = new Set();
+  const reconnectListeners = new Set();
   const dispatch = (payload) => {
     try { rcb(payload); } catch (e) { console.warn('rt handler', e); }
     for (const f of listeners) {
@@ -121,12 +122,19 @@ export function createSocketGameRt({
       listeners.add(f);
       return () => listeners.delete(f);
     },
+    /** Subscribe to successful Socket.IO reconnects. Returns an unsubscribe function. */
+    subscribeReconnect: f => {
+      if (typeof f !== 'function' || closed) return () => {};
+      reconnectListeners.add(f);
+      return () => reconnectListeners.delete(f);
+    },
     close: () => {
       closed = true;
       subscribed = false;
       if (readyTimer) clearTimeout(readyTimer);
       pendingByKind.clear();
       listeners.clear();
+      reconnectListeners.clear();
       rcb = () => {};
       try { fallbackRt?.close?.(); } catch { /* ignore */ }
       fallbackRt = null;
@@ -266,6 +274,9 @@ export function createSocketGameRt({
       socket.io.on('reconnect', (attempt) => {
         console.info('[game-rt] Socket.IO reconnected', { attempt, id: socket.id });
         try { handle._onReconnect?.(attempt); } catch { /* ignore */ }
+        for (const listener of reconnectListeners) {
+          try { listener(attempt); } catch (e) { console.warn('rt reconnect listener', e); }
+        }
       });
 
       socket.io.on('reconnect_attempt', (attempt) => {

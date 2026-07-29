@@ -15,15 +15,47 @@ export function remapFromKeys(p1Keys, p2Keys) {
   return map;
 }
 
+function payloadBytes(payload) {
+  let json;
+  try { json = JSON.stringify(payload); } catch { return 0; }
+  if (typeof TextEncoder === 'function') return new TextEncoder().encode(json).byteLength;
+  return json.length;
+}
+
 /**
+ * Generic host-state / guest-input bridge for realtime duo games.
+ *
+ * Laser Wall and other host-authoritative consumers can register a current,
+ * complete snapshot with `setStateProvider(() => snapshot)`. `forceState()`
+ * sends that provider immediately, and reconnect/sync automatically requests
+ * or sends it. Existing `netTick`, `sendUi`, and `sendTrail` calls remain valid.
+ *
  * @param {object} opts
  * @param {object|null} opts.rt
  * @param {'A'|'B'} opts.myRole
  * @param {string[]} opts.p1Codes
  * @param {string[]} opts.p2Codes
  * @param {Record<string,string>|null} [opts.remap] P1 code → P2 code for guest comfort
+ * @param {(()=>object|null)|null} [opts.stateProvider] Host full-state provider
+ * @returns {{
+ *   setStateProvider: (fn:(()=>object|null)|null) => (()=>void),
+ *   forceState: (stateOrProvider?:(object|(()=>object|null))) => boolean,
+ *   sendLifecycle: (type:string, payload?:object) => boolean,
+ *   getMetrics: () => {
+ *     messagesSent:number, messagesReceived:number, bytesSent:number, bytesReceived:number,
+ *     reconnects:number, staleDrops:number, staleInputDrops:number,
+ *     staleStateDrops:number, staleTrailDrops:number, stateAgeMs:number|null
+ *   }
+ * }}
  */
-export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = null }) {
+export function createDuoStickmanNet({
+  rt,
+  myRole,
+  p1Codes,
+  p2Codes,
+  remap = null,
+  stateProvider: initialStateProvider = null,
+}) {
   const online = !!(rt && myRole);
   const isHost = !online || myRole === 'A';
   const myCodes = new Set(isHost ? p1Codes : p2Codes);
@@ -43,8 +75,14 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
   let remoteTrail = null;
   let seq = 0;
   let lastSeq = -1;
+  let inputSeq = 0;
+  let lastInputSeq = -1;
   let trailSeq = 0;
   let lastTrailSeq = -1;
+  let stateProvider = typeof initialStateProvider === 'function' ? initialStateProvider : null;
+  let lastTickStateProvider = null;
+  let lastHostState = null;
+  let lastStateAt = null;
   /** @type {((m:any)=>void)|null} */
   let uiHandler = null;
   /** edge buffer for local presses to send */
@@ -52,41 +90,83 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
 
   const localHeld = {};
   let unsub = null;
+  let unsubReconnect = null;
+  const metrics = {
+    messagesSent: 0,
+    messagesReceived: 0,
+    bytesSent: 0,
+    bytesReceived: 0,
+    reconnects: 0,
+    staleInputDrops: 0,
+    staleStateDrops: 0,
+    staleTrailDrops: 0,
+  };
+
+  function sendMessage(message) {
+    if (!online || !rt?.send) return false;
+    metrics.messagesSent += 1;
+    metrics.bytesSent += payloadBytes(message);
+    rt.send(message);
+    return true;
+  }
 
   const onMsg = (m) => {
+    metrics.messagesReceived += 1;
+    metrics.bytesReceived += payloadBytes(m);
     if (!m || !m.k) return;
     if (m.k === 'inp') {
       // Host receives guest (P2). Guest may also receive host P1 if we mirror — host only needs guest.
-      if (isHost) {
+      if (isHost && m.role !== 'A') {
+        if (typeof m.seq === 'number' && m.seq <= lastInputSeq) {
+          metrics.staleInputDrops += 1;
+          return;
+        }
+        if (typeof m.seq === 'number') lastInputSeq = m.seq;
         remoteKeys = { ...(m.keys || {}) };
         if (Array.isArray(m.pressed)) remotePressed.push(...m.pressed);
         if (m.extra) remoteExtra = m.extra;
-      } else if (m.role === 'A') {
+      } else if (!isHost && m.role === 'A') {
         remoteKeys = { ...(m.keys || {}) };
         if (Array.isArray(m.pressed)) remotePressed.push(...m.pressed);
         if (m.extra) remoteExtra = m.extra;
       }
     } else if (m.k === 'st' && !isHost) {
-      if (typeof m.seq === 'number' && m.seq <= lastSeq) return;
+      if (typeof m.seq === 'number' && m.seq <= lastSeq) {
+        metrics.staleStateDrops += 1;
+        return;
+      }
       if (typeof m.seq === 'number') lastSeq = m.seq;
       remoteState = m.st;
       lastState = m.st;
+      lastStateAt = Date.now();
     } else if (m.k === 'trail' && !isHost) {
       // Dedicated laser trail channel — never blocked by empty st snapshots
-      if (typeof m.seq === 'number' && m.seq <= lastTrailSeq) return;
+      if (typeof m.seq === 'number' && m.seq <= lastTrailSeq) {
+        metrics.staleTrailDrops += 1;
+        return;
+      }
       if (typeof m.seq === 'number') lastTrailSeq = m.seq;
       remoteTrail = m;
     } else if (m.k === 'ui' && uiHandler) {
       uiHandler(m);
-    } else if ((m.k === 'start' || m.k === 'ready' || m.k === 'sel' || m.k === 'menu' || m.k === 'round') && uiHandler) {
+    } else if ((m.k === 'start' || m.k === 'ready' || m.k === 'sel' || m.k === 'menu' || m.k === 'round' || m.k === 'over') && uiHandler) {
       // Top-level lobby events (more reliable than nested ui for some clients)
       uiHandler({ type: m.k, ...m });
+    } else if (m.k === 'sync' && isHost) {
+      forceState();
     }
   };
 
   if (online && rt) {
     if (typeof rt.subscribe === 'function') unsub = rt.subscribe(onMsg);
     else if (typeof rt.on === 'function') rt.on(onMsg);
+    if (typeof rt.subscribeReconnect === 'function') {
+      unsubReconnect = rt.subscribeReconnect(() => {
+        metrics.reconnects += 1;
+        if (isHost) forceState();
+        else sendMessage({ k: 'sync' });
+      });
+    }
   }
 
   function resolveLocalCode(code) {
@@ -178,6 +258,7 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     remoteState = null;
     lastState = null;
     remoteTrail = null;
+    lastStateAt = null;
     lastSeq = -1;
     lastTrailSeq = -1;
   }
@@ -187,7 +268,7 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     if (!online || !rt?.send || !isHost) return;
     if (!data) return;
     trailSeq += 1;
-    rt.send({
+    sendMessage({
       k: 'trail',
       seq: trailSeq,
       ink: Array.isArray(data.ink) ? data.ink : null,
@@ -205,20 +286,58 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     return t;
   }
 
+  /**
+   * Host: register the provider used by forceState(), reconnect recovery, and
+   * guest `sync` requests. Pass null to clear it. Returns a scoped cleanup.
+   */
+  function setStateProvider(provider) {
+    stateProvider = typeof provider === 'function' ? provider : null;
+    const registered = stateProvider;
+    return () => {
+      if (stateProvider === registered) stateProvider = null;
+    };
+  }
+
+  /**
+   * Host: immediately enqueue one full `st` snapshot.
+   * With no argument, uses setStateProvider(), the latest netTick provider,
+   * then the last packed state. Returns true only when a state was sent.
+   */
+  function forceState(stateOrProvider) {
+    if (!online || !isHost || !rt?.send) return false;
+    const explicit = arguments.length > 0;
+    let source = explicit
+      ? stateOrProvider
+      : (stateProvider || lastTickStateProvider);
+    let st = typeof source === 'function' ? source() : source;
+    if (st == null && !explicit) st = lastHostState;
+    if (st == null) return false;
+    lastHostState = st;
+    lastStateAt = Date.now();
+    seq += 1;
+    return sendMessage({ k: 'st', seq, st, full: 1 });
+  }
+
   /** Host → broadcast state; guest → broadcast input. Call ~20Hz. */
   function netTick(packState, guestExtra) {
     if (!online || !rt?.send) return;
     if (isHost) {
       seq += 1;
+      if (typeof packState === 'function') lastTickStateProvider = packState;
       const st = typeof packState === 'function' ? packState() : packState;
-      if (st != null) rt.send({ k: 'st', seq, st });
+      if (st != null) {
+        lastHostState = st;
+        lastStateAt = Date.now();
+        sendMessage({ k: 'st', seq, st });
+      }
     } else {
       const keys = {};
       for (const code of p2Codes) keys[code] = !!localHeld[code];
       const pressed = localPressedBuf.splice(0, localPressedBuf.length);
-      const payload = { k: 'inp', role: 'B', keys, pressed };
+      inputSeq += 1;
+      const payload = { k: 'inp', role: 'B', seq: inputSeq, keys, pressed };
       if (guestExtra != null) payload.extra = typeof guestExtra === 'function' ? guestExtra() : guestExtra;
-      rt.send(payload);
+      sendMessage(payload);
     }
   }
 
@@ -238,26 +357,46 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     const keys = {};
     for (const code of p1Codes) keys[code] = !!localHeld[code];
     const pressed = localPressedBuf.splice(0, localPressedBuf.length);
-    rt.send({ k: 'inp', role: 'A', keys, pressed });
+    sendMessage({ k: 'inp', role: 'A', keys, pressed });
   }
 
   function sendUi(payload) {
     if (!online || !rt?.send) return;
     const type = payload?.type;
     // Prefer dedicated kinds for lobby handshake so they never get lost behind inp/st
-    if (type === 'start' || type === 'ready' || type === 'sel' || type === 'menu' || type === 'round') {
-      rt.send({ k: type, ...payload });
+    if (type === 'start' || type === 'ready' || type === 'sel' || type === 'menu' || type === 'round' || type === 'over') {
+      sendLifecycle(type, payload);
     }
-    rt.send({ k: 'ui', ...payload });
+    sendMessage({ k: 'ui', ...payload });
+  }
+
+  /** Send one explicit top-level lifecycle packet without a nested `ui` copy. */
+  function sendLifecycle(type, payload = {}) {
+    if (!['start', 'ready', 'sel', 'menu', 'round', 'over'].includes(type)) return false;
+    return sendMessage({ ...payload, k: type, type });
   }
 
   function onUi(fn) {
     uiHandler = fn;
   }
 
+  /** Return a snapshot of transport/application counters for diagnostics. */
+  function getMetrics() {
+    const staleDrops = metrics.staleInputDrops
+      + metrics.staleStateDrops
+      + metrics.staleTrailDrops;
+    return {
+      ...metrics,
+      staleDrops,
+      stateAgeMs: lastStateAt == null ? null : Math.max(0, Date.now() - lastStateAt),
+    };
+  }
+
   function dispose() {
     try { unsub?.(); } catch { /* ignore */ }
+    try { unsubReconnect?.(); } catch { /* ignore */ }
     unsub = null;
+    unsubReconnect = null;
     uiHandler = null;
   }
 
@@ -290,12 +429,16 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     clearState,
     sendTrail,
     takeTrail,
+    setStateProvider,
+    forceState,
     netTick,
     netTickHostInput,
     takeRemoteExtra,
     peekRemoteExtra,
+    sendLifecycle,
     sendUi,
     onUi,
+    getMetrics,
     touchSet,
     dispose,
     myCodes,

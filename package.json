@@ -14,6 +14,8 @@
     "test:xp": "node scripts/test-xp-pure.mjs",
     "test:challenges": "node scripts/test-challenges-pure.mjs",
     "test:soccer-client": "node scripts/soccerClientNet.test.mjs",
+    "test:duo-net": "node scripts/duoStickmanNet.test.mjs",
+    "test:laserwall-net": "node scripts/laserWallNet.test.mjs",
     "test:soccer": "npm test --prefix server && npm run test:soccer-client"
   },
   "dependencies": {

@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createDuoStickmanNet } from "../lib/duoStickmanNet.js";
+import {
+  applyLaserWallGuestState,
+  laserWallWinnerRole,
+  packLaserWallGuestIntent,
+  packLaserWallState,
+} from "./laserWallNet.js";
 
 /* ═══════════════════ WORLD ═══════════════════ */
 const VW = 1000, VH = 600;                      // viewport canvas
@@ -393,7 +399,14 @@ function TplWallPreview({ tp, map }) {
 }
 
 /* ═══════════════════ MAIN COMPONENT ═══════════════════ */
-export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
+export default function LaserWallDuel({
+  myRole,
+  rt,
+  names = {},
+  matchId = "",
+  externalPausedRef = null,
+  onComplete,
+} = {}) {
   const duoNetRef = useRef(null);
   const nameA = (names?.A || names?.a || "Player A").trim() || "Player A";
   const nameB = (names?.B || names?.b || "Player B").trim() || "Player B";
@@ -421,7 +434,12 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
   const pausedRef = useRef(paused); pausedRef.current = paused;
   const settingsRef = useRef(settings); settingsRef.current = settings;
   const screenRef = useRef(screen); screenRef.current = screen;
-  const lastGuestPoseT = useRef(-1);
+  const completedRef = useRef(false);
+  const correctionMetricsRef = useRef({
+    artMax: 0,
+    runMax: 0,
+    samples: 0,
+  });
 
   const E = useRef({
     state: "menu", round: 1, artist: 0, accs: [0, 0],
@@ -431,7 +449,17 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
     timer: 60, parts: [], trace: null, lastDot: null,
     blockedFlicker: 0, now: 0, _syncKey: "", _uiRoundEnd: null, _uiFinal: null,
   }).current;
+  const packHostStateRef = useRef(null);
+  packHostStateRef.current = (extra = {}) =>
+    packLaserWallState(E, settingsRef.current, extra);
   const audio = useRef({ AC: null, master: null, hum: null }).current;
+
+  const reportComplete = useCallback((final) => {
+    const winner = laserWallWinnerRole(final);
+    if (!winner || completedRef.current) return;
+    completedRef.current = true;
+    onComplete?.(winner);
+  }, [onComplete]);
 
   /* ---------- audio ---------- */
   const initAudio = useCallback(() => {
@@ -497,6 +525,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
     E.cam = { x: 1000, y: 650, z: 0.55 };
     E._matchAt = opts.matchAt != null ? opts.matchAt : E._matchAt;
     E._syncKey = `${E._matchAt || 0}:${E.round}:${E.tpl.name}:${E.artist}:${settingsRef.current.map}`;
+    E._roundEnd = null; E._finalRes = null;
     E._uiRoundEnd = null; E._uiFinal = null;
     setRoundEnd(null); setFinalRes(null);
     setIntro({ round: E.round, artist: E.artist, tplName: E.tpl.name, tplIcon: E.tpl.icon, diff: E.tpl.diff, count: 3 });
@@ -505,6 +534,8 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
   }, [E]);
 
   const beginOnlineMatch = useCallback((payload = {}) => {
+    completedRef.current = false;
+    correctionMetricsRef.current = { artMax: 0, runMax: 0, samples: 0 };
     if (payload.settings) {
       settingsRef.current = payload.settings;
       setSettings(payload.settings);
@@ -530,10 +561,9 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
     E.round = payload.round != null ? payload.round : 1;
     E.artist = payload.artist != null ? payload.artist : 0;
     E.accs = Array.isArray(payload.accs) ? [...payload.accs] : [0, 0];
-    E._matchAt = payload.matchAt || Date.now();
+    E._matchAt = payload.matchAt || Number(matchId) || Date.now();
     E.matchLive = true;
     E.blockedMatchAt = 0;
-    lastGuestPoseT.current = -1;
     startRound({
       tplName: payload.tplName,
       round: E.round,
@@ -543,7 +573,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
       customSet: customRef.current,
       matchAt: E._matchAt,
     });
-  }, [E, initAudio, startRound]);
+  }, [E, initAudio, matchId, startRound]);
 
   const goLobby = useCallback((broadcast = true) => {
     setScreen("menu");
@@ -602,6 +632,17 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
       remap: { KeyA: "ArrowLeft", KeyD: "ArrowRight", KeyW: "ArrowUp", KeyS: "ArrowDown", ShiftLeft: "ShiftRight" },
     });
     duoNetRef.current = net;
+    net.setStateProvider?.(() => packHostStateRef.current?.());
+    if (typeof window !== "undefined") {
+      window.__LASERWALL_NET__ = {
+        summary: () => ({
+          ...(net.getMetrics?.() || {}),
+          corrections: { ...correctionMetricsRef.current },
+          authority: "role-A-client-host",
+          transport: rt.transport?.() || "unknown",
+        }),
+      };
+    }
     net.onUi((m) => {
       if (!m) return;
       const type = m.type || m.k;
@@ -650,15 +691,22 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
           tplName: m.tplName, round: m.round, artist: m.artist,
           map: m.map, time: m.time, matchAt: m.matchAt || E._matchAt,
         });
+      } else if (type === "over" && m.finalRes) {
+        E._finalRes = m.finalRes;
+        E.state = "done";
+        setRoundEnd(null);
+        setFinalRes(m.finalRes);
       }
     });
     return () => {
       try { net.dispose?.(); } catch { /* ignore */ }
       if (duoNetRef.current === net) duoNetRef.current = null;
+      if (typeof window !== "undefined") delete window.__LASERWALL_NET__;
     };
   }, [rt, role, E, audio]);
 
   const startMatch = useCallback((tplName) => {
+    completedRef.current = false;
     E.round = 1; E.artist = 0; E.accs = [0, 0];
     setFinalRes(null); setRoundEnd(null);
     startRound({ tplName, round: 1, artist: 0 });
@@ -686,6 +734,13 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
       setFinalRes(res);
       E.state = "done";
       E._finalRes = res;
+      if (online) {
+        duoNetRef.current?.sendLifecycle?.("over", {
+          finalRes: res,
+          matchAt: E._matchAt,
+        });
+      }
+      reportComplete(res);
     } else {
       E.round = 2; E.artist = 1;
       const tplName = pickTplName();
@@ -704,7 +759,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
         blast(); setTimeout(blast, 120); setTimeout(blast, 350);
       }
     }
-  }, [E, startRound, isGuest, online, pickTplName]);
+  }, [E, startRound, isGuest, online, pickTplName, reportComplete]);
 
   /* ---------- physics ---------- */
   const dust = useCallback((x, y, n = 8) => {
@@ -713,12 +768,20 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
 
   const updateRunner = useCallback((dt) => {
     const r = E.run, k = E.keys;
-    // Online round 2: host (P1) is runner — WASD drives the suit. Couch keeps arrows-only for runner.
     const hostRunner = online && E.artist === 1;
-    const L = k["ArrowLeft"] || (hostRunner && k["KeyA"]);
-    const R = k["ArrowRight"] || (hostRunner && k["KeyD"]);
-    const U = k["ArrowUp"] || (hostRunner && k["KeyW"]);
-    const D = k["ArrowDown"] || (hostRunner && k["KeyS"]);
+    const guestRunner = online && E.artist === 0;
+    const L = online
+      ? (hostRunner ? k["KeyA"] : guestRunner && k["ArrowLeft"])
+      : k["ArrowLeft"];
+    const R = online
+      ? (hostRunner ? k["KeyD"] : guestRunner && k["ArrowRight"])
+      : k["ArrowRight"];
+    const U = online
+      ? (hostRunner ? k["KeyW"] : guestRunner && k["ArrowUp"])
+      : k["ArrowUp"];
+    const D = online
+      ? (hostRunner ? k["KeyS"] : guestRunner && k["ArrowDown"])
+      : k["ArrowDown"];
     if (r.stickCd > 0) r.stickCd -= dt;
     if (r.squash > 0) r.squash -= dt * 3;
     const inWall = r.x > WALL.x1 + 10 && r.x < WALL.x2 - 10 && r.y > WALL.y1 + 20 && r.y < WALL.y2 + 4;
@@ -750,9 +813,16 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
     const r = E.run, k = E.keys;
     if (E.state !== "play") return;
     const hostRunner = online && E.artist === 1;
-    const left = k["ArrowLeft"] || (hostRunner && k["KeyA"]);
-    const right = k["ArrowRight"] || (hostRunner && k["KeyD"]);
-    const down = k["ArrowDown"] || (hostRunner && k["KeyS"]);
+    const guestRunner = online && E.artist === 0;
+    const left = online
+      ? (hostRunner ? k["KeyA"] : guestRunner && k["ArrowLeft"])
+      : k["ArrowLeft"];
+    const right = online
+      ? (hostRunner ? k["KeyD"] : guestRunner && k["ArrowRight"])
+      : k["ArrowRight"];
+    const down = online
+      ? (hostRunner ? k["KeyS"] : guestRunner && k["ArrowDown"])
+      : k["ArrowDown"];
     const dir = left ? -1 : right ? 1 : 0;
     if (r.onWall) {
       r.onWall = false; r.stickCd = 0.28;
@@ -765,9 +835,12 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
 
   const updateArtist = useCallback((dt) => {
     const a = E.art, k = E.keys, S = 300;
-    // Online: guest artist uses arrow keys (WASD remaps to arrows). Couch: A/D only.
-    const left = k["KeyA"] || (online && E.artist === 1 && k["ArrowLeft"]);
-    const right = k["KeyD"] || (online && E.artist === 1 && k["ArrowRight"]);
+    const left = online
+      ? (E.artist === 0 ? k["KeyA"] : k["ArrowLeft"])
+      : k["KeyA"];
+    const right = online
+      ? (E.artist === 0 ? k["KeyD"] : k["ArrowRight"])
+      : k["KeyD"];
     if (left) { a.x -= S * dt; a.face = -1; }
     if (right) { a.x += S * dt; a.face = 1; }
     a.x = Math.max(60, Math.min(WORLD.w - 60, a.x));
@@ -1065,8 +1138,8 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
 
   /* ---------- main loop ----------
    * ONE shared match:
-   *  - Host runs the world + laser (score authority)
-   *  - Guest owns their seat only (round1 = wall man, round2 = shooter) and streams pose/mouse
+   *  - Host runs both players, the laser, collisions, timer, and score
+   *  - Guest streams input/aim and predicts only their current player
    *  - Both see the same map / template / timer from host state
    */
   useEffect(() => {
@@ -1075,44 +1148,8 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
       if (!E.art) E.art = { x: 250, y: WORLD.ground, face: 1 };
       if (!E.run) E.run = { x: 1000, y: 450, vx: 0, vy: 0, onWall: true, onGround: false, stickCd: 0, squash: 0 };
     };
-    const packHostState = (extra = {}) => {
-      const b = E.beam;
-      const guestIsRunner = E.artist === 0;
-      const guestIsShooter = E.artist === 1;
-      const { forceFp, ...pub } = extra;
-      // Trail is sent on a SEPARATE 'trail' channel — keep st small so it isn't dropped
-      return {
-        state: E.state,
-        timer: +Number(E.timer || 0).toFixed(2),
-        covered: E.covered | 0,
-        offTime: +Number(E.offTime || 0).toFixed(2),
-        artist: E.artist | 0,
-        round: E.round | 0,
-        tplName: E.tpl?.name || "",
-        map: settingsRef.current.map | 0,
-        time: settingsRef.current.time | 0,
-        matchAt: E._matchAt || 0,
-        art: (!guestIsShooter && E.art) ? {
-          x: +E.art.x.toFixed(1), face: E.art.face | 0,
-        } : null,
-        run: (!guestIsRunner && E.run) ? {
-          x: +E.run.x.toFixed(1), y: +E.run.y.toFixed(1),
-          onWall: !!E.run.onWall, onGround: !!E.run.onGround,
-        } : null,
-        mouse: guestIsShooter ? null : {
-          x: +E.mouse.x.toFixed(1), y: +E.mouse.y.toFixed(1), down: !!E.mouse.down,
-        },
-        beam: b ? {
-          hx: +b.hx.toFixed(1), hy: +b.hy.toFixed(1),
-          x: +b.x.toFixed(1), y: +b.y.toFixed(1),
-          blocked: !!b.blocked, g: b.g ? 1 : 0,
-        } : null,
-        accs: E.accs,
-        roundEnd: E.state === "roundEnd" ? (E._roundEnd || null) : null,
-        finalRes: E._finalRes || null,
-        ...pub,
-      };
-    };
+    const packHostState = (extra = {}) =>
+      packHostStateRef.current?.(extra);
     const ensureTrace = () => {
       if (!E.trace) {
         E.trace = document.createElement("canvas");
@@ -1213,31 +1250,15 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
             if (E.matchLive) {
               ensureBodies();
               const iAmShooter = (st.artist ?? E.artist) === 1;
-              E.artist = st.artist ?? E.artist;
-              E.round = st.round ?? E.round;
-              if (st.state) E.state = st.state;
-              if (st.timer != null) E.timer = st.timer;
-              if (st.offTime != null) E.offTime = st.offTime;
-              if (st.covered != null) E.covered = st.covered;
-              if (st.accs) E.accs = st.accs;
-
-              // Other player + laser from host — NEVER overwrite guest's own controls
-              if (iAmShooter) {
-                if (st.run && E.run) {
-                  E.run.x = st.run.x; E.run.y = st.run.y;
-                  E.run.onWall = !!st.run.onWall; E.run.onGround = !!st.run.onGround;
-                }
-                if (st.beam !== undefined) E.beam = st.beam;
-              } else {
-                // Hard-snap remote shooter — soft lerp felt like lag
-                if (st.art && E.art) {
-                  E.art.x = st.art.x;
-                  if (st.art.face != null) E.art.face = st.art.face;
-                }
-                if (st.mouse) Object.assign(E.mouse, st.mouse);
-                if (st.beam !== undefined) E.beam = st.beam;
-                // Build the full stroke locally from the beam — same points the shooter sees
-                wallManFollowBeam(st.beam, !!st.mouse?.down);
+              const applied = applyLaserWallGuestState(E, st, dt);
+              if (!applied.accepted) return;
+              const cm = correctionMetricsRef.current;
+              cm.samples += 1;
+              cm.artMax = Math.max(cm.artMax, applied.corrections.art);
+              cm.runMax = Math.max(cm.runMax, applied.corrections.run);
+              if (!iAmShooter) {
+                // Authoritative beam builds the same visible stroke for the wall man.
+                wallManFollowBeam(E.beam, !!st.mouse?.down);
               }
 
               // Laser trail arrives on its own channel (applied below) — not buried in st
@@ -1296,7 +1317,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
           applyInkPacket(trail);
         }
 
-        if (pausedRef.current || E.state === "menu" || !E.matchLive) return;
+        if (pausedRef.current || externalPausedRef?.current || E.state === "menu" || !E.matchLive) return;
         ensureBodies();
 
         // Failsafe: if host world is already playing, never leave the countdown overlay up
@@ -1311,33 +1332,19 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
         if (E.state === "play") {
           if (iAmShooter) {
             updateArtist(dt);
-            updateLaser(dt);
           } else {
-            // Wall man: 100% local movement — never reconciled from host
+            // Own-player prediction only; snapshots softly reconcile this pose.
             updateRunner(dt);
             if (E.pressed?.ShiftRight) tryRunnerJump();
           }
         }
 
-        // Pose every frame (coalesced) — Bomb Tag pattern for snappy remote movement
-        net.netTick(null, () => {
-          if (iAmShooter) {
-            return {
-              t: performance.now(),
-              art: E.art ? { x: E.art.x, face: E.art.face } : null,
-              mouse: { x: E.mouse.x, y: E.mouse.y, down: !!E.mouse.down },
-            };
-          }
-          const r = E.run;
-          return r ? {
-            t: performance.now(),
-            run: {
-              x: r.x, y: r.y, vx: r.vx || 0, vy: r.vy || 0,
-              onWall: !!r.onWall, onGround: !!r.onGround,
-              stickCd: r.stickCd || 0, squash: r.squash || 0,
-            },
-          } : null;
-        });
+        // Input/aim intent only. Role A never accepts guest-owned world poses.
+        netAcc += dt;
+        if (netAcc >= 1 / 30) {
+          netAcc = 0;
+          net.netTick(null, () => packLaserWallGuestIntent(E));
+        }
         E.pressed = {};
         if (E.blockedFlicker > 0) E.blockedFlicker -= dt;
         if (E.fxItems && E.fxItems.length > 40) E.fxItems.length = 40;
@@ -1352,7 +1359,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
       }
 
       /* ════════ HOST / LOCAL — full world + laser ════════ */
-      if (pausedRef.current || E.state === "menu") return;
+      if (pausedRef.current || externalPausedRef?.current || E.state === "menu") return;
       ensureBodies();
 
       if (E.state === "done" || E.state === "roundEnd") {
@@ -1363,37 +1370,13 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
         return;
       }
 
-      let guestRunSnap = false;
-      let guestArtSnap = false;
       if (net?.online) {
         net.mergeRemoteInto(E);
-        const ex = net.peekRemoteExtra?.();
-        if (ex && ex.t !== lastGuestPoseT.current) {
-          lastGuestPoseT.current = ex.t;
-          // Round 1: guest is WALL MAN
-          if (E.artist === 0 && ex.run && E.run) {
-            // Snap to guest authority pose (snappy, no rubber-band on invitee)
-            E.run.x = ex.run.x; E.run.y = ex.run.y;
-            E.run.onWall = !!ex.run.onWall; E.run.onGround = !!ex.run.onGround;
-            E.run.stickCd = ex.run.stickCd || 0; E.run.squash = ex.run.squash || 0;
-            E.run.vx = ex.run.vx || 0; E.run.vy = ex.run.vy || 0;
-            guestRunSnap = true;
-          }
-          if (E.artist === 1) {
-            if (ex.art && E.art) { E.art.x = ex.art.x; if (ex.art.face != null) E.art.face = ex.art.face; }
-            if (ex.mouse) Object.assign(E.mouse, ex.mouse);
-            guestArtSnap = true;
-          }
-        } else if (lastGuestPoseT.current >= 0 && E.artist === 0 && E.run) {
-          // Brief coast from last guest velocity, then damp — feels less teleporty on host
-          E.run.x += (E.run.vx || 0) * dt;
-          E.run.y += (E.run.vy || 0) * dt;
-          E.run.vx *= 0.85; E.run.vy *= 0.85;
-          guestRunSnap = true;
-        } else if (lastGuestPoseT.current >= 0 && E.artist === 1) {
-          guestArtSnap = true;
+        const intent = net.takeRemoteExtra?.();
+        if (E.artist === 1 && intent?.mouse) {
+          Object.assign(E.mouse, intent.mouse);
         }
-        if (!guestRunSnap && (E.pressed?.ShiftRight || E.pressed?.ShiftLeft) && E.artist === 0) {
+        if (E.pressed?.ShiftRight && E.artist === 0) {
           tryRunnerJump();
         }
       }
@@ -1410,7 +1393,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
         updateCam(dt); draw(t);
         if (net?.online) {
           netAcc += dt;
-          if (netAcc >= 0.033) {
+          if (netAcc >= 0.05) {
             netAcc = 0;
             net.netTick(() => packHostState({ introCount: Math.max(0, Math.ceil(E._introT - 0.6)) }));
           }
@@ -1421,10 +1404,9 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
       if (E.state === "play") {
         E.timer -= dt;
         if (E.timer <= 0) { E.timer = 0; finishRound(); }
-        // Host is shooter in round 1 (artist 0); guest shooter pose in round 2
-        if (!(net?.online && E.artist === 1 && guestArtSnap)) updateArtist(dt);
-        // Guest is wall man in round 1; host wall man in round 2
-        if (!(net?.online && E.artist === 0 && guestRunSnap)) updateRunner(dt);
+        // Role A simulates both seats from local + relayed input intent.
+        updateArtist(dt);
+        updateRunner(dt);
         // ONLY host fires the laser — one shared beam / one score / stroke buffer for guest
         updateLaser(dt);
         const acc = E.tplPts.length
@@ -1439,9 +1421,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
         if (E._hudKey !== hudKey) { E._hudKey = hudKey; setHud(nextHud); }
         if (net?.online) {
           netAcc += dt;
-          const drawing = !!E.mouse?.down || !!E._inkPen;
-          const drawHz = drawing ? 0.012 : 0.02;
-          if (netAcc >= drawHz) {
+          if (netAcc >= 0.05) {
             netAcc = 0;
             net.netTick(() => packHostState({ hud: nextHud }));
             if (E.artist === 0 && E._ink && E._ink.length >= 3) {
@@ -1467,7 +1447,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [E, beep, draw, updateArtist, updateRunner, updateLaser, updateCam, updateMapFX, finishRound, tryRunnerJump]);
+  }, [E, beep, draw, updateArtist, updateRunner, updateLaser, updateCam, updateMapFX, finishRound, tryRunnerJump, externalPausedRef]);
 
   /* ---------- input ---------- */
   useEffect(() => {

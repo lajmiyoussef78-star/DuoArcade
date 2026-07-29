@@ -4,7 +4,7 @@ export const COALESCE = new Set([
   'pose', 'state', 'inp', 'in', 'snap', 'start', 'st', 'clk', 'aim', 'trail',
 ]);
 export const CRITICAL = new Set([
-  'try', 'ev', 'throw', 'over', 'nextEnd', 'grab',
+  'try', 'ev', 'throw', 'over', 'nextEnd', 'grab', 'sync',
   'soccer:join', 'soccer:input',
 ]);
 
