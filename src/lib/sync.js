@@ -77,8 +77,15 @@ async function supabaseSync() {
   let currentUser = null;
 
   const { data: { session } } = await sb.auth.getSession();
-  currentUser = session?.user ?? null;
-  sb.auth.onAuthStateChange((_e, s) => { currentUser = s?.user ?? null; });
+      currentUser = session?.user ?? null;
+  let authListeners = [];
+  sb.auth.onAuthStateChange((_e, s) => {
+    currentUser = s?.user ?? null;
+    for (const fn of authListeners) {
+      try { fn(currentUser ? { id: currentUser.id, email: currentUser.email } : null, _e); }
+      catch { /* */ }
+    }
+  });
 
   function subscribe(code) {
     if (channel) sb.removeChannel(channel);
@@ -111,7 +118,12 @@ async function supabaseSync() {
         if (error) throw new Error(error.message);
         currentUser = data.user;
       },
-      async signOut() { await sb.auth.signOut(); currentUser = null; }
+      async signOut() { await sb.auth.signOut(); currentUser = null; },
+      onChange(fn) {
+        if (typeof fn !== 'function') return () => {};
+        authListeners.push(fn);
+        return () => { authListeners = authListeners.filter(f => f !== fn); };
+      }
     },
 
     async listMyDuos() {
@@ -123,6 +135,27 @@ async function supabaseSync() {
     async setUsername(u) { return await rpc('set_username', { p_username: u }); },
     async searchUsers(q) { return await rpc('search_users', { p_query: q }); },
     async getPublicProfile(u) { return await rpc('get_public_profile', { p_username: u }); },
+    async getPublicDuo(username, nameA, nameB) {
+      const row = await rpc('get_public_duo', {
+        p_username: username,
+        p_name_a: nameA,
+        p_name_b: nameB,
+      });
+      if (!row) return null;
+      return {
+        nameA: row.name_a,
+        nameB: row.name_b,
+        records: row.records || {},
+        evenings: row.evenings || 0,
+        streak: row.streak || 0,
+        bestStreak: row.best_streak || 0,
+        tasteAgree: row.taste_agree || 0,
+        tasteTotal: row.taste_total || 0,
+        theme: row.theme || null,
+        showPublic: true,
+        code: null,
+      };
+    },
     async redeemPassCode(codeStr, duoCode) { return await rpc('redeem_pass_code', { p_code: codeStr, p_duo_code: duoCode }); },
 
     async createDuo({ nameA, nameB }) {
@@ -141,10 +174,46 @@ async function supabaseSync() {
     },
 
     async openDuo(code, token = null) {
-      const data = await rpc('open_duo', { p_code: code, p_token: token });
-      myToken = token;
-      subscribe(code);
-      return { duo: normalize(data.duo), role: data.role };
+      if (!currentUser) {
+        const { data: { session } } = await sb.auth.getSession();
+        currentUser = session?.user ?? null;
+      }
+      const uid = currentUser?.id ?? null;
+      const roleOf = row => {
+        if (!uid || !row) return null;
+        if (row.member_a === uid || row.memberA === uid) return 'A';
+        if (row.member_b === uid || row.memberB === uid) return 'B';
+        return null;
+      };
+      const attach = (duo, role) => {
+        myToken = token;
+        subscribe(code);
+        return { duo, role };
+      };
+
+      // Prefer RPC; if it fails (token quirks / race), fall back to list_my_duos
+      // which already proves this account owns a seat.
+      try {
+        const data = await rpc('open_duo', {
+          p_code: code,
+          p_token: token == null || token === '' ? null : token,
+        });
+        const raw = data?.duo ?? data;
+        if (!raw) throw new Error('Duo not found');
+        const role = data?.role || roleOf(raw);
+        if (!role) throw new Error('No seat on this duo');
+        return attach(normalize(raw), role);
+      } catch (first) {
+        try {
+          const rows = await rpc('list_my_duos', {});
+          const row = (rows || []).find(r => r.code === code);
+          const role = roleOf(row);
+          if (!row || !role) throw first;
+          return attach(normalize(row), role);
+        } catch {
+          throw first;
+        }
+      }
     },
 
     onDuo(fn) { cb = fn; },
@@ -404,7 +473,8 @@ function localSync() {
     auth: {
       user: () => ({ id: 'demo', email: 'demo@this-browser' }),
       async signUp() { return { needsConfirm: false }; },
-      async signIn() {}, async signOut() {}
+      async signIn() {}, async signOut() {},
+      onChange() { return () => {}; }
     },
     async listMyDuos() {
       const out = [];

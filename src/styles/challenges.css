@@ -539,9 +539,9 @@
 /* Home widget — composed entry (matches arena-entry language).
    Must use .arcade-page prefix: scoped reset sets * { margin:0 }. */
 .arcade-page .chal-entry {
-  width: min(100%, 420px);
-  max-width: 420px;
-  margin: 28px auto 12px;
+  width: 100%;
+  max-width: none;
+  margin: 14px 0 18px;
   display: flex;
   align-items: stretch;
   gap: 0;
@@ -559,7 +559,7 @@
   box-shadow: 0 1px 0 color-mix(in srgb, var(--candle) 12%, transparent);
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   overflow: hidden;
-  justify-self: center;
+  box-sizing: border-box;
 }
 .arcade-page .chal-entry-hit {
   flex: 1;
@@ -650,7 +650,7 @@
 
 @media (max-width: 420px) {
   .chal-games { grid-template-columns: 1fr; }
-  .arcade-page .chal-entry { margin-top: 24px; width: min(100%, 360px); }
+  .arcade-page .chal-entry { margin: 12px 0 16px; width: 100%; }
   .arcade-page .chal-entry-hit { gap: 10px; padding: 11px 12px; }
   .arcade-page .chal-entry-cancel { margin-right: 10px; padding: 7px 12px; font-size: 11px; }
   .arcade-page .chal-entry-copy h3 { font-size: 14px; }

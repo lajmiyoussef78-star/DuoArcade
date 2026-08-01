@@ -150,127 +150,339 @@
 /* —— Leaderboard page —— */
 
 .arcade-page .xp-lb {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: 28px 20px 64px;
   width: 100%;
 }
 
 .arcade-page .xp-lb-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  display: grid;
+  gap: 18px;
+  margin-bottom: 28px;
 }
 
-.arcade-page .xp-lb-head h1 {
-  flex: 1;
-  margin: 0;
-  font-family: 'Fraunces', serif;
-  font-weight: 900;
-  font-size: 26px;
+.arcade-page .xp-lb-back {
+  width: fit-content;
 }
 
-.arcade-page .xp-lb-you {
-  border: 1px solid var(--candle);
-  background: color-mix(in srgb, var(--candle) 12%, var(--room));
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
+.arcade-page .xp-lb-row.clickable,
+.arcade-page .xp-lb-you.clickable {
+  cursor: pointer;
+}
+
+.arcade-page .xp-lb-row.clickable:hover {
+  background: color-mix(in srgb, var(--candle) 10%, transparent);
+}
+
+.arcade-page .xp-lb-you.clickable:hover {
+  border-color: color-mix(in srgb, var(--candle) 55%, transparent);
+}
+
+.arcade-page .xp-lb-public-hint {
+  color: var(--candle);
+  opacity: 0.85;
+}
+
+.arcade-page .xp-lb-heading {
+  text-align: left;
+}
+
+.arcade-page .xp-lb-kicker {
+  margin: 0 0 6px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--candle);
 }
 
-.arcade-page .xp-lb-you strong {
+.arcade-page .xp-lb-head h1 {
+  margin: 0;
   font-family: 'Fraunces', serif;
   font-weight: 900;
-  font-size: 18px;
+  font-size: clamp(28px, 4vw, 36px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: var(--text);
+}
+
+.arcade-page .xp-lb-sub {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.arcade-page .xp-lb-you {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 22px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--candle);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--candle) 14%, var(--room)),
+    var(--room) 70%
+  );
+  box-shadow: 0 0 28px color-mix(in srgb, var(--candle) 18%, transparent);
+}
+
+.arcade-page .xp-lb-you-rank {
+  min-width: 52px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--candle);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--candle) 45%, transparent);
+  letter-spacing: -0.03em;
+}
+
+.arcade-page .xp-lb-you-label {
   display: block;
-  margin-top: 2px;
+  margin-bottom: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--candle);
+}
+
+.arcade-page .xp-lb-you-copy strong {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.arcade-page .xp-lb-you-copy .pA {
+  color: var(--p1);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--p1) 40%, transparent);
+}
+
+.arcade-page .xp-lb-you-copy .pB {
+  color: var(--p2);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--p2) 40%, transparent);
+}
+
+.arcade-page .xp-lb-you-copy .amp {
+  color: var(--candle);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--candle) 45%, transparent);
+}
+
+.arcade-page .xp-lb-you-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.arcade-page .xp-lb-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--candle) 55%, var(--dim));
+}
+
+.arcade-page .xp-lb-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--candle) 6%, var(--room2)),
+    var(--room)
+  );
+  box-shadow: 0 0 20px color-mix(in srgb, var(--candle) 8%, transparent);
+  overflow: hidden;
+}
+
+.arcade-page .xp-lb-cols {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: color-mix(in srgb, var(--p1) 4%, transparent);
+}
+
+.arcade-page .xp-lb-cols span:last-child {
+  text-align: right;
 }
 
 .arcade-page .xp-lb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .arcade-page .xp-lb-row {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 10px;
+  grid-template-columns: 64px 1fr auto;
+  gap: 12px;
   align-items: center;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: var(--room);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  cursor: default;
+}
+
+.arcade-page .xp-lb-row:last-child {
+  border-bottom: none;
 }
 
 .arcade-page .xp-lb-row.mine {
-  border-color: var(--candle);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--candle) 40%, transparent);
-  background: color-mix(in srgb, var(--candle) 8%, var(--room));
+  background: color-mix(in srgb, var(--candle) 10%, var(--room));
+  box-shadow: inset 3px 0 0 var(--candle);
 }
 
 .arcade-page .xp-lb-row.rank-1 {
-  border-color: #E8C35A;
-  background: color-mix(in srgb, #E8C35A 10%, var(--room));
+  background: color-mix(in srgb, var(--candle) 8%, transparent);
 }
 .arcade-page .xp-lb-row.rank-2 {
-  border-color: #C0C6D4;
-  background: color-mix(in srgb, #C0C6D4 10%, var(--room));
+  background: color-mix(in srgb, var(--p1) 8%, transparent);
 }
 .arcade-page .xp-lb-row.rank-3 {
-  border-color: #C47A4A;
-  background: color-mix(in srgb, #C47A4A 10%, var(--room));
+  background: color-mix(in srgb, var(--p2) 8%, transparent);
 }
 
 .arcade-page .xp-lb-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--dim);
+  font-variant-numeric: tabular-nums;
 }
 
-.arcade-page .xp-lb-row.rank-1 .xp-lb-rank { color: #E8C35A; }
-.arcade-page .xp-lb-row.rank-2 .xp-lb-rank { color: #C0C6D4; }
-.arcade-page .xp-lb-row.rank-3 .xp-lb-rank { color: #C47A4A; }
+.arcade-page .xp-lb-medal {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.arcade-page .xp-lb-medal.rank-1 {
+  background: var(--candle);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--candle) 50%, transparent);
+}
+.arcade-page .xp-lb-medal.rank-2 {
+  background: var(--p1);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--p1) 45%, transparent);
+}
+.arcade-page .xp-lb-medal.rank-3 {
+  background: var(--p2);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--p2) 45%, transparent);
+}
+
+.arcade-page .xp-lb-row.rank-1 .xp-lb-rank { color: var(--candle); }
+.arcade-page .xp-lb-row.rank-2 .xp-lb-rank { color: var(--p1); }
+.arcade-page .xp-lb-row.rank-3 .xp-lb-rank { color: var(--p2); }
 
 .arcade-page .xp-lb-names {
   font-family: 'Fraunces', serif;
   font-weight: 900;
   font-size: 16px;
+  letter-spacing: -0.01em;
   color: var(--text);
+}
+
+.arcade-page .xp-lb-names .pA {
+  color: var(--p1);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--p1) 35%, transparent);
+}
+
+.arcade-page .xp-lb-names .pB {
+  color: var(--p2);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--p2) 35%, transparent);
+}
+
+.arcade-page .xp-lb-names .amp {
+  color: var(--candle);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--candle) 40%, transparent);
 }
 
 .arcade-page .xp-lb-title {
   font-size: 12px;
   color: var(--dim);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .arcade-page .xp-lb-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   text-align: right;
+}
+
+.arcade-page .xp-lb-level {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--dim);
-}
-
-.arcade-page .xp-lb-stats b {
-  display: block;
-  font-size: 15px;
-  color: var(--candle);
+  font-size: 13px;
   font-weight: 700;
+  color: var(--candle);
 }
 
-.arcade-page .xp-lb-status {
+.arcade-page .xp-lb-xp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.arcade-page .xp-lb-status,
+.arcade-page .xp-lb-empty {
   text-align: center;
   color: var(--dim);
-  padding: 28px 12px;
+  padding: 36px 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.arcade-page .xp-lb-empty {
+  list-style: none;
+}
+
+@media (max-width: 520px) {
+  .arcade-page .xp-lb {
+    padding: 20px 14px 48px;
+  }
+
+  .arcade-page .xp-lb-cols,
+  .arcade-page .xp-lb-row {
+    grid-template-columns: 48px 1fr auto;
+    gap: 10px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .arcade-page .xp-lb-you {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .arcade-page .xp-lb-names {
+    font-size: 15px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .arcade-page .xp-shine { animation: none; }
 }
+

@@ -1,6 +1,5 @@
 // ChallengeCard.jsx — home-screen challenge CTA (arena-entry style).
 
-import { Link } from 'react-router-dom';
 import { useChallenge } from './ChallengeContext.jsx';
 import '../styles/challenges.css';
 
@@ -32,35 +31,30 @@ export default function ChallengeCard() {
   } = ctx;
 
   return (
-    <>
-      <div
-        className={'chal-entry' + (liveOn ? ' live' : '')}
-        id="sect-challenges"
-      >
-        <button type="button" className="chal-entry-hit" onClick={onCardClick}>
-          <DuelMark />
-          <div className="chal-entry-copy">
-            <h3>{title}</h3>
-            <p>{sub}</p>
-          </div>
-          {!iAmCreatorWaiting ? (
-            <strong className="chal-entry-arrow" aria-hidden="true">→</strong>
-          ) : null}
-        </button>
-        {iAmCreatorWaiting ? (
-          <button
-            type="button"
-            className="chal-entry-cancel"
-            disabled={cancelling}
-            onClick={cancelPending}
-          >
-            {cancelling ? '…' : 'Cancel'}
-          </button>
+    <div
+      className={'chal-entry' + (liveOn ? ' live' : '')}
+      id="sect-challenges"
+    >
+      <button type="button" className="chal-entry-hit" onClick={onCardClick}>
+        <DuelMark />
+        <div className="chal-entry-copy">
+          <h3>{title}</h3>
+          <p>{sub}</p>
+        </div>
+        {!iAmCreatorWaiting ? (
+          <strong className="chal-entry-arrow" aria-hidden="true">→</strong>
         ) : null}
-      </div>
-      <Link className="chal-history-link" to="/app/place/sect-challenge-history">
-        View challenge history →
-      </Link>
-    </>
+      </button>
+      {iAmCreatorWaiting ? (
+        <button
+          type="button"
+          className="chal-entry-cancel"
+          disabled={cancelling}
+          onClick={cancelPending}
+        >
+          {cancelling ? '…' : 'Cancel'}
+        </button>
+      ) : null}
+    </div>
   );
 }

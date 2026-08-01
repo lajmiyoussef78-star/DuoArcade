@@ -496,3 +496,12 @@ html[data-appearance="light"] .arcade-page .wkc,
 html[data-appearance="light"] .ch-hero{
   border-color:color-mix(in srgb, var(--line) 80%, var(--candle));
   box-shadow:0 10px 28px rgba(28,30,42,.06);}
+
+/* WatchParty hub presence */
+.arcade-page .wp-hub-card{transition:border-color .25s ease, transform .25s ease, box-shadow .25s ease;}
+.arcade-page .wp-hub-card:hover{box-shadow:0 8px 22px color-mix(in srgb, var(--candle) 18%, transparent);}
+.arcade-page .wp-hub-av{animation:cw-softpulse 3.2s ease-in-out infinite;}
+.arcade-page .wp-hub-av.B{animation-delay:.4s;}
+@keyframes cw-softpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.arcade-page .wp-invite-toast{animation:wp-toast-in .35s ease;}
+@keyframes wp-toast-in{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}

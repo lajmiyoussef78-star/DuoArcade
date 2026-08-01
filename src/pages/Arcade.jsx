@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Link, useNavigate, Routes, Route } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { createSync } from '../lib/sync.js';
 import { ENGINES } from '../engines/index.js';
 import {
@@ -20,13 +20,26 @@ import PlaceScreen from '../arcade/PlaceScreen.jsx';
 import DuoHomeLayout from '../arcade/DuoHomeLayout.jsx';
 import GameScreen from '../arcade/GameScreen.jsx';
 import WatchScreen from '../arcade/WatchScreen.jsx';
+import ReelsPartyScreen from '../arcade/ReelsPartyScreen.jsx';
+import MovieNightScreen from '../arcade/MovieNightScreen.jsx';
+import StreamingWatchScreen from '../arcade/StreamingWatchScreen.jsx';
+import WatchInviteToast from '../arcade/WatchInviteToast.jsx';
 import InviteOverlay from '../arcade/InviteOverlay.jsx';
 import FriendMatchInvite from '../arcade/FriendMatchInvite.jsx';
 import FriendsDock from '../arcade/FriendsDock.jsx';
 import { ChallengeProvider } from '../arcade/ChallengeContext.jsx';
 import PartnerChat from '../arcade/PartnerChat.jsx';
 import SettingsMenu from '../arcade/SettingsMenu.jsx';
+import Leaderboard from './Leaderboard.jsx';
+import Arena from './Arena.jsx';
+import ArenaMatch from './ArenaMatch.jsx';
+import DuoProfileView from '../arcade/DuoProfileView.jsx';
 import { createFriendsClient } from '../lib/friends.js';
+import {
+  buildWatchSession, buildReelsSession, buildMovieSession, buildStreamingSession,
+  isWatchSession, watchBusyLabel,
+} from '../lib/watchSessions.js';
+import { friendlyName } from '../lib/watchMovie.js';
 
 const VERSION = 'v11.0-react';
 const DEFAULT_PRESENCE = {
@@ -36,8 +49,11 @@ const DEFAULT_PRESENCE = {
 const requestedArenaPath = () => {
   const query = new URLSearchParams(window.location.search).get('next');
   const saved = localStorage.getItem('duoarcade-arena-next');
-  const next = query || saved;
-  return next?.startsWith('/arena') ? next : null;
+  let next = query || saved;
+  if (!next) return null;
+  // Legacy /arena → nested /app/arena (keeps Arcade mounted).
+  if (next === '/arena' || next.startsWith('/arena/')) next = '/app' + next;
+  return next.startsWith('/app/arena') ? next : null;
 };
 
 /** Parse an invite URL or "CODE TOKEN" / "CODE/TOKEN" string. */
@@ -66,6 +82,9 @@ export function parseInviteString(raw) {
 
 export default function Arcade() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const onLeaderboard = /\/leaderboard\/?$/.test(location.pathname);
+  const onArena = /^\/app\/arena(\/|$)/.test(location.pathname);
   const syncRef = useRef(null);
   const initStarted = useRef(false);
   const presenceRef = useRef(null);
@@ -82,6 +101,7 @@ export default function Arcade() {
   const [authNotice, setAuthNotice] = useState('');
   const [myDuos, setMyDuos] = useState([]);
   const [pubProfile, setPubProfile] = useState(null);
+  const [pubDuo, setPubDuo] = useState(null);
   const [lobbyStatus, setLobbyStatus] = useState('');
   const [homeStatus, setHomeStatus] = useState('');
   const [ctx, setCtx] = useState({ duo: null, code: null, myRole: null });
@@ -89,9 +109,22 @@ export default function Arcade() {
   const [geoStatus, setGeoStatus] = useState('');
   const [showDiag, setShowDiag] = useState(false);
   const [avatarTick, setAvatarTick] = useState(0);
+  const [watchInviteDismissed, setWatchInviteDismissed] = useState(false);
+  /** Only true after tapping Profile — otherwise lobby auto-enters the arcade. */
+  const [stayInLobby, setStayInLobby] = useState(false);
+  const stayInLobbyRef = useRef(false);
+  useEffect(() => { stayInLobbyRef.current = stayInLobby; }, [stayInLobby]);
+  const pendingReopenRef = useRef(null);
+  const friendsPresenceRef = useRef(null);
 
   const ctxRef = useRef(ctx);
   useEffect(() => { ctxRef.current = ctx; }, [ctx]);
+  const viewRef = useRef(view);
+  useEffect(() => { viewRef.current = view; }, [view]);
+  useEffect(() => {
+    if (!ctx.code) return;
+    try { sessionStorage.setItem('duoarcade-home-duo', ctx.code); } catch { /* */ }
+  }, [ctx.code]);
 
   /* ---------- small helpers ---------- */
 
@@ -135,20 +168,71 @@ export default function Arcade() {
     setHomeStatus('');
   }, []);
 
-  const enterLobby = useCallback(async () => {
+  const enterLobby = useCallback(async ({ stay = true } = {}) => {
     whoami();
     if (!profile) await loadProfile();
     setMyDuos(await syncRef.current.listMyDuos());
+    setStayInLobby(stay);
     setView('lobby');
   }, [profile, loadProfile, whoami]);
 
   const openByAccount = useCallback(async c => {
+    const sync = syncRef.current;
+    if (!sync) return false;
     try {
-      const res = await syncRef.current.openDuo(c, loadSeats()[c] ?? null);
-      setCtx({ duo: res.duo, code: c, myRole: res.role });
-      window.history.replaceState({}, '', '/app');
-    } catch (e) { setLobbyStatus(e.message); }
-  }, []);
+      // Enter home from list first — same data Duo Profile already shows.
+      // open_duo can fail after Arena remount; list_my_duos still proves access.
+      let duos = [];
+      try { duos = await sync.listMyDuos(); setMyDuos(duos); } catch { /* */ }
+      const prefer = c || null;
+      const fromList = (prefer && duos.find(d => d.code === prefer)) || duos[0] || null;
+      const uid = sync.auth.user()?.id;
+      const roleFrom = d => {
+        if (!d || !uid) return null;
+        if (d.memberA === uid) return 'A';
+        if (d.memberB === uid) return 'B';
+        return null;
+      };
+
+      if (fromList?.code) {
+        const warm = {
+          duo: fromList,
+          code: fromList.code,
+          myRole: roleFrom(fromList),
+        };
+        ctxRef.current = warm;
+        setStayInLobby(false);
+        setCtx(warm);
+        try { sessionStorage.setItem('duoarcade-home-duo', fromList.code); } catch { /* */ }
+        navigate('/app', { replace: true });
+      }
+
+      const code = fromList?.code || prefer;
+      if (!code) {
+        setLobbyStatus('No duo to open');
+        return false;
+      }
+
+      try {
+        const res = await sync.openDuo(code, loadSeats()[code] ?? null);
+        const next = { duo: res.duo, code, myRole: res.role || roleFrom(res.duo) };
+        ctxRef.current = next;
+        setStayInLobby(false);
+        setCtx(next);
+        try { sessionStorage.setItem('duoarcade-home-duo', code); } catch { /* */ }
+        navigate('/app', { replace: true });
+        return true;
+      } catch (e) {
+        // Already on home via list warm-start — treat as success if we have a seat.
+        if (ctxRef.current.code) return true;
+        setLobbyStatus(e.message);
+        return false;
+      }
+    } catch (e) {
+      setLobbyStatus(e.message);
+      return false;
+    }
+  }, [navigate]);
 
   const joinPending = useCallback(async () => {
     const inv = pendingInvite.current;
@@ -156,16 +240,20 @@ export default function Arcade() {
     try {
       const res = await syncRef.current.openDuo(inv.code, inv.token);
       saveSeat(inv.code, inv.token);
-      setCtx({ duo: res.duo, code: inv.code, myRole: res.role });
-      window.history.replaceState({}, '', '/app');
+      const next = { duo: res.duo, code: inv.code, myRole: res.role };
+      ctxRef.current = next;
+      setStayInLobby(false);
+      setCtx(next);
+      try { sessionStorage.setItem('duoarcade-home-duo', inv.code); } catch { /* */ }
+      navigate('/app', { replace: true });
     } catch (e) {
       setAuthNotice(e.message);
       setLobbyStatus(e.message);
-      await enterLobby();
+      await enterLobby({ stay: true });
     }
-  }, [enterLobby]);
+  }, [enterLobby, navigate]);
 
-  /** After sign-in/boot: pending invite → join; else auto-open sole duo; else lobby. */
+  /** After sign-in/boot: pending invite → join; else restore last duo / first duo; else lobby. */
   const enterAfterAuth = useCallback(async () => {
     whoami();
     await loadProfile();
@@ -174,13 +262,31 @@ export default function Arcade() {
       return;
     }
     const duos = await syncRef.current.listMyDuos();
-    setMyDuos(duos);
-    if (duos.length >= 1) {
-      await openByAccount(duos[0].code);
-      return;
+    let prefer = pendingReopenRef.current;
+    pendingReopenRef.current = null;
+    if (!prefer) {
+      try { prefer = sessionStorage.getItem('duoarcade-home-duo'); } catch { /* */ }
     }
-    setView('lobby');
-  }, [whoami, loadProfile, joinPending, openByAccount]);
+    try {
+      const q = new URLSearchParams(window.location.search).get('duo');
+      const t = new URLSearchParams(window.location.search).get('t');
+      if (q && !t) prefer = q;
+    } catch { /* */ }
+    const ordered = [];
+    if (prefer && duos.some(d => d.code === prefer)) ordered.push(prefer);
+    else if (prefer) ordered.push(prefer); // still try URL/session code even if list lags
+    for (const d of duos) {
+      if (d.code && !ordered.includes(d.code)) ordered.push(d.code);
+    }
+    // Open duo before setMyDuos so we never flash Duo Profile as the home page.
+    let opened = false;
+    for (const code of ordered) {
+      opened = await openByAccount(code);
+      if (opened) break;
+    }
+    setMyDuos(duos);
+    if (!opened) await enterLobby({ stay: duos.length === 0 });
+  }, [whoami, loadProfile, joinPending, openByAccount, enterLobby]);
 
   const joinFromInviteString = useCallback(async raw => {
     const parsed = parseInviteString(raw);
@@ -194,11 +300,12 @@ export default function Arcade() {
       saveSeat(parsed.code, parsed.token);
       setCtx({ duo: res.duo, code: parsed.code, myRole: res.role });
       setLobbyStatus('');
-      window.history.replaceState({}, '', '/app');
+      setStayInLobby(false);
+      navigate('/app', { replace: true });
     } catch (e) {
       setLobbyStatus(e.message);
     }
-  }, []);
+  }, [navigate]);
 
   const createDuo = useCallback(async (nameA, nameB) => {
     if (!nameA || !nameB) { setLobbyStatus('Both names, please.'); return; }
@@ -626,14 +733,59 @@ export default function Arcade() {
 
   const startWatch = useCallback(async videoId => {
     const { code, myRole } = ctxRef.current;
-    const session = {
-      type: 'watch', videoId, phase: 'playing',
-      playing: false, position: 0, at: Date.now(), by: myRole,
-      ratings: { A: null, B: null }
-    };
+    const session = buildWatchSession({ videoId, by: myRole });
+    setWatchInviteDismissed(false);
     patchLocal({ session, turn: '-' });
     await upd(code, { session, turn: '-' }, { force: true });
+    try { friendsPresenceRef.current?.setBusy?.(watchBusyLabel(session), code); } catch { /* */ }
   }, [patchLocal, upd]);
+
+  const startReels = useCallback(async () => {
+    const { code, myRole } = ctxRef.current;
+    const session = buildReelsSession({ by: myRole, queue: [] });
+    setWatchInviteDismissed(false);
+    patchLocal({ session, turn: '-' });
+    await upd(code, { session, turn: '-' }, { force: true });
+    try { friendsPresenceRef.current?.setBusy?.(watchBusyLabel(session), code); } catch { /* */ }
+  }, [patchLocal, upd]);
+
+  const startMovie = useCallback(async (opts = {}) => {
+    const { code, myRole } = ctxRef.current;
+    const session = buildMovieSession({
+      by: myRole,
+      fingerprint: opts.fingerprint || null,
+      title: opts.title || 'Our film',
+      sizeLabel: opts.sizeLabel || '',
+    });
+    if (opts.resume) {
+      session.phase = 'lobby';
+      session.position = opts.position || 0;
+      session.nightId = opts.nightId || null;
+      session.friendly = opts.fingerprint ? friendlyName(opts.fingerprint) : null;
+    }
+    setWatchInviteDismissed(false);
+    patchLocal({ session, turn: '-' });
+    await upd(code, { session, turn: '-' }, { force: true });
+    try { friendsPresenceRef.current?.setBusy?.(watchBusyLabel(session), code); } catch { /* */ }
+  }, [patchLocal, upd]);
+
+  const startStreaming = useCallback(async (opts = {}) => {
+    const { code, myRole } = ctxRef.current;
+    const platform = opts.platform || null;
+    const session = buildStreamingSession({ by: myRole, platform });
+    // Always start at L3; promote to L2 only when extension binds + adapter reports.
+    session.capability = 3;
+    if (platform) session.mediaRef = { kind: 'streaming', id: platform };
+    setWatchInviteDismissed(false);
+    patchLocal({ session, turn: '-' });
+    await upd(code, { session, turn: '-' }, { force: true });
+    try { friendsPresenceRef.current?.setBusy?.(watchBusyLabel(session), code); } catch { /* */ }
+  }, [patchLocal, upd]);
+
+  const onEndWatch = useCallback((xpGameId) => {
+    const { code } = ctxRef.current;
+    if (code && xpGameId) awardXp(code, xpGameId).catch(() => {});
+  }, []);
 
   const submitRating = useCallback(async n => {
     const { duo, code, myRole } = ctxRef.current;
@@ -650,6 +802,21 @@ export default function Arcade() {
     patchLocal(patch);
     await upd(code, patch, { force: true });
   }, [patchLocal, upd]);
+
+  /* Reset watch invite toast when a new night starts */
+  useEffect(() => {
+    setWatchInviteDismissed(false);
+  }, [ctx.duo?.session?.startedAt, ctx.duo?.session?.type]);
+
+  /* Clear busy when leaving watch sessions */
+  useEffect(() => {
+    const s = ctx.duo?.session;
+    if (isWatchSession(s)) {
+      try { friendsPresenceRef.current?.setBusy?.(watchBusyLabel(s), ctx.code); } catch { /* */ }
+    } else {
+      try { friendsPresenceRef.current?.setOnline?.(); } catch { /* */ }
+    }
+  }, [ctx.duo?.session?.type, ctx.duo?.session?.phase, ctx.code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- duo pass ---------- */
 
@@ -703,7 +870,20 @@ export default function Arcade() {
     try {
       const p = await syncRef.current.getPublicProfile(username);
       setPubProfile(p);
-      setView('pubProfile');
+      setPubDuo(null);
+      // Lobby search uses view=pubProfile; leaderboard keeps the open duo and overlays.
+      if (!ctxRef.current.code) setView('pubProfile');
+    } catch (e) { setLobbyStatus(e.message); }
+  }, []);
+
+  const openPublicDuo = useCallback(async row => {
+    const username = row?.username_a || row?.username_b;
+    if (!username || !row?.name_a || !row?.name_b) return;
+    try {
+      const duo = await syncRef.current.getPublicDuo(username, row.name_a, row.name_b);
+      setPubDuo(duo);
+      setPubProfile(null);
+      if (duo?.theme) applyTheme(duo.theme);
     } catch (e) { setLobbyStatus(e.message); }
   }, []);
 
@@ -794,6 +974,7 @@ export default function Arcade() {
     createFriendsClient().then(api => {
       if (!alive || !api.user) return;
       presenceCtrl = api.startPresence({ status: 'online' });
+      friendsPresenceRef.current = presenceCtrl;
       const pollPartner = async () => {
         try {
           const view = await api.listView();
@@ -826,6 +1007,7 @@ export default function Arcade() {
       alive = false;
       clearInterval(pollTimer);
       unsubInbox();
+      friendsPresenceRef.current = null;
       try {
         if (presenceCtrl?._onVis) {
           document.removeEventListener('visibilitychange', presenceCtrl._onVis);
@@ -849,6 +1031,7 @@ export default function Arcade() {
     if (initStarted.current) return;
     initStarted.current = true;
     let inviteTimer, reconcileTimer;
+    let unsubAuth = null;
 
     (async () => {
       console.log('DuoArcade ' + VERSION);
@@ -957,6 +1140,7 @@ export default function Arcade() {
       pendingInvite.current = (duoCode && tokenParam)
         ? { code: duoCode, token: tokenParam } : null;
       const reopenDuo = duoCode && !tokenParam ? duoCode : null;
+      pendingReopenRef.current = reopenDuo;
 
       if (sync.auth.user()) {
         await loadProfile();
@@ -965,12 +1149,8 @@ export default function Arcade() {
           localStorage.removeItem('duoarcade-arena-next');
           window.location.assign(arenaPath);
           return;
-        } else if (reopenDuo) {
-          await openByAccount(reopenDuo);
-          window.history.replaceState({}, '', '/app');
-        } else {
-          await enterAfterAuth();
         }
+        await enterAfterAuth();
       } else {
         if (pendingInvite.current) {
           setAuthNotice('You’ve been invited to a duo — sign in or create your account to join.');
@@ -978,9 +1158,23 @@ export default function Arcade() {
         setView('auth');
       }
       setBooted(true);
+
+      // Session can hydrate after first getSession — don't leave signed-in users on AuthScreen.
+      unsubAuth = sync.auth.onChange?.(async (user, event) => {
+        whoami();
+        if (!user) return;
+        if (event === 'SIGNED_OUT') return;
+        if (ctxRef.current.code) return;
+        if (viewRef.current && viewRef.current !== 'auth') return;
+        try { await enterAfterAuth(); } catch { /* */ }
+      });
     })();
 
-    return () => { clearInterval(inviteTimer); clearInterval(reconcileTimer); };
+    return () => {
+      clearInterval(inviteTimer);
+      clearInterval(reconcileTimer);
+      try { unsubAuth?.(); } catch { /* */ }
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- screen routing (the old renderAll) ---------- */
@@ -995,8 +1189,33 @@ export default function Arcade() {
     if (s && s.type === 'watch') {
       inner = (
         <WatchScreen
-          duo={duo} myRole={myRole}
-          pushWatch={pushWatch} submitRating={submitRating} onBack={backToHome}
+          duo={duo} code={code} myRole={myRole}
+          pushWatch={pushWatch} submitRating={submitRating}
+          onBack={backToHome} onEndWatch={onEndWatch}
+        />
+      );
+    } else if (s && s.type === 'reels') {
+      inner = (
+        <ReelsPartyScreen
+          duo={duo} code={code} myRole={myRole}
+          pushWatch={pushWatch} submitRating={submitRating}
+          onBack={backToHome} onEndWatch={onEndWatch}
+        />
+      );
+    } else if (s && s.type === 'movie') {
+      inner = (
+        <MovieNightScreen
+          duo={duo} code={code} myRole={myRole}
+          pushWatch={pushWatch} submitRating={submitRating}
+          onBack={backToHome} onEndWatch={onEndWatch}
+        />
+      );
+    } else if (s && s.type === 'streaming') {
+      inner = (
+        <StreamingWatchScreen
+          duo={duo} code={code} myRole={myRole}
+          pushWatch={pushWatch} submitRating={submitRating}
+          onBack={backToHome} onEndWatch={onEndWatch}
         />
       );
     } else if (s && s.game &&
@@ -1018,7 +1237,9 @@ export default function Arcade() {
         duo, code, myRole, isAway, presence: presenceState, geoStatus,
         homeStatus, setHomeStatus,
         onStartGame: startGame, onStartWatch: startWatch,
-        onBack: () => { leaveDuoContext(); enterLobby(); },
+        onStartReels: startReels, onStartMovie: startMovie,
+        onStartStreaming: startStreaming,
+        onBack: () => { leaveDuoContext(); void enterLobby({ stay: true }); },
         onSetAnniversary: setAnniversary,
         onSetFavoriteGames: setFavoriteGames, onSetFixGames: setFixGames,
         onSetDaliGames: setDaliGames, onRedeem: redeemCode,
@@ -1049,19 +1270,97 @@ export default function Arcade() {
         onOpenDuo={openByAccount}
         onCreateDuo={createDuo} onJoinInvite={joinFromInviteString}
         onToggleVisibility={toggleVisibility}
+        autoEnter={!stayInLobby}
       />
     );
   } else if (view === 'pubProfile') {
     screen = <PublicProfileScreen profile={pubProfile} onBack={() => setView('lobby')} />;
+  } else if (syncRef.current?.auth.user()) {
+    // Signed in, duo still restoring (e.g. remount after Arena) — never flash Sign in or Duo Profile.
+    screen = <div className="status">{lobbyStatus || 'Opening your duo…'}</div>;
   } else {
     screen = <AuthScreen notice={authNotice} mode={mode} onSubmit={authSubmit} defaultTab={pendingInvite.current ? 'up' : 'in'} />;
+  }
+
+  // Arena is nested under /app so Arcade (and open duo) stays mounted.
+  // Leaving Arena → /app is then just a route change, not a cold remount into Duo Profile.
+  if (booted && onArena) {
+    return (
+      <Routes>
+        <Route path="/app/arena/:matchCode" element={<ArenaMatch />} />
+        <Route path="/app/arena" element={<Arena />} />
+        <Route path="arena/:matchCode" element={<ArenaMatch />} />
+        <Route path="arena" element={<Arena />} />
+      </Routes>
+    );
+  }
+
+  // Leaderboard is a full-page view inside Arcade (hooks stay alive, duo stays open).
+  // No topbar here — Back must not sit next to Sign out.
+  if (booted && onLeaderboard) {
+    if (pubDuo) {
+      return (
+        <div className="arcade-page">
+          <DuoProfileView
+            duo={pubDuo}
+            mode="public"
+            onBack={() => {
+              setPubDuo(null);
+              applyTheme((duo || myDuos[0])?.theme || 'night');
+            }}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="arcade-page">
+        {pubProfile ? (
+          <PublicProfileScreen
+            profile={pubProfile}
+            onBack={() => setPubProfile(null)}
+          />
+        ) : (
+          <Leaderboard
+            theme={(duo || myDuos[0])?.theme || 'night'}
+            embedded
+            onBack={() => {
+              setPubProfile(null);
+              setPubDuo(null);
+              navigate('/app');
+            }}
+            onOpenDuo={openPublicDuo}
+          />
+        )}
+      </div>
+    );
   }
 
   return (
     <div className="arcade-page">
       <header className="topbar">
         <div className="topbar-inner">
-          <Link className="brand h1" to="/app"><span className="a">Duo</span><span className="b">Arcade</span></Link>
+          <Link
+            className="brand h1"
+            to="/app"
+            onClick={(e) => {
+              e.preventDefault();
+              void (async () => {
+                setStayInLobby(false);
+                if (ctxRef.current.duo?.session) await backToHome();
+                if (!ctxRef.current.code) {
+                  let prefer = null;
+                  try { prefer = sessionStorage.getItem('duoarcade-home-duo'); } catch { /* */ }
+                  const pick = (prefer && myDuos.some(d => d.code === prefer))
+                    ? prefer
+                    : (myDuos[0]?.code || prefer || null);
+                  if (pick) await openByAccount(pick);
+                }
+                navigate('/app', { replace: true });
+              })();
+            }}
+          >
+            <span className="a">Duo</span><span className="b">Arcade</span>
+          </Link>
           <div className="topbar-right">
             <div className="who">
               <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
@@ -1106,6 +1405,20 @@ export default function Arcade() {
         onDismiss={dismissInvite}
         onForceClear={onStatus => forceClearSession(code, onStatus)}
       />
+
+      {duo && myRole && isWatchSession(duo.session) && !watchInviteDismissed && duo.session?.by !== myRole && (
+        <WatchInviteToast
+          duo={{
+            ...duo,
+            session: watchInviteDismissed
+              ? { ...duo.session, _inviteDismissed: true }
+              : duo.session,
+          }}
+          myRole={myRole}
+          onJoin={() => setWatchInviteDismissed(true)}
+          onDismiss={() => setWatchInviteDismissed(true)}
+        />
+      )}
 
       <FriendMatchInvite enabled={!!(duo && code && myRole && syncRef.current?.auth.user()?.id)} />
 

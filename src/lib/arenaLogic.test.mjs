@@ -12,7 +12,7 @@ function test(name, fn) {
 }
 
 test('arena registry only includes compatible engines', () => {
-  assertArenaReady();
+  assertArenaReady(ENGINES);
   assert.equal(ARENA_GAMES.length, 12);
 });
 
