@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { other, totalsOf, loadSeats, SEAT_KEY } from '../lib/util.js';
 import { Celebration } from './CoupleFx.jsx';
-import ChallengeCard from './ChallengeCard.jsx';
 import GamesBrowse from './GamesBrowse.jsx';
 
 const MS_KEY = code => 'duoarcade-ms-' + code;
@@ -66,8 +65,6 @@ export default function HomeScreen({
         onSetFixGames={onSetFixGames}
         onSetDaliGames={onSetDaliGames}
       />
-
-      <ChallengeCard />
 
       {myRole === 'A' && inviteUrl && (
         <div className="invite-box" style={{ width: '100%', marginTop: 14 }}>

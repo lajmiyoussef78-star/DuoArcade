@@ -93,7 +93,7 @@ export default function XpBar({ code }) {
           <div className="xp-meta">
             {ready ? `${fmtXp(total)} XP` : 'Loading XP…'}
             <span className="xp-sep">·</span>
-            <Link className="xp-board-link" to="/leaderboard">Leaderboard</Link>
+            <Link className="xp-board-link" to="/app/leaderboard">Leaderboard</Link>
           </div>
         </div>
       </div>

@@ -1,0 +1,68 @@
+{
+  "manifest_version": 3,
+  "name": "DuoArcade Watch",
+  "version": "0.1.0",
+  "description": "Thin bridge for DuoArcade Streaming WatchParty. Syncs play/pause with your duo — never hosts or re-streams video. Web tab owns your DuoArcade session.",
+  "permissions": ["storage", "tabs", "scripting", "alarms"],
+  "host_permissions": [
+    "https://www.netflix.com/*",
+    "https://netflix.com/*",
+    "https://www.disneyplus.com/*",
+    "https://www.max.com/*",
+    "https://play.max.com/*",
+    "https://www.primevideo.com/*",
+    "http://localhost/*",
+    "https://*.duoarcade.com/*",
+    "https://duoarcade.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.netflix.com/*", "https://netflix.com/*"],
+      "js": ["adapters/base.js", "adapters/netflix.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.disneyplus.com/*"],
+      "js": ["adapters/base.js", "adapters/disney.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.max.com/*", "https://play.max.com/*"],
+      "js": ["adapters/base.js", "adapters/max.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.primevideo.com/*"],
+      "js": ["adapters/base.js", "adapters/prime.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost/*",
+        "https://*.duoarcade.com/*",
+        "https://duoarcade.com/*"
+      ],
+      "js": ["web-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost/*",
+      "https://*.duoarcade.com/*",
+      "https://duoarcade.com/*"
+    ]
+  },
+  "action": {
+    "default_title": "DuoArcade Watch",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

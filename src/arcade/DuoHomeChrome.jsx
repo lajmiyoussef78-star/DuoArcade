@@ -14,7 +14,7 @@ export const HOME_NAV = [
   { id: 'sect-snap', label: 'DuoSnap' },
   { id: 'sect-list', label: 'TodoList' },
   { id: 'sect-bucket', label: 'BucketList' },
-  { id: 'arena', label: '2v2 Arena', route: '/arena' },
+  { id: 'arena', label: '2v2 Arena', route: '/app/arena' },
   { id: 'sect-wall', label: 'Whiteboard' },
 ];
 
@@ -51,7 +51,13 @@ export default function DuoHomeChrome({
   }, [location.state, navigate]);
 
   const goNav = it => {
-    if (it.route) { navigate(it.route); return; }
+    if (it.route) {
+      if (it.route.includes('/arena') && code) {
+        try { sessionStorage.setItem('duoarcade-home-duo', code); } catch { /* */ }
+      }
+      navigate(it.route);
+      return;
+    }
     if (it.scroll) {
       const onHome = location.pathname === '/app' || location.pathname === '/app/';
       if (onHome) {

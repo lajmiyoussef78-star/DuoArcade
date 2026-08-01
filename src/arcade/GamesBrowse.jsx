@@ -4,18 +4,9 @@ import GameCard from './GameCard.jsx';
 import GameFixModal from './GameFixModal.jsx';
 import { fixIds, fixNoteFor, normalizeFixGames } from '../lib/gameFixes.js';
 import {
-  FILTER_CHIPS, SORT_OPTIONS, filterAndSortEngines, getRecentGameIds,
+  FILTER_CHIPS, SORT_OPTIONS, filterAndSortEngines,
 } from '../lib/gameCatalog.js';
-
-function SmartRow({ title, children, empty }) {
-  if (empty) return null;
-  return (
-    <div className="games-smart-row">
-      <div className="games-smart-title">{title}</div>
-      <div className="games-smart-scroller">{children}</div>
-    </div>
-  );
-}
+import ChallengeCard from './ChallengeCard.jsx';
 
 export default function GamesBrowse({
   duo, code, onStartGame, onSetFavoriteGames, onSetFixGames, onSetDaliGames
@@ -23,7 +14,6 @@ export default function GamesBrowse({
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('default');
-  const [recentTick, setRecentTick] = useState(0);
   const [roulette, setRoulette] = useState(null);
   const [fixEng, setFixEng] = useState(null);
   const rouletteTimer = useRef(null);
@@ -46,21 +36,6 @@ export default function GamesBrowse({
     }),
     [filter, query, sort, favorites, records, needsFixIds, daliGames]
   );
-
-  const recentIds = useMemo(() => {
-    void recentTick;
-    return getRecentGameIds(code, 3);
-  }, [code, recentTick, records]);
-
-  useEffect(() => {
-    const onFocus = () => setRecentTick(t => t + 1);
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('duoarcade-recent-games', onFocus);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('duoarcade-recent-games', onFocus);
-    };
-  }, []);
 
   useEffect(() => () => {
     if (rouletteTimer.current) clearTimeout(rouletteTimer.current);
@@ -204,18 +179,7 @@ export default function GamesBrowse({
         )}
       </div>
 
-      {!filtering && (
-        <SmartRow title="Jump back in" empty={!recentIds.length}>
-          {recentIds.map(id => {
-            const eng = ENGINES[id];
-            return (
-              <div className="games-smart-item" key={'recent-' + id}>
-                <GameCard {...cardProps(eng)} />
-              </div>
-            );
-          })}
-        </SmartRow>
-      )}
+      <ChallengeCard />
 
       <div
         className="shelf-title games-all-title"

@@ -73,3 +73,38 @@ body {
   min-height: 100vh;
   background: var(--night);
 }
+
+/* —— Duo theme chrome (leaderboard Back look) ——
+   Add class `btn-theme` to any button/link.
+   Cite IDs from the Button Theme Reference canvas when asking to apply.
+   Variants: btn-theme-icon (square), btn-theme-block (full width). */
+.btn-theme {
+  border-color: color-mix(in srgb, var(--candle) 55%, var(--line)) !important;
+  color: var(--candle) !important;
+  background: color-mix(in srgb, var(--candle) 10%, transparent) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--candle) 18%, transparent);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s, box-shadow .15s;
+}
+.btn-theme:hover {
+  border-color: var(--candle) !important;
+  background: color-mix(in srgb, var(--candle) 18%, transparent) !important;
+  color: var(--text) !important;
+}
+.btn-theme:active {
+  transform: scale(.97);
+}
+.btn-theme-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  flex: none;
+}
+.btn-theme-block {
+  width: 100%;
+}
+

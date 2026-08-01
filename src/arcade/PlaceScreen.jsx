@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ENGINES } from '../engines/index.js';
 import { downloadKeepsake, videoIdFrom } from '../lib/util.js';
+import { listMovieNights } from '../lib/watchMovie.js';
 import WhiteboardCard from './WhiteboardCard.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
@@ -32,7 +33,8 @@ function closestGameId(duo) {
 /** Feature body only — chrome lives in DuoHomeLayout so XP bar stays mounted. */
 export default function PlaceScreen({
   duo, code, myRole,
-  onRedeem, onStartGame, onStartWatch, setHomeStatus,
+  onRedeem, onStartGame, onStartWatch, onStartReels, onStartMovie, onStartStreaming,
+  setHomeStatus,
 }) {
   const { featureId } = useParams();
   const navigate = useNavigate();
@@ -45,6 +47,11 @@ export default function PlaceScreen({
   const [codeInput, setCodeInput] = useState('');
   const [passStatus, setPassStatus] = useState('');
   const [localStatus, setLocalStatus] = useState('');
+  const [hubMode, setHubMode] = useState(null); // null | youtube | streaming | reels | movie
+  const [continuity, setContinuity] = useState([]);
+  const [coachDismissed, setCoachDismissed] = useState(
+    () => localStorage.getItem('wp-hub-coach') === '1'
+  );
 
   useEffect(() => {
     if (featureId === 'sect-play' || featureId === 'sect-favorites' || featureId === 'sect-together') {
@@ -52,8 +59,14 @@ export default function PlaceScreen({
     }
   }, [featureId, navigate]);
 
+  useEffect(() => {
+    if (featureId !== 'sect-watch' || !code) return;
+    listMovieNights(code).then(rows => setContinuity((rows || []).slice(0, 3))).catch(() => {});
+  }, [featureId, code]);
+
   const focusWatch = () => {
     navigate('/app/place/sect-watch');
+    setHubMode('youtube');
     setTimeout(() => document.getElementById('ytUrl')?.focus(), 120);
   };
 
@@ -95,6 +108,11 @@ export default function PlaceScreen({
     catch (e) { setPassStatus(e.message); }
   };
 
+  const dismissCoach = () => {
+    localStorage.setItem('wp-hub-coach', '1');
+    setCoachDismissed(true);
+  };
+
   if (!meta || meta.openChat || meta.route) {
     return (
       <div className="home-feature-body">
@@ -102,6 +120,9 @@ export default function PlaceScreen({
       </div>
     );
   }
+
+  const nameA = duo.nameA || 'You';
+  const nameB = duo.nameB || 'Partner';
 
   return (
     <div className="home-feature-body">
@@ -163,16 +184,111 @@ export default function PlaceScreen({
       )}
 
       {featureId === 'sect-watch' && (
-        <>
-          <div className="shelf-title" id="sect-watch">Movie night</div>
-          <div className="watch-card">
-            <h3>{'🎬'} Watch together</h3>
-            <p>Paste a YouTube link. Playback syncs live between your two screens. Rate it blind afterwards; agreement feeds your taste match.</p>
-            <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=…"
-              value={ytUrl} onChange={e => setYtUrl(e.target.value)} />
-            <div className="row"><button className="btn warm small" onClick={startWatch}>Start watch party</button></div>
+        <div className="wp-hub" id="sect-watch">
+          <div className="shelf-title">Tonight’s vibe</div>
+          <div className="wp-hub-avatars" aria-hidden="true">
+            <span className="wp-hub-av A">{nameA[0]?.toUpperCase()}</span>
+            <span className="wp-hub-heart">✦</span>
+            <span className="wp-hub-av B">{nameB[0]?.toUpperCase()}</span>
           </div>
-        </>
+          <p className="wp-hub-lead">Dim the lights. Whatever you pick, you’re in your duo room.</p>
+
+          {!coachDismissed && (
+            <div className="wp-hub-coach">
+              <p>No stranger rooms, no codes — just you two.</p>
+              <button type="button" className="btn ghost small" onClick={dismissCoach}>Got it</button>
+            </div>
+          )}
+
+          {continuity.length > 0 && (
+            <div className="wp-continuity">
+              <div className="wp-continuity-label">Continue our night</div>
+              {continuity.map(n => (
+                <button
+                  key={n.id}
+                  type="button"
+                  className="wp-continuity-row"
+                  onClick={() => onStartMovie?.({
+                    resume: true,
+                    fingerprint: n.fingerprint,
+                    title: n.title,
+                    sizeLabel: n.size_label,
+                    position: n.position || 0,
+                    nightId: n.id,
+                  })}
+                >
+                  <span>{n.title || 'Film'}</span>
+                  <span className="wp-muted">{fmtPos(n.position)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!hubMode && (
+            <div className="wp-hub-cards wp-hub-cards-4">
+              <button type="button" className="wp-hub-card" onClick={() => setHubMode('youtube')}>
+                <div className="wp-hub-card-kicker">Watch a video</div>
+                <h3>YouTube Night</h3>
+                <p>Paste a link. Playback syncs live. Rate it blind after.</p>
+              </button>
+              <button type="button" className="wp-hub-card" onClick={() => setHubMode('streaming')}>
+                <div className="wp-hub-card-kicker">Streaming</div>
+                <h3>Streaming Services</h3>
+                <p>Netflix · Disney+ · Max · Prime — start together on your own accounts.</p>
+              </button>
+              <button type="button" className="wp-hub-card" onClick={() => onStartReels?.()}>
+                <div className="wp-hub-card-kicker">Shorts</div>
+                <h3>Reels Party</h3>
+                <p>Queue Shorts, swipe together, twin-taste likes.</p>
+              </button>
+              <button type="button" className="wp-hub-card" onClick={() => onStartMovie?.()}>
+                <div className="wp-hub-card-kicker">Film</div>
+                <h3>Movie Night</h3>
+                <p>Same file on both devices — cozy sync & whispers.</p>
+              </button>
+            </div>
+          )}
+
+          {hubMode === 'youtube' && (
+            <div className="watch-card">
+              <button type="button" className="btn ghost small" onClick={() => setHubMode(null)}>{'←'} Hub</button>
+              <h3>YouTube Night</h3>
+              <p>Paste a YouTube link. Playback syncs live. Turn on Sparks when you want mind-reads.</p>
+              <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=…"
+                value={ytUrl} onChange={e => setYtUrl(e.target.value)} />
+              <div className="row"><button className="btn warm small" onClick={startWatch}>Start watch party</button></div>
+            </div>
+          )}
+
+          {hubMode === 'streaming' && (
+            <div className="watch-card wp-streaming-pick">
+              <button type="button" className="btn ghost small" onClick={() => setHubMode(null)}>{'←'} Hub</button>
+              <h3>Streaming Services</h3>
+              <p className="wp-streaming-honest">
+                What are we watching tonight? Playback stays in Netflix, Disney+, Max, or Prime on your own subscriptions.
+                DuoArcade is the couple layer — ready ritual, reactions, Sparks, Memory.
+              </p>
+              <div className="wp-streaming-platforms">
+                {[
+                  { id: 'netflix', label: 'Netflix' },
+                  { id: 'disney_plus', label: 'Disney+' },
+                  { id: 'max', label: 'Max' },
+                  { id: 'prime_video', label: 'Prime Video' },
+                ].map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="btn warm small"
+                    onClick={() => onStartStreaming?.({ platform: p.id })}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <p className="wp-hint">Coordination mode tonight. Deeper sync needs the DuoArcade extension (desktop).</p>
+            </div>
+          )}
+        </div>
       )}
 
       {featureId === 'sect-pass' && !hasPass && (
@@ -216,4 +332,11 @@ export default function PlaceScreen({
       {localStatus && <div className="status">{localStatus}</div>}
     </div>
   );
+}
+
+function fmtPos(sec) {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, '0')}`;
 }

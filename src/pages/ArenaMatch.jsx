@@ -68,7 +68,7 @@ export default function ArenaMatch() {
       if (!alive) return;
       setClient(api);
       if (!api.user) {
-        localStorage.setItem('duoarcade-arena-next', '/arena/' + matchCode);
+        localStorage.setItem('duoarcade-arena-next', '/app/arena/' + matchCode);
         setStatus('Sign in to open this Arena challenge.');
         return;
       }
@@ -149,7 +149,7 @@ export default function ArenaMatch() {
   const cancelMatch = async () => {
     try {
       await client.cancelMatch(match.code);
-      navigate('/arena');
+      navigate('/app/arena');
     } catch (error) { setStatus(error.message); }
   };
 
@@ -160,7 +160,7 @@ export default function ArenaMatch() {
           <div className="arena-kicker">Arena invitation</div>
           <h1>Sign in to join the match</h1>
           <p>After signing in, this challenge will reopen automatically.</p>
-          <Link className="arena-btn warm" to={`/app?next=${encodeURIComponent('/arena/' + matchCode)}`}>Sign in</Link>
+          <Link className="arena-btn warm" to={`/app?next=${encodeURIComponent('/app/arena/' + matchCode)}`}>Sign in</Link>
         </div>
       </main>
     );
@@ -182,7 +182,7 @@ export default function ArenaMatch() {
           </select>
           <button className="arena-btn warm" disabled={!joinDuo} onClick={joinChallenge}>Accept challenge</button>
           {status && <div className="arena-status">{status}</div>}
-          <Link to="/arena">Back to Arena</Link>
+          <Link to="/app/arena">Back to Arena</Link>
         </div>
       </main>
     );
@@ -224,7 +224,7 @@ export default function ArenaMatch() {
         <div className="arena-auth-card">
           <div className="arena-kicker">Challenge closed</div>
           <h1>This Arena match was cancelled</h1>
-          <Link className="arena-btn warm" to="/arena">Return to Arena</Link>
+          <Link className="arena-btn warm" to="/app/arena">Return to Arena</Link>
         </div>
       </main>
     );
@@ -233,9 +233,9 @@ export default function ArenaMatch() {
   return (
     <main className="arena-page match-page">
       <header className="arena-topbar">
-        <Link className="arena-brand" to="/"><span>Duo</span><b>Arcade</b></Link>
+        <Link className="arena-brand" to="/app"><span>Duo</span><b>Arcade</b></Link>
         <div className="match-code">Arena {match.code}</div>
-        <Link to="/arena">Leave view</Link>
+        <Link to="/app/arena">Leave view</Link>
       </header>
 
       <section className="match-scoreboard">
@@ -288,7 +288,7 @@ export default function ArenaMatch() {
           <p>{state.winner === 'draw' ? 'No couple gives an inch.' : 'Four players showed up. One duo takes the glory.'}</p>
           <div className="result-actions">
             <button className="arena-btn warm" onClick={rematch}>Start rematch</button>
-            <Link className="arena-btn" to="/arena">Arena lobby</Link>
+            <Link className="arena-btn" to="/app/arena">Arena lobby</Link>
           </div>
         </section>
       ) : (

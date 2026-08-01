@@ -3,15 +3,12 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Landing from './pages/Landing.jsx';
 import Arcade from './pages/Arcade.jsx';
-import Arena from './pages/Arena.jsx';
-import ArenaMatch from './pages/ArenaMatch.jsx';
 import FriendMatchScreen from './pages/FriendMatchScreen.jsx';
 import './styles/friends.css';
 import Whiteboard from './pages/Whiteboard.jsx';
 import Snap from './pages/Snap.jsx';
 import SparkSplash from './pages/SparkSplash.jsx';
 import Week from './pages/Week.jsx';
-import Leaderboard from './pages/Leaderboard.jsx';
 import { initAppearance } from './lib/appearance.js';
 import './styles/base.css';
 
@@ -38,16 +35,21 @@ function ChallengeRedirect() {
   return <Navigate to={`/app?duo=${encodeURIComponent(code || '')}`} replace />;
 }
 
+function ArenaRedirect() {
+  const { matchCode } = useParams();
+  return <Navigate to={matchCode ? `/app/arena/${matchCode}` : '/app/arena'} replace />;
+}
+
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
     <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/app/*" element={<Arcade />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/leaderboard" element={<Navigate to="/app/leaderboard" replace />} />
         <Route path="/challenges/:code" element={<ChallengeRedirect />} />
-        <Route path="/arena" element={<Arena />} />
-        <Route path="/arena/:matchCode" element={<ArenaMatch />} />
+        <Route path="/arena" element={<ArenaRedirect />} />
+        <Route path="/arena/:matchCode" element={<ArenaRedirect />} />
         <Route path="/friend/:matchCode" element={<FriendMatchScreen />} />
         <Route path="/whiteboard/:code" element={<Whiteboard />} />
         <Route path="/snap/:code" element={<Snap />} />

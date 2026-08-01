@@ -95,7 +95,17 @@ html[data-appearance="light"] .arcade-page .btn.warm{color:#1a1408;}
 html[data-appearance="light"] .arcade-page .tab.on{color:#1a1408;}
 html[data-appearance="light"] .arcade-page .time-btn.on{color:#1a1408;}
 html[data-appearance="light"] .arcade-page .who{color:#4A5266;}
-.arcade-page .btn.ghost{background:transparent;}
+.arcade-page .btn.ghost{
+  background: color-mix(in srgb, var(--candle) 10%, transparent);
+  border-color: color-mix(in srgb, var(--candle) 55%, var(--line));
+  color: var(--candle);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--candle) 18%, transparent);
+}
+.arcade-page .btn.ghost:hover{
+  border-color: var(--candle);
+  background: color-mix(in srgb, var(--candle) 18%, transparent);
+  color: var(--text);
+}
 .arcade-page .btn.small{padding:8px 14px;font-size:13px;border-radius:10px;}
 .arcade-page .btn:active{transform:scale(.97);}
 .arcade-page .btn:disabled{opacity:.4;cursor:default;}
@@ -676,8 +686,6 @@ html[data-appearance="light"] .arcade-page .home-nav-btn.on{
       "nav    nav"
       "games  games"
       "feat   feat"
-      "chal   chal"
-      "chist  chist"
       "invite invite"
       "status status";
   }
@@ -690,8 +698,6 @@ html[data-appearance="light"] .arcade-page .home-nav-btn.on{
   .arcade-page .home-card > .home-nav{grid-area:nav;}
   .arcade-page .home-card > .games-browse{grid-area:games;}
   .arcade-page .home-card > .home-feature-body{grid-area:feat;}
-  .arcade-page .home-card > .chal-entry{grid-area:chal;}
-  .arcade-page .home-card > .chal-history-link{grid-area:chist;}
   .arcade-page .home-card > .invite-box{grid-area:invite;}
   .arcade-page .home-card > .status{grid-area:status;}
   /* compact hero in the right half */
@@ -2574,3 +2580,126 @@ html[data-appearance="light"] .arcade-page .frail-pop{
   .arcade-page .cb-input{font-size:20px;padding:10px 12px;}
   .arcade-page .cb-secret-title{font-size:clamp(16px,4.5vw,22px);margin-bottom:6px;}
 }
+
+/* ===== WatchParty v2.0 ===== */
+.arcade-page .wp-hub{margin-bottom:18px;}
+.arcade-page .wp-hub-lead{font-size:13px;color:var(--dim);margin:0 0 12px;text-align:center;}
+.arcade-page .wp-hub-avatars{display:flex;align-items:center;justify-content:center;gap:12px;margin:8px 0 6px;}
+.arcade-page .wp-hub-av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+  font-weight:800;font-size:16px;border:1.5px solid var(--line);background:var(--room);color:var(--ink);}
+.arcade-page .wp-hub-av.A{border-color:var(--p1);color:var(--p1);}
+.arcade-page .wp-hub-av.B{border-color:var(--p2);color:var(--p2);}
+.arcade-page .wp-hub-heart{color:var(--candle);font-size:14px;}
+.arcade-page .wp-hub-coach{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border:1px dashed color-mix(in srgb,var(--candle) 55%,var(--line));
+  border-radius:12px;background:color-mix(in srgb,var(--candles) 55%,transparent);margin-bottom:12px;}
+.arcade-page .wp-hub-coach p{margin:0;font-size:12.5px;color:var(--dim);}
+.arcade-page .wp-hub-cards{display:grid;gap:10px;}
+@media (min-width:720px){.arcade-page .wp-hub-cards{grid-template-columns:repeat(3,1fr);}}
+@media (min-width:720px){.arcade-page .wp-hub-cards-4{grid-template-columns:repeat(2,1fr);}}
+@media (min-width:980px){.arcade-page .wp-hub-cards-4{grid-template-columns:repeat(4,1fr);}}
+.arcade-page .wp-hub-card{text-align:left;padding:14px 14px 16px;border-radius:14px;cursor:pointer;
+  border:1px solid var(--line);background:linear-gradient(165deg,color-mix(in srgb,var(--candles) 70%,var(--room)),var(--room));
+  color:inherit;transition:border-color .2s ease, transform .2s ease;}
+.arcade-page .wp-hub-card:hover{border-color:var(--candle);transform:translateY(-1px);}
+.arcade-page .wp-hub-card-kicker{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--candle);margin-bottom:4px;}
+.arcade-page .wp-hub-card h3{font-size:16px;margin:0 0 4px;}
+.arcade-page .wp-hub-card p{font-size:12.5px;color:var(--dim);margin:0;}
+.arcade-page .wp-streaming-pick .wp-streaming-platforms{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+.arcade-page .wp-streaming-honest{font-size:13px;color:var(--dim);margin:0 0 10px;line-height:1.45;}
+.arcade-page .wp-cap-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;
+  border:1px solid var(--line);background:var(--room);font-size:12px;font-weight:700;margin:0 0 8px;}
+.arcade-page .wp-cap-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);}
+.arcade-page .wp-cap-dot.L1{background:var(--good,#6dcf8a);}
+.arcade-page .wp-cap-dot.L2{background:var(--candle);}
+.arcade-page .wp-cap-dot.L3{background:var(--dim);}
+.arcade-page .wp-streaming-lobby{text-align:center;margin:8px 0 12px;}
+.arcade-page .wp-streaming-lobby input{width:100%;max-width:420px;margin:0 auto 8px;display:block;}
+.arcade-page .wp-field-label{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dim);margin:8px 0 4px;}
+.arcade-page .wp-streaming-actions{justify-content:center;flex-wrap:wrap;margin:10px 0;}
+.arcade-page .wp-ext-coach{margin:12px auto;max-width:420px;padding:10px 12px;border-radius:12px;
+  border:1px dashed color-mix(in srgb,var(--candle) 50%,var(--line));background:color-mix(in srgb,var(--candles) 40%,transparent);
+  text-align:left;}
+.arcade-page .wp-ext-coach p{margin:0 0 8px;font-size:12.5px;color:var(--dim);}
+.arcade-page .wp-countdown{font-size:clamp(48px,12vw,72px);font-weight:800;color:var(--candle);
+  text-align:center;margin:16px 0;letter-spacing:.04em;}
+.arcade-page .wp-countdown.go{font-size:clamp(22px,5vw,32px);}
+.arcade-page .wp-streaming-now{font-size:14px;margin:8px 0;color:var(--ink);}
+.arcade-page .wp-streaming-companion{margin-top:8px;text-align:center;}
+.arcade-page .wp-continuity{margin:0 0 14px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--room);}
+.arcade-page .wp-continuity-label{font-size:12px;font-weight:700;color:var(--candle);margin-bottom:6px;}
+.arcade-page .wp-continuity-row{display:flex;justify-content:space-between;width:100%;padding:8px 0;border:0;border-top:1px solid var(--line);
+  background:transparent;color:inherit;cursor:pointer;font-size:13px;}
+.arcade-page .wp-continuity-row:first-of-type{border-top:0;}
+.arcade-page .wp-muted{color:var(--dim);font-size:12px;}
+.arcade-page .wp-hint{font-size:11.5px;color:var(--dim);margin:6px 0 0;text-align:center;}
+.arcade-page .wp-top-actions{display:flex;gap:6px;align-items:center;}
+.arcade-page .wp-end-confirm{margin:8px 0 12px;padding:12px;border-radius:12px;border:1px solid var(--candle);
+  background:color-mix(in srgb,var(--candles) 40%,var(--room));}
+.arcade-page .wp-end-confirm p{margin:0 0 8px;font-size:13px;}
+.arcade-page .wp-memory{position:relative;overflow:hidden;margin:16px auto;max-width:420px;padding:22px 18px;
+  border-radius:16px;border:1px solid var(--candle);background:linear-gradient(180deg,var(--candles),var(--room));text-align:center;}
+.arcade-page .wp-memory-kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--candle);}
+.arcade-page .wp-memory-title{font-size:20px;margin:6px 0;}
+.arcade-page .wp-memory-meta,.arcade-page .wp-memory-stars,.arcade-page .wp-memory-insight{font-size:13px;color:var(--dim);margin:4px 0;}
+.arcade-page .wp-memory-actions{justify-content:center;margin-top:12px;}
+.arcade-page .wp-afterglow{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);}
+.arcade-page .wp-afterglow-label{font-size:11px;font-weight:700;color:var(--candle);margin-bottom:4px;}
+.arcade-page .wp-afterglow-q{font-size:13px;margin:4px 0;color:var(--ink);}
+.arcade-page .wp-invite-toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:80;
+  display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;
+  border:1px solid var(--candle);background:var(--room);box-shadow:0 12px 32px rgba(0,0,0,.28);max-width:min(92vw,420px);}
+.arcade-page .wp-invite-text{font-size:13px;}
+.arcade-page .wp-invite-actions{display:flex;gap:6px;}
+.arcade-page .wp-sparks-sheet{margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--room) 92%,var(--candle));position:relative;}
+.arcade-page .wp-sparks-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.arcade-page .wp-sparks-head h4{margin:0;font-size:15px;}
+.arcade-page .wp-sparks-blurb,.arcade-page .wp-sparks-q{font-size:13px;margin:6px 0;}
+.arcade-page .wp-sparks-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.arcade-page .wp-sparks-wait,.arcade-page .wp-sparks-line,.arcade-page .wp-sparks-ans{font-size:13px;color:var(--dim);}
+.arcade-page .wp-sparks-line b{color:var(--candle);}
+.arcade-page .wp-sparks-timed{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);}
+.arcade-page .wp-sparks-timed-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;}
+.arcade-page .wp-sparks-cue{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;font-size:12px;}
+.arcade-page .wp-pass-upload{margin:10px 0 4px;}
+.arcade-page .wp-pass-upload-body{margin-top:8px;}
+.arcade-page .wp-reels-add{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;align-items:center;}
+.arcade-page .wp-reels-add input{flex:1 1 160px;min-width:0;}
+.arcade-page .wp-reels-honest,.arcade-page .wp-reels-status{font-size:12px;color:var(--dim);margin:0 0 8px;}
+.arcade-page .wp-reels-stage{position:relative;width:100%;max-width:420px;margin:0 auto;aspect-ratio:9/16;
+  max-height:min(70vh,640px);background:#0b0a0e;border-radius:16px;overflow:hidden;border:1px solid var(--line);}
+.arcade-page .wp-reels-stage iframe,.arcade-page .wp-reels-stage video{width:100%;height:100%;border:0;}
+.arcade-page .wp-reels-empty,.arcade-page .wp-reels-external{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:20px;text-align:center;background:#121018;color:var(--ink);}
+.arcade-page .wp-reels-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0;}
+.arcade-page .wp-reels-idx{font-size:13px;color:var(--dim);}
+.arcade-page .wp-up-next{text-align:center;font-size:12px;color:var(--dim);margin-bottom:6px;}
+.arcade-page .wp-laugh{display:flex;align-items:center;gap:10px;justify-content:center;margin:8px 0;}
+.arcade-page .wp-laugh-meter{width:120px;height:8px;border-radius:99px;background:var(--line);overflow:hidden;}
+.arcade-page .wp-laugh-fill{height:100%;background:linear-gradient(90deg,var(--candle),var(--p1));border-radius:99px;transition:width .25s ease;}
+.arcade-page .wp-laugh-count{font-size:12px;font-weight:700;color:var(--candle);}
+.arcade-page .wp-twin{position:absolute;inset:0;display:grid;place-items:center;z-index:3;pointer-events:none;
+  background:color-mix(in srgb,#000 35%,transparent);font-weight:800;font-size:22px;color:var(--candle);}
+.arcade-page .wp-swipe-note{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:2;
+  padding:6px 10px;border-radius:99px;background:color-mix(in srgb,var(--room) 85%,transparent);font-size:12px;}
+.arcade-page .wp-our-clips{margin:8px 0 12px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--room);}
+.arcade-page .wp-clip-row{display:block;width:100%;text-align:left;padding:8px 4px;border:0;border-top:1px solid var(--line);
+  background:transparent;color:inherit;cursor:pointer;font-size:13px;}
+.arcade-page .wp-clip-row:first-of-type{border-top:0;}
+.arcade-page .wp-movie.cozy .player-wrap{border-color:color-mix(in srgb,var(--candle) 40%,var(--line));}
+.arcade-page .wp-movie-lobby{text-align:center;margin:8px 0 12px;}
+.arcade-page .wp-movie-ritual{font-size:13px;margin:0 0 10px;}
+.arcade-page .wp-file-btn{display:inline-block;}
+.arcade-page .wp-ready-row{display:flex;justify-content:center;gap:18px;margin:10px 0;font-size:13px;color:var(--dim);}
+.arcade-page .wp-ready-row .on{color:var(--good, #6dcf8a);font-weight:700;}
+.arcade-page .player-outer.buffering .player-wrap{opacity:.72;}
+.arcade-page .wp-buffer-ritual{text-align:center;font-size:13px;color:var(--candle);margin:8px 0;font-weight:600;}
+.arcade-page .wp-movie-comments{margin-top:12px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--room);}
+.arcade-page .wp-comment-list{max-height:120px;overflow:auto;margin-bottom:8px;}
+.arcade-page .wp-comment{display:flex;gap:8px;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--line);}
+.arcade-page .wp-comment-at{color:var(--candle);font-variant-numeric:tabular-nums;min-width:36px;}
+.arcade-page .wp-comment-compose{display:flex;gap:8px;}
+.arcade-page .wp-comment-compose input{flex:1;}
+.arcade-page .wp-movie video{width:100%;height:100%;background:#000;}

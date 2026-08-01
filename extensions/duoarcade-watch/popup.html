@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DuoArcade Watch</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 12px; width: 260px; color: #1a1520; }
+    h1 { font-size: 14px; margin: 0 0 8px; }
+    p { font-size: 12px; color: #555; line-height: 1.4; margin: 0 0 8px; }
+    .ok { color: #2a7a45; font-weight: 700; }
+    .warn { color: #9a6b00; }
+    button { font-size: 12px; padding: 6px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>DuoArcade Watch</h1>
+  <p id="status" class="warn">Checking…</p>
+  <p>Open DuoArcade Streaming Night, then Netflix. The web app owns your duo session — this extension only bridges play/pause.</p>
+  <button type="button" id="probe">Run Netflix probe</button>
+  <script src="popup.js"></script>
+</body>
+</html>
