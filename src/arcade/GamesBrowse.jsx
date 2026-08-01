@@ -4,9 +4,22 @@ import GameCard from './GameCard.jsx';
 import GameFixModal from './GameFixModal.jsx';
 import { fixIds, fixNoteFor, normalizeFixGames } from '../lib/gameFixes.js';
 import {
-  FILTER_CHIPS, SORT_OPTIONS, filterAndSortEngines,
+  FILTER_CHIPS, SORT_OPTIONS, filterAndSortEngines, getRecentGameIds,
 } from '../lib/gameCatalog.js';
 import ChallengeCard from './ChallengeCard.jsx';
+
+/** Hide from Jump back in (soccer kept out of this shelf). */
+const JUMP_BACK_EXCLUDE = new Set(['microsoccer']);
+
+function SmartRow({ title, children, empty }) {
+  if (empty) return null;
+  return (
+    <div className="games-smart-row">
+      <div className="games-smart-title">{title}</div>
+      <div className="games-smart-scroller">{children}</div>
+    </div>
+  );
+}
 
 export default function GamesBrowse({
   duo, code, onStartGame, onSetFavoriteGames, onSetFixGames, onSetDaliGames
@@ -14,6 +27,7 @@ export default function GamesBrowse({
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('default');
+  const [recentTick, setRecentTick] = useState(0);
   const [roulette, setRoulette] = useState(null);
   const [fixEng, setFixEng] = useState(null);
   const rouletteTimer = useRef(null);
@@ -36,6 +50,23 @@ export default function GamesBrowse({
     }),
     [filter, query, sort, favorites, records, needsFixIds, daliGames]
   );
+
+  const recentIds = useMemo(() => {
+    void recentTick;
+    return getRecentGameIds(code, 6)
+      .filter(id => !JUMP_BACK_EXCLUDE.has(id))
+      .slice(0, 3);
+  }, [code, recentTick, records]);
+
+  useEffect(() => {
+    const onFocus = () => setRecentTick(t => t + 1);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('duoarcade-recent-games', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('duoarcade-recent-games', onFocus);
+    };
+  }, []);
 
   useEffect(() => () => {
     if (rouletteTimer.current) clearTimeout(rouletteTimer.current);
@@ -180,6 +211,20 @@ export default function GamesBrowse({
       </div>
 
       <ChallengeCard />
+
+      {!filtering && (
+        <SmartRow title="Jump back in" empty={!recentIds.length}>
+          {recentIds.map(id => {
+            const eng = ENGINES[id];
+            if (!eng) return null;
+            return (
+              <div className="games-smart-item" key={'recent-' + id}>
+                <GameCard {...cardProps(eng)} />
+              </div>
+            );
+          })}
+        </SmartRow>
+      )}
 
       <div
         className="shelf-title games-all-title"
