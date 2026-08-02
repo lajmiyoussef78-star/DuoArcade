@@ -131,25 +131,35 @@ export function filterAndSortEngines({ filter, query, sort, favoriteIds, records
   return sortEngines(list, sort, records);
 }
 
+/* Entries are { id, at }. Plain-string entries from older builds still read fine. */
+function readRecent(code) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY(code)) || '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(e => (typeof e === 'string' ? { id: e, at: 0 } : { id: e?.id, at: Number(e?.at) || 0 }))
+      .filter(e => e.id && ENGINES[e.id]);
+  } catch {
+    return [];
+  }
+}
+
 export function pushRecentGame(code, gameId) {
   if (!code || !gameId || !ENGINES[gameId]) return;
   try {
-    const raw = JSON.parse(localStorage.getItem(RECENT_KEY(code)) || '[]');
-    const prev = Array.isArray(raw) ? raw.filter(id => id !== gameId) : [];
-    const next = [gameId, ...prev].slice(0, RECENT_MAX);
+    const prev = readRecent(code).filter(e => e.id !== gameId);
+    const next = [{ id: gameId, at: Date.now() }, ...prev].slice(0, RECENT_MAX);
     localStorage.setItem(RECENT_KEY(code), JSON.stringify(next));
   } catch { /* ignore */ }
 }
 
-export function getRecentGameIds(code, limit = 3) {
+export function getRecentGames(code, limit = 3) {
   if (!code) return [];
-  try {
-    const raw = JSON.parse(localStorage.getItem(RECENT_KEY(code)) || '[]');
-    if (!Array.isArray(raw)) return [];
-    return raw.filter(id => ENGINES[id]).slice(0, limit);
-  } catch {
-    return [];
-  }
+  return readRecent(code).slice(0, limit);
+}
+
+export function getRecentGameIds(code, limit = 3) {
+  return getRecentGames(code, limit).map(e => e.id);
 }
 
 /** Never-played from records; prefer engines with 0–0 over missing. */

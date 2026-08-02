@@ -9,11 +9,9 @@
 
 .arcade-page .avatars{position:relative;}
 .arcade-page .av.A{border-color:color-mix(in srgb, var(--p1) 75%, var(--night));
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--p1) 35%, transparent),
-             0 0 14px color-mix(in srgb, var(--p1) 55%, transparent);}
+  box-shadow:0 0 0 3px var(--bg-base, var(--night));}
 .arcade-page .av.B{border-color:color-mix(in srgb, var(--p2) 75%, var(--night));
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--p2) 35%, transparent),
-             0 0 14px color-mix(in srgb, var(--p2) 55%, transparent);}
+  box-shadow:0 0 0 3px var(--bg-base, var(--night));}
 
 .arcade-page .av-spark{position:absolute;left:39px;top:-11px;transform:translateX(-50%);
   font-size:16px;line-height:1;color:var(--candle);
@@ -52,18 +50,18 @@
 .arcade-page .ms.lit:hover{transform:translateY(-2px);
   box-shadow:0 0 16px color-mix(in srgb, var(--candle) 45%, transparent);}
 
-/* stats row: each number takes a partner/theme color with a soft neon glow,
-   matching the mockup — colors follow the duo theme automatically */
-.arcade-page .home-stats .hstat:nth-child(1) .n{color:var(--p1);
-  text-shadow:0 0 14px color-mix(in srgb, var(--p1) 55%, transparent);}
-.arcade-page .home-stats .hstat:nth-child(2) .n{color:var(--p2);
-  text-shadow:0 0 14px color-mix(in srgb, var(--p2) 55%, transparent);}
+/* stats row: accent colors only — no neon glow */
+.arcade-page .home-stats .hstat:nth-child(1) .n{color:var(--color-secondary); text-shadow:none;}
+.arcade-page .home-stats .hstat:nth-child(2) .n{color:var(--p2); text-shadow:none;}
 .arcade-page .home-stats .hstat:nth-child(3) .n{
-  background:linear-gradient(90deg, var(--p1), var(--p2));
+  color:var(--color-secondary);
+  background:none;
+  -webkit-background-clip:unset;background-clip:unset;
+  filter:none; text-shadow:none;}
+.arcade-page .home-stats .hstat:nth-child(4) .n{
+  background:var(--grad-primary);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 10px color-mix(in srgb, var(--p2) 45%, transparent));}
-.arcade-page .home-stats .hstat:nth-child(4) .n{color:var(--candle);
-  text-shadow:0 0 14px color-mix(in srgb, var(--candle) 55%, transparent);}
+  -webkit-text-fill-color:transparent; text-shadow:none;}
 
 /* game cards — equal size; no lift transform (keeps row alignment) */
 .arcade-page .gcard{transition:border-color .15s ease, box-shadow .18s ease;}
@@ -190,7 +188,7 @@ html[data-appearance="light"] .ch-love{opacity:.1;}
 .ch-beat .base{stroke:color-mix(in srgb, var(--text) 20%, transparent);}
 .ch-beat .run{stroke:url(#chbeat-grad);stroke-dasharray:20 120;stroke-dashoffset:140;}
 
-.ch-mid{flex:1;min-width:210px;position:relative;}
+.ch-mid{flex:1;min-width:0;position:relative;}
 .ch-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--candle);font-weight:700;
   text-shadow:0 0 10px color-mix(in srgb, var(--candle) 40%, transparent);}
 .ch-count{font-family:'Fraunces',serif;font-weight:900;font-size:27px;margin-top:2px;line-height:1.2;}
@@ -222,14 +220,19 @@ html[data-appearance="light"] .ch-love{opacity:.1;}
 .ch-ring{position:relative;width:92px;height:92px;flex:none;}
 .ch-ring svg{transform:rotate(-90deg);display:block;}
 .ch-ring .bgc{stroke:color-mix(in srgb, var(--line) 85%, transparent);}
-.ch-ring .fgc{stroke:var(--candle);stroke-linecap:round;
+.ch-ring .fgc{stroke:url(#ch-ring-g);stroke-linecap:round;
   filter:drop-shadow(0 0 5px var(--candle));transition:stroke-dashoffset 1.2s ease;}
 .ch-ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
-.ch-ring .n{font-family:'Fraunces',serif;font-weight:900;font-size:21px;color:var(--candle);line-height:1;}
+.ch-ring .n{font-family:'Fraunces',serif;font-weight:900;font-size:21px;line-height:1;
+  background:var(--grad-primary);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-fill-color:transparent;}
 .ch-ring .l{font-size:7.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;max-width:64px;}
 .ch-orbit{position:absolute;inset:-3px;pointer-events:none;}
 .ch-orbit::before{content:'';position:absolute;top:0;left:50%;width:5px;height:5px;margin-left:-2.5px;
-  border-radius:50%;background:var(--candle);box-shadow:0 0 8px var(--candle);}
+  border-radius:50%;
+  background:var(--grad-primary);
+  box-shadow:0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent);}
 .ch-set input[type=date]{background:var(--room2);border:1px solid var(--line);border-radius:10px;
   color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;}
 .ch-set input[type=date]:focus{outline:none;border-color:var(--candle);}
@@ -308,8 +311,8 @@ html[data-appearance="light"] .ch-love{opacity:.1;}
 @media (prefers-reduced-motion: no-preference){
 
   /* B */
-  .arcade-page .av.A{animation:cfx-glow-a 3.8s ease-in-out infinite;}
-  .arcade-page .av.B{animation:cfx-glow-b 4.4s ease-in-out infinite;}
+  .arcade-page .av.A{animation:none;}
+  .arcade-page .av.B{animation:none;}
   .arcade-page .av-spark{animation:cfx-heartbeat 1.9s ease-in-out infinite;}
   .arcade-page .av-spark::before{animation:cfx-twinkle 2.6s ease-in-out .4s infinite;}
   .arcade-page .av-spark::after{animation:cfx-twinkle 2.6s ease-in-out 1.5s infinite;}

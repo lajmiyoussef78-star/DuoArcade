@@ -117,6 +117,14 @@ export default function Arcade() {
   const pendingReopenRef = useRef(null);
   const friendsPresenceRef = useRef(null);
 
+  /* The version tap that used to toggle diagnostics lived in the top bar, which
+     the dashboard no longer renders. The sidebar user menu fires this instead. */
+  useEffect(() => {
+    const onToggle = () => setShowDiag(v => !v);
+    window.addEventListener('duoarcade-toggle-diag', onToggle);
+    return () => window.removeEventListener('duoarcade-toggle-diag', onToggle);
+  }, []);
+
   const ctxRef = useRef(ctx);
   useEffect(() => { ctxRef.current = ctx; }, [ctx]);
   const viewRef = useRef(view);
@@ -1021,9 +1029,19 @@ export default function Arcade() {
 
   useEffect(() => {
     const duo = ctx.duo || myDuos[0];
-    if (!duo) { applyTheme('night'); return; }
-    applyTheme(duo.theme || 'night');
+    if (!duo) { applyTheme('classic'); return; }
+    applyTheme(duo.theme || 'classic');
   }, [ctx.duo?.theme, myDuos]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Re-apply duo theme when light/dark changes (pale accents deepen on light). */
+  useEffect(() => {
+    const onAppear = () => {
+      const duo = ctxRef.current?.duo || myDuos[0];
+      applyTheme(duo?.theme || 'classic');
+    };
+    window.addEventListener('duoarcade-appearance', onAppear);
+    return () => window.removeEventListener('duoarcade-appearance', onAppear);
+  }, [myDuos]);
 
   /* ---------- boot ---------- */
 
@@ -1244,6 +1262,15 @@ export default function Arcade() {
         onSetFavoriteGames: setFavoriteGames, onSetFixGames: setFixGames,
         onSetDaliGames: setDaliGames, onRedeem: redeemCode,
         avatarTick,
+        username: profile?.username || '',
+        email: userEmail || '',
+        onSetUsername: saveUsername,
+        theme: (duo || myDuos[0])?.theme || 'classic',
+        onSetTheme: setTheme,
+        onSignOut: signOut,
+        onDeleteDuo: deleteDuo,
+        onAvatarChange: () => setAvatarTick(t => t + 1),
+        friendsEnabled: !!(duo && code && myRole && syncRef.current?.auth.user()?.id),
       };
       inner = (
         <Routes>
@@ -1306,7 +1333,7 @@ export default function Arcade() {
             mode="public"
             onBack={() => {
               setPubDuo(null);
-              applyTheme((duo || myDuos[0])?.theme || 'night');
+              applyTheme((duo || myDuos[0])?.theme || 'classic');
             }}
           />
         </div>
@@ -1321,7 +1348,7 @@ export default function Arcade() {
           />
         ) : (
           <Leaderboard
-            theme={(duo || myDuos[0])?.theme || 'night'}
+            theme={(duo || myDuos[0])?.theme || 'classic'}
             embedded
             onBack={() => {
               setPubProfile(null);
@@ -1367,22 +1394,7 @@ export default function Arcade() {
               <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
                 onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
             </div>
-            <SettingsMenu
-              onSignOut={signOut}
-              canSetTheme={!!(ctx.duo || myDuos[0])}
-              theme={(ctx.duo || myDuos[0])?.theme || 'night'}
-              onSetTheme={setTheme}
-              nameA={(ctx.duo || myDuos[0])?.nameA || 'Partner one'}
-              nameB={(ctx.duo || myDuos[0])?.nameB || 'Partner two'}
-              code={ctx.code || myDuos[0]?.code || null}
-              myRole={ctx.myRole || (myDuos[0] && syncRef.current?.auth.user()?.id
-                ? (myDuos[0].memberA === syncRef.current.auth.user().id ? 'A'
-                  : myDuos[0].memberB === syncRef.current.auth.user().id ? 'B' : null)
-                : null)}
-              onAvatarChange={() => setAvatarTick(t => t + 1)}
-              duo={ctx.duo || myDuos[0] || null}
-              onDeleteDuo={deleteDuo}
-            />
+            <SettingsMenu />
           </div>
         </div>
       </header>

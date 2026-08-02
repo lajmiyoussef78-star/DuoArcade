@@ -25,6 +25,8 @@ export const FEATURE_RAIL_ITEMS = [
     desc: 'YouTube Night, Reels Party, or Movie Night — always in your duo room.' },
   { id: 'sect-pass', icon: 'pass', label: 'Duo Pass', accent: 'candle',
     desc: 'Unlock keepsake cards and everything we ship next.' },
+  { id: 'sect-settings', icon: 'gear', label: 'Settings', accent: 'p1',
+    desc: 'Account, appearance, relationship, and danger-zone controls.' },
   { id: 'chat', icon: 'chat', label: 'Chat', accent: 'good', openChat: true,
     desc: 'Message your partner — typing, online, and seen receipts.' }
 ];

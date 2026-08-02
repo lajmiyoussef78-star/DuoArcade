@@ -1,49 +1,178 @@
-/* Site-wide tokens + appearance (dark default, light via data-appearance). */
+/* Site-wide tokens + appearance (dark default, light / dim via data-appearance).
+   Layer system: --bg-base < --bg-surface < --bg-elevated.
+   Theme toggle swaps these at the root — component CSS should only reference the vars. */
 
 :root,
 html[data-appearance="dark"] {
-  --night: #191420;
-  --room: #221B2D;
-  --room2: #2B2338;
-  --line: #3D3450;
-  --text: #F2EDF7;
-  --dim: #A99FBC;
-  --p1: #7FA8FF;
-  --p1s: color-mix(in srgb, var(--p1) 22%, var(--night));
-  --p2: #FF7FA8;
-  --p2s: color-mix(in srgb, var(--p2) 22%, var(--night));
-  --candle: #FFC66E;
-  --candles: color-mix(in srgb, var(--candle) 16%, var(--night));
-  --good: #6FDCA8;
-  --shadow: rgba(0, 0, 0, 0.45);
+  /* —— Role accents (Classic purple/pink; applyTheme overrides from Settings) —— */
+  --color-primary: #8B5CF6;
+  --color-secondary: #EC4899;
+  --color-mid: color-mix(in srgb, var(--color-primary) 50%, var(--color-secondary));
+  --color-success: #22C55E;
+  --color-warning: #C084FC;
+
+  /* —— Color layers (dark) —— */
+  /* Page base matched to dashboard reference (#040919 navy-black). */
+  --bg-base: #040919;
+  --bg-surface: #0e1220;
+  --bg-elevated: #1b1e2f;
+  --border-subtle: #2a2a3d;
+  --border-strong: #3a3a52;
+
+  /* Legacy aliases → layers (existing CSS keeps working) */
+  --night: var(--bg-base);
+  --room: var(--bg-surface);
+  --room2: var(--bg-elevated);
+  --line: var(--border-subtle);
+  --hair: var(--border-subtle);
+  --hair-strong: var(--border-strong);
+  --glass: var(--bg-elevated);
+  --glass-hi: color-mix(in srgb, var(--bg-elevated) 72%, var(--border-subtle));
+
+  --text: #F4F5FA;
+  --dim: #8A8AA6;
+  --p1: var(--color-primary);
+  --p1s: color-mix(in srgb, var(--p1) 22%, var(--bg-base));
+  --p2: var(--color-secondary);
+  --p2s: color-mix(in srgb, var(--p2) 22%, var(--bg-base));
+  --candle: #C084FC;
+  --candles: color-mix(in srgb, var(--candle) 16%, var(--bg-base));
+  --good: var(--color-success);
+  --shadow: rgba(2, 4, 12, 0.55);
   --theme-glow: color-mix(in srgb, var(--candle) 45%, transparent);
-  --theme-line: color-mix(in srgb, var(--candle) 42%, var(--line));
+  --theme-line: color-mix(in srgb, var(--candle) 42%, var(--border-subtle));
+  color-scheme: dark;
+}
+
+/* Dim — slightly lifted dark; Settings can switch data-appearance="dim" later */
+html[data-appearance="dim"] {
+  --color-primary: #8B5CF6;
+  --color-secondary: #EC4899;
+  --color-mid: color-mix(in srgb, var(--color-primary) 50%, var(--color-secondary));
+  --color-success: #22C55E;
+  --color-warning: #C084FC;
+
+  --bg-base: #101018;
+  --bg-surface: #181824;
+  --bg-elevated: #222232;
+  --border-subtle: #323248;
+  --border-strong: #42425c;
+
+  --night: var(--bg-base);
+  --room: var(--bg-surface);
+  --room2: var(--bg-elevated);
+  --line: var(--border-subtle);
+  --hair: var(--border-subtle);
+  --hair-strong: var(--border-strong);
+  --glass: var(--bg-elevated);
+  --glass-hi: color-mix(in srgb, var(--bg-elevated) 72%, var(--border-subtle));
+
+  --text: #F4F5FA;
+  --dim: #8A8AA6;
+  --p1: var(--color-primary);
+  --p1s: color-mix(in srgb, var(--p1) 22%, var(--bg-base));
+  --p2: var(--color-secondary);
+  --p2s: color-mix(in srgb, var(--p2) 22%, var(--bg-base));
+  --candle: #C084FC;
+  --candles: color-mix(in srgb, var(--candle) 16%, var(--bg-base));
+  --good: var(--color-success);
+  --shadow: rgba(2, 4, 12, 0.5);
+  --theme-glow: color-mix(in srgb, var(--candle) 40%, transparent);
+  --theme-line: color-mix(in srgb, var(--candle) 42%, var(--border-subtle));
   color-scheme: dark;
 }
 
 html[data-appearance="light"] {
-  --night: #D8DCE8;
-  --room: #E8EBF3;
-  --room2: #D2D7E4;
-  --line: #B4BBCD;
-  --text: #1F2330;
-  --dim: #545C70;
-  --p1: #3B6FD4;
-  --p1s: color-mix(in srgb, var(--p1) 22%, var(--room));
-  --p2: #D94478;
-  --p2s: color-mix(in srgb, var(--p2) 22%, var(--room));
-  --candle: #B87A1C;
-  --candles: color-mix(in srgb, var(--candle) 22%, var(--room));
-  --good: #168A5E;
-  --shadow: rgba(28, 30, 42, 0.14);
-  --theme-glow: color-mix(in srgb, var(--candle) 28%, transparent);
-  --theme-line: color-mix(in srgb, var(--candle) 38%, var(--line));
+  /* Accents match dark Classic; pale duo themes deepen via applyTheme. */
+  --color-primary: #8B5CF6;
+  --color-secondary: #EC4899;
+  --color-mid: color-mix(in srgb, var(--color-primary) 50%, var(--color-secondary));
+  --color-success: #22C55E;
+  --color-warning: #C084FC;
+
+  --bg-base: #F7F8FA;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F0F1F5;
+  --border-subtle: #E2E4E9;
+  --border-strong: #D1D5DB;
+
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+
+  --night: var(--bg-base);
+  --room: var(--bg-surface);
+  --room2: var(--bg-elevated);
+  --line: var(--border-subtle);
+  --hair: var(--border-subtle);
+  --hair-strong: var(--border-strong);
+  --glass: var(--bg-elevated);
+  --glass-hi: color-mix(in srgb, var(--bg-elevated) 55%, var(--border-subtle));
+
+  --text: var(--text-primary);
+  --dim: var(--text-secondary);
+  --p1: var(--color-primary);
+  --p1s: color-mix(in srgb, var(--p1) 14%, var(--bg-surface));
+  --p2: var(--color-secondary);
+  --p2s: color-mix(in srgb, var(--p2) 14%, var(--bg-surface));
+  --candle: #C084FC;
+  --candles: color-mix(in srgb, var(--candle) 14%, var(--bg-surface));
+  --good: var(--color-success);
+  --shadow: rgba(17, 24, 39, 0.08);
+  --theme-glow: color-mix(in srgb, var(--candle) 22%, transparent);
+  --theme-line: color-mix(in srgb, var(--candle) 32%, var(--border-subtle));
   color-scheme: light;
+}
+
+/* —— Redesign layer tokens (shared by the new dashboard shell) —— */
+:root {
+  --acc: var(--color-primary);
+  --acc-soft: color-mix(in srgb, var(--color-primary) 70%, #fff);
+  --acc-indigo: var(--color-primary);
+  --acc-lime: var(--color-primary);
+  --acc-cyan: #22D3EE; /* not one of the 4 roles — kept for misc cyan accents */
+  --acc-amber: var(--color-warning);
+  --acc-magenta: var(--color-secondary);
+
+  /* Chrome uses the primary → mid → secondary ramp. */
+  --grad-primary: linear-gradient(96deg,
+    var(--color-primary) 0%,
+    var(--color-mid) 50%,
+    var(--color-secondary) 100%);
+  --grad-primary-soft: linear-gradient(96deg,
+    color-mix(in srgb, var(--color-primary) 22%, transparent),
+    color-mix(in srgb, var(--color-secondary) 12%, transparent));
+
+  /* Spacing scale — 4/8/12/16/20/24/32/40. */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s7: 32px;
+  --s8: 40px;
+
+  /* Type scale. */
+  --f-page: 30px;
+  --f-sect: 19px;
+  --f-card: 15px;
+  --f-body: 13.5px;
+  --f-meta: 11.5px;
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --r-xl: 20px;
+  --r-lg: 16px;
+  --r-md: 12px;
+  --r-sm: 9px;
+  --ease: cubic-bezier(.32, .72, .28, 1);
+  --sidenav-w: 240px;
+  --rail-w: 360px;
 }
 
 html {
   scroll-behavior: smooth;
-  background: var(--night);
+  background: var(--bg-base);
   min-height: 100%;
   scrollbar-width:thin;
   scrollbar-color:color-mix(in srgb, var(--dim) 55%, transparent) transparent;
@@ -64,14 +193,14 @@ html::-webkit-scrollbar-thumb:hover{
 html::-webkit-scrollbar-button{display:none;width:0;height:0;}
 body {
   margin: 0;
-  background: var(--night);
+  background: var(--bg-base);
   color: var(--text);
   transition: background-color .2s ease, color .2s ease;
   min-height: 100%;
 }
 #root {
   min-height: 100vh;
-  background: var(--night);
+  background: var(--bg-base);
 }
 
 /* —— Duo theme chrome (leaderboard Back look) ——
@@ -107,4 +236,3 @@ body {
 .btn-theme-block {
   width: 100%;
 }
-

@@ -90,7 +90,7 @@ function DuoRow({ row, mine, onOpenDuo }) {
 }
 
 export default function Leaderboard({
-  theme = 'night',
+  theme = 'classic',
   embedded = false,
   onBack,
   onOpenDuo,
@@ -100,7 +100,7 @@ export default function Leaderboard({
   const [status, setStatus] = useState('Loading leaderboard…');
 
   useEffect(() => {
-    applyTheme(theme || 'night');
+    applyTheme(theme || 'classic');
   }, [theme]);
 
   useEffect(() => {

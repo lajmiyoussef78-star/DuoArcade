@@ -281,8 +281,7 @@
 .arcade-page .friends-dock,
 .friends-dock {
   --fd-w: min(272px, 84vw);
-  --fd-inset: 10px;
-  --fd-tab: 22px;
+  --fd-inset: 0px;
   position: fixed;
   top: 68px;
   right: var(--fd-inset);
@@ -300,8 +299,7 @@
 
 .arcade-page .friends-dock.collapsed,
 .friends-dock.collapsed {
-  /* Slide off to the right; tab (stuck on the left) peeks at the edge */
-  transform: translateX(calc(100% + var(--fd-inset)));
+  transform: translateX(100%);
 }
 
 .friends-dock > * { pointer-events: auto; }
@@ -309,61 +307,6 @@
 .arcade-page .friends-dock.collapsed .friends-dock-panel,
 .friends-dock.collapsed .friends-dock-panel {
   pointer-events: none;
-}
-
-/* Side tab — fixed on the panel’s left; rides with the slide (always ◀) */
-.arcade-page .friends-dock-toggle,
-.friends-dock-toggle {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translate(-100%, -50%);
-  width: var(--fd-tab);
-  height: 64px;
-  margin: 0;
-  padding: 0;
-  border: 1px solid color-mix(in srgb, var(--candle, #ffcf3f) 45%, var(--line, #3d3450));
-  border-right: none;
-  border-radius: 12px 0 0 12px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--p1, #7dffb3) 16%, var(--room, #12101a)) 0%,
-      var(--room, #12101a) 48%,
-      color-mix(in srgb, var(--p2, #ff6b9d) 14%, var(--room, #12101a)) 100%);
-  color: var(--candle, #ffcf3f);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  box-shadow:
-    -6px 0 22px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 color-mix(in srgb, var(--candle, #ffcf3f) 18%, transparent);
-  appearance: none;
-  -webkit-appearance: none;
-  font: inherit;
-  line-height: 0;
-  transition: color 0.15s ease, box-shadow 0.15s ease;
-  z-index: 2;
-}
-
-.arcade-page .friends-dock-toggle:hover,
-.friends-dock-toggle:hover {
-  color: var(--text, #f4f0ff);
-  box-shadow:
-    -8px 0 28px rgba(0, 0, 0, 0.45),
-    0 0 18px color-mix(in srgb, var(--candle, #ffcf3f) 22%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--candle, #ffcf3f) 28%, transparent);
-}
-
-.arcade-page .friends-dock-toggle:focus-visible,
-.friends-dock-toggle:focus-visible {
-  outline: 2px solid var(--candle, #ffcf3f);
-  outline-offset: 2px;
-}
-
-.friends-dock-chevron {
-  width: 14px;
-  height: 14px;
-  display: block;
 }
 
 .arcade-page .friends-dock-panel,
@@ -897,9 +840,8 @@
 @media (max-width: 720px) {
   .arcade-page .friends-dock,
   .friends-dock {
-    --fd-w: min(250px, 78vw);
-    --fd-inset: 6px;
-    top: 58px;
-    bottom: 8px;
+    --fd-w: min(320px, 90vw);
+    top: 0;
+    bottom: 0;
   }
 }

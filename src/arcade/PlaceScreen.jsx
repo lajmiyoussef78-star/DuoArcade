@@ -9,6 +9,7 @@ import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
 import ChallengeHistory from './ChallengeHistory.jsx';
 import BucketListCard from './BucketListCard.jsx';
+import SettingsScreen from './SettingsScreen.jsx';
 import { featureRailItem } from './featureRailItems.js';
 
 function favoriteGameId(duo) {
@@ -35,6 +36,8 @@ export default function PlaceScreen({
   duo, code, myRole,
   onRedeem, onStartGame, onStartWatch, onStartReels, onStartMovie, onStartStreaming,
   setHomeStatus,
+  theme, onSetTheme, onSignOut, onDeleteDuo, onAvatarChange,
+  username = '', email = '', onSetUsername = null,
 }) {
   const { featureId } = useParams();
   const navigate = useNavigate();
@@ -63,6 +66,27 @@ export default function PlaceScreen({
     if (featureId !== 'sect-watch' || !code) return;
     listMovieNights(code).then(rows => setContinuity((rows || []).slice(0, 3))).catch(() => {});
   }, [featureId, code]);
+
+  if (featureId === 'sect-settings') {
+    return (
+      <SettingsScreen
+        duo={duo}
+        code={code}
+        myRole={myRole}
+        nameA={duo?.nameA}
+        nameB={duo?.nameB}
+        theme={theme}
+        onSetTheme={onSetTheme}
+        canSetTheme={!!(duo && onSetTheme)}
+        onSignOut={onSignOut}
+        onDeleteDuo={onDeleteDuo}
+        onAvatarChange={onAvatarChange}
+        username={username}
+        email={email}
+        onSetUsername={onSetUsername}
+      />
+    );
+  }
 
   const focusWatch = () => {
     navigate('/app/place/sect-watch');
@@ -193,6 +217,12 @@ export default function PlaceScreen({
           </div>
           <p className="wp-hub-lead">Dim the lights. Whatever you pick, you’re in your duo room.</p>
 
+          <ol className="wp-steps" aria-label="How a watch party works">
+            <li><span className="wp-step-n">1</span> Create a room</li>
+            <li><span className="wp-step-n">2</span> Invite your partner</li>
+            <li><span className="wp-step-n">3</span> Watch in sync</li>
+          </ol>
+
           {!coachDismissed && (
             <div className="wp-hub-coach">
               <p>No stranger rooms, no codes — just you two.</p>
@@ -270,18 +300,21 @@ export default function PlaceScreen({
               </p>
               <div className="wp-streaming-platforms">
                 {[
-                  { id: 'netflix', label: 'Netflix' },
-                  { id: 'disney_plus', label: 'Disney+' },
-                  { id: 'max', label: 'Max' },
-                  { id: 'prime_video', label: 'Prime Video' },
+                  { id: 'netflix', label: 'Netflix', brand: '#E50914' },
+                  { id: 'disney_plus', label: 'Disney+', brand: '#3B82F6' },
+                  { id: 'max', label: 'Max', brand: '#7B2BF9' },
+                  { id: 'prime_video', label: 'Prime Video', brand: '#00A8E1' },
                 ].map(p => (
                   <button
                     key={p.id}
                     type="button"
-                    className="btn warm small"
+                    className="wp-plat"
+                    style={{ '--brand': p.brand }}
                     onClick={() => onStartStreaming?.({ platform: p.id })}
                   >
-                    {p.label}
+                    <span className="wp-plat-mark" aria-hidden="true">{p.label[0]}</span>
+                    <span className="wp-plat-label">{p.label}</span>
+                    <span className="wp-plat-go" aria-hidden="true">Start together</span>
                   </button>
                 ))}
               </div>

@@ -27,7 +27,7 @@ export function SparkIcon({ className }) {
   );
 }
 
-/** Compact couple-title pill for the duo header (matches Founding Duo / streak). */
+/** Compact couple-title pill for the duo header (heart + title). */
 export function XpTitlePill({ code }) {
   const [title, setTitle] = useState('New Sparks');
 
@@ -46,13 +46,18 @@ export function XpTitlePill({ code }) {
 
   return (
     <div className="xp-title-pill" title="Couple title">
-      <SparkIcon className="xp-title-pill-ico" />
+      <svg className="xp-title-pill-ico" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+        <path
+          fill="currentColor"
+          d="M12 20.5S4 15.3 4 9.9C4 7.2 6 5 8.6 5c1.5 0 2.7.7 3.4 1.8C12.7 5.7 14 5 15.4 5 18 5 20 7.2 20 9.9c0 5.4-8 10.6-8 10.6Z"
+        />
+      </svg>
       <span>{title}</span>
     </div>
   );
 }
 
-export default function XpBar({ code }) {
+export default function XpBar({ code, onStats }) {
   const [total, setTotal] = useState(() => xpCache.get(code) || 0);
   const [ready, setReady] = useState(() => xpCache.has(code));
 
@@ -80,6 +85,11 @@ export default function XpBar({ code }) {
   const { level, intoLevel, needed } = levelFromXp(total);
   const title = titleForLevel(level);
   const pct = needed > 0 ? Math.min(100, (100 * intoLevel) / needed) : 0;
+
+  /* Lets the surrounding rank card show the same level without a second fetch. */
+  useEffect(() => {
+    onStats?.({ level, title, total, intoLevel, needed, ready });
+  }, [onStats, level, title, total, intoLevel, needed, ready]);
 
   return (
     <div className="xp-bar" aria-label="Duo XP progress">

@@ -14,7 +14,7 @@ const normalizeDuo = row => ({
   nameB: row.name_b,
   memberA: row.member_a,
   memberB: row.member_b,
-  theme: row.theme || 'night'
+  theme: row.theme || 'classic'
 });
 
 export function normalizeMatch(row) {

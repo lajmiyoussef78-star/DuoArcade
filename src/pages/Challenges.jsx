@@ -53,7 +53,7 @@ export default function Challenges() {
   }, [code]);
 
   useEffect(() => {
-    applyTheme('night');
+    applyTheme('classic');
     let alive = true;
     (async () => {
       const r = await myRoleInDuo(code);

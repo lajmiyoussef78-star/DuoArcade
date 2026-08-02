@@ -16,53 +16,61 @@ export const removeSeat = code => {
   localStorage.setItem(SEAT_KEY, JSON.stringify(s));
 };
 
+/* candle = duo chrome accent (rims, glows, active chips) — usually the mid
+   tone between p1 and p2. Classic = purple / pink (main default). */
+export const DEFAULT_THEME = 'classic';
+
 export const THEMES = {
-  night:   { label: 'Night',   p1: '#6B9BFF', p2: '#FF6B9E', candle: '#FFC66E' },
-  ocean:   { label: 'Ocean',   p1: '#2ED9C3', p2: '#4F7CFF', candle: '#9FE870' },
-  ember:   { label: 'Ember',   p1: '#FFB347', p2: '#FF4D6D', candle: '#FFD36B' },
-  orchid:  { label: 'Orchid',  p1: '#9B6BFF', p2: '#FF6BB5', candle: '#FFC66E' },
-  forest:  { label: 'Forest',  p1: '#4ADE80', p2: '#1D6B5A', candle: '#E8C96A' },
-  sunset:  { label: 'Sunset',  p1: '#FF7A45', p2: '#FF4F9A', candle: '#FFD27A' },
-  aurora:  { label: 'Aurora',  p1: '#2EE6C5', p2: '#8B6BFF', candle: '#F0E68C' },
-  rose:    { label: 'Rose',    p1: '#FFB0C8', p2: '#C2185B', candle: '#F5D0A9' },
-  citrus:  { label: 'Citrus',  p1: '#FFD54A', p2: '#4CD964', candle: '#FF9F43' },
-  arctic:  { label: 'Arctic',  p1: '#5BB8FF', p2: '#C9B8FF', candle: '#E8F4FF' },
-  velvet:  { label: 'Velvet',  p1: '#8B5CFF', p2: '#FF3D8A', candle: '#FFB86B' },
-  magma:   { label: 'Magma',   p1: '#FF8A2B', p2: '#B91C1C', candle: '#FFC14A' },
-  mint:    { label: 'Mint',    p1: '#5EEAD4', p2: '#3B82F6', candle: '#F4E07A' },
-  grape:   { label: 'Grape',   p1: '#C026FF', p2: '#4F46E5', candle: '#FBBF24' },
-  honey:   { label: 'Honey',   p1: '#F5C542', p2: '#B45309', candle: '#FFE8A3' },
+  classic: { label: 'Classic', p1: '#8B5CF6', p2: '#EC4899', candle: '#C084FC' },
+  /* Legacy id — same palette as Classic so old “night” duos keep working */
+  night:   { label: 'Classic', p1: '#8B5CF6', p2: '#EC4899', candle: '#C084FC' },
+  lime:    { label: 'Lime',    p1: '#A3E635', p2: '#8FAF7A', candle: '#F5D76E' },
+  velvet:  { label: 'Pink',    p1: '#FF3D8A', p2: '#A78BFA', candle: '#F472B6' },
+  mint:    { label: 'Mint',    p1: '#2DD4BF', p2: '#38BDF8', candle: '#5EEAD4' },
+  ocean:   { label: 'Teal',    p1: '#14B8A6', p2: '#3B82F6', candle: '#2DD4BF' },
+  arctic:  { label: 'Blue',    p1: '#38BDF8', p2: '#818CF8', candle: '#7DD3FC' },
+  sunset:  { label: 'Orange',  p1: '#FB923C', p2: '#F472B6', candle: '#FDBA74' },
+  ember:   { label: 'Ember',   p1: '#FB7185', p2: '#F97316', candle: '#FDA4AF' },
+  orchid:  { label: 'Orchid',  p1: '#A78BFA', p2: '#F472B6', candle: '#D8B4FE' },
+  forest:  { label: 'Forest',  p1: '#4ADE80', p2: '#1D8F76', candle: '#86EFAC' },
+  aurora:  { label: 'Aurora',  p1: '#2EE6C5', p2: '#8B6BFF', candle: '#67E8F9' },
+  rose:    { label: 'Rose',    p1: '#FFB0C8', p2: '#E11D67', candle: '#FBCFE8' },
+  citrus:  { label: 'Citrus',  p1: '#A3E635', p2: '#4CD964', candle: '#BEF264' },
+  magma:   { label: 'Magma',   p1: '#FB7185', p2: '#BE123C', candle: '#FDA4AF' },
+  grape:   { label: 'Grape',   p1: '#C026FF', p2: '#6366F1', candle: '#D8B4FE' },
+  honey:   { label: 'Honey',   p1: '#FACC15', p2: '#F97316', candle: '#FDE68A' },
   neon:    { label: 'Neon',    p1: '#39FF14', p2: '#FF00E5', candle: '#00F0FF' },
-  coral:   { label: 'Coral',   p1: '#FF6F61', p2: '#00C2CB', candle: '#FFD166' },
-  ink:     { label: 'Ink',     p1: '#3B6FE8', p2: '#E8B84A', candle: '#F5E6C8' },
-  sakura:  { label: 'Sakura',  p1: '#FF8FB8', p2: '#6BBF8A', candle: '#FFE4B5' },
+  coral:   { label: 'Coral',   p1: '#FF6F61', p2: '#00C2CB', candle: '#5EEAD4' },
+  ink:     { label: 'Ink',     p1: '#3B6FE8', p2: '#FACC15', candle: '#93C5FD' },
+  sakura:  { label: 'Sakura',  p1: '#FF8FB8', p2: '#6BBF8A', candle: '#FBCFE8' },
   storm:   { label: 'Storm',   p1: '#6478A8', p2: '#B24BFF', candle: '#A8D8FF' },
-  peach:   { label: 'Peach',   p1: '#FF9A6B', p2: '#7B8CFF', candle: '#FFE0B2' },
-  jade:    { label: 'Jade',    p1: '#10B981', p2: '#E11D48', candle: '#FDE68A' },
-  twilight:{ label: 'Twilight',p1: '#6366F1', p2: '#F472B6', candle: '#FCD34D' },
-  solar:   { label: 'Solar',   p1: '#FACC15', p2: '#2563EB', candle: '#FB923C' },
-  cocoa:   { label: 'Cocoa',   p1: '#A16207', p2: '#F9A8D4', candle: '#FEF3C7' },
-  lagoon:  { label: 'Lagoon',  p1: '#22D3EE', p2: '#E879F9', candle: '#FDE047' },
-  lava:    { label: 'Lava',    p1: '#FB923C', p2: '#7C3AED', candle: '#FDE68A' },
-  moss:    { label: 'Moss',    p1: '#84CC16', p2: '#0F766E', candle: '#FBBF24' },
+  peach:   { label: 'Peach',   p1: '#FF9A6B', p2: '#7B8CFF', candle: '#FDBA74' },
+  jade:    { label: 'Jade',    p1: '#10B981', p2: '#E11D48', candle: '#6EE7B7' },
+  twilight:{ label: 'Twilight',p1: '#6366F1', p2: '#F472B6', candle: '#A5B4FC' },
+  solar:   { label: 'Solar',   p1: '#FACC15', p2: '#2563EB', candle: '#FDE047' },
+  cocoa:   { label: 'Cocoa',   p1: '#C084FC', p2: '#F9A8D4', candle: '#E9D5FF' },
+  lagoon:  { label: 'Lagoon',  p1: '#22D3EE', p2: '#E879F9', candle: '#67E8F9' },
+  lava:    { label: 'Lava',    p1: '#FB923C', p2: '#7C3AED', candle: '#C4B5FD' },
+  moss:    { label: 'Moss',    p1: '#84CC16', p2: '#14B8A6', candle: '#BEF264' },
 };
 
-/** theme field: "night" or "night:flip" (swap partner colors). */
+/** theme field: "classic" or "classic:flip" (swap partner colors). */
 export function parseTheme(raw) {
-  const s = String(raw || 'night');
+  const s = String(raw || DEFAULT_THEME);
   const flip = s.endsWith(':flip');
-  const name = flip ? s.slice(0, -5) : s;
-  return { name: THEMES[name] ? name : 'night', flip };
+  let name = flip ? s.slice(0, -5) : s;
+  if (name === 'night') name = 'classic'; /* legacy purple id */
+  return { name: THEMES[name] ? name : DEFAULT_THEME, flip };
 }
 
 export function formatTheme(name, flip = false) {
-  const n = THEMES[name] ? name : 'night';
+  const n = THEMES[name] ? name : DEFAULT_THEME;
   return flip ? `${n}:flip` : n;
 }
 
 export function themeColors(raw) {
   const { name, flip } = parseTheme(raw);
-  const t = THEMES[name] || THEMES.night;
+  const t = THEMES[name] || THEMES[DEFAULT_THEME];
   return {
     name,
     flip,
@@ -75,12 +83,46 @@ export function themeColors(raw) {
   };
 }
 
+const PALE_LIGHT_THEMES = new Set([
+  'lime', 'citrus', 'honey', 'solar', 'neon', 'moss', 'forest', 'mint',
+]);
+
+function deepenForLight(hex, amount = 28) {
+  return `color-mix(in srgb, ${hex} ${100 - amount}%, #111827 ${amount}%)`;
+}
+
 export function applyTheme(raw) {
   const c = themeColors(raw);
   const rootStyle = document.documentElement.style;
-  rootStyle.setProperty('--p1', c.p1);
-  rootStyle.setProperty('--p2', c.p2);
-  rootStyle.setProperty('--candle', c.candle);
+  const isLight = document.documentElement.getAttribute('data-appearance') === 'light';
+  const pale = isLight && PALE_LIGHT_THEMES.has(c.name);
+  const p1 = pale ? deepenForLight(c.p1, 26) : c.p1;
+  const p2 = pale ? deepenForLight(c.p2, 18) : c.p2;
+  const candle = pale ? deepenForLight(c.candle, 30) : c.candle;
+  const mid = `color-mix(in srgb, ${p1} 50%, ${p2})`;
+  rootStyle.setProperty('--p1', p1);
+  rootStyle.setProperty('--p2', p2);
+  rootStyle.setProperty('--candle', candle);
+  /* Redesign tokens — primary, secondary, mid, and chrome follow Settings. */
+  rootStyle.setProperty('--color-primary', p1);
+  rootStyle.setProperty('--color-secondary', p2);
+  rootStyle.setProperty('--color-mid', mid);
+  rootStyle.setProperty('--color-warning', candle);
+  rootStyle.setProperty('--acc', p1);
+  rootStyle.setProperty('--acc-indigo', p1);
+  rootStyle.setProperty('--acc-magenta', p2);
+  rootStyle.setProperty('--acc-amber', candle);
+  rootStyle.setProperty('--acc-lime', p1);
+  rootStyle.setProperty('--acc-soft', `color-mix(in srgb, ${p1} 70%, #fff)`);
+  rootStyle.setProperty('--p1s', `color-mix(in srgb, ${p1} 22%, var(--bg-base))`);
+  rootStyle.setProperty('--p2s', `color-mix(in srgb, ${p2} 22%, var(--bg-base))`);
+  rootStyle.setProperty('--candles', `color-mix(in srgb, ${candle} 16%, var(--bg-base))`);
+  rootStyle.setProperty('--theme-glow', `color-mix(in srgb, ${candle} 45%, transparent)`);
+  rootStyle.setProperty('--theme-line', `color-mix(in srgb, ${candle} 42%, var(--border-subtle))`);
+  rootStyle.setProperty('--grad-primary',
+    `linear-gradient(96deg, ${p1} 0%, ${mid} 50%, ${p2} 100%)`);
+  rootStyle.setProperty('--grad-primary-soft',
+    `linear-gradient(96deg, color-mix(in srgb, ${p1} 22%, transparent), color-mix(in srgb, ${p2} 12%, transparent))`);
 }
 
 export function totalsOf(duo) {

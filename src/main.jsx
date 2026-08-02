@@ -29,6 +29,8 @@ import './styles/coup.css';
 import './styles/xp.css';
 import './styles/challenges.css';
 import './styles/seabattle.css';
+/* Redesign layer — must stay last so it can restyle the sheets above. */
+import './styles/ui-2026.css';
 
 function ChallengeRedirect() {
   const { code } = useParams();

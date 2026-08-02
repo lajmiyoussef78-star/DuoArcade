@@ -30,10 +30,10 @@
   gap: 0;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  color: #2a1e05;
-  background: var(--candle);
-  border: 2px solid color-mix(in srgb, var(--candle) 70%, #2a1e05);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--candle) 35%, transparent);
+  color: #fff;
+  background: var(--grad-primary);
+  border: 2px solid color-mix(in srgb, var(--color-mid) 70%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 35%, transparent);
   line-height: 1;
   padding: 4px 6px 3px;
 }
@@ -96,7 +96,7 @@
 .arcade-page .xp-sep { opacity: .5; }
 
 .arcade-page .xp-board-link {
-  color: var(--candle);
+  color: var(--color-secondary);
   text-decoration: none;
   font-weight: 600;
 }

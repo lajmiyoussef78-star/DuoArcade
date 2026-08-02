@@ -3,24 +3,6 @@
 import { useChallenge } from './ChallengeContext.jsx';
 import '../styles/challenges.css';
 
-function DuelMark() {
-  return (
-    <svg className="chal-entry-mark" viewBox="0 0 48 48" width="36" height="36" aria-hidden="true">
-      <circle className="chal-entry-mark-bg" cx="24" cy="24" r="22" />
-      <path
-        className="chal-entry-mark-stroke"
-        d="M14 34 L20 14 L24 20 L28 14 L34 34"
-        fill="none"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle className="chal-entry-dot a" cx="18" cy="30" r="2.2" />
-      <circle className="chal-entry-dot b" cx="30" cy="30" r="2.2" />
-    </svg>
-  );
-}
-
 export default function ChallengeCard() {
   const ctx = useChallenge();
   if (!ctx) return null;
@@ -36,14 +18,10 @@ export default function ChallengeCard() {
       id="sect-challenges"
     >
       <button type="button" className="chal-entry-hit" onClick={onCardClick}>
-        <DuelMark />
         <div className="chal-entry-copy">
           <h3>{title}</h3>
           <p>{sub}</p>
         </div>
-        {!iAmCreatorWaiting ? (
-          <strong className="chal-entry-arrow" aria-hidden="true">→</strong>
-        ) : null}
       </button>
       {iAmCreatorWaiting ? (
         <button

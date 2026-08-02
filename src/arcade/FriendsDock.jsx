@@ -4,7 +4,6 @@ import { createFriendsClient, friendPlayableGames } from '../lib/friends.js';
 import { createSync } from '../lib/sync.js';
 import '../styles/friends.css';
 
-const OPEN_KEY = 'duoarcade-friends-dock-open';
 const MAX_FRIENDS = 5;
 
 function statusLine(f) {
@@ -28,13 +27,15 @@ function initial(name) {
   return (s[0] || '?').toUpperCase();
 }
 
-/** Discord-style right friends dock with a side triangle toggle. */
+/**
+ * Friends manager, opened on demand from the context rail or the sidebar.
+ * The rail owns the always-visible "who is online" list; this drawer owns the
+ * things that need room: requests, adding, partner's friends and 1v1 invites.
+ */
 export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
   const navigate = useNavigate();
   const menuRef = useRef(null);
-  const [open, setOpen] = useState(() => {
-    try { return localStorage.getItem(OPEN_KEY) !== '0'; } catch { return true; }
-  });
+  const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [viewPartner, setViewPartner] = useState(false);
   const [friends, setFriends] = useState([]);
@@ -51,28 +52,27 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
   const atCap = friends.length >= MAX_FRIENDS;
   const showAddBtn = !viewPartner && (adding || !atCap);
 
-  const toggle = () => {
-    setOpen(v => {
-      const next = !v;
-      try { localStorage.setItem(OPEN_KEY, next ? '1' : '0'); } catch { /* */ }
-      return next;
-    });
+  const close = () => {
+    setOpen(false);
+    setAdding(false);
+    setViewPartner(false);
+    setPicking(null);
+    setMenuFor(null);
   };
 
-  /* Keep chat FAB / panel clear of the friends rail */
+  /* Rail / sidebar "Friends" entry points open the drawer */
   useEffect(() => {
-    const page = document.querySelector('.arcade-page');
-    if (!page) return undefined;
-    if (!enabled) {
-      page.style.removeProperty('--friends-rail');
-      return undefined;
-    }
-    page.style.setProperty(
-      '--friends-rail',
-      open ? 'calc(min(272px, 84vw) + 18px)' : '40px'
-    );
-    return () => { page.style.removeProperty('--friends-rail'); };
-  }, [enabled, open]);
+    const onOpen = () => setOpen(true);
+    window.addEventListener('duoarcade-open-friends', onOpen);
+    return () => window.removeEventListener('duoarcade-open-friends', onOpen);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = e => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   useEffect(() => {
     if (!menuFor) return undefined;
@@ -99,8 +99,10 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
     }
   }, [client]);
 
+  /* Only talk to the API while the drawer is actually open — the rail's own
+     poll (useFriendsView) covers the always-visible list. */
   useEffect(() => {
-    if (!enabled) return undefined;
+    if (!enabled || !open) return undefined;
     let alive = true;
     createFriendsClient().then(api => {
       if (!alive) return;
@@ -108,13 +110,13 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
       reload(api);
     }).catch(e => { if (alive) setError(e.message); });
     return () => { alive = false; };
-  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!enabled || !client) return undefined;
+    if (!enabled || !open || !client) return undefined;
     const t = setInterval(() => reload(client), 8000);
     return () => clearInterval(t);
-  }, [enabled, client, reload]);
+  }, [enabled, open, client, reload]);
 
   const onlineCount = useMemo(
     () => friends.filter(f => f.online).length,
@@ -142,7 +144,6 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
     setPicking(null);
     setMenuFor(null);
     setOpen(true);
-    try { localStorage.setItem(OPEN_KEY, '1'); } catch { /* */ }
   };
 
   const closeAdd = () => {
@@ -162,7 +163,6 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
     setHits([]);
     setAddStatus('');
     setOpen(true);
-    try { localStorage.setItem(OPEN_KEY, '1'); } catch { /* */ }
     reload(client);
   };
 
@@ -225,30 +225,14 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
   const slotsLeft = Math.max(0, MAX_FRIENDS - friends.length);
 
   return (
+    <>
+      {open && (
+        <div className="friends-dock-scrim" role="presentation" onClick={close} />
+      )}
     <aside
       className={'friends-dock' + (open ? ' open' : ' collapsed')}
       aria-label="Friends"
     >
-      <button
-        type="button"
-        className="friends-dock-toggle"
-        onClick={toggle}
-        aria-label={open ? 'Hide friends' : 'Show friends'}
-        aria-expanded={open}
-        aria-controls="friends-dock-panel"
-      >
-        <svg className="friends-dock-chevron" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M14.5 6.5 9 12l5.5 5.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
       <div
         id="friends-dock-panel"
         className="friends-dock-panel"
@@ -319,6 +303,14 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
               }
             >
               {viewPartner ? 'Back' : "Partner's friends"}
+            </button>
+            <button
+              type="button"
+              className="friends-dock-close"
+              onClick={close}
+              aria-label="Close friends"
+            >
+              ✕
             </button>
           </div>
         </header>
@@ -497,5 +489,6 @@ export default function FriendsDock({ enabled, partnerName = 'Partner' }) {
         )}
       </div>
     </aside>
+    </>
   );
 }

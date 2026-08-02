@@ -1,76 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ENGINES } from '../engines/index.js';
 import GameCard from './GameCard.jsx';
 import GameFixModal from './GameFixModal.jsx';
 import { fixIds, fixNoteFor, normalizeFixGames } from '../lib/gameFixes.js';
-import {
-  FILTER_CHIPS, SORT_OPTIONS, filterAndSortEngines, getRecentGameIds,
-} from '../lib/gameCatalog.js';
-import ChallengeCard from './ChallengeCard.jsx';
-
-/** Hide from Jump back in (soccer kept out of this shelf). */
-const JUMP_BACK_EXCLUDE = new Set(['microsoccer']);
-
-function SmartRow({ title, children, empty }) {
-  if (empty) return null;
-  return (
-    <div className="games-smart-row">
-      <div className="games-smart-title">{title}</div>
-      <div className="games-smart-scroller">{children}</div>
-    </div>
-  );
-}
+import { FILTER_CHIPS, filterAndSortEngines } from '../lib/gameCatalog.js';
 
 export default function GamesBrowse({
-  duo, code, onStartGame, onSetFavoriteGames, onSetFixGames, onSetDaliGames
+  duo, onStartGame, onSetFavoriteGames, onSetFixGames, onSetDaliGames
 }) {
   const [filter, setFilter] = useState('all');
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState('default');
-  const [recentTick, setRecentTick] = useState(0);
-  const [roulette, setRoulette] = useState(null);
   const [fixEng, setFixEng] = useState(null);
-  const rouletteTimer = useRef(null);
 
   const favorites = Array.isArray(duo.favoriteGames) ? duo.favoriteGames : [];
   const daliGames = Array.isArray(duo.daliGames) ? duo.daliGames : [];
   const fixGames = useMemo(() => normalizeFixGames(duo.fixGames), [duo.fixGames]);
   const needsFixIds = useMemo(() => fixIds(fixGames), [fixGames]);
   const records = duo.records || {};
-  const filtering = filter !== 'all' || query.trim().length > 0;
   const daliFilter = filter === 'dali';
   const favFilter = filter === 'favorites';
   const fixFilter = filter === 'needsfix';
   const listFilter = daliFilter || favFilter || fixFilter;
+  const filtering = filter !== 'all';
 
   const list = useMemo(
     () => filterAndSortEngines({
-      filter, query, sort, favoriteIds: favorites, records, fixIds: needsFixIds,
+      filter, query: '', sort: 'default', favoriteIds: favorites, records, fixIds: needsFixIds,
       daliIds: daliGames,
     }),
-    [filter, query, sort, favorites, records, needsFixIds, daliGames]
+    [filter, favorites, records, needsFixIds, daliGames]
   );
-
-  const recentIds = useMemo(() => {
-    void recentTick;
-    return getRecentGameIds(code, 6)
-      .filter(id => !JUMP_BACK_EXCLUDE.has(id))
-      .slice(0, 3);
-  }, [code, recentTick, records]);
-
-  useEffect(() => {
-    const onFocus = () => setRecentTick(t => t + 1);
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('duoarcade-recent-games', onFocus);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('duoarcade-recent-games', onFocus);
-    };
-  }, []);
-
-  useEffect(() => () => {
-    if (rouletteTimer.current) clearTimeout(rouletteTimer.current);
-  }, []);
 
   const toggleFavorite = (id, add) => {
     if (add) onSetFavoriteGames?.([...favorites.filter(x => x !== id), id]);
@@ -80,32 +38,6 @@ export default function GamesBrowse({
   const toggleDali = (id, add) => {
     if (add) onSetDaliGames?.([...daliGames.filter(x => x !== id), id]);
     else onSetDaliGames?.(daliGames.filter(x => x !== id));
-  };
-
-  const pickForUs = () => {
-    if (roulette || !list.length) return;
-    const pool = list.map(e => e.meta.id);
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    const flash = [];
-    for (let i = 0; i < 14; i++) flash.push(pool[Math.floor(Math.random() * pool.length)]);
-    flash.push(pick);
-    setRoulette({ ids: flash, idx: 0, pick });
-    let i = 0;
-    const tick = () => {
-      i += 1;
-      if (i >= flash.length) {
-        rouletteTimer.current = null;
-        setRoulette({ ids: flash, idx: flash.length - 1, pick, done: true });
-        setTimeout(() => {
-          setRoulette(null);
-          onStartGame?.(pick);
-        }, 480);
-        return;
-      }
-      setRoulette({ ids: flash, idx: i, pick });
-      rouletteTimer.current = setTimeout(tick, 55 + i * 12);
-    };
-    rouletteTimer.current = setTimeout(tick, 55);
   };
 
   const shelfTitle = daliFilter
@@ -124,7 +56,7 @@ export default function GamesBrowse({
       ? 'sect-favorites'
       : fixFilter
         ? 'sect-needsfix'
-        : undefined;
+        : 'sect-play-shelf';
 
   const chipSectionId = chipId => {
     if (chipId === 'dali') return 'sect-dali';
@@ -163,68 +95,8 @@ export default function GamesBrowse({
               >{chip.label}</button>
             ))}
           </div>
-          <button
-            type="button"
-            className={'games-pick-btn' + (roulette ? ' spinning' : '')}
-            onClick={pickForUs}
-            disabled={!list.length || !!roulette}
-            title="Pick a random game for us"
-          >
-            <span className="games-pick-dice" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="4" />
-                <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none" />
-              </svg>
-            </span>
-            <span className="games-pick-label">Pick for us</span>
-          </button>
         </div>
-        <div className="games-filter-tools">
-          <label className="games-search">
-            <span className="sr-only">Search games</span>
-            <input
-              type="search"
-              placeholder="Search games…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              autoComplete="off"
-            />
-          </label>
-          <label className="games-sort">
-            <span className="sr-only">Sort</span>
-            <select value={sort} onChange={e => setSort(e.target.value)}>
-              {SORT_OPTIONS.map(o => (
-                <option key={o.id} value={o.id}>{o.label}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {roulette && (
-          <div className="games-roulette" aria-live="polite">
-            Picking… <strong>{ENGINES[roulette.ids[roulette.idx]]?.meta?.name || '…'}</strong>
-          </div>
-        )}
       </div>
-
-      <ChallengeCard />
-
-      {!filtering && (
-        <SmartRow title="Jump back in" empty={!recentIds.length}>
-          {recentIds.map(id => {
-            const eng = ENGINES[id];
-            if (!eng) return null;
-            return (
-              <div className="games-smart-item" key={'recent-' + id}>
-                <GameCard {...cardProps(eng)} />
-              </div>
-            );
-          })}
-        </SmartRow>
-      )}
 
       <div
         className="shelf-title games-all-title"
@@ -241,7 +113,7 @@ export default function GamesBrowse({
       ) : (
         <div
           className={'shelf shelf-browse' + (listFilter ? ' shelf-favs' : '')}
-          key={`${filter}|${sort}`}
+          key={filter}
         >
           {list.map(eng => (
             <div className="gcard-anim" key={eng.meta.id}>
@@ -249,7 +121,7 @@ export default function GamesBrowse({
             </div>
           ))}
           {!list.length && (
-            <p className="games-empty">No games match — try another filter or clear search.</p>
+            <p className="games-empty">No games match — try another filter.</p>
           )}
         </div>
       )}

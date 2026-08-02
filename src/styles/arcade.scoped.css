@@ -1046,10 +1046,14 @@ html[data-appearance="light"] .arcade-page .lobby-enter{color:#1a1408;}
 .arcade-page .price-opt .per{font-size:10.5px;color:var(--dim);}
 .arcade-page .price-opt .tagl{font-size:10px;color:var(--candle);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-top:4px;}
 .arcade-page .pass-badge{
+  display:inline-flex;align-items:center;gap:6px;
   background:color-mix(in srgb, var(--candle) 12%, var(--room2));
   border:1px solid var(--candle);color:var(--candle);border-radius:999px;
   padding:6px 12px;font-size:12px;font-weight:700;white-space:nowrap;margin:0;
   box-shadow:0 0 14px color-mix(in srgb, var(--candle) 22%, transparent);
+}
+.arcade-page .pass-badge-ico{
+  width:12px;height:12px;flex:none;
 }
 .arcade-page .theme-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .arcade-page .theme-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;}

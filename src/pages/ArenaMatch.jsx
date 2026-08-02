@@ -47,7 +47,7 @@ export default function ArenaMatch() {
       const data = await api.openMatch(matchCode);
       setMatch(data.match); setSeat(data.seat);
       setTeamA(data.teamA); setTeamB(data.teamB);
-      applyTheme((data.seat?.[0] === 'A' ? data.teamA : data.teamB)?.theme || 'night');
+      applyTheme((data.seat?.[0] === 'A' ? data.teamA : data.teamB)?.theme || 'classic');
       setJoinDuos(null); setStatus('');
       return data;
     } catch (error) {

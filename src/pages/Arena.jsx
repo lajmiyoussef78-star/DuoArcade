@@ -45,7 +45,7 @@ export default function Arena() {
   }, []);
 
   useEffect(() => {
-    applyTheme(selectedDuo?.theme || 'night');
+    applyTheme(selectedDuo?.theme || 'classic');
   }, [selectedDuo?.theme]);
 
   useEffect(() => {
