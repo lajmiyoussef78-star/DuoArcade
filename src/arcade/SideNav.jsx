@@ -68,7 +68,7 @@ export function navigateToNav(it, { navigate, onHome, code }) {
 }
 
 export default function SideNav({
-  duo, code, myRole, avatars, activeId, onBack,
+  duo, code, myRole, avatars, activeId, onBack, onSignOut,
   hasPass = false, username = '', requestCount = 0,
 }) {
   const navigate = useNavigate();
@@ -218,6 +218,23 @@ export default function SideNav({
                 >
                   Diagnostics
                 </button>
+                {onSignOut && (
+                  <>
+                    <div className="dnav-menu-sep" role="separator" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dnav-menu-logout"
+                      onClick={() => {
+                        setMenu(false);
+                        onSignOut();
+                      }}
+                    >
+                      <Ico.logout size={15} />
+                      Log out
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

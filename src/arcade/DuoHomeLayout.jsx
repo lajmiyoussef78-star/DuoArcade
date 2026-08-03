@@ -16,7 +16,7 @@ const HOME_SECTIONS = ['sect-play', 'sect-favorites', 'sect-together'];
  */
 export default function DuoHomeLayout({
   duo, code, myRole, isAway, presence, geoStatus,
-  onSetAnniversary, onBack, onStartGame, avatarTick = 0,
+  onSetAnniversary, onBack, onStartGame, onSignOut, avatarTick = 0,
   username = '', friendsEnabled = false,
 }) {
   const { featureId } = useParams();
@@ -25,6 +25,8 @@ export default function DuoHomeLayout({
   const { friends, incoming, loaded: friendsLoaded } = useFriendsView(friendsEnabled);
   const onPlace = location.pathname.includes('/place/');
   const onSettings = featureId === 'sect-settings';
+  const onWall = featureId === 'sect-wall';
+  const fullMain = onSettings || onWall;
   const activeNavId = onPlace
     ? (featureId || location.pathname.split('/').pop())
     : 'sect-play';
@@ -45,7 +47,11 @@ export default function DuoHomeLayout({
   }, [code, avatarTick]);
 
   return (
-    <section className={'on home-wide duo-shell' + (onSettings ? ' duo-shell-settings' : '')}>
+    <section className={
+      'on home-wide duo-shell'
+      + (onSettings ? ' duo-shell-settings' : '')
+      + (onWall ? ' duo-shell-wall' : '')
+    }>
       <SideNav
         duo={duo}
         code={code}
@@ -53,12 +59,13 @@ export default function DuoHomeLayout({
         avatars={avatars}
         activeId={navActive}
         onBack={onBack}
+        onSignOut={onSignOut}
         hasPass={!!(duo.passTier && duo.passTier !== 'free')}
         username={username}
         requestCount={incoming.length}
       />
 
-      {!onSettings && (
+      {!fullMain && (
         <DashHeader
           duo={duo}
           code={code}
@@ -72,7 +79,7 @@ export default function DuoHomeLayout({
 
       <div className="duo-main">
         <div className="card home-card">
-          {!onSettings && (
+          {!fullMain && (
             <DuoHomeChrome
               duo={duo}
               code={code}
@@ -86,7 +93,7 @@ export default function DuoHomeLayout({
         </div>
       </div>
 
-      {!onSettings && (
+      {!fullMain && (
         <ContextRail
           duo={duo}
           code={code}

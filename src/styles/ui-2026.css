@@ -230,6 +230,73 @@
   max-width: none;
 }
 
+/* Whiteboard: sidebar + full-bleed main (no greeting / chrome / right rail). */
+.arcade-page section.duo-shell.duo-shell-wall {
+  grid-template-columns: var(--sidenav-w) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 0;
+  padding: 0;
+}
+.arcade-page section.duo-shell.duo-shell-wall > .dnav {
+  grid-column: 1;
+  grid-row: 1;
+}
+.arcade-page section.duo-shell.duo-shell-wall > .duo-main {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.arcade-page section.duo-shell.duo-shell-wall > .duo-main > .card.home-card {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  width: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+/* Kill the PlaceScreen card chrome — board must be flush to the sidenav. */
+.arcade-page section.duo-shell.duo-shell-wall .home-feature-body {
+  flex: 1;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  width: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+.arcade-page section.duo-shell.duo-shell-wall #sect-wall.shelf-anchor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 /* ---------------------------------------------------------- left sidebar -- */
 /* Full-height rail pinned to the left edge — the brand at its top is the
    page's main title now that the utility bar is gone. */
@@ -485,6 +552,20 @@
   text-align: left; cursor: pointer;
 }
 .arcade-page .dnav-menu button:hover { background: var(--glass-hi); }
+.arcade-page .dnav-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border-subtle);
+}
+.arcade-page .dnav-menu-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: color-mix(in srgb, #f87171 85%, var(--text)) !important;
+}
+.arcade-page .dnav-menu-logout:hover {
+  background: color-mix(in srgb, #f87171 12%, transparent) !important;
+}
 
 .arcade-page .dnav-burger,
 .arcade-page .dnav-scrim,

@@ -160,6 +160,12 @@ export const Ico = {
       <path d="m5 9 7 7 7-7" />
     </Svg>
   ),
+  logout: p => (
+    <Svg {...p}>
+      <path d="M10 12h9M16 8.5 19.5 12 16 15.5" />
+      <path d="M14 5.5H7.5A2.5 2.5 0 0 0 5 8v8a2.5 2.5 0 0 0 2.5 2.5H14" />
+    </Svg>
+  ),
 };
 
 export default Ico;

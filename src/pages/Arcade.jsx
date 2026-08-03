@@ -28,7 +28,6 @@ import InviteOverlay from '../arcade/InviteOverlay.jsx';
 import FriendMatchInvite from '../arcade/FriendMatchInvite.jsx';
 import FriendsDock from '../arcade/FriendsDock.jsx';
 import { ChallengeProvider } from '../arcade/ChallengeContext.jsx';
-import PartnerChat from '../arcade/PartnerChat.jsx';
 import SettingsMenu from '../arcade/SettingsMenu.jsx';
 import Leaderboard from './Leaderboard.jsx';
 import Arena from './Arena.jsx';
@@ -1401,14 +1400,6 @@ export default function Arcade() {
 
 
       {screen}
-
-      {duo && code && myRole && syncRef.current?.auth.user()?.id && (
-        <PartnerChat
-          code={code}
-          userId={syncRef.current.auth.user().id}
-          partnerName={myRole === 'A' ? (duo.nameB || 'Partner') : (duo.nameA || 'Partner')}
-        />
-      )}
 
       <InviteOverlay
         duo={duo} myRole={myRole}

@@ -59,6 +59,7 @@ export default function Whiteboard() {
     const cv = canvasRef.current, g = ctx2d();
     if (!cv || !g) return;
     g.clearRect(0, 0, cv.width, cv.height);
+    // TODO: kind-based draw path (shapes + text) — mirror WhiteboardCard; shapes/text currently fall back to polyline.
     for (const s of strokesRef.current) drawSeg(s.pts, s.color, s.size, s.erase);
   }, [drawSeg]);
 
