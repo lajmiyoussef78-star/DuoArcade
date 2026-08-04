@@ -17,6 +17,8 @@ function getSupabase() {
 
 /**
  * Socket.IO middleware: verify Supabase access token from handshake.auth.token.
+ * Uses getClaims (JWKS / local verify) so valid JWTs are accepted even when the
+ * Auth session row is gone — getUser() fails with "session_id claim … does not exist".
  * Does NOT check duo/friend room membership (authorization deferred).
  */
 export function createJwtAuthMiddleware() {
@@ -31,19 +33,22 @@ export function createJwtAuthMiddleware() {
       }
 
       const client = getSupabase();
-      const { data, error } = await client.auth.getUser(token);
-      if (error || !data?.user) {
+      const { data, error } = await client.auth.getClaims(token);
+      const claims = data?.claims;
+      const userId = typeof claims?.sub === 'string' ? claims.sub : null;
+
+      if (error || !userId) {
         log.warn('auth rejected — invalid JWT', {
           id: socket.id,
-          error: error?.message || 'no_user',
+          error: error?.message || 'no_sub',
         });
         return next(new Error('unauthorized'));
       }
 
-      socket.data.userId = data.user.id;
-      socket.data.userEmail = data.user.email || null;
+      socket.data.userId = userId;
+      socket.data.userEmail = typeof claims.email === 'string' ? claims.email : null;
       socket.data.accessToken = token;
-      log.info('auth ok', { id: socket.id, userId: data.user.id });
+      log.info('auth ok', { id: socket.id, userId });
       return next();
     } catch (e) {
       log.error('auth middleware error', { id: socket.id, error: String(e?.message || e) });
