@@ -551,9 +551,6 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
     let netAcc = 0;
     let lastGuestPose = null;
     let lastGuestPoseT = -1;
-    let hostPoseTarget = null;
-    let guestPoseTarget = null;
-    let lastHostWireSeq = -1;
     /**
      * Once we know this client is the guest we NEVER go back to simulating P1.
      * A single frame of `role == null` used to drop the guest into the host
@@ -656,53 +653,8 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
       return true;
     };
 
-    /**
-     * Store the newest authoritative snapshot without hard-snapping every
-     * packet. Large jumps are real respawns/teleports and still snap.
-     */
-    const captureRemoteBody = (p, sp, side) => {
-      if (!p || !sp || !Number.isFinite(sp.x) || !Number.isFinite(sp.y)) return false;
-      const previous = side === "host" ? hostPoseTarget : guestPoseTarget;
-      const err = Math.hypot(p.x - sp.x, p.y - sp.y);
-      const mustSnap = !previous || err > 260 || (sp.respawnT || 0) > 0.05;
-      const oldX = p.x;
-      const oldY = p.y;
-      placeBody(p, sp); // copy animation, rope, checkpoint and finish fields
-      if (!mustSnap) {
-        p.x = oldX;
-        p.y = oldY;
-      }
-      const target = { ...sp, receivedAt: performance.now() };
-      if (side === "host") hostPoseTarget = target;
-      else guestPoseTarget = target;
-      return true;
-    };
-
-    /** Smoothly render a remote racer toward a short velocity prediction. */
-    const interpolateRemote = (p, target, dt) => {
-      if (!p || !target || p.finished) return;
-      const age = Math.min(0.12, Math.max(0, (performance.now() - target.receivedAt) / 1000));
-      const tx = target.x + (target.vx || 0) * age;
-      const ty = target.y + (target.vy || 0) * age;
-      const err = Math.hypot(tx - p.x, ty - p.y);
-      if (err > 260) {
-        p.x = tx;
-        p.y = ty;
-      } else {
-        const blend = 1 - Math.exp(-24 * dt);
-        p.x += (tx - p.x) * blend;
-        p.y += (ty - p.y) * blend;
-      }
-      p.vx = target.vx || 0;
-      p.vy = target.vy || 0;
-      if (Math.abs(p.vx) > 20 && target.runPhase == null) {
-        p.runPhase = (p.runPhase || 0) + Math.abs(p.vx) * dt * 0.08;
-      }
-    };
-
     // Kart-identical wire format: host st.players[0], guest inp.extra.pose
     const packHostSt = () => ({
-      wireSeq: hostSeq,
       raceT: S.raceT,
       mode: S.mode,
       modeT: S.modeT,
@@ -775,7 +727,7 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
       if (!p || !sp || sp.x == null) return;
       const wasFinished = !!p.finished;
       lastGuestPose = sp;
-      captureRemoteBody(p, sp, "guest");
+      placeBody(p, sp);
       const crossed =
         !!sp.finished ||
         (typeof sp.x === 'number' && sp.x >= T.finishX - 4) ||
@@ -791,20 +743,17 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
       if (Math.abs(p.vx) > 20) p.runPhase = (p.runPhase || 0) + Math.abs(p.vx) * dt * 0.08;
     };
 
-    /** Capture each new host body once; interpolation handles frames between packets. */
+    /** Apply newest host body onto guest P1 — always from peek/take, never stick on spawn. */
     const applyHostBodyOnGuest = () => {
       const net = liveNet();
       const fresh = typeof net.takeState === 'function' ? net.takeState() : null;
-      if (!fresh) return !!hostPoseTarget;
-      applyClock(fresh);
-      const wireSeq = Number.isFinite(fresh.wireSeq) ? fresh.wireSeq : null;
-      if (wireSeq != null && wireSeq === lastHostWireSeq) return !!hostPoseTarget;
-      if (wireSeq != null) lastHostWireSeq = wireSeq;
-      const sp = fresh.p || fresh.players?.[0];
+      const st = fresh || (typeof net.peekState === 'function' ? net.peekState() : null);
+      if (!st) return false;
+      applyClock(st);
+      const sp = st.p || st.players?.[0];
       if (!sp || typeof sp.x !== 'number') return false;
-      const wasFinished = !!S.players[0].finished;
-      captureRemoteBody(S.players[0], sp, "host");
-      if (sp.finished && !wasFinished) {
+      placeBody(S.players[0], sp);
+      if (sp.finished && !S.players[0].finished) {
         declareFinish(S.players[0], sp.finishTime);
       }
       return true;
@@ -1874,9 +1823,8 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
       last = now;
 
       if (__guest) {
-        // P1 is host-authoritative; render smoothly between fresh snapshots.
-        applyHostBodyOnGuest();
-        interpolateRemote(S.players[0], hostPoseTarget, dt);
+        // P1 from host — take OR peek so we never freeze on the first spawn snap.
+        if (!applyHostBodyOnGuest()) extrapPose(S.players[0], dt);
 
         S.t += dt;
         if (S.mode === 'countdown') {
@@ -1907,11 +1855,13 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
         });
         S.texts = S.texts.filter((tx) => { tx.life -= dt; tx.y += tx.vy * dt; tx.vy *= 0.94; return tx.life > 0; });
       } else {
+        let guestPoseApplied = false;
         if (__online) {
           const pose = typeof net.peekRemoteExtra === 'function' ? net.peekRemoteExtra()?.pose : null;
           if (pose && typeof pose.x === 'number' && pose.t !== lastGuestPoseT) {
             lastGuestPoseT = pose.t;
             applyGuestPoseOnHost(S.players[1], pose);
+            guestPoseApplied = true;
           }
         }
         S.t += dt;
@@ -1927,7 +1877,7 @@ export default function StickmanRacing({ myRole, rt, names = {}, onComplete } = 
 
         S.players.forEach((p) => {
           if (__online && p.id === 1 && lastGuestPose) {
-            interpolateRemote(p, guestPoseTarget, dt);
+            if (!guestPoseApplied) extrapPose(p, dt);
           } else if (!__online || p.id === 0) {
             updateRacer(p, dt);
           }
