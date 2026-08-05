@@ -99,6 +99,7 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
 
 /* ---------- Embedded whiteboard (sect-wall) ---------- */
 .arcade-page .wb-embed {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -106,9 +107,10 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
   width: 100%;
   min-height: 0;
   height: 100%;
+  max-height: 100%;
   border-radius: 0;
   border: 0;
-  background: var(--bg-surface, var(--room));
+  background: var(--bg-base, #0b0e1a);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -120,6 +122,15 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
   padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle, var(--line));
   background: color-mix(in srgb, var(--bg-elevated, var(--room2)) 70%, transparent);
+}
+.arcade-page .wb-embed-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.arcade-page .wb-embed-title-copy {
+  min-width: 0;
 }
 .arcade-page .wb-embed-title h2 {
   margin: 0;
@@ -133,6 +144,30 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
   margin: 2px 0 0;
   font-size: 12px;
   color: var(--dim);
+}
+.arcade-page .wb-embed-library {
+  flex: none;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 0;
+  /* Match active sidenav (.dnav-item.on) */
+  background: var(--color-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.arcade-page .wb-embed-library:hover {
+  filter: brightness(1.08);
+  color: #fff;
+}
+.arcade-page .wb-embed-library.on {
+  background: var(--color-primary);
+  color: #fff;
 }
 .arcade-page .wb-embed-actions {
   display: flex;
@@ -205,6 +240,25 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
   cursor: not-allowed;
   filter: grayscale(.35);
 }
+.arcade-page .wb-save-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #8B5CF6 55%, transparent);
+  background: color-mix(in srgb, #8B5CF6 16%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.arcade-page .wb-save-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, #8B5CF6 28%, transparent);
+}
+.arcade-page .wb-save-btn:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
 .arcade-page .wb-share {
   height: 36px;
   padding: 0 16px;
@@ -215,78 +269,369 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
   font-weight: 650;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(96deg, #8B5CF6 0%, #EC4899 100%);
-  box-shadow: 0 8px 20px -10px color-mix(in srgb, #EC4899 70%, transparent);
+  /* Match active sidenav (.dnav-item.on) */
+  background: var(--color-primary);
+  box-shadow: none;
 }
-.arcade-page .wb-share:hover { filter: brightness(1.06); }
-.arcade-page .wb-more-wrap { position: relative; }
-.arcade-page .wb-more-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
-  min-width: 160px;
-  padding: 6px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle, var(--line));
-  background: var(--bg-elevated, var(--room2));
-  box-shadow: 0 18px 40px -18px var(--shadow, rgba(0,0,0,.5));
+.arcade-page .wb-share:hover { filter: brightness(1.08); }
+
+.arcade-page .wb-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid color-mix(in srgb, #8B5CF6 35%, transparent);
+  background: color-mix(in srgb, #8B5CF6 14%, #0b0e1a);
+}
+.arcade-page .wb-preview-bar-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
-.arcade-page .wb-more-menu button,
-.arcade-page .wb-more-menu a {
-  display: block;
-  padding: 9px 10px;
+.arcade-page .wb-preview-bar-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.arcade-page .wb-preview-bar-copy span {
+  font-size: 12px;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arcade-page .wb-preview-bar-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.arcade-page .wb-preview-ghost,
+.arcade-page .wb-preview-edit,
+.arcade-page .wb-preview-restore {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.arcade-page .wb-preview-ghost {
+  border: 1px solid var(--border-subtle, var(--line));
+  background: transparent;
+  color: var(--text);
+}
+.arcade-page .wb-preview-edit {
   border: 0;
-  border-radius: 8px;
+  color: #fff;
+  background: var(--color-primary);
+}
+.arcade-page .wb-preview-edit:hover { filter: brightness(1.08); }
+.arcade-page .wb-preview-restore {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(96deg, #8B5CF6 0%, #EC4899 100%);
+}
+.arcade-page .wb-preview-bar-edit {
+  border-bottom-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--bg-base, #0b0e1a));
+}
+.arcade-page .wb-embed-body.is-preview .wb-rail {
+  pointer-events: none;
+  opacity: .42;
+}
+.arcade-page .wb-embed-body.is-preview .wb-stage-canvas {
+  cursor: default !important;
+}
+
+.arcade-page .wb-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--bg-base, #0b0e1a) 72%, transparent);
+  backdrop-filter: blur(6px);
+}
+.arcade-page .wb-modal {
+  width: min(420px, 100%);
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle, var(--line));
+  background: var(--bg-surface, #121526);
+  box-shadow: 0 24px 60px -24px var(--shadow, rgba(0, 0, 0, .7));
+  color: var(--text);
+}
+.arcade-page .wb-modal h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.arcade-page .wb-modal > p,
+.arcade-page .wb-modal-history-lead {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+.arcade-page .wb-modal-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--dim);
+}
+.arcade-page .wb-modal-field input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--line));
+  background: var(--bg-elevated, #0b0e1a);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.arcade-page .wb-modal-field input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, #8B5CF6 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #8B5CF6 22%, transparent);
+}
+.arcade-page .wb-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+.arcade-page .wb-modal-cancel,
+.arcade-page .wb-modal-ok,
+.arcade-page .wb-modal-close {
+  font: inherit;
+  cursor: pointer;
+}
+.arcade-page .wb-modal-cancel {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, var(--line));
+  background: transparent;
+  color: var(--text);
+}
+.arcade-page .wb-modal-ok {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 650;
+  background: var(--color-primary, #8B5CF6);
+}
+.arcade-page .wb-modal-ok:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.arcade-page .wb-modal-ok:disabled,
+.arcade-page .wb-modal-cancel:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.arcade-page .wb-share-modal .wb-share-loading {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+.arcade-page .wb-share-modal .wb-share-error {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: #ef4444;
+}
+.arcade-page .wb-share-code-block {
+  margin-top: 16px;
+}
+.arcade-page .wb-share-code-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--dim);
+}
+.arcade-page .wb-share-code-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.arcade-page .wb-share-code {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--line));
+  background: var(--bg-elevated, #0b0e1a);
+  color: var(--text);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+.arcade-page .wb-share-link {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--line));
+  background: var(--bg-elevated, #0b0e1a);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+.arcade-page .wb-share-copy {
+  flex: none;
+  height: auto;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--line));
   background: transparent;
   color: var(--text);
   font: inherit;
   font-size: 13px;
-  text-align: left;
-  text-decoration: none;
+  font-weight: 650;
   cursor: pointer;
 }
-.arcade-page .wb-more-menu button:hover,
-.arcade-page .wb-more-menu a:hover {
-  background: var(--glass-hi, rgba(255,255,255,.06));
+.arcade-page .wb-share-copy:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary, #8B5CF6) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary, #8B5CF6) 40%, var(--border-subtle, var(--line)));
+}
+.arcade-page .wb-share-copy:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.arcade-page .wb-modal-history {
+  width: min(460px, 100%);
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 10px;
+}
+.arcade-page .wb-modal-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.arcade-page .wb-modal-close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dim);
+  font-size: 22px;
+  line-height: 1;
+}
+.arcade-page .wb-modal-close:hover {
+  color: var(--text);
+  background: var(--glass, rgba(255,255,255,.04));
+}
+.arcade-page .wb-modal-empty {
+  margin: 18px 0 10px;
+  font-size: 13px;
+  color: var(--dim);
+  text-align: center;
+}
+.arcade-page .wb-history-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+}
+.arcade-page .wb-history-row {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, var(--line));
+  background: var(--bg-elevated, color-mix(in srgb, #0b0e1a 70%, transparent));
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.arcade-page .wb-history-row:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #8B5CF6 45%, transparent);
+  background: color-mix(in srgb, var(--color-primary, #8B5CF6) 12%, var(--bg-elevated, #0b0e1a));
+}
+.arcade-page .wb-history-row:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+.arcade-page .wb-history-row-title {
+  font-size: 13.5px;
+  font-weight: 650;
+}
+.arcade-page .wb-history-row-date {
+  font-size: 12px;
+  color: var(--dim);
+}
+.arcade-page .wb-rail-clear:not(:disabled):hover {
+  color: #FDA4AF;
+  border-color: color-mix(in srgb, #F43F5E 40%, var(--border-subtle, var(--line)));
 }
 
 .arcade-page .wb-embed-body {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
+  display: grid !important;
+  grid-template-columns: 64px minmax(0, 1fr) !important;
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 .arcade-page .wb-rail {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   padding: 12px 8px;
   border-right: 1px solid var(--border-subtle, var(--line));
-  background: color-mix(in srgb, var(--bg-base, var(--night)) 55%, var(--bg-surface, var(--room)));
+  background: var(--bg-elevated, #0f1220);
+  min-height: 0;
+  /* visible so tool menus aren’t clipped; tools list scrolls internally if needed */
+  overflow: visible;
+  scrollbar-width: none;
 }
+.arcade-page .wb-rail::-webkit-scrollbar { display: none; }
 .arcade-page .wb-rail-tools {
   display: flex;
   flex-direction: column;
   gap: 6px;
   width: 100%;
   align-items: center;
+  overflow: visible;
 }
 .arcade-page .wb-rail-shapes {
   position: relative;
   display: flex;
   justify-content: center;
   width: 100%;
+  overflow: visible;
 }
 .arcade-page .wb-shape-flyout {
-  position: absolute;
-  left: calc(100% + 8px);
-  top: 0;
-  z-index: 30;
+  /* Fixed — rail/stage overflow was clipping absolute menus. */
+  position: fixed;
+  z-index: 80;
   display: grid;
   gap: 2px;
   min-width: 132px;
@@ -535,11 +880,12 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
 
 .arcade-page .wb-stage {
   position: relative;
+  z-index: 1;
+  min-width: 0;
   min-height: 0;
   height: 100%;
-  background-color: #0b0e1a;
-  background-image: radial-gradient(circle, color-mix(in srgb, #fff 14%, transparent) 1px, transparent 1.2px);
-  background-size: 22px 22px;
+  /* White “paper” on dark UI; soft gray on light UI */
+  background-color: #ffffff;
   overflow: hidden;
   overscroll-behavior: none;
   scrollbar-width: none;
@@ -552,15 +898,17 @@ html[data-appearance="light"] .wb-av.B { background: var(--p2s); }
 }
 html[data-appearance="light"] .arcade-page .wb-stage {
   background-color: #F3F4F8;
-  background-image: radial-gradient(circle, color-mix(in srgb, #111827 14%, transparent) 1px, transparent 1.2px);
 }
 .arcade-page .wb-stage-canvas {
   display: block;
-  /* Always fill the stage; JS sets the bitmap to CSS size × devicePixelRatio. */
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  top: 0;
+  /* Exact CSS px are set in JS to match bitmap ÷ devicePixelRatio.
+     Do not use width/height:100% — that stretches a mismatched buffer
+     into the “hard zoom / corner / off-target ink” bug. */
+  max-width: none !important;
+  max-height: none !important;
   touch-action: none;
   z-index: 1;
   image-rendering: auto;

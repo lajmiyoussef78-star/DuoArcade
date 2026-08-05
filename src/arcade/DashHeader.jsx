@@ -21,6 +21,7 @@ const NAV_TARGETS = ALL_NAV_ITEMS.filter(it => it.id !== 'home');
 
 export default function DashHeader({
   duo, code, myRole, avatars, onStartGame, onBack, requestCount = 0,
+  crailHidden = false, onToggleCrail,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -180,6 +181,26 @@ export default function DashHeader({
           <Ico.bell size={18} />
           {requestCount > 0 && <span className="dhead-icon-dot" aria-hidden="true" />}
         </button>
+        {onToggleCrail && (
+          <button
+            type="button"
+            className={'dhead-icon dhead-crail-toggle' + (crailHidden ? ' is-off' : '')}
+            title={crailHidden ? 'Show side panel' : 'Hide side panel'}
+            aria-label={crailHidden ? 'Show side panel' : 'Hide side panel'}
+            aria-pressed={!crailHidden}
+            onClick={onToggleCrail}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M14.5 4.5v15" stroke="currentColor" strokeWidth="1.7" />
+              {crailHidden ? (
+                <path d="m11 9.5 3 2.5-3 2.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              ) : (
+                <path d="m17.5 9.5-3 2.5 3 2.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              )}
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           className="dhead-avatar"

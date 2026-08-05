@@ -153,7 +153,7 @@
 /* Viewport-locked shell: main + rail scroll independently, scrollbars hidden. */
 .arcade-page section.duo-shell {
   --shell-pad: var(--s6);
-  display: grid;
+  display: grid !important;
   grid-template-columns: var(--sidenav-w) minmax(0, 1fr) var(--rail-w);
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
@@ -168,6 +168,8 @@
   overflow: hidden;
   padding: 0 var(--shell-pad) 0 0;
   margin: 0;
+  opacity: 1;
+  visibility: visible;
 }
 .arcade-page section.duo-shell > .duo-main,
 .arcade-page section.duo-shell > .crail {
@@ -200,6 +202,21 @@
 .arcade-page section.duo-shell > .duo-main { grid-column: 2; grid-row: 2; }
 .arcade-page section.duo-shell > .crail { grid-column: 3; grid-row: 2; }
 
+/* Hide relationship rail — main card expands into its place */
+.arcade-page section.duo-shell.duo-shell-crail-off {
+  grid-template-columns: var(--sidenav-w) minmax(0, 1fr);
+}
+.arcade-page section.duo-shell.duo-shell-crail-off > .dhead {
+  grid-column: 2;
+}
+.arcade-page section.duo-shell.duo-shell-crail-off > .duo-main {
+  grid-column: 2;
+}
+.arcade-page section.duo-shell.duo-shell-crail-off > .duo-main > .card.home-card {
+  max-width: none;
+  width: 100%;
+}
+
 /* Settings page: sidebar + full-width main (no greeting / chrome / rail). */
 .arcade-page section.duo-shell.duo-shell-settings {
   grid-template-columns: var(--sidenav-w) minmax(0, 1fr);
@@ -228,6 +245,14 @@
   box-shadow: none;
   width: 100%;
   max-width: none;
+}
+
+/* Saved library: same wall shell, allow the card grid to scroll. */
+.arcade-page section.duo-shell.duo-shell-wall.duo-shell-saved .home-feature-body {
+  overflow: auto !important;
+}
+.arcade-page section.duo-shell.duo-shell-wall:not(.duo-shell-saved) .home-feature-body {
+  overflow: hidden !important;
 }
 
 /* Whiteboard: sidebar + full-bleed main (no greeting / chrome / right rail). */
@@ -286,7 +311,9 @@
   display: flex;
   flex-direction: column;
 }
-.arcade-page section.duo-shell.duo-shell-wall #sect-wall.shelf-anchor {
+.arcade-page section.duo-shell.duo-shell-wall #sect-wall.shelf-anchor,
+.arcade-page section.duo-shell.duo-shell-wall #sect-saved-boards.shelf-anchor,
+.arcade-page section.duo-shell.duo-shell-wall #sect-list.shelf-anchor {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -797,30 +824,133 @@
 .arcade-page .dhead-avatar:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--p1) 18%, transparent); }
 
 /* ------------------------------------------------- couple + rank row ------ */
-/* One identity surface: who you are on top, progression underneath, split by
-   a hairline instead of a card gap. */
+/* Left: who, then XP + stats. Right: Together = same band as XP + stats. */
 .arcade-page .dident {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  align-items: stretch;
+  gap: 12px;
   overflow: visible;
   background: transparent;
 }
-.arcade-page .dident-who { padding: 0 0 var(--s4); }
-.arcade-page .dident-rank {
+.arcade-page .dident-who {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  padding: 0;
+  min-width: 0;
+  align-self: center;
+}
+.arcade-page .dident-together {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  min-height: 0;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+}
+.arcade-page .dident-xp {
+  grid-column: 1;
+  grid-row: 2;
+  padding: 18px 20px;
+}
+.arcade-page .dident > .home-stats {
+  grid-column: 1;
+  grid-row: 3;
+  margin: 0;
+  align-self: stretch;
+  min-height: 0;
+}
+.arcade-page .dident-panel {
   display: flex;
   align-items: center;
   gap: var(--s4);
-  padding: var(--s5) var(--s6);
+  min-width: 0;
+  padding: var(--s5) var(--s5);
   border: 3px solid transparent;
   border-radius: var(--r-xl);
-  /* Fill = page bg; border = theme ramp (primary → mid → secondary) */
   background:
     linear-gradient(var(--bg-base), var(--bg-base)) padding-box,
     var(--grad-primary) border-box;
 }
-.arcade-page .duo-head .duo-head-top {
-  display: flex; align-items: center; gap: var(--s6); flex-wrap: wrap;
+/* Together content fills the bordered panel edge-to-edge */
+.arcade-page .dident-together.dident-panel {
+  padding: 0;
 }
-.arcade-page .duo-head-id { display: grid; gap: var(--s2); min-width: 0; flex: 1; }
+.arcade-page .dident-together .cth {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 18px 20px;
+  border-radius: inherit;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.arcade-page .dident-together .cth-body {
+  gap: 12px;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  height: 100%;
+  max-width: calc(100% - 100px);
+  margin: 0;
+  padding-right: 8px;
+  box-sizing: border-box;
+}
+.arcade-page .dident-together .cth-label {
+  font-size: 10px;
+}
+.arcade-page .dident-together .cth-count {
+  font-size: clamp(14px, 1.25vw, 18px);
+  line-height: 1.35;
+  max-width: 100%;
+}
+.arcade-page .dident-together .cth-avs {
+  justify-content: flex-start;
+}
+.arcade-page .dident-together .cth-ring {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  grid-column: unset;
+  grid-row: unset;
+  align-self: unset;
+  z-index: 2;
+}
+.arcade-page .dident-together .cth-set {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  grid-column: unset;
+  grid-row: unset;
+  align-self: unset;
+  z-index: 2;
+  max-width: 160px;
+}
+.arcade-page .dident > .home-stats .hstat {
+  padding: 14px 12px;
+}
+.arcade-page .duo-head .duo-head-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.arcade-page .duo-head .duo-profile-btn {
+  margin-left: auto;
+}
+.arcade-page .duo-head-id {
+  display: grid;
+  gap: var(--s2);
+  min-width: 0;
+  flex: 0 1 auto;
+}
 .arcade-page .duo-head .avatars { display: flex; align-items: center; position: relative; }
 .arcade-page .duo-head .avatars .av { margin: 0; }
 .arcade-page .duo-head .avatars .av.B { margin-left: -16px; }
@@ -899,7 +1029,7 @@
   color: var(--dim);
   white-space: nowrap;
 }
-.arcade-page .dident-rank .xp-bar {
+.arcade-page .dident-xp .xp-bar {
   position: relative;
   flex: 1;
   min-width: 0;
@@ -910,7 +1040,7 @@
   box-shadow: none;
 }
 /* Level badge — primary → mid → secondary (follows Settings theme) */
-.arcade-page .dident-rank .xp-badge {
+.arcade-page .dident-xp .xp-badge {
   color: #fff;
   background: var(--grad-primary);
   border: 2px solid color-mix(in srgb, var(--color-mid) 70%, transparent);
@@ -945,11 +1075,11 @@
   border: 1px solid var(--border-subtle);
   background: var(--bg-base);
 }
-/* Tight gap between the duo identity card and the stats strip. */
-.arcade-page .home-card > .dident + .home-stats {
+/* Tight gap between the duo identity block and the quick-section tabs. */
+.arcade-page .home-card > .dident + .home-nav {
   margin-top: var(--s2);
 }
-/* Tight gap between the stats strip and the quick-section tabs. */
+/* Tight gap between the stats strip and the quick-section tabs (legacy). */
 .arcade-page .home-card > .home-stats + .home-nav {
   margin-top: var(--s2);
 }
@@ -1457,9 +1587,11 @@ html[data-appearance="light"] .arcade-page .dnav {
   padding: 16px 18px 18px;
   border: 0;
   border-radius: inherit;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 70% at 88% -10%, color-mix(in srgb, var(--acc) 16%, transparent), transparent 66%),
-    radial-gradient(ellipse 60% 50% at 8% 108%, color-mix(in srgb, var(--p2) 9%, transparent), transparent 70%),
+    radial-gradient(90% 80% at 88% 72%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 58%),
+    radial-gradient(ellipse 50% 70% at -6% 108%, color-mix(in srgb, var(--color-primary) 9%, transparent), transparent 62%),
+    radial-gradient(ellipse 50% 70% at 108% 108%, color-mix(in srgb, var(--color-secondary) 9%, transparent), transparent 62%),
     transparent;
   box-sizing: border-box;
 }
@@ -1471,31 +1603,150 @@ html[data-appearance="light"] .arcade-page .dnav {
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
-}
-.arcade-page .cth-nebula {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  width: 72px;
-  height: 50px;
-  opacity: .28;
+  border-radius: inherit;
 }
 .arcade-page .cth-stars {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 96px;
-  height: 64px;
+  inset: 0;
   overflow: hidden;
-  opacity: .4;
+  opacity: .85;
 }
 .arcade-page .cth-star {
   position: absolute;
-  width: 3px;
-  height: 3px;
   border-radius: 50%;
-  background: var(--text);
-  opacity: .35;
+  background: color-mix(in srgb, var(--text) 88%, var(--color-primary));
+  box-shadow: 0 0 4px color-mix(in srgb, var(--text) 35%, transparent);
+  animation: cth-twinkle 4.8s ease-in-out infinite;
+}
+@keyframes cth-twinkle {
+  0%, 100% { opacity: .2; transform: scale(.85); }
+  50% { opacity: .7; transform: scale(1.15); }
+}
+
+/* Eternal-love watermark — heart + infinity, bottom-right behind content */
+.arcade-page .cth-love {
+  position: absolute;
+  right: 0;
+  bottom: 2%;
+  width: min(54%, 260px);
+  height: auto;
+  aspect-ratio: 120 / 110;
+  pointer-events: none;
+  opacity: .22;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--candle) 40%, transparent));
+}
+.arcade-page .cth-love-heart { opacity: .5; }
+.arcade-page .cth-love-inf { opacity: .95; }
+
+.arcade-page .dident-together .cth-fx {
+  opacity: 1;
+}
+.arcade-page .dident-together .cth-love {
+  opacity: .28;
+  width: min(56%, 280px);
+  bottom: 4%;
+  right: 2%;
+}
+
+/* Together panel — light appearance */
+html[data-appearance="light"] .arcade-page .cth {
+  background:
+    radial-gradient(90% 80% at 88% 72%, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 58%),
+    radial-gradient(ellipse 55% 70% at -4% 108%, color-mix(in srgb, var(--color-primary) 8%, transparent), transparent 62%),
+    radial-gradient(ellipse 55% 70% at 108% 108%, color-mix(in srgb, var(--color-secondary) 8%, transparent), transparent 62%),
+    var(--bg-surface);
+}
+html[data-appearance="light"] .arcade-page .dident-together.dident-panel {
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    var(--grad-primary) border-box;
+}
+html[data-appearance="light"] .arcade-page .cth-stars {
+  opacity: .55;
+}
+html[data-appearance="light"] .arcade-page .cth-star {
+  background: color-mix(in srgb, var(--color-primary) 55%, var(--dim));
+  box-shadow: none;
+  animation: none;
+  opacity: .28 !important;
+}
+html[data-appearance="light"] .arcade-page .cth-love {
+  opacity: .55;
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--color-primary) 28%, transparent));
+}
+html[data-appearance="light"] .arcade-page .dident-together .cth-love {
+  opacity: .62;
+}
+html[data-appearance="light"] .arcade-page .cth-love-heart {
+  opacity: 1;
+  fill-opacity: .18;
+  stroke-opacity: .85;
+  stroke-width: 2.8px;
+}
+html[data-appearance="light"] .arcade-page .cth-love-inf {
+  opacity: 1;
+  stroke-width: 6.5px;
+  filter: none;
+}
+html[data-appearance="light"] .arcade-page .cth-label {
+  color: var(--color-primary);
+}
+html[data-appearance="light"] .arcade-page .cth-count {
+  color: var(--text);
+}
+html[data-appearance="light"] .arcade-page .cth-count b {
+  color: var(--color-primary);
+}
+html[data-appearance="light"] .arcade-page .cth-setdate {
+  color: var(--dim);
+}
+html[data-appearance="light"] .arcade-page .cth-setdate:hover {
+  color: var(--color-primary);
+}
+html[data-appearance="light"] .arcade-page .cth-av.A,
+html[data-appearance="light"] .arcade-page .cth-av.B {
+  box-shadow: 0 2px 8px color-mix(in srgb, currentColor 18%, transparent);
+}
+html[data-appearance="light"] .arcade-page .cth-status-row {
+  color: var(--dim);
+}
+html[data-appearance="light"] .arcade-page .cth-status-label {
+  color: color-mix(in srgb, var(--text) 78%, var(--dim));
+}
+html[data-appearance="light"] .arcade-page .cth-status-val b {
+  color: var(--text);
+}
+html[data-appearance="light"] .arcade-page .cth-apart {
+  color: var(--color-primary);
+}
+html[data-appearance="light"] .arcade-page .cth-dot.you.on,
+html[data-appearance="light"] .arcade-page .cth-dot.partner.on {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent);
+}
+html[data-appearance="light"] .arcade-page .cth-since {
+  color: var(--dim);
+}
+html[data-appearance="light"] .arcade-page .cth-since b {
+  color: var(--color-primary);
+  font-weight: 650;
+}
+html[data-appearance="light"] .arcade-page .cth-ring-bg {
+  stroke: color-mix(in srgb, var(--border-strong) 70%, transparent);
+}
+html[data-appearance="light"] .arcade-page .cth-ring-fg {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent));
+}
+html[data-appearance="light"] .arcade-page .cth-ring-days {
+  color: var(--color-primary);
+}
+html[data-appearance="light"] .arcade-page .cth-ring-label {
+  color: var(--dim);
+}
+html[data-appearance="light"] .arcade-page .cth-set input[type=date] {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+  color: var(--text);
 }
 
 .arcade-page .cth-body {
@@ -1522,12 +1773,21 @@ html[data-appearance="light"] .arcade-page .dnav {
   font-family: var(--font-ui);
   font-size: 15px;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.35;
   letter-spacing: -0.02em;
   color: var(--candle);
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow: visible;
+  text-overflow: unset;
+}
+.arcade-page .cth-count-line {
+  display: block;
+  white-space: nowrap;
 }
 .arcade-page .cth-count b {
   font-weight: 800;
@@ -1561,6 +1821,7 @@ html[data-appearance="light"] .arcade-page .dnav {
   font-size: 12px;
   font-weight: 800;
   flex: none;
+  overflow: hidden;
 }
 .arcade-page .cth-av.A {
   background: var(--p1s);
@@ -1569,6 +1830,16 @@ html[data-appearance="light"] .arcade-page .dnav {
 .arcade-page .cth-av.B {
   background: var(--p2s);
   color: var(--p2);
+}
+.arcade-page .cth-av.cth-av-char {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+.arcade-page .cth-av .av-svg,
+.arcade-page .cth-av .av-fallback {
+  display: block;
+  flex: none;
 }
 .arcade-page .cth-beat {
   width: 52px;
@@ -1591,7 +1862,29 @@ html[data-appearance="light"] .arcade-page .dnav {
   line-height: 1.35;
   color: var(--dim);
 }
-.arcade-page .cth-status-row b { color: var(--text); font-weight: 600; }
+.arcade-page .cth-status-label {
+  min-width: 52px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text) 72%, var(--dim));
+}
+.arcade-page .cth-status-val {
+  min-width: 0;
+  color: var(--dim);
+}
+.arcade-page .cth-status-val b {
+  color: var(--text);
+  font-weight: 600;
+}
+.arcade-page .cth-busy {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+.arcade-page .cth-apart {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--candle);
+}
 .arcade-page .cth-dot {
   width: 7px;
   height: 7px;
@@ -1599,7 +1892,15 @@ html[data-appearance="light"] .arcade-page .dnav {
   flex: none;
   background: color-mix(in srgb, var(--dim) 55%, transparent);
 }
-.arcade-page .cth-dot.on {
+.arcade-page .cth-dot.you.on {
+  background: var(--p1);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--p1) 55%, transparent);
+}
+.arcade-page .cth-dot.partner.on {
+  background: var(--p2);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--p2) 55%, transparent);
+}
+.arcade-page .cth-dot.on:not(.you):not(.partner) {
   background: var(--color-success);
   box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 55%, transparent);
 }
@@ -2246,7 +2547,8 @@ html[data-appearance="light"] .arcade-page .dnav {
 
 /* Phones only: drawer + bottom tab bar (true single-column). */
 @media (max-width: 720px) {
-  .arcade-page section.duo-shell {
+  .arcade-page section.duo-shell,
+  .arcade-page section.duo-shell.duo-shell-crail-off {
     --sidenav-w: 240px;
     --rail-w: 320px;
     grid-template-columns: minmax(0, 1fr);
@@ -2265,7 +2567,9 @@ html[data-appearance="light"] .arcade-page .dnav {
   .arcade-page section.duo-shell > .dnav,
   .arcade-page section.duo-shell > .dhead,
   .arcade-page section.duo-shell > .duo-main,
-  .arcade-page section.duo-shell > .crail {
+  .arcade-page section.duo-shell > .crail,
+  .arcade-page section.duo-shell.duo-shell-crail-off > .dhead,
+  .arcade-page section.duo-shell.duo-shell-crail-off > .duo-main {
     grid-column: 1;
     grid-row: auto;
     padding: 0;
@@ -2362,8 +2666,8 @@ html[data-appearance="light"] .arcade-page .dnav {
   }
   .arcade-page .home-card .home-feature-body { padding: var(--s4); border-radius: var(--r-lg); }
   .arcade-page .games-filter-bar { margin-inline: calc(var(--s2) * -1); padding-inline: var(--s2); }
-  .arcade-page .dident-who,
-  .arcade-page .dident-rank { padding: var(--s4); }
+  .arcade-page .dident-who { padding: 0; }
+  .arcade-page .dident-panel { padding: var(--s4); }
   .arcade-page .crail { grid-template-columns: minmax(0, 1fr); }
 
   /* Lift the chat FAB / panel above the bottom tab bar. */
@@ -2374,11 +2678,31 @@ html[data-appearance="light"] .arcade-page .dnav {
 @media (max-width: 900px) {
   .arcade-page .games-smart-item { flex: 0 0 190px; }
   .arcade-page .cth { padding: 14px 16px 16px; min-height: 156px; }
+  .arcade-page .dident {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  .arcade-page .dident-who,
+  .arcade-page .dident-xp,
+  .arcade-page .dident-together,
+  .arcade-page .dident > .home-stats {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .arcade-page .dident-who { order: 1; }
+  .arcade-page .dident-xp { order: 2; }
+  .arcade-page .dident > .home-stats { order: 3; }
+  .arcade-page .dident-together { order: 4; }
+  .arcade-page .dident-together .cth {
+    min-height: 0;
+    height: auto;
+    padding: 16px 18px;
+  }
 }
 
 @media (max-width: 480px) {
   .arcade-page .dhead-title { font-size: 23px; }
-  .arcade-page .dident-rank { gap: var(--s3); }
+  .arcade-page .dident { gap: var(--s3); }
   .arcade-page .dcard-rank-ico { width: 36px; height: 36px; border-radius: 11px; }
   .arcade-page .dcard-rank-emblem svg { width: 44px; height: 44px; }
   .arcade-page .duo-head .avatars .av.B { margin-left: -14px; }

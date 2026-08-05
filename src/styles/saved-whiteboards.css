@@ -1,0 +1,664 @@
+/* Saved whiteboards — same shell language as Our wall (wb-embed). */
+
+.arcade-page .swb.wb-embed {
+  --swb-line: var(--border-subtle, #2a2f45);
+  --swb-bg: var(--bg-base, #0b0e1a);
+  --swb-panel: var(--bg-surface, #12101c);
+  --swb-accent: var(--color-primary, #8B5CF6);
+  gap: 0;
+  background: var(--bg-surface, var(--swb-bg));
+  position: relative;
+}
+
+.arcade-page .swb-head.wb-embed-head {
+  flex-wrap: wrap;
+}
+
+.arcade-page .swb-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.arcade-page .swb-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  min-width: min(260px, 52vw);
+  padding: 0 12px;
+  border-radius: 11px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: var(--bg-elevated, var(--room2));
+  color: var(--dim);
+}
+
+.arcade-page .swb-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.arcade-page .swb-user {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--bg-elevated, var(--room2));
+}
+
+.arcade-page .swb-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 16px 14px;
+  overflow: auto;
+  background-color: var(--bg-base, #0b0e1a);
+}
+
+.arcade-page .swb-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.arcade-page .swb-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle, color-mix(in srgb, #fff 7%, transparent));
+  border-radius: 14px;
+  background: var(--bg-elevated, #14121f);
+  box-shadow: none;
+}
+
+.arcade-page .swb-tab {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  margin: 0;
+  background: transparent;
+  color: var(--dim, #a8a3b8);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.arcade-page .swb-tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--color-primary, #8B5CF6) 10%, transparent);
+}
+
+.arcade-page .swb-tab.on {
+  color: #fff;
+  background: var(--color-primary, #8B5CF6);
+  box-shadow: none;
+}
+
+.arcade-page .swb-tab.on:hover {
+  color: #fff;
+  filter: brightness(1.06);
+}
+
+.arcade-page .swb-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.arcade-page .swb-new,
+.arcade-page .swb-live,
+.arcade-page .swb-add {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  /* Match active sidenav (.dnav-item.on) */
+  background: var(--color-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: none;
+}
+
+.arcade-page .swb-add {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-subtle, var(--swb-line));
+}
+
+.arcade-page .swb-new span {
+  font-size: 18px;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.arcade-page .swb-new:hover,
+.arcade-page .swb-live:hover {
+  filter: brightness(1.08);
+}
+
+.arcade-page .swb-add:hover {
+  background: color-mix(in srgb, var(--color-primary, #8B5CF6) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary, #8B5CF6) 40%, var(--border-subtle, var(--swb-line)));
+}
+
+.arcade-page .swb-view {
+  display: inline-flex;
+  border-radius: 11px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  overflow: hidden;
+  background: var(--bg-elevated, var(--room2));
+}
+
+.arcade-page .swb-view button {
+  width: 38px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arcade-page .swb-view button + button {
+  border-left: 1px solid var(--border-subtle, var(--swb-line));
+}
+
+.arcade-page .swb-view button.on {
+  color: var(--text);
+  background: color-mix(in srgb, #8B5CF6 18%, transparent);
+}
+
+.arcade-page .swb-sort { position: relative; }
+
+.arcade-page .swb-sort-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 11px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: var(--bg-elevated, var(--room2));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arcade-page .swb-sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: var(--bg-elevated, #15192b);
+  box-shadow: 0 18px 40px -18px var(--shadow, rgba(0, 0, 0, .5));
+  display: grid;
+  gap: 2px;
+}
+
+.arcade-page .swb-sort-menu button {
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.arcade-page .swb-sort-menu button:hover,
+.arcade-page .swb-sort-menu button.on {
+  background: color-mix(in srgb, #8B5CF6 16%, transparent);
+}
+
+.arcade-page .swb-error {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #F43F5E 40%, var(--swb-line));
+  background: color-mix(in srgb, #F43F5E 12%, transparent);
+  color: #FDA4AF;
+  font-size: 13px;
+}
+
+.arcade-page .swb-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.arcade-page .swb-grid.is-list {
+  grid-template-columns: 1fr;
+}
+
+.arcade-page .swb-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 0.5px solid var(--swb-line);
+  background: var(--bg-surface, var(--swb-panel));
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+
+.arcade-page .swb-grid.is-list .swb-card {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.arcade-page .swb-card:hover {
+  border-color: color-mix(in srgb, #8B5CF6 45%, var(--swb-line));
+  box-shadow: 0 16px 34px -24px color-mix(in srgb, #8B5CF6 70%, transparent);
+  transform: translateY(-1px);
+}
+
+.arcade-page .swb-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, #8B5CF6 70%, transparent);
+  outline-offset: 2px;
+}
+
+.arcade-page .swb-card-media {
+  position: relative;
+  aspect-ratio: 16 / 10.5;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.arcade-page .swb-grid.is-list .swb-card-media {
+  width: 220px;
+  flex: none;
+  aspect-ratio: auto;
+  min-height: 128px;
+}
+
+.arcade-page .swb-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  overflow: hidden;
+}
+
+html[data-appearance="light"] .arcade-page .swb-card-media,
+html[data-appearance="light"] .arcade-page .swb-thumb {
+  background-color: #F3F4F8;
+  background: #F3F4F8;
+}
+
+.arcade-page .swb-thumb-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.arcade-page .swb-star {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+  background: color-mix(in srgb, #0b0e1a 72%, transparent);
+  color: #E2E8F0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.arcade-page .swb-star.on { color: #FBBF24; }
+
+.arcade-page .swb-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  min-width: 0;
+  flex: 1;
+  background: var(--bg-elevated, var(--room2));
+}
+
+.arcade-page .swb-card-body .swb-card-edited {
+  color: color-mix(in srgb, var(--color-primary, #8B5CF6) 75%, var(--dim));
+  font-size: 12px;
+}
+
+.arcade-page .swb-card-body h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arcade-page .swb-card-body > p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.arcade-page .swb-card-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.arcade-page .swb-avs {
+  display: flex;
+  align-items: center;
+}
+
+.arcade-page .swb-avs > * + * {
+  margin-left: -8px;
+}
+
+.arcade-page .swb-avs > * {
+  border: 2px solid var(--bg-elevated, var(--swb-panel));
+  border-radius: 999px;
+}
+
+.arcade-page .swb-more { position: relative; }
+
+.arcade-page .swb-more-btn {
+  width: 32px;
+  height: 28px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: 18px;
+  letter-spacing: 1px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.arcade-page .swb-more-btn:hover {
+  color: var(--text);
+  background: var(--glass, rgba(255,255,255,.04));
+}
+
+.arcade-page .swb-more-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 24;
+  min-width: 150px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: var(--bg-elevated, #15192b);
+  box-shadow: 0 18px 40px -18px var(--shadow, rgba(0, 0, 0, .5));
+  display: grid;
+}
+
+.arcade-page .swb-more-menu button {
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.arcade-page .swb-more-menu button:hover {
+  background: color-mix(in srgb, #8B5CF6 16%, transparent);
+}
+
+.arcade-page .swb-more-menu button.danger { color: #FDA4AF; }
+
+.arcade-page .swb-empty {
+  flex: 1;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 40px 16px;
+  color: var(--dim);
+}
+
+.arcade-page .swb-empty-ico {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: color-mix(in srgb, var(--color-primary, #8B5CF6) 12%, var(--bg-elevated, var(--room2)));
+  color: var(--color-primary, #C084FC);
+}
+
+.arcade-page .swb-empty h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.arcade-page .swb-empty p {
+  margin: 0;
+  font-size: 13px;
+  max-width: 320px;
+}
+
+.arcade-page .swb-foot {
+  margin-top: auto;
+  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.arcade-page .swb-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.arcade-page .swb-pager button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.arcade-page .swb-pager button:hover:not(:disabled) {
+  color: var(--text);
+  background: color-mix(in srgb, #8B5CF6 12%, transparent);
+}
+
+.arcade-page .swb-pager button.on {
+  color: var(--text);
+  border-color: var(--border-subtle, var(--swb-line));
+  background: color-mix(in srgb, #8B5CF6 18%, transparent);
+}
+
+.arcade-page .swb-pager button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .arcade-page .swb-grid:not(.is-list) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .arcade-page .swb-grid:not(.is-list),
+  .arcade-page .swb-grid.is-list {
+    grid-template-columns: 1fr;
+  }
+  .arcade-page .swb-grid.is-list .swb-card {
+    flex-direction: column;
+  }
+  .arcade-page .swb-grid.is-list .swb-card-media {
+    width: 100%;
+    aspect-ratio: 16 / 10.5;
+  }
+  .arcade-page .swb-search { min-width: 0; flex: 1; }
+}
+
+/* Confirm: erase live board before + New whiteboard */
+.arcade-page .swb-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--bg-base, #0b0e1a) 72%, transparent);
+  backdrop-filter: blur(6px);
+}
+.arcade-page .swb-confirm {
+  width: min(420px, 100%);
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: var(--bg-surface, #121526);
+  box-shadow: 0 24px 60px -24px var(--shadow, rgba(0, 0, 0, .7));
+  color: var(--text);
+}
+.arcade-page .swb-confirm h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.arcade-page .swb-confirm > p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.45;
+}
+.arcade-page .swb-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.arcade-page .swb-confirm-cancel,
+.arcade-page .swb-confirm-ok {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.arcade-page .swb-confirm-cancel {
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: transparent;
+  color: var(--text);
+}
+.arcade-page .swb-confirm-cancel:hover {
+  background: color-mix(in srgb, #fff 6%, transparent);
+}
+.arcade-page .swb-confirm-ok {
+  border: 0;
+  background: var(--color-primary, #8B5CF6);
+  color: #fff;
+}
+.arcade-page .swb-confirm-ok:hover {
+  filter: brightness(1.08);
+}
+
+.arcade-page .swb-add-modal .swb-add-label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--dim);
+}
+
+.arcade-page .swb-add-modal .swb-add-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--swb-line));
+  background: var(--bg-elevated, var(--room2));
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.arcade-page .swb-add-modal .swb-add-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--color-primary, #8B5CF6) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.arcade-page .swb-add-modal .swb-add-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.arcade-page .swb-add-modal .swb-add-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #ef4444;
+}

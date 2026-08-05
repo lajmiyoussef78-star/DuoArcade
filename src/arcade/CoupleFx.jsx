@@ -4,6 +4,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { other } from '../lib/util.js';
+import { formatDistance, haversineKm } from '../lib/location.js';
+import { Avatar } from './avatars.jsx';
 
 const FX_COLORS = ['var(--p1)', 'var(--p2)', '--candle', 'var(--text)']
   .map(c => (c === '--candle' ? 'var(--candle)' : c));
@@ -113,28 +115,63 @@ function formatLongDate(when) {
 
 const annivKey = code => 'duoarcade-anniv-' + code;
 
-/* Small nebula / star flecks — top-right only, never over the anniversary ring */
-function ChNebulaMark() {
+/* Soft eternal-love mark (heart + infinity) for the Together hero backdrop */
+function ChLoveMark() {
   return (
-    <svg className="cth-nebula" viewBox="0 0 80 56" aria-hidden="true">
+    <svg className="cth-love" viewBox="0 0 120 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <defs>
-        <radialGradient id="ch-nebula-g" cx="70%" cy="30%" r="65%">
-          <stop offset="0%" stopColor="var(--acc)" stopOpacity=".55" />
-          <stop offset="55%" stopColor="var(--p2)" stopOpacity=".18" />
-          <stop offset="100%" stopColor="var(--acc)" stopOpacity="0" />
-        </radialGradient>
+        <linearGradient id="cth-love-grad" x1="0%" y1="8%" x2="100%" y2="92%">
+          <stop offset="0%" stopColor="var(--color-primary)" />
+          <stop offset="45%" stopColor="var(--candle)" />
+          <stop offset="100%" stopColor="var(--color-secondary)" />
+        </linearGradient>
+        <filter id="cth-love-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <ellipse cx="58" cy="18" rx="28" ry="16" fill="url(#ch-nebula-g)" />
-      <circle cx="48" cy="12" r="1.1" fill="#fff" opacity=".55" />
-      <circle cx="62" cy="20" r="0.8" fill="#fff" opacity=".4" />
-      <circle cx="70" cy="10" r="0.7" fill="#fff" opacity=".35" />
-      <circle cx="54" cy="26" r="0.6" fill="#fff" opacity=".3" />
-      <circle cx="66" cy="28" r="0.5" fill="#fff" opacity=".25" />
+      {/* soft heart body */}
+      <path
+        className="cth-love-heart"
+        fill="url(#cth-love-grad)"
+        stroke="url(#cth-love-grad)"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+        d="M60 102
+           C38 82 14 64 10 46
+           C6 28 18 14 36 14
+           C48 14 56 22 60 32
+           C64 22 72 14 84 14
+           C102 14 114 28 110 46
+           C106 64 82 82 60 102 Z"
+      />
+      {/* infinity woven across the upper lobes */}
+      <path
+        className="cth-love-inf"
+        fill="none"
+        stroke="url(#cth-love-grad)"
+        strokeWidth="5.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#cth-love-glow)"
+        d="M22 40
+           C22 26 34 20 46 28
+           C54 34 58 42 60 48
+           C62 42 66 34 74 28
+           C86 20 98 26 98 40
+           C98 52 86 58 74 52
+           C66 48 62 42 60 36
+           C58 42 54 48 46 52
+           C34 58 22 52 22 40 Z"
+      />
     </svg>
   );
 }
 
-export function TogetherHero({ duo, code, myRole, presence, geoStatus: _geoStatus, onSetAnniversary }) {
+export function TogetherHero({ duo, code, myRole, avatars, presence, geoStatus, onSetAnniversary }) {
   // the shared date lives on the duo row now — same for both partners
   const anniv = duo.anniversary || '';
   const [editing, setEditing] = useState(false);
@@ -153,8 +190,13 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus: _geoStatu
     if (duo.anniversary && legacy) localStorage.removeItem(annivKey(code));
   }, [duo.anniversary, code, onSetAnniversary]);
 
-  const stars = useMemo(() => Array.from({ length: 6 }, (_, i) => ({
-    id: i, left: 20 + Math.random() * 70, top: 10 + Math.random() * 70, delay: Math.random() * 4
+  const stars = useMemo(() => Array.from({ length: 28 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    size: 1.2 + Math.random() * 2.2,
+    delay: Math.random() * 5,
+    opacity: 0.18 + Math.random() * 0.35,
   })), []);
 
   const relStart = relationshipStart(anniv);
@@ -163,11 +205,11 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus: _geoStatu
   /* anniversary countdown: next occurrence of the saved date */
   let ringDays = null;
   if (anniv) {
-    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const day = new Date(); day.setHours(0, 0, 0, 0);
     const a = new Date(anniv + 'T00:00:00');
-    const next = new Date(now.getFullYear(), a.getMonth(), a.getDate());
-    if (next < now) next.setFullYear(next.getFullYear() + 1);
-    ringDays = Math.round((next - now) / 864e5);
+    const next = new Date(day.getFullYear(), a.getMonth(), a.getDate());
+    if (next < day) next.setFullYear(next.getFullYear() + 1);
+    ringDays = Math.round((next - day) / 864e5);
   }
   const R = 40, CIRC = 2 * Math.PI * R;
   const ringFrac = ringDays === null ? 0 : 1 - ringDays / 365;
@@ -184,16 +226,52 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus: _geoStatu
   const youOnline = mine?.online !== false;
   const partnerOnline = !!theirs?.online;
 
+  const apart = mine?.lat != null && mine?.lng != null && theirs?.lat != null && theirs?.lng != null
+    ? haversineKm(mine.lat, mine.lng, theirs.lat, theirs.lng)
+    : null;
+  const distanceLine = (() => {
+    if (apart != null) return `\u2194 ${formatDistance(apart)} apart`;
+    if (mine?.lat == null || mine?.lng == null) {
+      return geoStatus ? `\u2194 ${geoStatus}` : '\u2194 waiting for your location\u2026';
+    }
+    if (!theirs?.online) return null;
+    if (theirs?.lat == null || theirs?.lng == null) {
+      return `\u2194 waiting for ${partnerName}\u2019s location\u2026`;
+    }
+    return '\u2194 calculating distance\u2026';
+  })();
+
+  const yourPlace = mine?.place
+    ? mine.place
+    : (geoStatus || (youOnline ? 'Locating…' : 'Offline'));
+  const theirPlace = theirs?.busyLabel
+    ? theirs.busyLabel
+    : theirs?.place
+      ? theirs.place
+      : partnerOnline
+        ? 'Locating…'
+        : 'Offline';
+
   return (
     <div className="cth">
       <div className="cth-fx" aria-hidden="true">
-        <ChNebulaMark />
         <div className="cth-stars">
           {stars.map(s => (
-            <span key={s.id} className="cth-star"
-              style={{ left: s.left + '%', top: s.top + '%' }} />
+            <span
+              key={s.id}
+              className="cth-star"
+              style={{
+                left: s.left + '%',
+                top: s.top + '%',
+                width: s.size,
+                height: s.size,
+                opacity: s.opacity,
+                animationDelay: s.delay + 's',
+              }}
+            />
           ))}
         </div>
+        <ChLoveMark />
       </div>
 
       <div className="cth-body">
@@ -205,19 +283,28 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus: _geoStatu
             </button>
           ) : (
             <>
-              <span><b>{dur.days}</b> day{dur.days === 1 ? '' : 's'}</span>
-              {', '}
-              <span><b>{dur.hours}</b> hour{dur.hours === 1 ? '' : 's'}</span>
-              {', '}
-              <span><b>{dur.minutes}</b> minute{dur.minutes === 1 ? '' : 's'}</span>
-              {', '}
-              <span><b>{dur.seconds}</b> second{dur.seconds === 1 ? '' : 's'}</span>
+              <span className="cth-count-line">
+                <span><b>{dur.days}</b> day{dur.days === 1 ? '' : 's'}</span>
+                {', '}
+                <span><b>{dur.hours}</b> hour{dur.hours === 1 ? '' : 's'}</span>
+              </span>
+              <span className="cth-count-line">
+                <span><b>{dur.minutes}</b> minute{dur.minutes === 1 ? '' : 's'}</span>
+                {', '}
+                <span><b>{dur.seconds}</b> second{dur.seconds === 1 ? '' : 's'}</span>
+              </span>
             </>
           )}
         </div>
 
         <div className="cth-avs">
-          <div className="cth-av A">{(duo.nameA || '?')[0].toUpperCase()}</div>
+          <div className={'cth-av A' + (avatars?.avatar_a ? ' cth-av-char' : '')}>
+            <Avatar
+              id={avatars?.avatar_a}
+              fallback={(duo.nameA || '?')[0]}
+              size={28}
+            />
+          </div>
           <svg className="cth-beat" viewBox="0 0 64 24" aria-hidden="true">
             <defs>
               <linearGradient id="chbeat-grad" x1="0" y1="0" x2="1" y2="0">
@@ -233,18 +320,35 @@ export function TogetherHero({ duo, code, myRole, presence, geoStatus: _geoStatu
               fill="none" stroke="url(#chbeat-grad)" strokeWidth="2"
               strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <div className="cth-av B">{(duo.nameB || '?')[0].toUpperCase()}</div>
+          <div className={'cth-av B' + (avatars?.avatar_b ? ' cth-av-char' : '')}>
+            <Avatar
+              id={avatars?.avatar_b}
+              fallback={(duo.nameB || '?')[0]}
+              size={28}
+            />
+          </div>
         </div>
 
         <div className="cth-status">
           <div className="cth-status-row">
-            <span className={'cth-dot' + (youOnline ? ' on' : '')} aria-hidden="true" />
-            <span><b>You</b> · {youOnline ? 'Online' : 'Offline'}</span>
+            <span className={'cth-dot you' + (youOnline ? ' on' : '')} aria-hidden="true" />
+            <span className="cth-status-label">You</span>
+            <span className="cth-status-val">
+              {mine?.place ? <b>{mine.place}</b> : yourPlace}
+            </span>
           </div>
           <div className="cth-status-row">
-            <span className={'cth-dot' + (partnerOnline ? ' on' : '')} aria-hidden="true" />
-            <span><b>{partnerName}</b> · {partnerOnline ? 'Online' : 'Offline'}</span>
+            <span className={'cth-dot partner' + (partnerOnline ? ' on' : '')} aria-hidden="true" />
+            <span className="cth-status-label">{partnerName}</span>
+            <span className="cth-status-val">
+              {theirs?.busyLabel
+                ? <span className="cth-busy">{theirs.busyLabel}</span>
+                : theirs?.place ? <b>{theirs.place}</b> : theirPlace}
+            </span>
           </div>
+          {distanceLine && (
+            <div className="cth-apart">{distanceLine}</div>
+          )}
         </div>
         {anniv && relStart && (
           <div className="cth-since">

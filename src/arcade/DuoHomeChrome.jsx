@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { totalsOf } from '../lib/util.js';
 import { getLeaderboard } from '../lib/xp.js';
+import { TogetherHero } from './CoupleFx.jsx';
 import XpBar, { XpTitlePill } from './XpBar.jsx';
 import { Avatar } from './avatars.jsx';
 import { Ico } from './ui/icons.jsx';
@@ -23,17 +24,13 @@ export const HOME_NAV = [
  * Returns a fragment so the dashboard column can lay the blocks out directly.
  */
 export default function DuoHomeChrome({
-  duo, code, isAway, avatars, onBack, activeNavId = null,
+  duo, code, myRole, isAway, avatars, presence, geoStatus, onSetAnniversary,
+  onBack, activeNavId = null,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const avs = avatars || { avatar_a: null, avatar_b: null };
-  const [level, setLevel] = useState(null);
   const [rank, setRank] = useState(null);
-
-  const onXpStats = useCallback(s => {
-    setLevel(s?.ready ? s.level : null);
-  }, []);
 
   /* Real placement from the same RPC the leaderboard page uses. */
   useEffect(() => {
@@ -132,45 +129,40 @@ export default function DuoHomeChrome({
           </div>
         </div>
 
-        <div className="dident-rank">
-          <XpBar code={code} onStats={onXpStats} />
-          <span className="dcard-rank-emblem" aria-hidden="true">
-            <svg viewBox="0 0 64 64" width="58" height="58">
-              <defs>
-                <linearGradient id="gemg" x1="0" y1="0" x2="64" y2="64">
-                  <stop stopColor="var(--p1)" />
-                  <stop offset="1" stopColor="var(--p2)" />
-                </linearGradient>
-              </defs>
-              <path d="M32 5 55 18v28L32 59 9 46V18Z" fill="url(#gemg)" opacity=".28" />
-              <path d="M32 5 55 18v28L32 59 9 46V18Z" fill="none" stroke="url(#gemg)" strokeWidth="2" />
-              <path d="M32 16 45 23.5v17L32 48 19 40.5v-17Z" fill="url(#gemg)" opacity=".7" />
-              <path d="M32 16 45 23.5 32 31 19 23.5Z" fill="#fff" opacity=".22" />
-            </svg>
-            <span className="dcard-rank-emblem-label">
-              {level ? `Level ${level}` : 'Level —'}
-            </span>
-          </span>
+        <div className="dident-panel dident-together" id="sect-together">
+          <TogetherHero
+            duo={duo}
+            code={code}
+            myRole={myRole}
+            avatars={avs}
+            presence={presence}
+            geoStatus={geoStatus}
+            onSetAnniversary={onSetAnniversary}
+          />
         </div>
-      </div>
 
-      <div className="home-stats">
-        <div className="hstat hstat-1"><div className="n">{t.games}</div><div className="l">games together</div></div>
-        <div className="hstat hstat-2"><div className="n">{duo.tasteTotal || 0}</div><div className="l">watched together</div></div>
-        <div className="hstat hstat-3">
-          <div className="n">{duo.tasteTotal > 0 ? tastePct + '%' : '—'}</div>
-          <div className="l">taste match</div>
-          <div className="taste-meter">
-            <div className="taste-fill" style={{ width: (duo.tasteTotal > 0 ? tastePct : 0) + '%' }} />
-            {duo.tasteTotal > 0 && tastePct > 4 && (
-              <span className="taste-heart" aria-hidden="true" style={{ left: tastePct + '%' }}>{'❤'}</span>
-            )}
-          </div>
+        <div className="dident-panel dident-xp">
+          <XpBar code={code} />
         </div>
-        <div className="hstat hstat-4">
-          <div className="n">{t.a === t.b ? 'tied' : (t.a > t.b ? duo.nameA : duo.nameB)}</div>
-          <div className="l">
-            {rank ? `overall rank #${rank}` : `overall · ${t.a}–${t.b}`}
+
+        <div className="home-stats">
+          <div className="hstat hstat-1"><div className="n">{t.games}</div><div className="l">games together</div></div>
+          <div className="hstat hstat-2"><div className="n">{duo.tasteTotal || 0}</div><div className="l">watched together</div></div>
+          <div className="hstat hstat-3">
+            <div className="n">{duo.tasteTotal > 0 ? tastePct + '%' : '—'}</div>
+            <div className="l">taste match</div>
+            <div className="taste-meter">
+              <div className="taste-fill" style={{ width: (duo.tasteTotal > 0 ? tastePct : 0) + '%' }} />
+              {duo.tasteTotal > 0 && tastePct > 4 && (
+                <span className="taste-heart" aria-hidden="true" style={{ left: tastePct + '%' }}>{'❤'}</span>
+              )}
+            </div>
+          </div>
+          <div className="hstat hstat-4">
+            <div className="n">{t.a === t.b ? 'tied' : (t.a > t.b ? duo.nameA : duo.nameB)}</div>
+            <div className="l">
+              {rank ? `overall rank #${rank}` : `overall · ${t.a}–${t.b}`}
+            </div>
           </div>
         </div>
       </div>

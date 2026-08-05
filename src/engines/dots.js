@@ -91,8 +91,8 @@ export function render(host, gs, { myRole, turn, winner: w, onMove }) {
   const wrap = document.createElement('div');
   const grid = document.createElement('div');
   grid.className = 'dots-grid';
-  grid.style.gridTemplateColumns = `repeat(${n}, 10px minmax(40px, 1fr)) 10px`;
-  grid.style.gridTemplateRows = `repeat(${n}, 10px minmax(40px, 1fr)) 10px`;
+  grid.style.gridTemplateColumns = `repeat(${n}, 10px minmax(0, 1fr)) 10px`;
+  grid.style.gridTemplateRows = `repeat(${n}, 10px minmax(0, 1fr)) 10px`;
   const canPlay = !w && turn === myRole;
 
   for (let gr = 0; gr <= 2 * n; gr++) {

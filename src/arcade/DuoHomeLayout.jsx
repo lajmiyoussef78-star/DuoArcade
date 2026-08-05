@@ -7,6 +7,16 @@ import ContextRail from './ContextRail.jsx';
 import useFriendsView from './useFriendsView.js';
 import { getDuoAvatars } from '../lib/avatars.js';
 
+const CRAIL_LS_KEY = 'duoarcade.crailHidden';
+
+function readCrailHidden() {
+  try {
+    return localStorage.getItem(CRAIL_LS_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /* Sidebar highlight for the feature ids that are not their own page. */
 const HOME_SECTIONS = ['sect-play', 'sect-favorites', 'sect-together'];
 
@@ -22,20 +32,28 @@ export default function DuoHomeLayout({
   const { featureId } = useParams();
   const location = useLocation();
   const [avatars, setAvatars] = useState({ avatar_a: null, avatar_b: null });
+  const [crailHidden, setCrailHidden] = useState(readCrailHidden);
   const { friends, incoming, loaded: friendsLoaded } = useFriendsView(friendsEnabled);
   const onPlace = location.pathname.includes('/place/');
   const onSettings = featureId === 'sect-settings';
   const onWall = featureId === 'sect-wall';
-  const fullMain = onSettings || onWall;
+  const onSavedBoards = featureId === 'sect-saved-boards';
+  const onTodoList = featureId === 'sect-list';
+  /* Live canvas, saved library, and to-do share the full-bleed main shell. */
+  const fullBleed = onWall || onSavedBoards || onTodoList;
+  const fullMain = onSettings || fullBleed;
   const activeNavId = onPlace
     ? (featureId || location.pathname.split('/').pop())
     : 'sect-play';
-  /* Settings nav item id is "settings"; the place route id is sect-settings. */
+  /* Settings nav item id is "settings"; the place route id is sect-settings.
+     Saved boards is reached from the wall clock — keep Whiteboard highlighted. */
   const navActive = onSettings
     ? 'settings'
-    : onPlace && featureId && !HOME_SECTIONS.includes(featureId)
-      ? featureId
-      : 'home';
+    : onSavedBoards
+      ? 'sect-wall'
+      : onPlace && featureId && !HOME_SECTIONS.includes(featureId)
+        ? featureId
+        : 'home';
 
   useEffect(() => {
     if (!code) return undefined;
@@ -46,12 +64,23 @@ export default function DuoHomeLayout({
     return () => { alive = false; };
   }, [code, avatarTick]);
 
+  const toggleCrail = () => {
+    setCrailHidden(prev => {
+      const next = !prev;
+      try { localStorage.setItem(CRAIL_LS_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
   return (
     <section className={
       'on home-wide duo-shell'
       + (onSettings ? ' duo-shell-settings' : '')
-      + (onWall ? ' duo-shell-wall' : '')
-    }>
+      + (fullBleed ? ' duo-shell-wall' : '')
+      + ((onSavedBoards || onTodoList) ? ' duo-shell-saved' : '')
+      + (!fullMain && crailHidden ? ' duo-shell-crail-off' : '')
+    }
+    >
       <SideNav
         duo={duo}
         code={code}
@@ -74,6 +103,8 @@ export default function DuoHomeLayout({
           onStartGame={onStartGame}
           onBack={onBack}
           requestCount={incoming.length}
+          crailHidden={crailHidden}
+          onToggleCrail={toggleCrail}
         />
       )}
 
@@ -83,8 +114,12 @@ export default function DuoHomeLayout({
             <DuoHomeChrome
               duo={duo}
               code={code}
+              myRole={myRole}
               isAway={isAway}
               avatars={avatars}
+              presence={presence}
+              geoStatus={geoStatus}
+              onSetAnniversary={onSetAnniversary}
               onBack={onBack}
               activeNavId={activeNavId}
             />
@@ -93,14 +128,9 @@ export default function DuoHomeLayout({
         </div>
       </div>
 
-      {!fullMain && (
+      {!fullMain && !crailHidden && (
         <ContextRail
-          duo={duo}
           code={code}
-          myRole={myRole}
-          presence={presence}
-          geoStatus={geoStatus}
-          onSetAnniversary={onSetAnniversary}
           onStartGame={onStartGame}
           friendsEnabled={friendsEnabled}
           friends={friends}

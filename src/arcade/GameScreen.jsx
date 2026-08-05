@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { ENGINES } from '../engines/index.js';
 import { other } from '../lib/util.js';
 import { getRules } from '../engines/rules.js';
-import { CONFIG } from '../lib/config.js';
-import RoomChatDock from './RoomChatDock.jsx';
+import { Avatar } from './avatars.jsx';
+import { getDuoAvatars } from '../lib/avatars.js';
+import GameRoomShell from './GameRoomShell.jsx';
+import { InviteWaitHero } from './GameLobby.jsx';
+import { roomIdForSession } from '../lib/roomChat.js';
 
 function RulesIcon() {
   return (
@@ -21,6 +24,35 @@ function RulesIcon() {
         d="M10.2 11.4h5.6M10.2 13.6h5.6M10.2 15.8h5.6M10.2 18h3.8"
         stroke="currentColor" strokeWidth="1.55" strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <svg className="gv-more-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <circle cx="12" cy="5" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="12" cy="19" r="1.8" />
+    </svg>
+  );
+}
+
+function GameBadgeIcon({ gameId }) {
+  if (gameId === 'ttt') {
+    return (
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M3.5 10.5h17M3.5 15.5h17M10.5 3.5v17M15.5 3.5v17" stroke="currentColor" strokeWidth="1.4" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="9" cy="9" r="1.4" fill="currentColor" />
+      <circle cx="15" cy="15" r="1.4" fill="currentColor" />
+      <path d="M8 15.5 15.5 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -122,32 +154,24 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onPr
   const key = session.game + ':' + (session.startedAt || 0);
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !eng?.mount) return undefined;
-    // Mount even if sync/rt is briefly missing so the lobby/canvas still paints.
-    let rt = null;
-    try {
-      rt = sync?.rt?.(code) || null;
-    } catch { /* transport unavailable */ }
-    try {
-      eng.mount(host, {
-        myRole,
-        rt,
-        names,
-        code,
-        startedAt: session.startedAt || 0,
-        maxEnds: session.ncEnds || 3,
-        target: session.ckTarget || 21,
-        onFinish: (...args) => onFinishRef.current?.(...args),
-        onProceed: () => onProceedRef.current?.()
-      });
-    } catch {
-      return undefined;
-    }
+    if (!host || !sync?.rt) return undefined;
+    const rt = sync.rt(code);
+    eng.mount(host, {
+      myRole,
+      rt,
+      names,
+      code,
+      startedAt: session.startedAt || 0,
+      maxEnds: session.ncEnds || 3,
+      target: session.ckTarget || 21,
+      onFinish: (...args) => onFinishRef.current?.(...args),
+      onProceed: () => onProceedRef.current?.()
+    });
     return () => {
       try { eng.unmount(); } catch { /* engine already gone */ }
-      try { rt?.close?.(); } catch { /* channel already closed */ }
+      try { rt.close(); } catch { /* channel already closed */ }
     };
-  }, [key, code]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     try { eng.setPaused?.(paused); } catch { /* optional */ }
   }, [eng, paused, key]);
@@ -168,7 +192,8 @@ const LOBBY_COUNTDOWN_MS = 3000;
 export default function GameScreen({
   duo, code, myRole, isAway, sync,
   onMove, onReady, onRematch, onBack,
-  onRequestPause, onRespondPause, onRealtimeFinish, onSetNcEnds, onSetCkTarget
+  onRequestPause, onRespondPause, onCancelPause, onRealtimeFinish, onSetNcEnds, onSetCkTarget,
+  onSetAutoReady,
 }) {
   const s = duo.session;
   const eng = ENGINES[s.game];
@@ -176,15 +201,34 @@ export default function GameScreen({
   const [bannerStatus, setBannerStatus] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pauseModal, setPauseModal] = useState(false);
   /** Only the game canvas / kitchen — never DuoArcade chrome. */
   const fsRootRef = useRef(null);
   useEffect(() => { setShowRules(false); }, [s.game]);
+  useEffect(() => {
+    if (!showRules) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowRules(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showRules]);
   const [, forceTick] = useState(0);
   // Local countdown end — armed once per match so sync echoes can't re-stick on "3".
   const [goAt, setGoAt] = useState(null);
   const countdownArmRef = useRef(null);
   // Connect Four / Gomoku: show the winning line before the result panel.
   const [revealResult, setRevealResult] = useState(false);
+  const [avatars, setAvatars] = useState({ avatar_a: null, avatar_b: null });
+
+  useEffect(() => {
+    if (!code) return undefined;
+    let alive = true;
+    getDuoAvatars(code)
+      .then((data) => { if (alive) setAvatars(data || { avatar_a: null, avatar_b: null }); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [code]);
 
   useEffect(() => {
     const syncFs = () => {
@@ -277,7 +321,23 @@ export default function GameScreen({
     return () => clearInterval(id);
   }, [goAt, s.winner]);
 
-  if (!eng) return null;
+  if (!eng) {
+    return (
+      <section className="on gv-screen">
+        <header className="gv-top">
+          <button type="button" className="gv-back" onClick={onBack}>
+            <BackIcon />
+            <span>Back</span>
+          </button>
+          <div className="gv-heading">
+            <h2 className="gv-title">Unknown game</h2>
+            <p className="gv-tag">{s?.game ? `“${s.game}” isn’t available.` : 'No game in this session.'}</p>
+          </div>
+          <div className="gv-actions" />
+        </header>
+      </section>
+    );
+  }
   const rules = getRules(s.game);
   const rec = (duo.records || {})[s.game] || { a: 0, b: 0, d: 0 };
   const series = s.series || s.streak || { a: 0, b: 0, d: 0 };
@@ -287,24 +347,31 @@ export default function GameScreen({
   const pausePending = s.pauseRequest;
   const canPause = !s.winner && (s.phase === 'live' || s.phase === 'lobby') && !counting;
 
+  useEffect(() => {
+    if (paused || pausePending === partnerRole || pausePending === myRole) {
+      setPauseModal(true);
+    } else if (!paused && !pausePending) {
+      setPauseModal(false);
+    }
+  }, [paused, pausePending, partnerRole, myRole]);
+
   let board, banner = '', bannerClass = 'banner', showRematch = false;
 
   if (s.phase === 'invite' && s.by === myRole && !s.winner) {
-    const pLinked = partnerRole === 'A' ? !!duo.memberA : !!duo.memberB;
-    const pHere = !isAway(partnerRole);
-    const sub = pHere
-      ? 'They should see the invite popup on their screen now.'
-      : pLinked
-        ? `We'll pop it up as soon as ${partner} opens DuoArcade.`
-        : `${partner} hasn't joined this duo yet — send the invite link from home first.`;
+    const hostName = myRole === 'A' ? duo.nameA : duo.nameB;
+    const hostAvatar = myRole === 'B' ? avatars.avatar_b : avatars.avatar_a;
+    const guestAvatar = myRole === 'B' ? avatars.avatar_a : avatars.avatar_b;
     board = (
-      <div className="gv-panel gv-wait">
-        <div className="gv-wait-ring" aria-hidden="true" />
-        <h3 className="gv-wait-title">Waiting for {partner}</h3>
-        <p className="gv-wait-sub">Invitation sent — hang tight while they accept.</p>
-        <p className="gv-wait-hint">{sub}</p>
-        <button className="btn ghost small" onClick={onBack}>Cancel invitation</button>
-      </div>
+      <InviteWaitHero
+        hostName={hostName}
+        hostAvatar={hostAvatar}
+        guestName={partner}
+        guestAvatar={guestAvatar}
+        partnerName={partner}
+        onCancel={onBack}
+        autoReadyOnAccept={s.autoReadyOnAccept !== false}
+        onAutoReadyChange={onSetAutoReady}
+      />
     );
   } else if (s.phase === 'declined' && s.declinedBy !== myRole && !s.winner) {
     board = (
@@ -314,23 +381,31 @@ export default function GameScreen({
         <button className="btn small" onClick={onBack}>Back to the shelf</button>
       </div>
     );
-  } else if (s.phase === 'lobby' && !s.winner && !(eng.meta?.keepInGame && eng.meta?.realtime)) {
+  } else if (s.phase === 'lobby' && !s.winner) {
     const rematchAsk = s.rematchBy && s.rematchBy !== myRole && !s.ready?.[myRole];
     const rematchWait = s.rematchBy === myRole && !!s.ready?.[myRole] && !s.ready?.[partnerRole];
     board = (
       <div className="gv-panel gv-ready">
         <div className="ready-row">
-          {['A', 'B'].map(role => (
-            <div className="ready-pl" key={role}>
-              <div className={'av ' + role + (isAway(role) ? ' away' : '')}>
-                {(role === 'A' ? duo.nameA : duo.nameB)[0].toUpperCase()}
+          {['A', 'B'].map(role => {
+            const name = role === 'A' ? duo.nameA : duo.nameB;
+            const avatarId = role === 'A' ? avatars.avatar_a : avatars.avatar_b;
+            return (
+              <div className="ready-pl" key={role}>
+                <div className={'av ' + role + (isAway(role) ? ' away' : '') + (avatarId ? ' av-char' : '')}>
+                  <Avatar
+                    id={avatarId}
+                    size={48}
+                    fallback={(name || '?')[0]}
+                  />
+                </div>
+                <div>{name}</div>
+                <div className={'ready-check' + (s.ready?.[role] ? ' yes' : '')}>
+                  {s.ready?.[role] ? '✓ ready' : 'not ready'}
+                </div>
               </div>
-              <div>{role === 'A' ? duo.nameA : duo.nameB}</div>
-              <div className={'ready-check' + (s.ready?.[role] ? ' yes' : '')}>
-                {s.ready?.[role] ? '✓ ready' : 'not ready'}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {rematchAsk && (
           <p className="gv-rematch-note">
@@ -374,16 +449,16 @@ export default function GameScreen({
             ))}
           </div>
         )}
-        <button className="btn warm" disabled={!!s.ready?.[myRole]} onClick={onReady}>
-          {s.ready?.[myRole]
-            ? 'Waiting for partner to ready…'
-            : rematchAsk
-              ? 'Accept rematch'
-              : "I'm ready"}
-        </button>
+        {s.ready?.[myRole] ? (
+          <p className="gv-ready-wait">Waiting for partner to ready…</p>
+        ) : (
+          <button className="btn warm" onClick={onReady}>
+            {rematchAsk ? 'Accept rematch' : "I'm ready"}
+          </button>
+        )}
       </div>
     );
-  } else if (counting && !(eng.meta?.keepInGame && eng.meta?.realtime)) {
+  } else if (counting) {
     const remMs = Math.max(0, goAt - Date.now());
     const secs = Math.min(3, Math.max(1, Math.ceil(remMs / 1000)));
     board = <div className="countdown-big">{secs}</div>;
@@ -443,20 +518,345 @@ export default function GameScreen({
   const turnB = !eng.meta.realtime && s.turn === 'B' && !s.winner && s.phase === 'live' && !counting && !paused;
 
   const pauseLabel = paused
-    ? 'Resume game'
+    ? 'Paused'
     : pausePending === myRole
       ? 'Pause requested…'
-      : 'Request pause';
+      : pausePending === partnerRole
+        ? 'Pause request'
+        : 'Request pause';
+
+  const openPauseModal = () => setPauseModal(true);
+
+  const pausePopup = pauseModal && canPause && !showResult ? (
+    <div
+      className="gr-pause-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={pauseLabel}
+      onClick={() => {
+        if (!paused && !pausePending) setPauseModal(false);
+      }}
+    >
+      <div className="gr-pause-panel" onClick={e => e.stopPropagation()}>
+        {paused ? (
+          <>
+            <div className="gr-pause-ico" aria-hidden="true"><PauseIcon /></div>
+            <h3 className="gr-pause-title">Game paused</h3>
+            <p className="gr-pause-sub">Take a breath. Resume whenever you&apos;re both ready.</p>
+            <div className="gr-pause-actions">
+              <button
+                type="button"
+                className="btn warm"
+                onClick={() => {
+                  onRequestPause(setBannerStatus);
+                  setPauseModal(false);
+                }}
+              >
+                Resume
+              </button>
+            </div>
+          </>
+        ) : pausePending === partnerRole ? (
+          <>
+            <div className="gr-pause-ico" aria-hidden="true"><PauseIcon /></div>
+            <h3 className="gr-pause-title">{partner} requested a pause</h3>
+            <p className="gr-pause-sub">Accept to freeze the match for both of you.</p>
+            <div className="gr-pause-actions">
+              <button
+                type="button"
+                className="btn warm"
+                onClick={() => onRespondPause(true, setBannerStatus)}
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  onRespondPause(false, setBannerStatus);
+                  setPauseModal(false);
+                }}
+              >
+                Decline
+              </button>
+            </div>
+          </>
+        ) : pausePending === myRole ? (
+          <>
+            <div className="gr-pause-ico" aria-hidden="true"><PauseIcon /></div>
+            <h3 className="gr-pause-title">Waiting for {partner}</h3>
+            <p className="gr-pause-sub">Your pause request is pending their accept.</p>
+            <div className="gr-pause-actions">
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  onCancelPause?.(setBannerStatus);
+                  setPauseModal(false);
+                }}
+              >
+                Cancel request
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="gr-pause-ico" aria-hidden="true"><PauseIcon /></div>
+            <h3 className="gr-pause-title">Request a pause?</h3>
+            <p className="gr-pause-sub">{partner} will need to accept before the game freezes.</p>
+            <div className="gr-pause-actions">
+              <button
+                type="button"
+                className="btn warm"
+                onClick={() => onRequestPause(setBannerStatus)}
+              >
+                Send request
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => setPauseModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   const showRulesNote = rules && !s.winner && !showRules
     && (s.phase === 'invite' || s.phase === 'lobby' || counting);
 
   const kitchenGame = s.game === 'readysetcook';
-  const roomShell = !showResult && !kitchenGame;
-  const userId = sync?.auth?.user?.()?.id || null;
-  const transport = String(CONFIG.GAME_RT || 'socket').toLowerCase() === 'socket'
-    ? 'Fly Socket.IO'
-    : 'Supabase RT';
+  const isInviteWait = s.phase === 'invite' && s.by === myRole && !s.winner;
+  const useRoomShell = showResult || (
+    isInviteWait
+    || (s.phase === 'lobby' && !s.winner)
+    || counting
+    || s.phase === 'live'
+    || (s.phase === 'declined' && s.declinedBy !== myRole && !s.winner)
+  );
+  const roomHostRole = s.by === 'A' || s.by === 'B' ? s.by : 'A';
+
+  const resultPanel = showResult ? (
+    <div className={`gv-result gv-result-${s.winner}`}>
+      <div className="gv-result-kicker">{eng.meta.name}</div>
+      <div className="gv-result-avs" aria-hidden="true">
+        <div className={'gv-result-av A' + (s.winner === 'A' ? ' win' : '')}>
+          {duo.nameA[0]?.toUpperCase()}
+        </div>
+        <div className="gv-result-vs">vs</div>
+        <div className={'gv-result-av B' + (s.winner === 'B' ? ' win' : '')}>
+          {duo.nameB[0]?.toUpperCase()}
+        </div>
+      </div>
+      <div className="gv-result-score">
+        {isDraw && s.game === 'nightcurling'
+          ? 'Draw'
+          : s.matchScore
+            ? <>{s.matchScore.a} <span>–</span> {s.matchScore.b}</>
+            : s.game === 'twotruths' && s.gs?.scores
+              ? <>{s.gs.scores.A} <span>–</span> {s.gs.scores.B}</>
+              : isDraw
+                ? 'Draw'
+                : s.winner === 'A'
+                  ? <>1 <span>–</span> 0</>
+                  : <>0 <span>–</span> 1</>}
+      </div>
+      {s.game === 'nightcurling' && s.matchScore?.endsWon && !isDraw && (
+        <p className="gv-result-sub" style={{ marginTop: 0 }}>
+          Ends won · {s.matchScore.endsWon.a}–{s.matchScore.endsWon.b}
+        </p>
+      )}
+      <h3 className="gv-result-title">
+        {isDraw
+          ? (s.game === 'nightcurling' ? 'Draw' : 'A perfectly tied match')
+          : iWon
+            ? 'You take the match'
+            : `${winnerName} takes the match`}
+      </h3>
+      <p className="gv-result-series">
+        Series · {series.a}–{series.b}{series.d ? ` · ${series.d} draws` : ''}
+        {rec.a || rec.b || rec.d ? ` · All-time ${rec.a}–${rec.b}` : ''}
+      </p>
+      {s.game === 'nightcurling' && Array.isArray(s.matchScore?.ends) && s.matchScore.ends.length > 0 && (
+        <table className="ttl-recap nc-recap" aria-label="End-by-end score">
+          <thead>
+            <tr>
+              <th scope="col" />
+              {s.matchScore.ends.map((e, i) => (
+                <th key={i} scope="col">{e.tieBreak ? 'TB' : `E${e.end || i + 1}`}</th>
+              ))}
+              <th scope="col">Tot</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[['A', duo.nameA, 'a'], ['B', duo.nameB, 'b']].map(([role, name, key]) => (
+              <tr key={role}>
+                <th scope="row" className={'ttl-recap-name ' + role}>{name}</th>
+                {s.matchScore.ends.map((e, i) => (
+                  <td key={i} className={
+                    e.winner === role ? 'win ' + role
+                      : e.blank || e.tie ? 'draw'
+                        : 'loss'
+                  }>
+                    {e[key]}
+                  </td>
+                ))}
+                <td className={'win ' + role}>{s.matchScore[key]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {s.game === 'twotruths' && Array.isArray(s.gs?.roundResults) && s.gs.roundResults.length > 0 && (
+        <table className="ttl-recap" aria-label="Round recap">
+          <thead>
+            <tr>
+              <th scope="col" />
+              {s.gs.roundResults.map((_, i) => (
+                <th key={i} scope="col">
+                  {i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`} round
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[['A', duo.nameA], ['B', duo.nameB]].map(([role, name]) => (
+              <tr key={role}>
+                <th scope="row" className={'ttl-recap-name ' + role}>{name}</th>
+                {s.gs.roundResults.map((rw, i) => (
+                  <td key={i} className={
+                    rw === role ? 'win ' + role
+                      : rw === 'draw' ? 'draw'
+                        : 'loss'
+                  }>
+                    {rw === role ? '✓' : rw === 'draw' ? 'Draw' : ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="gv-result-sub">
+        {isDraw
+          ? (s.game === 'nightcurling'
+            ? (s.matchScore && s.matchScore.a === s.matchScore.b
+              ? 'Equal totals — no extra end.'
+              : 'Match ends even.')
+            : 'This round ended even — check the series line for your record.')
+          : iWon
+            ? 'Nice one. Offer a rematch while the streak is warm.'
+            : `Well played — challenge ${winnerName} to a rematch.`}
+      </p>
+      {showRematch && (
+        <div className="gv-result-actions">
+          <button className="btn warm" onClick={onRematch}>Rematch</button>
+          <button className="btn ghost" onClick={onBack}>Back to shelf</button>
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  const rulesPopup = showRules && rules ? (
+    <div
+      className="gv-rules-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`How to play — ${eng.meta.name}`}
+      onClick={() => setShowRules(false)}
+    >
+      <div className="gv-rules-panel" onClick={e => e.stopPropagation()}>
+        <div className="gv-rules-top">
+          <div className="gv-rules-head">How to play — {eng.meta.name}</div>
+          <button
+            type="button"
+            className="gv-rules-close"
+            aria-label="Close"
+            onClick={() => setShowRules(false)}
+          >
+            ×
+          </button>
+        </div>
+        <div className="gv-rules-goal">{rules.goal}</div>
+        <ol className="gv-rules-list">
+          {rules.how.map((line, i) => <li key={i}>{line}</li>)}
+        </ol>
+        {rules.tip && <div className="gv-rules-tip">💡 {rules.tip}</div>}
+      </div>
+    </div>
+  ) : null;
+
+  if (useRoomShell) {
+    return (
+      <section
+        className={
+          'on gv-screen gv-room'
+          + (isInviteWait ? ' gv-invite-wait' : '')
+          + (kitchenGame ? ' gv-kitchen' : '')
+          + (s.phase === 'lobby' && !showResult ? ' gv-room-lobby' : '')
+          + (s.phase === 'live' && !showResult ? ' gv-room-live' : '')
+          + (showResult ? ' gv-room-result' : '')
+        }
+      >
+        <div
+          ref={fsRootRef}
+          className={'gv-fs-root' + (isFullscreen ? ' is-fullscreen' : '')}
+        >
+          {isFullscreen && (
+            <button
+              type="button"
+              className="gv-fs-exit"
+              onClick={toggleFullscreen}
+              title="Exit fullscreen"
+              aria-label="Exit fullscreen"
+            >
+              <FullscreenExitIcon />
+            </button>
+          )}
+          <GameRoomShell
+            duo={duo}
+            code={code}
+            userId={sync?.auth?.user()?.id || null}
+            roomId={roomIdForSession(s)}
+            myRole={myRole}
+            hostRole={roomHostRole}
+            eng={eng}
+            avatars={avatars}
+            isAway={isAway}
+            onBack={onBack}
+            onOpenRules={rules ? () => setShowRules(v => !v) : undefined}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+            guestWaiting={isInviteWait}
+            canPause={!showResult && canPause}
+            paused={paused}
+            pauseDisabled={false}
+            pauseLabel={pauseLabel}
+            onRequestPause={openPauseModal}
+            pauseOverlay={pausePopup}
+          >
+            {!showResult && s.game === 'codebreak' && s.gs?.secrets?.[myRole] && s.phase === 'live' && (
+              <div className="cb-secret-title gr-overlay-bar">
+                Your secret code is : <span>{s.gs.secrets[myRole]}</span>
+              </div>
+            )}
+            <div className={'gr-board-slot gv-board' + (showResult ? ' is-result' : '')}>
+              {showResult ? resultPanel : board}
+            </div>
+            {!showResult && (bannerStatus || banner) && (
+              <div className={'gr-banner ' + bannerClass}>{bannerStatus || banner}</div>
+            )}
+          </GameRoomShell>
+        </div>
+
+        {rulesPopup}
+      </section>
+    );
+  }
 
   return (
     <section
@@ -464,16 +864,20 @@ export default function GameScreen({
         'on gv-screen'
         + (kitchenGame ? ' gv-kitchen' : '')
         + (showResult ? ' gv-result-screen' : '')
-        + (roomShell ? ' gv-room' : '')
       }
     >
       <header className="gv-top">
         <button type="button" className="gv-back" onClick={onBack}>
           <BackIcon />
-          <span>Back to Games</span>
+          <span>Back</span>
         </button>
         <div className="gv-heading">
-          <h2 className="gv-title">{eng.meta.name}</h2>
+          <div className="gv-title-row">
+            <span className="gv-game-badge" aria-hidden="true">
+              <GameBadgeIcon gameId={s.game} />
+            </span>
+            <h2 className="gv-title">{eng.meta.name}</h2>
+          </div>
           {eng.meta.tag && <p className="gv-tag">{eng.meta.tag}</p>}
         </div>
         <div className="gv-actions">
@@ -481,8 +885,7 @@ export default function GameScreen({
             <button
               type="button"
               className={'gv-iconbtn gv-pause' + (paused ? ' on' : '')}
-              disabled={pausePending === myRole && !paused}
-              onClick={() => onRequestPause(setBannerStatus)}
+              onClick={openPauseModal}
               title={pauseLabel}
               aria-label={pauseLabel}
             >
@@ -502,20 +905,17 @@ export default function GameScreen({
             <button
               type="button"
               className={'gv-iconbtn gv-rules' + (showRules ? ' on' : '')}
-              aria-label="Rules"
-              title="How to play"
+              aria-label={isInviteWait ? 'More' : 'Rules'}
+              title={isInviteWait ? 'More — how to play' : 'How to play'}
               onClick={() => setShowRules(v => !v)}
             >
-              <RulesIcon />
+              {isInviteWait ? <MoreIcon /> : <RulesIcon />}
             </button>
           )}
-          <button type="button" className="gv-leave" onClick={onBack}>
-            Leave Room
-          </button>
         </div>
       </header>
 
-      <div className={'gv-stage' + (roomShell ? ' gv-stage-room' : '')}>
+      <div className="gv-stage">
         {showRulesNote && (
           <p className="gv-rules-note">
             Game rules are in the top right, have a quick look before the game start.
@@ -523,25 +923,66 @@ export default function GameScreen({
         )}
 
         {showRules && rules && (
-          <div className="gv-rules-panel">
-            <div className="gv-rules-head">How to play — {eng.meta.name}</div>
-            <div className="gv-rules-goal">{rules.goal}</div>
-            <ol className="gv-rules-list">
-              {rules.how.map((line, i) => <li key={i}>{line}</li>)}
-            </ol>
-            {rules.tip && <div className="gv-rules-tip">💡 {rules.tip}</div>}
+          <div
+            className="gv-rules-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`How to play — ${eng.meta.name}`}
+            onClick={() => setShowRules(false)}
+          >
+            <div className="gv-rules-panel" onClick={e => e.stopPropagation()}>
+              <div className="gv-rules-top">
+                <div className="gv-rules-head">How to play — {eng.meta.name}</div>
+                <button
+                  type="button"
+                  className="gv-rules-close"
+                  aria-label="Close"
+                  onClick={() => setShowRules(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="gv-rules-goal">{rules.goal}</div>
+              <ol className="gv-rules-list">
+                {rules.how.map((line, i) => <li key={i}>{line}</li>)}
+              </ol>
+              {rules.tip && <div className="gv-rules-tip">💡 {rules.tip}</div>}
+            </div>
           </div>
         )}
 
-        {!showResult && !roomShell && (
+        {!showResult && (
           <>
-            <div className={"gv-players" + (eng.meta?.hidePlayers ? " gv-players-hidden" : "")}>
+            <div className="gv-players">
               <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
-                <div className="dot" /><span>{duo.nameA}</span>
+                {isInviteWait ? (
+                  <Avatar
+                    id={avatars.avatar_a}
+                    size={28}
+                    fallback={(duo.nameA || 'A')[0]?.toUpperCase()}
+                  />
+                ) : (
+                  <div className="dot" />
+                )}
+                <span>{duo.nameA}</span>
               </div>
               <div className="tally">{series.a} {'–'} {series.b}</div>
               <div className={'pl B' + (turnB ? ' turn' : '') + (isAway('B') ? ' away' : '')}>
-                <div className="dot" /><span>{duo.nameB}</span>
+                {isInviteWait ? (
+                  <>
+                    <span>{duo.nameB}</span>
+                    <Avatar
+                      id={avatars.avatar_b}
+                      size={28}
+                      fallback={(duo.nameB || 'B')[0]?.toUpperCase()}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="dot" />
+                    <span>{duo.nameB}</span>
+                  </>
+                )}
               </div>
             </div>
             {s.game === 'codebreak' && s.gs?.secrets?.[myRole] && (
@@ -552,233 +993,36 @@ export default function GameScreen({
           </>
         )}
 
-        {pausePending === partnerRole && !paused && (
-          <div className="gv-pause-request">
-            <span><b>{partner}</b> requested a pause.</span>
-            <div className="gv-pause-request-actions">
-              <button className="btn small warm" onClick={() => onRespondPause(true, setBannerStatus)}>Accept</button>
-              <button className="btn small ghost" onClick={() => onRespondPause(false, setBannerStatus)}>Decline</button>
-            </div>
-          </div>
-        )}
-
-        {showResult ? (
-          <div className={`gv-result gv-result-${s.winner}`}>
-            <div className="gv-result-kicker">{eng.meta.name}</div>
-            <div className="gv-result-avs" aria-hidden="true">
-              <div className={'gv-result-av A' + (s.winner === 'A' ? ' win' : '')}>
-                {duo.nameA[0]?.toUpperCase()}
-              </div>
-              <div className="gv-result-vs">vs</div>
-              <div className={'gv-result-av B' + (s.winner === 'B' ? ' win' : '')}>
-                {duo.nameB[0]?.toUpperCase()}
-              </div>
-            </div>
-            <div className="gv-result-score">
-              {isDraw && s.game === 'nightcurling'
-                ? 'Draw'
-                : s.matchScore
-                  ? <>{s.matchScore.a} <span>–</span> {s.matchScore.b}</>
-                  : s.game === 'twotruths' && s.gs?.scores
-                    ? <>{s.gs.scores.A} <span>–</span> {s.gs.scores.B}</>
-                    : isDraw
-                      ? 'Draw'
-                      : s.winner === 'A'
-                        ? <>1 <span>–</span> 0</>
-                        : <>0 <span>–</span> 1</>}
-            </div>
-            {s.game === 'nightcurling' && s.matchScore?.endsWon && !isDraw && (
-              <p className="gv-result-sub" style={{ marginTop: 0 }}>
-                Ends won · {s.matchScore.endsWon.a}–{s.matchScore.endsWon.b}
-              </p>
-            )}
-            <h3 className="gv-result-title">
-              {isDraw
-                ? (s.game === 'nightcurling' ? 'Draw' : 'A perfectly tied match')
-                : iWon
-                  ? 'You take the match'
-                  : `${winnerName} takes the match`}
-            </h3>
-            <p className="gv-result-series">
-              Series · {series.a}–{series.b}{series.d ? ` · ${series.d} draws` : ''}
-              {rec.a || rec.b || rec.d ? ` · All-time ${rec.a}–${rec.b}` : ''}
-            </p>
-            {s.game === 'nightcurling' && Array.isArray(s.matchScore?.ends) && s.matchScore.ends.length > 0 && (
-              <table className="ttl-recap nc-recap" aria-label="End-by-end score">
-                <thead>
-                  <tr>
-                    <th scope="col" />
-                    {s.matchScore.ends.map((e, i) => (
-                      <th key={i} scope="col">{e.tieBreak ? 'TB' : `E${e.end || i + 1}`}</th>
-                    ))}
-                    <th scope="col">Tot</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[['A', duo.nameA, 'a'], ['B', duo.nameB, 'b']].map(([role, name, key]) => (
-                    <tr key={role}>
-                      <th scope="row" className={'ttl-recap-name ' + role}>{name}</th>
-                      {s.matchScore.ends.map((e, i) => (
-                        <td key={i} className={
-                          e.winner === role ? 'win ' + role
-                            : e.blank || e.tie ? 'draw'
-                              : 'loss'
-                        }>
-                          {e[key]}
-                        </td>
-                      ))}
-                      <td className={'win ' + role}>{s.matchScore[key]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {s.game === 'twotruths' && Array.isArray(s.gs?.roundResults) && s.gs.roundResults.length > 0 && (
-              <table className="ttl-recap" aria-label="Round recap">
-                <thead>
-                  <tr>
-                    <th scope="col" />
-                    {s.gs.roundResults.map((_, i) => (
-                      <th key={i} scope="col">
-                        {i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`} round
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[['A', duo.nameA], ['B', duo.nameB]].map(([role, name]) => (
-                    <tr key={role}>
-                      <th scope="row" className={'ttl-recap-name ' + role}>{name}</th>
-                      {s.gs.roundResults.map((rw, i) => (
-                        <td key={i} className={
-                          rw === role ? 'win ' + role
-                            : rw === 'draw' ? 'draw'
-                              : 'loss'
-                        }>
-                          {rw === role ? '✓' : rw === 'draw' ? 'Draw' : ''}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            <p className="gv-result-sub">
-              {isDraw
-                ? (s.game === 'nightcurling'
-                  ? (s.matchScore && s.matchScore.a === s.matchScore.b
-                    ? 'Equal totals — no extra end.'
-                    : 'Match ends even.')
-                  : 'This round ended even — check the series line for your record.')
-                : iWon
-                  ? 'Nice one. Offer a rematch while the streak is warm.'
-                  : `Well played — challenge ${winnerName} to a rematch.`}
-            </p>
-            {showRematch && (
-              <div className="gv-result-actions">
-                <button className="btn warm" onClick={onRematch}>Rematch</button>
-                <button className="btn ghost" onClick={onBack}>Back to shelf</button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={roomShell ? 'gv-room-cols' : 'gv-room-cols gv-room-cols-solo'}>
-            {roomShell && (
-              <aside className="gv-rail gv-rail-left">
-                <div className="gv-rail-block">
-                  <div className="gv-rail-title">Players</div>
-                  <div className={'gv-rail-player A' + (isAway('A') ? ' away' : '')}>
-                    <span className="gv-rail-av">{duo.nameA[0]?.toUpperCase()}</span>
-                    <div>
-                      <div className="gv-rail-name">{duo.nameA}{myRole === 'A' ? ' · you' : ''}</div>
-                      <div className="gv-rail-meta">{isAway('A') ? 'away' : 'online'}</div>
-                    </div>
-                    <span className="gv-rail-crown" title="Host">♛</span>
-                  </div>
-                  <div className={'gv-rail-player B' + (isAway('B') ? ' away' : '')}>
-                    <span className="gv-rail-av B">{duo.nameB[0]?.toUpperCase()}</span>
-                    <div>
-                      <div className="gv-rail-name">{duo.nameB}{myRole === 'B' ? ' · you' : ''}</div>
-                      <div className="gv-rail-meta">{isAway('B') ? 'away' : 'online'}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="gv-rail-block">
-                  <div className="gv-rail-title">Series</div>
-                  <div className="gv-rail-stat">
-                    <span>Score</span>
-                    <b>{series.a} – {series.b}</b>
-                  </div>
-                  <div className="gv-rail-stat">
-                    <span>Game</span>
-                    <b>{eng.meta.name}</b>
-                  </div>
-                </div>
-              </aside>
-            )}
-
-            <div className="gv-room-main">
-              {s.game === 'codebreak' && s.gs?.secrets?.[myRole] && (
-                <div className="cb-secret-title">
-                  Your secret code is : <span>{s.gs.secrets[myRole]}</span>
-                </div>
+        {showResult ? resultPanel : (
+          <>
+            {/* Fullscreen targets this node only — no DuoArcade topbar / game header */}
+            <div
+              ref={fsRootRef}
+              className={'gv-fs-root' + (isFullscreen ? ' is-fullscreen' : '')}
+            >
+              {isFullscreen && (
+                <button
+                  type="button"
+                  className="gv-fs-exit"
+                  onClick={toggleFullscreen}
+                  title="Exit fullscreen"
+                  aria-label="Exit fullscreen"
+                >
+                  <FullscreenExitIcon />
+                </button>
               )}
-              <div
-                ref={fsRootRef}
-                className={'gv-fs-root' + (isFullscreen ? ' is-fullscreen' : '')}
-              >
-                {isFullscreen && (
-                  <button
-                    type="button"
-                    className="gv-fs-exit"
-                    onClick={toggleFullscreen}
-                    title="Exit fullscreen"
-                    aria-label="Exit fullscreen"
-                  >
-                    <FullscreenExitIcon />
-                  </button>
-                )}
-                <div className="gv-board">{board}</div>
-                {!isFullscreen && (bannerStatus || banner) && (
-                  <div className={bannerClass}>{bannerStatus || banner}</div>
-                )}
-              </div>
+              <div className="gv-board">{board}</div>
+              {/* Banner sits under the board in windowed mode only — in fullscreen
+                  it left a black strip at the bottom of the monitor. */}
+              {!isFullscreen && (bannerStatus || banner) && (
+                <div className={bannerClass}>{bannerStatus || banner}</div>
+              )}
             </div>
-
-            {roomShell && (
-              <aside className="gv-rail gv-rail-right">
-                <RoomChatDock
-                  code={code}
-                  userId={userId}
-                  myName={myRole === 'A' ? duo.nameA : duo.nameB}
-                  partnerName={partner}
-                />
-              </aside>
-            )}
-          </div>
+          </>
         )}
       </div>
 
-      {roomShell && (
-        <footer className="gv-syncbar">
-          <div className="gv-sync-left">
-            <span className="gv-sync-label">Sync Status</span>
-            <span className="gv-sync-pill">Excellent</span>
-          </div>
-          <div className="gv-sync-mid">
-            <span className="gv-sync-check">✓</span>
-            <div>
-              <div className="gv-sync-title">Sync is live</div>
-              <div className="gv-sync-sub">{transport}</div>
-            </div>
-            <div className="gv-sync-wave" aria-hidden="true" />
-          </div>
-          <div className="gv-sync-right">
-            <span className="gv-sync-label">Transport</span>
-            <b>{transport === 'Fly Socket.IO' ? 'Fly.io' : 'Realtime'}</b>
-          </div>
-        </footer>
-      )}
+      {pausePopup}
     </section>
   );
 }

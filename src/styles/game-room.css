@@ -1,0 +1,1841 @@
+/* Game room shell — co-op chrome around invite wait (.gr-*) */
+
+.arcade-page .gr-shell {
+  --gr-rail: 300px;
+  --gr-gap: 12px;
+  /* Follow Settings duo theme (--p1 / --p2 / --candle). */
+  --gr-primary: var(--color-primary, var(--p1));
+  --gr-accent: var(--color-secondary, var(--p2));
+  --gr-candle: var(--color-warning, var(--candle));
+  --gr-ready: var(--gr-primary);
+  --gr-wait: var(--gr-accent);
+  --gr-offline: #6b7280;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: min(1400px, calc(100vw - 24px));
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  gap: 10px;
+  padding: 8px 0;
+  box-sizing: border-box;
+  color: var(--text);
+}
+
+.arcade-page .gr-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  background: color-mix(in srgb, var(--room) 92%, transparent);
+  box-shadow: 0 10px 28px var(--shadow);
+  flex: none;
+}
+
+.arcade-page .gr-title-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+}
+.arcade-page .gr-game-badge {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: var(--gr-candle);
+  background: color-mix(in srgb, var(--gr-primary) 18%, var(--room2));
+  border: 1px solid color-mix(in srgb, var(--gr-primary) 40%, var(--line));
+}
+.arcade-page .gr-title-copy {
+  min-width: 0;
+  text-align: left;
+}
+.arcade-page .gr-title {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-weight: 900;
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.arcade-page .gr-tag {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arcade-page .gr-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.arcade-page .gr-iconbtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--room2);
+  color: var(--dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.arcade-page .gr-iconbtn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--p1) 35%, var(--line));
+}
+.arcade-page .gr-iconbtn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.arcade-page .gr-leave {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #ef4444 45%, transparent);
+  background: color-mix(in srgb, #ef4444 16%, var(--room2));
+  color: #fca5a5;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.arcade-page .gr-leave:hover {
+  border-color: color-mix(in srgb, #ef4444 65%, transparent);
+  background: color-mix(in srgb, #ef4444 26%, var(--room2));
+  color: #fecaca;
+}
+
+.arcade-page .gr-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--gr-rail);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--gr-gap);
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+  align-content: stretch;
+}
+.arcade-page .gr-shell-rail-off .gr-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.arcade-page .gr-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  min-width: 0;
+}
+.arcade-page .gr-sidepanel {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px 12px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--room) 94%, transparent);
+  box-shadow: 0 8px 24px var(--shadow);
+  overflow: hidden;
+}
+.arcade-page .gr-rail-hide {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--night) 55%, var(--room));
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: none;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.arcade-page .gr-rail-hide:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--gr-primary) 40%, var(--line));
+  background: color-mix(in srgb, var(--gr-primary) 10%, color-mix(in srgb, var(--night) 55%, var(--room)));
+}
+.arcade-page .gr-rail-tab {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--night) 55%, var(--room));
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.arcade-page .gr-rail-tab:hover {
+  border-color: color-mix(in srgb, var(--gr-primary) 40%, var(--line));
+  background: color-mix(in srgb, var(--gr-primary) 10%, color-mix(in srgb, var(--night) 55%, var(--room)));
+  color: var(--text);
+  transform: none;
+}
+.arcade-page .gr-side-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  padding-right: 40px;
+  box-sizing: border-box;
+}
+.arcade-page .gr-side-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.arcade-page .gr-player-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* —— PlayerCard —— */
+.arcade-page .gr-player-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--room2) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  transition: border-color .15s ease, background .15s ease;
+}
+.arcade-page .gr-player-card:hover {
+  border-color: color-mix(in srgb, var(--gr-primary) 35%, var(--line));
+  background: color-mix(in srgb, var(--gr-primary) 6%, var(--room2));
+}
+.arcade-page .gr-player-card.placeholder {
+  opacity: .88;
+}
+.arcade-page .gr-player-card-av {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--room);
+  box-sizing: border-box;
+}
+.arcade-page .gr-player-card-av.host {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gr-primary) 80%, #fff),
+    0 0 12px color-mix(in srgb, var(--gr-primary) 35%, transparent);
+}
+.arcade-page .gr-player-card-av.guest {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gr-accent) 75%, #fff),
+    0 0 10px color-mix(in srgb, var(--gr-accent) 28%, transparent);
+}
+.arcade-page .gr-player-card-av.empty {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gr-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--gr-accent) 12%, var(--room));
+}
+.arcade-page .gr-player-card.dimmed {
+  opacity: .9;
+}
+.arcade-page .gr-player-card-av.pending {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gr-accent) 70%, #fff),
+    0 0 10px color-mix(in srgb, var(--gr-accent) 25%, transparent);
+  filter: grayscale(.55) brightness(.42);
+  opacity: .78;
+}
+.arcade-page .gr-player-q {
+  font-weight: 800;
+  font-size: 18px;
+  color: color-mix(in srgb, var(--gr-accent) 55%, var(--text));
+}
+.arcade-page .gr-player-card-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.arcade-page .gr-player-card-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.arcade-page .gr-player-card-sub {
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.arcade-page .gr-player-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.arcade-page .gr-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+.arcade-page .gr-role-badge.host {
+  color: #fff;
+  background: var(--gr-primary);
+}
+.arcade-page .gr-role-badge.invited {
+  color: #fff;
+  background: var(--gr-accent);
+  border: 1px solid transparent;
+}
+.arcade-page .gr-role-badge.guest {
+  color: #fff;
+  background: color-mix(in srgb, var(--gr-accent) 82%, #111827);
+  border: 1px solid transparent;
+}
+
+.arcade-page .gr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .03em;
+  line-height: 1.4;
+}
+.arcade-page .gr-status-badge.ready {
+  color: #a16207;
+  background: color-mix(in srgb, #eab308 20%, transparent);
+  border: 1px solid color-mix(in srgb, #eab308 45%, transparent);
+}
+.arcade-page .gr-status-badge.playing {
+  color: #166534;
+  background: color-mix(in srgb, #22c55e 20%, transparent);
+  border: 1px solid color-mix(in srgb, #22c55e 42%, transparent);
+}
+.arcade-page .gr-status-badge.wait {
+  color: color-mix(in srgb, var(--gr-accent) 72%, var(--text));
+  background: color-mix(in srgb, var(--gr-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gr-accent) 36%, transparent);
+}
+.arcade-page .gr-status-badge.offline {
+  color: #4b5563;
+  background: color-mix(in srgb, var(--gr-offline) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gr-offline) 30%, transparent);
+}
+html:not([data-appearance="light"]) .arcade-page .gr-status-badge.ready {
+  color: #fde047;
+}
+html:not([data-appearance="light"]) .arcade-page .gr-status-badge.playing {
+  color: #86efac;
+}
+html:not([data-appearance="light"]) .arcade-page .gr-status-badge.wait {
+  color: color-mix(in srgb, var(--gr-accent) 70%, #fff);
+}
+html:not([data-appearance="light"]) .arcade-page .gr-status-badge.offline {
+  color: #9ca3af;
+}
+
+.arcade-page .gr-info-list {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.arcade-page .gr-info-list > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+.arcade-page .gr-info-list dt {
+  color: var(--dim);
+  font-weight: 550;
+}
+.arcade-page .gr-info-list dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}
+
+.arcade-page .gr-howto {
+  flex: none;
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: color-mix(in srgb, var(--room2) 90%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.arcade-page .gr-howto:hover {
+  border-color: color-mix(in srgb, var(--gr-primary) 35%, var(--line));
+  background: color-mix(in srgb, var(--gr-primary) 8%, var(--room2));
+}
+.arcade-page .gr-howto-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.arcade-page .gr-howto svg {
+  color: var(--dim);
+}
+
+/* legacy card (right rail / unused) */
+.arcade-page .gr-card {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--room) 94%, transparent);
+  box-shadow: 0 8px 22px var(--shadow);
+}
+.arcade-page .gr-card-label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.arcade-page .gr-guide {
+  display: none;
+}
+
+.arcade-page .gr-center {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.arcade-page .gr-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--night) 55%, var(--room));
+  box-shadow:
+    0 16px 40px var(--shadow),
+    inset 0 0 0 1px color-mix(in srgb, #fff 4%, transparent);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.arcade-page .gr-viewport-inner {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  scrollbar-width: thin;
+}
+
+/* Ready / live / wait content fills the center viewport */
+.arcade-page .gr-board-slot {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.arcade-page .gr-board-slot > .gv-panel,
+.arcade-page .gr-board-slot > .gv-lobby,
+.arcade-page .gr-board-slot > .gv-wait-layout,
+.arcade-page .gr-board-slot > .countdown-big,
+.arcade-page .gr-board-slot > .gv-board-wrap,
+.arcade-page .gr-board-slot > .gv-board-paused,
+.arcade-page .gr-board-slot > div:only-child {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+.arcade-page .gr-board-slot > .gv-ready {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+  padding: 28px 20px;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.arcade-page .gr-board-slot > .gv-ready .btn.warm {
+  color: #fff;
+  border-color: transparent;
+  background: var(--gr-primary);
+  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--gr-primary) 80%, transparent);
+}
+.arcade-page .gr-board-slot > .gv-ready .btn.warm:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gr-primary) 88%, #fff);
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--gr-primary) 90%, transparent);
+}
+.arcade-page .gr-board-slot > .gv-ready .btn.warm:disabled {
+  color: #fff;
+  opacity: .92;
+  background: var(--gr-primary);
+}
+.arcade-page .gr-board-slot > .gv-ready .gv-ready-wait {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--dim);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  text-align: center;
+}
+.arcade-page .gr-board-slot > .countdown-big {
+  display: grid;
+  place-items: center;
+}
+.arcade-page .gr-board-slot > .gv-board-wrap {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+.arcade-page .gr-board-slot > .gv-board-wrap > * {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+.arcade-page .gr-overlay-bar {
+  flex: none;
+  margin: 10px 12px 0;
+  width: auto;
+  z-index: 3;
+}
+.arcade-page .gr-banner {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px 10px;
+  text-align: center;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 15px;
+  min-height: 22px;
+  z-index: 2;
+}
+
+/* Live: fill the viewport border — every game uses full frame, never overflows */
+.arcade-page .gv-room-live .gr-viewport-inner {
+  justify-content: center;
+  align-items: center;
+}
+.arcade-page .gv-room-live .gr-board-slot {
+  --gr-board-pad-x: 18px;
+  --gr-board-pad-top: 16px;
+  --gr-board-pad-bottom: 52px; /* room for turn banner + rounded corner */
+  position: absolute;
+  inset: 0;
+  flex: none;
+  padding: var(--gr-board-pad-top) var(--gr-board-pad-x) var(--gr-board-pad-bottom);
+  box-sizing: border-box;
+  overflow: hidden;
+  container-type: size;
+  container-name: grboard;
+}
+
+/* Match result — fill the whole board frame */
+.arcade-page .gv-room-result .gr-viewport-inner {
+  justify-content: stretch;
+  align-items: stretch;
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result {
+  position: absolute;
+  inset: 0;
+  flex: none;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result {
+  position: relative;
+  isolation: isolate;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+  padding: clamp(28px, 5vh, 56px) clamp(24px, 4vw, 48px);
+  gap: clamp(10px, 1.8vh, 18px);
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, var(--night) 55%, transparent), transparent 58%),
+    radial-gradient(ellipse 55% 40% at 12% 8%, color-mix(in srgb, var(--p1) 22%, transparent), transparent 62%),
+    radial-gradient(ellipse 50% 38% at 88% 12%, color-mix(in srgb, var(--p2) 20%, transparent), transparent 60%),
+    radial-gradient(ellipse 45% 35% at 50% 42%, color-mix(in srgb, var(--candle) 10%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--room) 40%, var(--night)) 0%, var(--night) 100%);
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 5%, transparent) 50%, transparent 100%) top / 100% 1px no-repeat,
+    repeating-linear-gradient(
+      -18deg,
+      transparent 0 14px,
+      color-mix(in srgb, #fff 2.5%, transparent) 14px 15px
+    );
+  opacity: .55;
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, #000 20%, transparent 75%);
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow:
+    inset 0 0 80px color-mix(in srgb, var(--night) 55%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result > * {
+  position: relative;
+  z-index: 1;
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result-A {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, var(--night) 50%, transparent), transparent 58%),
+    radial-gradient(ellipse 62% 48% at 50% 8%, color-mix(in srgb, var(--p1) 32%, transparent), transparent 65%),
+    radial-gradient(ellipse 40% 30% at 18% 70%, color-mix(in srgb, var(--p1) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--p1) 12%, var(--night)) 0%, var(--night) 100%);
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result-B {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, var(--night) 50%, transparent), transparent 58%),
+    radial-gradient(ellipse 62% 48% at 50% 8%, color-mix(in srgb, var(--p2) 32%, transparent), transparent 65%),
+    radial-gradient(ellipse 40% 30% at 82% 70%, color-mix(in srgb, var(--p2) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--p2) 12%, var(--night)) 0%, var(--night) 100%);
+}
+.arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result-draw {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, var(--night) 50%, transparent), transparent 58%),
+    radial-gradient(ellipse 62% 48% at 50% 8%, color-mix(in srgb, var(--candle) 28%, transparent), transparent 65%),
+    radial-gradient(ellipse 40% 30% at 50% 75%, color-mix(in srgb, var(--candle) 12%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--candle) 10%, var(--night)) 0%, var(--night) 100%);
+}
+.arcade-page .gv-room-result .gv-result-kicker {
+  font-size: clamp(12px, 1.4vh, 14px);
+  letter-spacing: .16em;
+}
+.arcade-page .gv-room-result .gv-result-avs {
+  gap: clamp(16px, 2.5vw, 28px);
+  margin: clamp(8px, 1.5vh, 16px) 0;
+}
+.arcade-page .gv-room-result .gv-result-av {
+  width: clamp(64px, 10vh, 88px);
+  height: clamp(64px, 10vh, 88px);
+  font-size: clamp(26px, 4vh, 36px);
+  border-width: 2px;
+}
+.arcade-page .gv-room-result .gv-result-vs {
+  font-size: clamp(14px, 1.8vh, 18px);
+}
+.arcade-page .gv-room-result .gv-result-score {
+  font-size: clamp(36px, 6.5vh, 56px);
+  margin: 4px 0 0;
+}
+.arcade-page .gv-room-result .gv-result-title {
+  font-size: clamp(28px, 5vh, 44px);
+  margin: 6px 0 0;
+  max-width: 16ch;
+}
+.arcade-page .gv-room-result .gv-result-series {
+  font-size: clamp(13px, 1.6vh, 15px);
+}
+.arcade-page .gv-room-result .gv-result-sub {
+  font-size: clamp(14px, 1.8vh, 16px);
+  max-width: min(36ch, 90%);
+  margin-top: 2px;
+}
+.arcade-page .gv-room-result .gv-result-actions {
+  margin-top: clamp(12px, 2.5vh, 24px);
+  gap: 12px;
+}
+.arcade-page .gv-room-result .gv-result-actions .btn {
+  min-width: 148px;
+  height: 44px;
+  font-size: 14px;
+}
+.arcade-page .gv-room-result .ttl-recap,
+.arcade-page .gv-room-result .nc-recap {
+  max-width: min(100%, 520px);
+  margin-top: 4px;
+}
+
+html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 110%, color-mix(in srgb, #fff 70%, transparent), transparent 58%),
+    radial-gradient(ellipse 55% 40% at 12% 8%, color-mix(in srgb, var(--p1) 16%, transparent), transparent 62%),
+    radial-gradient(ellipse 50% 38% at 88% 12%, color-mix(in srgb, var(--p2) 14%, transparent), transparent 60%),
+    linear-gradient(180deg, #f7f6fb 0%, #eceaf3 100%);
+}
+html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result::before {
+  opacity: .35;
+  background:
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--candle) 35%, transparent) 50%, transparent 100%) top / 100% 1px no-repeat,
+    repeating-linear-gradient(
+      -18deg,
+      transparent 0 14px,
+      color-mix(in srgb, var(--p1) 4%, transparent) 14px 15px
+    );
+}
+html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result::after {
+  box-shadow:
+    inset 0 0 60px color-mix(in srgb, #fff 40%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 70%, transparent);
+}
+html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result-A {
+  background:
+    radial-gradient(ellipse 62% 48% at 50% 8%, color-mix(in srgb, var(--p1) 20%, transparent), transparent 65%),
+    linear-gradient(180deg, color-mix(in srgb, var(--p1) 8%, #f7f6fb) 0%, #eceaf3 100%);
+}
+html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result-B {
+  background:
+    radial-gradient(ellipse 62% 48% at 50% 8%, color-mix(in srgb, var(--p2) 20%, transparent), transparent 65%),
+    linear-gradient(180deg, color-mix(in srgb, var(--p2) 8%, #f7f6fb) 0%, #eceaf3 100%);
+}
+html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-result > .gv-result-draw {
+  background:
+    radial-gradient(ellipse 62% 48% at 50% 8%, color-mix(in srgb, var(--candle) 18%, transparent), transparent 65%),
+    linear-gradient(180deg, color-mix(in srgb, var(--candle) 8%, #f7f6fb) 0%, #eceaf3 100%);
+}
+.arcade-page .gv-room-live .gr-board-slot.gv-board {
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+/* Host mount: fill the frame and center the game */
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap,
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > *,
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > * {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+.arcade-page .gv-room-live .gr-banner {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Nothing may poke past the border */
+.arcade-page .gv-room-live .gr-board-slot canvas,
+.arcade-page .gv-room-live .gr-board-slot img,
+.arcade-page .gv-room-live .gr-board-slot video,
+.arcade-page .gv-room-live .gr-board-slot svg {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+}
+
+/* Catch-all top-level game roots: use the full board frame */
+/* Catch-all top-level game roots (not square boards — those size separately) */
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-wrap"],
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-shell"],
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-page"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-wrap"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-root"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-shell"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-page"],
+.arcade-page .gv-room-live .gr-board-slot .wr-root,
+.arcade-page .gv-room-live .gr-board-slot .cb-root,
+.arcade-page .gv-room-live .gr-board-slot .ca-shell,
+.arcade-page .gv-room-live .gr-board-slot .cp-shell,
+.arcade-page .gv-room-live .gr-board-slot .m1-shell,
+.arcade-page .gv-room-live .gr-board-slot .ti-shell,
+.arcade-page .gv-room-live .gr-board-slot .nc-shell,
+.arcade-page .gv-room-live .gr-board-slot .fb-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Square classic boards — largest square proportional to the frame */
+.arcade-page .gv-room-live .gr-board-slot .rev-grid,
+.arcade-page .gv-room-live .gr-board-slot .gmk-grid,
+.arcade-page .gv-room-live .gr-board-slot .chk-board,
+.arcade-page .gv-room-live .gr-board-slot .dots-grid,
+.arcade-page .gv-room-live .gr-board-slot .mem-grid {
+  aspect-ratio: 1 / 1 !important;
+  height: 100% !important;
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box;
+  flex: none !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .rev-grid {
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(8, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .gmk-grid {
+  grid-template-columns: repeat(11, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(11, minmax(0, 1fr)) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .chk-board {
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(8, minmax(0, 1fr)) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .chk-board > button {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .mem-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: clamp(4px, 1cqi, 10px) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .dots-grid {
+  /* leave a little room for the score line under the grid */
+  height: calc(100% - 22px) !important;
+  max-height: calc(100% - 22px) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .dots-score {
+  flex: none;
+  max-width: 100%;
+}
+
+/* Connect 4 — wide board scaled to frame */
+.arcade-page .gv-room-live .gr-board-slot .c4-grid {
+  width: min(100cqw, calc(100cqh * 1.25)) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  flex: none !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: clamp(3px, 0.8cqi, 6px) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .c4-slot {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+}
+
+/* Ultimate TTT — largest square that fits the board frame */
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > .utt-root,
+.arcade-page .gv-room-live .gr-board-slot .utt-root {
+  box-sizing: border-box !important;
+  aspect-ratio: 1 / 1 !important;
+  height: 100% !important;
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 auto !important;
+  flex: none !important;
+  overflow: hidden !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  justify-items: stretch;
+  gap: 6px;
+  padding: 0 !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-hint {
+  flex: none;
+  margin: 0 !important;
+  min-height: 0 !important;
+  font-size: clamp(11px, 1.6cqh, 13px) !important;
+  line-height: 1.25;
+  max-width: 100%;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-mega {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  gap: clamp(4px, 1.4%, 10px) !important;
+  align-self: stretch;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-mini {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100%;
+  width: 100%;
+  padding: clamp(2px, 1.2%, 6px) !important;
+  display: grid;
+  box-sizing: border-box;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-grid {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  gap: clamp(2px, 1%, 4px) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-cell {
+  aspect-ratio: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  font-size: clamp(14px, 4.2%, 28px) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-stamp {
+  font-size: clamp(28px, 12%, 72px) !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .utt-cancel {
+  margin: 2px auto 0 !important;
+}
+
+/* Table / card games — fill width+height of the border */
+.arcade-page .gv-room-live .gr-board-slot .chkobba-wrap,
+.arcade-page .gv-room-live .gr-board-slot .dominoes-wrap,
+.arcade-page .gv-room-live .gr-board-slot .uno-wrap,
+.arcade-page .gv-room-live .gr-board-slot .coup-wrap,
+.arcade-page .gv-room-live .gr-board-slot .carrot-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sea-wrap,
+.arcade-page .gv-room-live .gr-board-slot .man-wrap,
+.arcade-page .gv-room-live .gr-board-slot .nightcurling-wrap,
+.arcade-page .gv-room-live .gr-board-slot .nc-shell,
+.arcade-page .gv-room-live .gr-board-slot .ck-shell {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .chkobba-wrap .ck-shell,
+.arcade-page .gv-room-live .gr-board-slot .ck-shell {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+.arcade-page .gv-room-live .gr-board-slot .chkobba-wrap .ck-court,
+.arcade-page .gv-room-live .gr-board-slot .ck-court {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto !important;
+  max-height: 100%;
+  overflow: hidden;
+}
+.arcade-page .gv-room-live .gr-board-slot .chkobba-wrap .ck-table,
+.arcade-page .gv-room-live .gr-board-slot .ck-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  flex: 1 1 auto;
+}
+.arcade-page .gv-room-live .gr-board-slot .chkobba-wrap .ck-baize,
+.arcade-page .gv-room-live .gr-board-slot .ck-baize {
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: 100%;
+}
+
+/* Realtime / canvas shells — fill the frame edge-to-edge */
+.arcade-page .gv-room-live .gr-board-slot .pong-wrap,
+.arcade-page .gv-room-live .gr-board-slot .lwd-wrap,
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap,
+.arcade-page .gv-room-live .gr-board-slot .ssd-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sab-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sdb-wrap,
+.arcade-page .gv-room-live .gr-board-slot .smr-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sgf-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sr-wrap,
+.arcade-page .gv-room-live .gr-board-slot .rsc-wrap,
+.arcade-page .gv-room-live .gr-board-slot .ss-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sc-wrap,
+.arcade-page .gv-room-live .gr-board-slot .wallmaze-wrap,
+.arcade-page .gv-room-live .gr-board-slot .mo-wrap,
+.arcade-page .gv-room-live .gr-board-slot .race-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sumobomb-wrap,
+.arcade-page .gv-room-live .gr-board-slot .thinice-wrap,
+.arcade-page .gv-room-live .gr-board-slot .magnethearts-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .pong-canvas {
+  width: min(100%, 100cqw) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+}
+.arcade-page .gv-room-live .gr-board-slot canvas {
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
+/* Keep room board sizing; do not re-open old page max-width caps */
+.arcade-page .gv-room-live .gr-board-slot .utt-root,
+.arcade-page .gv-room-live .gr-board-slot .c4-grid,
+.arcade-page .gv-room-live .gr-board-slot .rev-grid,
+.arcade-page .gv-room-live .gr-board-slot .gmk-grid,
+.arcade-page .gv-room-live .gr-board-slot .chk-board,
+.arcade-page .gv-room-live .gr-board-slot .dots-grid,
+.arcade-page .gv-room-live .gr-board-slot .mem-grid,
+.arcade-page .gv-room-live .gr-board-slot .man-board {
+  max-width: 100% !important;
+}
+
+@supports not (width: 1cqw) {
+  .arcade-page .gv-room-live .gr-board-slot .rev-grid,
+  .arcade-page .gv-room-live .gr-board-slot .gmk-grid,
+  .arcade-page .gv-room-live .gr-board-slot .chk-board,
+  .arcade-page .gv-room-live .gr-board-slot .dots-grid,
+  .arcade-page .gv-room-live .gr-board-slot .mem-grid,
+  .arcade-page .gv-room-live .gr-board-slot .c4-grid,
+  .arcade-page .gv-room-live .gr-board-slot .utt-root {
+    width: min(100%, 90vh) !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
+}
+
+/* Wait / lobby panel fills the entire viewport frame */
+.arcade-page .gr-viewport-inner .gv-lobby,
+.arcade-page .gr-viewport-inner .gv-wait-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  gap: 0;
+  flex: 1;
+}
+/* Invite wait: drop legacy 920px board cap so the card fills the frame */
+.arcade-page .gv-invite-wait .gr-viewport-inner > .gr-board-slot.gv-board,
+.arcade-page .gv-invite-wait .gr-viewport-inner .gv-lobby,
+.arcade-page .gv-invite-wait .gr-viewport-inner .gv-lobby-card {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  box-sizing: border-box;
+}
+.arcade-page .gv-invite-wait .gr-viewport-inner > .gr-board-slot.gv-board {
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+/* —— Invite wait hero (center) —— */
+.arcade-page .gv-lobby {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+}
+.arcade-page .gv-lobby-card {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 28px 24px;
+  border-radius: 0;
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--gr-primary) 14%, transparent), transparent 55%),
+    color-mix(in srgb, var(--room) 40%, transparent);
+  box-sizing: border-box;
+}
+.arcade-page .gv-lobby-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gr-primary) 30%, var(--line));
+  background: color-mix(in srgb, var(--gr-primary) 10%, var(--room2));
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+}
+.arcade-page .gv-lobby-status-ico {
+  display: inline-flex;
+  color: var(--gr-primary);
+}
+.arcade-page .gv-lobby-matchup {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px 20px;
+  width: min(100%, 560px);
+}
+.arcade-page .gv-lobby-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  min-width: 0;
+}
+.arcade-page .gv-lobby-av {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--room2);
+  box-sizing: border-box;
+}
+.arcade-page .gv-lobby-av.host {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--gr-primary) 75%, #fff),
+    0 0 24px color-mix(in srgb, var(--gr-primary) 40%, transparent);
+}
+.arcade-page .gv-lobby-av.guest {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--gr-accent) 70%, #fff),
+    0 0 20px color-mix(in srgb, var(--gr-accent) 32%, transparent);
+}
+.arcade-page .gv-lobby-av.guest.pending {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--gr-accent) 70%, #fff),
+    0 0 18px color-mix(in srgb, var(--gr-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--room2) 80%, #000);
+  filter: grayscale(.55) brightness(.42);
+  opacity: .78;
+}
+.arcade-page .gv-lobby-av.guest.pending .av-svg,
+.arcade-page .gv-lobby-av.guest.pending .av-fallback {
+  filter: inherit;
+}
+.arcade-page .gv-lobby-av.guest.empty {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--gr-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--gr-accent) 10%, var(--room2));
+}
+.arcade-page .gv-lobby-av .gr-player-q {
+  font-size: 32px;
+}
+.arcade-page .gv-lobby-seat-name {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arcade-page .gv-lobby-seat-name.dim {
+  color: var(--dim);
+}
+.arcade-page .gv-lobby-seat-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.arcade-page .gv-lobby-vs {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #fff;
+  background: var(--grad-primary, linear-gradient(145deg, var(--gr-primary), var(--gr-accent)));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gr-primary) 40%, transparent),
+    0 8px 28px color-mix(in srgb, var(--gr-primary) 35%, transparent);
+}
+.arcade-page .gv-lobby-info {
+  width: min(100%, 420px);
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--room2) 92%, transparent);
+  text-align: center;
+}
+.arcade-page .gv-lobby-info-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.arcade-page .gv-lobby-info-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+.arcade-page .gv-lobby-cancel {
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--gr-primary) 40%, var(--line));
+  background: color-mix(in srgb, var(--gr-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--gr-primary) 70%, var(--text));
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.arcade-page .gv-lobby-cancel:hover {
+  background: color-mix(in srgb, var(--gr-primary) 18%, transparent);
+  border-color: color-mix(in srgb, var(--gr-primary) 55%, var(--line));
+}
+.arcade-page .gv-lobby-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--dim);
+  cursor: pointer;
+  user-select: none;
+}
+.arcade-page .gv-lobby-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.arcade-page .gv-lobby-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 80%, var(--room2));
+  border: 1px solid var(--line);
+  flex: none;
+  transition: background .18s ease;
+}
+.arcade-page .gv-lobby-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+  transition: transform .18s ease;
+}
+.arcade-page .gv-lobby-toggle input:checked + .gv-lobby-switch {
+  background: var(--gr-primary);
+  border-color: transparent;
+}
+.arcade-page .gv-lobby-toggle input:checked + .gv-lobby-switch::after {
+  transform: translateX(18px);
+}
+
+.arcade-page .gr-viewport-inner .gv-wait-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.arcade-page .gr-side-chat {
+  flex: 1 1 auto;
+  min-height: 160px;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: color-mix(in srgb, var(--room2) 55%, transparent);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.arcade-page .gr-chat-heading {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 10px 8px;
+}
+.arcade-page .gr-rail-right {
+  min-height: 0;
+}
+.arcade-page .gr-chat-tabs {
+  display: none;
+}
+.arcade-page .gr-chat-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  align-self: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 4px 8px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  scrollbar-width: thin;
+}
+.arcade-page .gr-chat-list > .gr-chat-empty {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+.arcade-page .gr-chat-msg {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-left: 0;
+  margin-left: 0;
+}
+.arcade-page .gr-chat-msg:not(.grouped) {
+  margin-top: 6px;
+}
+.arcade-page .gr-chat-msg:first-child {
+  margin-top: 0;
+}
+.arcade-page .gr-chat-msg.mine {
+  justify-content: flex-end;
+  padding-left: 0;
+}
+.arcade-page .gr-chat-msg.mine .gr-chat-body {
+  align-items: flex-end;
+}
+.arcade-page .gr-chat-msg.mine p {
+  background: color-mix(in srgb, var(--gr-primary) 22%, var(--room));
+  border-color: color-mix(in srgb, var(--gr-primary) 35%, var(--line));
+  border-radius: 12px 12px 4px 12px;
+}
+.arcade-page .gr-chat-msg.mine.grouped p {
+  border-radius: 12px 4px 4px 12px;
+}
+.arcade-page .gr-chat-av {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0;
+}
+.arcade-page .gr-chat-av.ghost {
+  visibility: hidden;
+}
+.arcade-page .gr-chat-body {
+  min-width: 0;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: calc(100% - 34px);
+  margin: 0;
+}
+.arcade-page .gr-chat-msg.mine .gr-chat-body {
+  max-width: 100%;
+}
+.arcade-page .gr-chat-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+.arcade-page .gr-chat-head strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+.arcade-page .gr-chat-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 12px 12px 12px 4px;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: color-mix(in srgb, var(--room) 70%, transparent);
+  word-break: break-word;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.arcade-page .gr-chat-msg.grouped:not(.mine) p {
+  border-radius: 4px 12px 12px 4px;
+}
+.arcade-page .gr-chat-img {
+  max-width: 100%;
+  border-radius: 10px;
+  display: block;
+}
+.arcade-page .gr-chat-failed {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #f87171 !important;
+  font-size: 11px !important;
+}
+.arcade-page .gr-chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 12px;
+  text-align: center;
+}
+.arcade-page .gr-chat-empty-ico {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: color-mix(in srgb, var(--gr-primary) 80%, var(--dim));
+  background: color-mix(in srgb, var(--gr-primary) 10%, var(--room2));
+  border: 1px solid color-mix(in srgb, var(--gr-primary) 22%, var(--line));
+  margin-bottom: 2px;
+}
+.arcade-page .gr-chat-empty-ico svg {
+  width: 20px;
+  height: 20px;
+}
+.arcade-page .gr-chat-empty-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.arcade-page .gr-chat-empty-sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dim);
+  max-width: 160px;
+  line-height: 1.4;
+}
+.arcade-page .gr-chat-empty p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+  max-width: 200px;
+  line-height: 1.45;
+}
+.arcade-page .gr-chat-compose {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+.arcade-page .gr-chat-compose input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--room);
+  color: var(--text);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12.5px;
+}
+.arcade-page .gr-chat-compose input:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+.arcade-page .gr-chat-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--gr-primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex: none;
+  opacity: 1;
+  transition: opacity .15s ease, filter .15s ease;
+}
+.arcade-page .gr-chat-send:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.arcade-page .gr-chat-send:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+/* Room shell screens fill the arcade page (invite / ready / live) */
+.arcade-page section.gv-screen.gv-room,
+.arcade-page section.gv-screen.gv-invite-wait {
+  max-width: none;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  padding: 0 12px 6px;
+  justify-content: flex-start;
+  align-items: stretch;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.arcade-page section.gv-screen.gv-room > .gv-fs-root,
+.arcade-page section.gv-screen.gv-invite-wait > .gv-fs-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.arcade-page .gr-center,
+.arcade-page .gr-rail-right,
+.arcade-page .gr-viewport {
+  height: 100%;
+  min-height: 0;
+}
+
+/* —— Light mode —— */
+html[data-appearance="light"] .arcade-page .gr-top {
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(17, 24, 39, .06);
+}
+html[data-appearance="light"] .arcade-page .gr-rail-tab,
+html[data-appearance="light"] .arcade-page .gr-rail-hide {
+  background: color-mix(in srgb, var(--p1) 4%, #f3f4f8);
+  color: var(--text);
+  border-color: var(--line);
+  box-shadow: none;
+}
+html[data-appearance="light"] .arcade-page .gr-rail-tab:hover,
+html[data-appearance="light"] .arcade-page .gr-rail-hide:hover {
+  background: color-mix(in srgb, var(--gr-primary) 8%, #f3f4f8);
+  border-color: color-mix(in srgb, var(--gr-primary) 30%, var(--line));
+}
+html[data-appearance="light"] .arcade-page .gr-iconbtn {
+  background: var(--bg-elevated);
+}
+html[data-appearance="light"] .arcade-page .gr-leave {
+  background: color-mix(in srgb, #ef4444 10%, #fff);
+  color: #b91c1c;
+  border-color: color-mix(in srgb, #ef4444 35%, var(--line));
+}
+html[data-appearance="light"] .arcade-page .gr-leave:hover {
+  background: color-mix(in srgb, #ef4444 16%, #fff);
+  color: #991b1b;
+  border-color: color-mix(in srgb, #ef4444 50%, var(--line));
+}
+html[data-appearance="light"] .arcade-page .gr-player-card {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+html[data-appearance="light"] .arcade-page .gr-howto {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+html[data-appearance="light"] .arcade-page .gr-howto:hover {
+  background: color-mix(in srgb, var(--gr-primary) 6%, #fff);
+}
+html[data-appearance="light"] .arcade-page .gr-info-list dt {
+  color: var(--text-secondary);
+}
+html[data-appearance="light"] .arcade-page .gr-viewport {
+  background: color-mix(in srgb, var(--p1) 4%, #f3f4f8);
+  box-shadow: 0 14px 32px rgba(17, 24, 39, .08);
+}
+
+/* —— Pause request / paused modal (scoped to game viewport) —— */
+.arcade-page .gr-viewport > .gr-pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: inherit;
+  background: rgba(12, 10, 18, .52);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.arcade-page .gr-pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  background: rgba(12, 10, 18, .58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.arcade-page .gv-fs-root.is-fullscreen .gr-pause-overlay {
+  position: absolute;
+}
+.arcade-page .gr-pause-panel {
+  width: min(100%, 360px);
+  border-radius: 18px;
+  padding: 22px 22px 20px;
+  text-align: center;
+  border: 1px solid color-mix(in srgb, var(--color-primary, var(--p1)) 28%, var(--line));
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, color-mix(in srgb, var(--color-primary, var(--p1)) 14%, transparent), transparent 60%),
+    linear-gradient(165deg, color-mix(in srgb, var(--color-primary, var(--p1)) 6%, var(--room)), var(--room));
+  box-shadow: 0 22px 56px rgba(0, 0, 0, .42);
+  box-sizing: border-box;
+}
+.arcade-page .gr-pause-ico {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary, var(--p1));
+  background: color-mix(in srgb, var(--color-primary, var(--p1)) 14%, var(--room2));
+  border: 1px solid color-mix(in srgb, var(--color-primary, var(--p1)) 28%, var(--line));
+}
+.arcade-page .gr-pause-ico .gv-pause-icon {
+  width: 22px;
+  height: 22px;
+}
+.arcade-page .gr-pause-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.arcade-page .gr-pause-sub {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--dim);
+}
+.arcade-page .gr-pause-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.arcade-page .gr-pause-actions .btn {
+  min-width: 120px;
+}
+html[data-appearance="light"] .arcade-page .gr-viewport > .gr-pause-overlay,
+html[data-appearance="light"] .arcade-page .gr-pause-overlay {
+  background: rgba(15, 23, 42, .38);
+}
+html[data-appearance="light"] .arcade-page .gr-pause-panel {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, color-mix(in srgb, var(--color-primary, var(--p1)) 10%, transparent), transparent 60%),
+    #fff;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, .14);
+}
+
+@media (max-width: 1100px) {
+  .arcade-page .gr-shell {
+    --gr-rail: 260px;
+  }
+  .arcade-page .gr-leave span {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .arcade-page .gr-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(320px, 1fr) auto;
+  }
+  .arcade-page .gr-rail-right {
+    display: block;
+  }
+  .arcade-page .gr-sidepanel {
+    min-height: 320px;
+  }
+  .arcade-page .gr-side-chat {
+    min-height: 200px;
+  }
+  .arcade-page .gr-top {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+  .arcade-page .gr-title-block {
+    justify-content: flex-start;
+  }
+  .arcade-page .gr-top-actions {
+    justify-content: flex-start;
+  }
+  .arcade-page .gv-lobby-matchup {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .arcade-page .gv-lobby-vs {
+    margin: 0 auto;
+  }
+  .arcade-page .gv-lobby-card {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-shell,
+.arcade-page .gv-fs-root:fullscreen .gr-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-shell {
+  max-width: none;
+  min-height: 100%;
+  height: 100%;
+  padding: 10px 12px;
+}

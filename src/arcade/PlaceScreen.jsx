@@ -4,6 +4,7 @@ import { ENGINES } from '../engines/index.js';
 import { downloadKeepsake, videoIdFrom } from '../lib/util.js';
 import { listMovieNights } from '../lib/watchMovie.js';
 import WhiteboardCard from './WhiteboardCard.jsx';
+import SavedWhiteboards from './SavedWhiteboards.jsx';
 import SnapCard from './SnapCard.jsx';
 import TodoShelf from './TodoShelf.jsx';
 import WeekCard from './WeekCard.jsx';
@@ -180,6 +181,16 @@ export default function PlaceScreen({
       {featureId === 'sect-wall' && (
         <div id="sect-wall" className="shelf-anchor">
           <WhiteboardCard code={code} />
+        </div>
+      )}
+
+      {featureId === 'sect-saved-boards' && (
+        <div id="sect-saved-boards" className="shelf-anchor">
+          <SavedWhiteboards
+            code={code}
+            myRole={myRole}
+            username={username}
+          />
         </div>
       )}
 

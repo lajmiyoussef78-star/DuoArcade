@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Link, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { createSync } from '../lib/sync.js';
 import { ENGINES } from '../engines/index.js';
 import {
@@ -28,7 +28,6 @@ import InviteOverlay from '../arcade/InviteOverlay.jsx';
 import FriendMatchInvite from '../arcade/FriendMatchInvite.jsx';
 import FriendsDock from '../arcade/FriendsDock.jsx';
 import { ChallengeProvider } from '../arcade/ChallengeContext.jsx';
-import SettingsMenu from '../arcade/SettingsMenu.jsx';
 import Leaderboard from './Leaderboard.jsx';
 import Arena from './Arena.jsx';
 import ArenaMatch from './ArenaMatch.jsx';
@@ -413,6 +412,7 @@ export default function Arcade() {
       series: { a: 0, b: 0, d: 0 },
       chatPostedStart: isChallenge,
       chatEndedPosted: false,
+      autoReadyOnAccept: true,
       ...(isChallenge
         ? {
             ready: skipShellLobby ? { A: true, B: true } : { A: false, B: false },
@@ -569,6 +569,15 @@ export default function Arcade() {
     await upd(code, { session }, { force: true });
   }, [patchLocal, upd]);
 
+  const setAutoReadyOnAccept = useCallback(async (enabled) => {
+    const { duo, code } = ctxRef.current;
+    const s = duo.session;
+    if (!s || s.phase !== 'invite') return;
+    const session = { ...s, autoReadyOnAccept: !!enabled };
+    patchLocal({ session });
+    await upd(code, { session }, { force: true });
+  }, [patchLocal, upd]);
+
   const setNcEnds = useCallback(async (n) => {
     const { duo, code } = ctxRef.current;
     const s = duo.session;
@@ -652,6 +661,16 @@ export default function Arcade() {
     onStatus?.(ok ? `Pause request sent to ${other(myRole) === 'A' ? duo.nameA : duo.nameB}.` : 'Could not send pause request.');
   }, [patchLocal, upd]);
 
+  const cancelPauseRequest = useCallback(async onStatus => {
+    const { duo, code, myRole } = ctxRef.current;
+    const s = duo.session;
+    if (!s || s.paused || s.pauseRequest !== myRole) return;
+    const session = { ...s, pauseRequest: null };
+    patchLocal({ session });
+    await upd(code, { session }, { force: true });
+    onStatus?.('');
+  }, [patchLocal, upd]);
+
   const respondPause = useCallback(async (accept, onStatus) => {
     const { duo, code, myRole } = ctxRef.current;
     const s = duo.session;
@@ -685,13 +704,22 @@ export default function Arcade() {
     try {
       // Most games use the ready lobby + 3s countdown. Stickman / keepInGame
       // titles have their own in-game lobby — go live immediately so the board mounts.
+      // If the host opted in, mark them ready as soon as the invite is accepted.
       const alreadyPosted = !!s.chatPostedStart;
       const engMeta = ENGINES[s.game]?.meta;
       const skipShellLobby = !!(engMeta?.keepInGame && engMeta?.realtime);
+      const hostRole = s.by === 'B' ? 'B' : 'A';
+      const autoReady = s.autoReadyOnAccept !== false;
+      const ready = skipShellLobby
+        ? { A: true, B: true }
+        : {
+            A: autoReady && hostRole === 'A',
+            B: autoReady && hostRole === 'B',
+          };
       const session = {
         ...s,
         phase: skipShellLobby ? 'live' : 'lobby',
-        ready: skipShellLobby ? { A: true, B: true } : { A: false, B: false },
+        ready,
         liveAt: skipShellLobby ? Date.now() : null,
         chatPostedStart: true,
         series: s.series || s.streak || { a: 0, b: 0, d: 0 },
@@ -948,7 +976,26 @@ export default function Arcade() {
       }));
     };
 
-    presence.onChange(states => setPresenceState(states));
+    /* Keep THIS device's GPS for myRole — presence sync must not replace it
+       with a slightly older RT/DB sample (that made one phone show 0 ft and
+       the other ~100 ft when both were in the same room). */
+    presence.onChange(states => {
+      setPresenceState(prev => {
+        const local = lastGeoRef.current;
+        const next = { ...states };
+        if (local && typeof local.lat === 'number' && typeof local.lng === 'number') {
+          next[myRole] = {
+            ...(next[myRole] || prev[myRole] || {}),
+            online: true,
+            focused: next[myRole]?.focused !== false,
+            lat: local.lat,
+            lng: local.lng,
+            place: local.place ?? next[myRole]?.place ?? null
+          };
+        }
+        return next;
+      });
+    });
 
     const report = () => presence.setFocused(!document.hidden);
     report();
@@ -1259,9 +1306,11 @@ export default function Arcade() {
           sync={syncRef.current} onMove={move} onReady={pressReady}
           onRematch={rematch} onBack={backToHome}
           onRequestPause={requestPause} onRespondPause={respondPause}
+          onCancelPause={cancelPauseRequest}
           onRealtimeFinish={realtimeFinish}
           onSetNcEnds={setNcEnds}
           onSetCkTarget={setCkTarget}
+          onSetAutoReady={setAutoReadyOnAccept}
         />
       );
     } else {
@@ -1291,6 +1340,7 @@ export default function Arcade() {
           <Route element={<DuoHomeLayout {...placeProps} />}>
             <Route index element={<HomeScreen {...placeProps} />} />
             <Route path="place/:featureId" element={<PlaceScreen {...placeProps} />} />
+            <Route path="*" element={<HomeScreen {...placeProps} />} />
           </Route>
         </Routes>
       );
@@ -1378,42 +1428,6 @@ export default function Arcade() {
 
   return (
     <div className="arcade-page">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Link
-            className="brand h1"
-            to="/app"
-            onClick={(e) => {
-              e.preventDefault();
-              void (async () => {
-                setStayInLobby(false);
-                if (ctxRef.current.duo?.session) await backToHome();
-                if (!ctxRef.current.code) {
-                  let prefer = null;
-                  try { prefer = sessionStorage.getItem('duoarcade-home-duo'); } catch { /* */ }
-                  const pick = (prefer && myDuos.some(d => d.code === prefer))
-                    ? prefer
-                    : (myDuos[0]?.code || prefer || null);
-                  if (pick) await openByAccount(pick);
-                }
-                navigate('/app', { replace: true });
-              })();
-            }}
-          >
-            <span className="a">Duo</span><span className="b">Arcade</span>
-          </Link>
-          <div className="topbar-right">
-            <div className="who">
-              <span>{profile?.username ? '@' + profile.username : userEmail}</span>{' '}
-              <span style={{ opacity: .55, cursor: 'pointer' }} title="tap for diagnostics"
-                onClick={() => setShowDiag(v => !v)}>· {VERSION}</span>
-            </div>
-            <SettingsMenu />
-          </div>
-        </div>
-      </header>
-
-
       {screen}
 
       <InviteOverlay

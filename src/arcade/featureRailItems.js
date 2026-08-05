@@ -13,6 +13,8 @@ export const FEATURE_RAIL_ITEMS = [
     desc: 'Take on another duo in public matchmaking or a direct challenge.' },
   { id: 'sect-wall', icon: 'wall', label: 'Our wall', accent: 'p2',
     desc: 'A shared whiteboard you both draw on in real time.' },
+  { id: 'sect-saved-boards', icon: 'library', label: 'Saved whiteboards', accent: 'candle',
+    desc: 'Browse named board snapshots — favorites, shared saves, and trash.' },
   { id: 'sect-list', icon: 'list', label: 'Our list', accent: 'good',
     desc: 'A todo list you build together — movies to watch, places to go, anything.' },
   { id: 'sect-bucket', icon: 'bucket', label: 'Bucket List', accent: 'candle',

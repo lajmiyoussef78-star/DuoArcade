@@ -67,6 +67,12 @@ export const Ico = {
       <path d="M14 7l3 3" />
     </Svg>
   ),
+  library: p => (
+    <Svg {...p}>
+      <rect x="4" y="5" width="12" height="14" rx="2.2" />
+      <path d="M9 5v14M16 7.5h3.5a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H16" />
+    </Svg>
+  ),
   week: p => (
     <Svg {...p}>
       <rect x="3" y="5" width="18" height="16" rx="3" />

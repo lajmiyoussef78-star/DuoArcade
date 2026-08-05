@@ -98,7 +98,6 @@
    Shared duo surface — starry gradient for wall, snap, and list
    ============================================================ */
 
-.arcade-page .todo-card,
 .arcade-page .snc,
 .arcade-page .wbc,
 .arcade-page .wkc{
@@ -108,7 +107,6 @@
     color-mix(in srgb, var(--p1) 14%, var(--room)),
     var(--room) 46%,
     color-mix(in srgb, var(--p2) 16%, var(--room)));}
-.arcade-page .todo-card::before,
 .arcade-page .snc::before,
 .arcade-page .wbc::before,
 .arcade-page .wkc::before{
@@ -128,7 +126,6 @@
     radial-gradient(1px 1px at 73% 68%, color-mix(in srgb, var(--text) 42%, transparent) 40%, transparent 100%),
     radial-gradient(1.3px 1.3px at 35% 88%, color-mix(in srgb, var(--text) 48%, transparent) 40%, transparent 100%),
     radial-gradient(1px 1px at 96% 72%, color-mix(in srgb, var(--text) 36%, transparent) 40%, transparent 100%);}
-.arcade-page .todo-card::after,
 .arcade-page .snc::after,
 .arcade-page .wbc::after,
 .arcade-page .wkc::after{
@@ -137,7 +134,6 @@
     radial-gradient(ellipse 38% 55% at 0% 100%, color-mix(in srgb, var(--p1) 18%, transparent), transparent 70%),
     radial-gradient(ellipse 34% 48% at 100% 0%, color-mix(in srgb, var(--p2) 16%, transparent), transparent 72%),
     radial-gradient(ellipse 24% 35% at 100% 100%, color-mix(in srgb, var(--candle) 8%, transparent), transparent 75%);}
-.arcade-page .todo-card > *,
 .arcade-page .snc > *,
 .arcade-page .wbc > *,
 .arcade-page .wkc > *{position:relative;z-index:1;}
@@ -333,7 +329,6 @@ html[data-appearance="light"] .ch-love{opacity:.1;}
   /* E */
   .ch-beat .run{animation:ch-beat-run 2.4s linear infinite;}
   .ch-stars .st{animation:cfx-twinkle 4s ease-in-out infinite;}
-  .arcade-page .todo-card::before,
   .arcade-page .snc::before,
   .arcade-page .wbc::before,
   .arcade-page .wkc::before{animation:duo-surface-twinkle 4s ease-in-out infinite;}
@@ -486,13 +481,11 @@ html[data-appearance="light"] .ch-apart{text-shadow:none;}
 html[data-appearance="light"] .ch-loc-dot.you,
 html[data-appearance="light"] .ch-loc-dot.partner{box-shadow:none;}
 html[data-appearance="light"] .ch-stars .st{opacity:.1;background:var(--dim);}
-html[data-appearance="light"] .arcade-page .todo-card::before,
 html[data-appearance="light"] .arcade-page .snc::before,
 html[data-appearance="light"] .arcade-page .wbc::before,
 html[data-appearance="light"] .arcade-page .wkc::before,
 html[data-appearance="light"] .ch-hero .ch-stars{
   opacity:.55;}
-html[data-appearance="light"] .arcade-page .todo-card,
 html[data-appearance="light"] .arcade-page .snc,
 html[data-appearance="light"] .arcade-page .wbc,
 html[data-appearance="light"] .arcade-page .wkc,

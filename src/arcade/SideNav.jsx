@@ -38,6 +38,7 @@ export const NAV_MORE = [
   { id: 'sect-week', label: 'Timetable', icon: 'week' },
   { id: 'sect-tonight', label: 'Tonight Engine', icon: 'moon' },
   { id: 'sect-challenge-history', label: 'Challenges', icon: 'history' },
+  { id: 'sect-saved-boards', label: 'Saved boards', icon: 'library' },
   { id: 'leaderboard', label: 'Leaderboard', icon: 'trophy', route: '/app/leaderboard' },
 ];
 

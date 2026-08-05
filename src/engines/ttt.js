@@ -4,7 +4,7 @@
 export const meta = {
   id: 'ttt',
   name: 'Ultimate Tic-Tac-Toe',
-  tag: 'nine boards, one war',
+  tag: 'Tic-Tac-Toe, but on another level',
   realtime: false
 };
 

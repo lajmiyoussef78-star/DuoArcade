@@ -3,8 +3,13 @@
 // Tools: select / pen / eraser / shapes / text; undo/redo + zoom are local + synced.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   myRoleInDuo, loadBoard, saveBoard, boardChannel,
+  saveBoardSnapshot, listBoardSnapshots, getBoardSnapshot, updateBoardSnapshot,
+  defaultSnapshotTitle,
+  createBoardShare,
+  boardShareUrl,
 } from '../lib/whiteboard.js';
 import '../styles/whiteboard.css';
 
@@ -315,6 +320,14 @@ function ToolIcon({ id }) {
           <path d="M15.5 4.5V8H19" />
         </svg>
       );
+    case 'clear':
+      return (
+        <svg {...common}>
+          <path d="M5 7h14" />
+          <path d="M9.5 7V5.8A1.3 1.3 0 0 1 10.8 4.5h2.4A1.3 1.3 0 0 1 14.5 5.8V7" />
+          <path d="M8 7l.7 11.2A1.4 1.4 0 0 0 10.1 19.5h3.8a1.4 1.4 0 0 0 1.4-1.3L16 7" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -395,6 +408,37 @@ function clampZoom(z) {
   return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
 }
 
+function formatSaveDate(iso) {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
+
+function cloneStrokes(strokes) {
+  try {
+    return structuredClone(strokes);
+  } catch {
+    return JSON.parse(JSON.stringify(strokes || []));
+  }
+}
+
+function strokeKey(strokes) {
+  if (!Array.isArray(strokes) || !strokes.length) return '';
+  try {
+    return JSON.stringify(strokes);
+  } catch {
+    return `len:${strokes.length}`;
+  }
+}
+
 function stickySizePx(id) {
   return STICKY_SIZES.find(t => t.id === id)?.px || STICKY_SIZES[1].px;
 }
@@ -456,6 +500,9 @@ function wrapStickyLines(g, text, maxW) {
 }
 
 export default function WhiteboardCard({ code }) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const snapshotQuery = searchParams.get('snapshot');
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   /** CSS-pixel surface size (drawing space). Bitmap is this × devicePixelRatio. */
@@ -469,6 +516,10 @@ export default function WhiteboardCard({ code }) {
   const [shapeKind, setShapeKind] = useState('heart');
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
+  const [shapeFlyoutPos, setShapeFlyoutPos] = useState(null);
+  const [fontFlyoutPos, setFontFlyoutPos] = useState(null);
+  const shapesBtnRef = useRef(null);
+  const textBtnRef = useRef(null);
   const [textFont, setTextFont] = useState(FONTS[0].id);
   const [textSize, setTextSize] = useState(TEXT_SIZES[1].id);
   const [color, setColor] = useState(COLORS[0]);
@@ -480,17 +531,35 @@ export default function WhiteboardCard({ code }) {
   const [size, setSize] = useState(SIZES[1]);
   const [status, setStatus] = useState('');
   const [partnerCursor, setPartnerCursor] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [draftText, setDraftText] = useState(null); // { x, y, value, color, font, fontSize }
   const [editingStickyId, setEditingStickyId] = useState(null);
   const [stickyStyleTick, setStickyStyleTick] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [historyTick, setHistoryTick] = useState(0);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveTitle, setSaveTitle] = useState('');
+  const [savingSnap, setSavingSnap] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareToken, setShareToken] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareCopied, setShareCopied] = useState('');
+  const [shareError, setShareError] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRows, setHistoryRows] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [preview, setPreview] = useState(null); // { id, title, created_at, updated_at, strokes }
+  const [previewLoadingId, setPreviewLoadingId] = useState(null);
+  /** Editing a saved board in place (not the live duo canvas). */
+  const [editingSnap, setEditingSnap] = useState(null); // { id, title, created_at, updated_at }
+  const editingSnapRef = useRef(null);
+  const liveBackupRef = useRef(null);
 
   const strokesRef = useRef([]);
   const redoStackRef = useRef([]);
   const zoomRef = useRef(1);
+  const previewRef = useRef(null);
   const currentRef = useRef(null);
   const shapeDragRef = useRef(null);
   const moveDragRef = useRef(null);
@@ -523,10 +592,7 @@ export default function WhiteboardCard({ code }) {
     const { w: sw, h: sh, dpr } = surface();
     if (!g) return;
     const z = zoomRef.current || 1;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.translate(sw / 2, sh / 2);
-    g.scale(z, z);
-    g.translate(-sw / 2, -sh / 2);
+    g.setTransform(dpr * z, 0, 0, dpr * z, dpr * sw * (1 - z) / 2, dpr * sh * (1 - z) / 2);
   };
 
   const selectItem = useCallback((id) => {
@@ -641,7 +707,7 @@ export default function WhiteboardCard({ code }) {
     const fs = fontPx(sw, s.fontSize, s.fs);
     g.save();
     g.font = `600 ${fs}px ${fontStack(s.font)}`;
-    g.fillStyle = s.color || '#fff';
+    g.fillStyle = s.color || '#1F1630';
     g.textBaseline = 'top';
     g.fillText(s.text, s.pts[0][0] * sw, s.pts[0][1] * sh);
     g.restore();
@@ -819,68 +885,89 @@ export default function WhiteboardCard({ code }) {
   }, [boundsOf]);
 
   const redraw = useCallback(() => {
+    const cv = canvasRef.current;
     const g = ctx2d();
+    if (!cv || !g) return;
+
     const { w: sw, h: sh, dpr } = surface();
-    if (!g) return;
-    const z = zoomRef.current;
-    // CSS-pixel drawing space; bitmap is sw/sh × dpr. Never draw in device px then CSS-stretch.
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, sw, sh);
-    g.translate(sw / 2, sh / 2);
-    g.scale(z, z);
-    g.translate(-sw / 2, -sh / 2);
-    for (const s of strokesRef.current) drawItem(s);
-    const drag = shapeDragRef.current;
-    if (drag) drawShape(drag.kind, drag.start, drag.current, drag.color, drag.size);
-    const sel = strokesRef.current.find(s => s.id === selectedIdRef.current);
-    // While typing/editing text, the draft field owns the border — skip the canvas frame.
-    if (sel && !draftTextRef.current) drawSelection(boundsOf(sel), sel.color);
+    if (sw < 2 || sh < 2) return;
+
+    const z = zoomRef.current || 1;
+    const viewing = previewRef.current;
+    const list = viewing?.strokes || strokesRef.current;
+
+    // Clear in device pixels, then draw in CSS pixels via DPR scale.
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.setTransform(dpr * z, 0, 0, dpr * z, dpr * sw * (1 - z) / 2, dpr * sh * (1 - z) / 2);
+    g.imageSmoothingEnabled = true;
+    if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
+
+    for (const s of list) drawItem(s);
+    if (!viewing) {
+      const drag = shapeDragRef.current;
+      if (drag) drawShape(drag.kind, drag.start, drag.current, drag.color, drag.size);
+      const sel = strokesRef.current.find(s => s.id === selectedIdRef.current);
+      // While typing/editing text, the draft field owns the border — skip the canvas frame.
+      if (sel && !draftTextRef.current) drawSelection(boundsOf(sel), sel.color);
+    }
   }, [drawItem, drawShape, drawSelection, boundsOf]);
 
   const resizeCanvas = useCallback(() => {
     const cv = canvasRef.current;
     const wrap = wrapRef.current;
     if (!cv || !wrap) return;
-    const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
-    // Measure the stage box the canvas fills (width/height: 100%).
+
+    // One source of truth: the stage box. Pointer mapping uses the same box.
     const rect = wrap.getBoundingClientRect();
     const cssW = Math.max(1, Math.round(rect.width));
-    const cssH = Math.max(1, Math.round(rect.height || cssW * 0.62));
+    const cssH = Math.max(1, Math.round(rect.height));
     if (cssW < 2 || cssH < 2) return;
+
+    // Real device DPR only — never invent a higher ratio (that desynced the
+    // bitmap from the painted box → hard-zoom / corner / off-target strokes).
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
     const bw = Math.max(1, Math.round(cssW * dpr));
     const bh = Math.max(1, Math.round(cssH * dpr));
 
-    const prev = surfaceRef.current;
-    const sizeChanged = cv.width !== bw || cv.height !== bh
-      || prev.w !== cssW || prev.h !== cssH || prev.dpr !== dpr;
     surfaceRef.current = { w: cssW, h: cssH, dpr };
 
-    // Clear any inline size locks from older builds so CSS 100% can fill the stage.
-    cv.style.removeProperty('width');
-    cv.style.removeProperty('height');
-    cv.style.removeProperty('max-width');
-    cv.style.removeProperty('max-height');
+    // Lock CSS size to the measured stage so the bitmap never stretches.
+    cv.style.width = `${cssW}px`;
+    cv.style.height = `${cssH}px`;
+    cv.style.maxWidth = 'none';
+    cv.style.maxHeight = 'none';
 
-    if (sizeChanged) {
+    if (cv.width !== bw || cv.height !== bh) {
       cv.width = bw;
       cv.height = bh;
     }
 
-    const g = cv.getContext('2d');
-    if (g) {
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.imageSmoothingEnabled = true;
-      if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
-    }
     redraw();
   }, [redraw]);
 
+  /** Broadcast to the live duo board — skipped while previewing/editing a save. */
+  const boardSend = useCallback((msg) => {
+    if (previewRef.current || editingSnapRef.current) return;
+    channelRef.current?.send(msg);
+  }, []);
+
   const scheduleSave = useCallback(() => {
+    // Read-only preview never autosaves. Edit-mode saves the named snapshot.
+    if (previewRef.current) return;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
+      if (previewRef.current) return;
       try {
-        await saveBoard(code, strokesRef.current);
-        setStatus('');
+        const editing = editingSnapRef.current;
+        if (editing?.id) {
+          await updateBoardSnapshot(editing.id, strokesRef.current);
+          setStatus('Saved to board');
+          window.setTimeout(() => setStatus((s) => (s === 'Saved to board' ? '' : s)), 1200);
+        } else {
+          await saveBoard(code, strokesRef.current);
+          setStatus('');
+        }
       } catch (e) {
         setStatus('Save failed: ' + e.message);
       }
@@ -903,7 +990,7 @@ export default function WhiteboardCard({ code }) {
       }
       if (editId) {
         strokesRef.current = strokesRef.current.filter(s => s.id !== editId);
-        channelRef.current?.send({ k: 'undo', id: editId });
+        boardSend({ k: 'undo', id: editId });
         if (selectedIdRef.current === editId) selectItem(null);
         scheduleSave();
         queueMicrotask(() => redraw());
@@ -923,7 +1010,7 @@ export default function WhiteboardCard({ code }) {
         item.fontSize = fontSize;
         item.fs = fs;
         item.pts = [[prev.x, prev.y]];
-        channelRef.current?.send({
+        boardSend({
           k: 'font', id: editId, text, color: prev.color, font, fontSize, fs,
         });
         scheduleSave();
@@ -950,7 +1037,7 @@ export default function WhiteboardCard({ code }) {
     strokesRef.current.push(stroke);
     redoStackRef.current = [];
     setHistoryTick(t => t + 1);
-    channelRef.current?.send({ k: 'stroke', stroke });
+    boardSend({ k: 'stroke', stroke });
     scheduleSave();
     selectItem(stroke.id);
     queueMicrotask(() => redraw());
@@ -975,7 +1062,7 @@ export default function WhiteboardCard({ code }) {
       const blocks = readStickyEditor();
       item.blocks = blocks;
       item.text = blocksToPlain(blocks);
-      channelRef.current?.send({ k: 'edit', id, text: item.text, blocks: item.blocks });
+      boardSend({ k: 'edit', id, text: item.text, blocks: item.blocks });
       scheduleSave();
     }
     editingStickyIdRef.current = null;
@@ -1066,7 +1153,7 @@ export default function WhiteboardCard({ code }) {
     strokesRef.current.push(stroke);
     redoStackRef.current = [];
     setHistoryTick(t => t + 1);
-    channelRef.current?.send({ k: 'stroke', stroke });
+    boardSend({ k: 'stroke', stroke });
     scheduleSave();
     openStickyEdit(stroke);
   }, [role, stickyColor, stickyNoteSize, stickyFont, stickyTextSize, stickyAlign, size, scheduleSave, openStickyEdit]);
@@ -1088,7 +1175,7 @@ export default function WhiteboardCard({ code }) {
       item.blocks = blocks;
       item.text = blocksToPlain(blocks);
     }
-    channelRef.current?.send({
+    boardSend({
       k: 'edit',
       id,
       text: item.text,
@@ -1100,6 +1187,24 @@ export default function WhiteboardCard({ code }) {
     redraw();
   }, [scheduleSave, redraw, readStickyEditor]);
 
+  /* Keep latest draw/sync helpers for the channel without re-binding on every render.
+     Re-running load+channel when `redraw` identity changed was wiping in-progress strokes
+     (Live board felt broken after drawing or returning from Saved boards). */
+  const redrawRef = useRef(redraw);
+  const drawSegRef = useRef(drawSeg);
+  const selectItemRef = useRef(selectItem);
+  const syncSelectionOverlaysRef = useRef(syncSelectionOverlays);
+  const applyViewTransformRef = useRef(applyViewTransform);
+  const setSearchParamsRef = useRef(setSearchParams);
+  const resizeCanvasRef = useRef(resizeCanvas);
+  redrawRef.current = redraw;
+  drawSegRef.current = drawSeg;
+  selectItemRef.current = selectItem;
+  syncSelectionOverlaysRef.current = syncSelectionOverlays;
+  applyViewTransformRef.current = applyViewTransform;
+  setSearchParamsRef.current = setSearchParams;
+  resizeCanvasRef.current = resizeCanvas;
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -1107,22 +1212,78 @@ export default function WhiteboardCard({ code }) {
       if (!alive) return;
       setRole(r);
       if (!r) return;
+
+      // ?new=1 → blank live board (from Saved boards “+ New whiteboard”).
+      // Only wipe when the in-app confirm set the session flag — never trust
+      // window.confirm (some embedded browsers auto-accept it).
+      let startFresh = new URLSearchParams(window.location.search).get('new') === '1';
+      if (startFresh) {
+        let allowed = false;
+        try {
+          allowed = sessionStorage.getItem('duoarcade-wb-new-ok') === '1';
+          sessionStorage.removeItem('duoarcade-wb-new-ok');
+        } catch { /* ignore */ }
+        if (!allowed) {
+          startFresh = false;
+        }
+        setSearchParamsRef.current((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('new');
+          return next;
+        }, { replace: true });
+      }
       try {
-        strokesRef.current = await loadBoard(code);
+        strokesRef.current = startFresh ? [] : await loadBoard(code);
         redoStackRef.current = [];
         setHistoryTick(t => t + 1);
       } catch (e) {
         setStatus('Couldn’t load the board: ' + e.message);
       }
-      redraw();
+      // Always reset view when opening the live board (avoids stuck hard-zoom).
+      zoomRef.current = 1;
+      setZoom(1);
+      if (startFresh) {
+        selectedIdRef.current = null;
+        setSelectedId(null);
+        draftTextRef.current = null;
+        setDraftText(null);
+        editingStickyIdRef.current = null;
+        setEditingStickyId(null);
+        stickyBlocksRef.current = null;
+        stickyDraftRef.current = '';
+        previewRef.current = null;
+        setPreview(null);
+        editingSnapRef.current = null;
+        setEditingSnap(null);
+        liveBackupRef.current = null;
+      }
+      redrawRef.current();
+      // Layout may still be settling after route change — size from the stage box.
+      requestAnimationFrame(() => {
+        resizeCanvasRef.current?.();
+        requestAnimationFrame(() => resizeCanvasRef.current?.());
+      });
 
       const ch = await boardChannel(code);
       if (!alive) { ch.close(); return; }
       channelRef.current = ch;
+
+      if (startFresh) {
+        try {
+          await saveBoard(code, []);
+          ch.send({ k: 'clear' });
+        } catch (e) {
+          setStatus('Couldn’t start a blank board: ' + (e.message || 'unknown error'));
+        }
+      }
       ch.on(m => {
+        // Don't let live-board sync overwrite a saved board you're editing.
+        if (editingSnapRef.current) return;
         if (m.k === 'live') {
-          applyViewTransform();
-          drawSeg(m.pts, m.color, m.size, m.erase);
+          if (!previewRef.current) {
+            applyViewTransformRef.current();
+            drawSegRef.current(m.pts, m.color, m.size, m.erase);
+          }
         }
         if (m.k === 'stroke') {
           if (m.stroke?.id && strokesRef.current.some(s => s.id === m.stroke.id)) {
@@ -1132,15 +1293,17 @@ export default function WhiteboardCard({ code }) {
             redoStackRef.current = redoStackRef.current.filter(s => s.id !== m.stroke.id);
             setHistoryTick(t => t + 1);
           }
-          redraw();
+          if (!previewRef.current) redrawRef.current();
         }
         if (m.k === 'move' && m.id && Array.isArray(m.pts)) {
           const item = strokesRef.current.find(s => s.id === m.id);
           if (item) {
             item.pts = m.pts;
-            redraw();
-            if (selectedIdRef.current === m.id || editingStickyIdRef.current === m.id) {
-              syncSelectionOverlays();
+            if (!previewRef.current) {
+              redrawRef.current();
+              if (selectedIdRef.current === m.id || editingStickyIdRef.current === m.id) {
+                syncSelectionOverlaysRef.current();
+              }
             }
           }
         }
@@ -1153,14 +1316,14 @@ export default function WhiteboardCard({ code }) {
             if (m.fs > 0) item.fs = m.fs;
             if (m.color) item.color = m.color;
             if (Array.isArray(m.pts)) item.pts = m.pts;
-            redraw();
+            if (!previewRef.current) redrawRef.current();
           }
         }
         if (m.k === 'color' && m.id && m.color) {
           const item = strokesRef.current.find(s => s.id === m.id);
           if (item && SELECTABLE.has(item.kind)) {
             item.color = m.color;
-            redraw();
+            if (!previewRef.current) redrawRef.current();
           }
         }
         if (m.k === 'edit' && m.id) {
@@ -1175,13 +1338,13 @@ export default function WhiteboardCard({ code }) {
             if (m.align) item.align = m.align;
             if (m.nw > 0) item.nw = m.nw;
             if (m.nh > 0) item.nh = m.nh;
-            redraw();
+            if (!previewRef.current) redrawRef.current();
           }
         }
         if (m.k === 'undo') {
           strokesRef.current = strokesRef.current.filter(s => s.id !== m.id);
           redoStackRef.current = redoStackRef.current.filter(s => s.id !== m.id);
-          if (selectedIdRef.current === m.id) selectItem(null);
+          if (selectedIdRef.current === m.id) selectItemRef.current(null);
           if (editingStickyIdRef.current === m.id) {
             editingStickyIdRef.current = null;
             setEditingStickyId(null);
@@ -1189,33 +1352,43 @@ export default function WhiteboardCard({ code }) {
             stickyDraftRef.current = '';
           }
           setHistoryTick(t => t + 1);
-          redraw();
+          if (!previewRef.current) redrawRef.current();
         }
         if (m.k === 'clear') {
           strokesRef.current = [];
           redoStackRef.current = [];
-          selectItem(null);
+          selectItemRef.current(null);
           editingStickyIdRef.current = null;
           setEditingStickyId(null);
           stickyBlocksRef.current = null;
           stickyDraftRef.current = '';
           setHistoryTick(t => t + 1);
-          redraw();
+          if (!previewRef.current) redrawRef.current();
+        }
+        if (m.k === 'board' && Array.isArray(m.strokes)) {
+          strokesRef.current = m.strokes;
+          redoStackRef.current = [];
+          selectItemRef.current(null);
+          draftTextRef.current = null;
+          setDraftText(null);
+          editingStickyIdRef.current = null;
+          setEditingStickyId(null);
+          stickyBlocksRef.current = null;
+          stickyDraftRef.current = '';
+          setHistoryTick(t => t + 1);
+          if (!previewRef.current) redrawRef.current();
         }
         if (m.k === 'cursor') setPartnerCursor({ x: m.x, y: m.y, at: Date.now() });
       });
     })();
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
     return () => {
       alive = false;
-      window.removeEventListener('resize', resizeCanvas);
       channelRef.current?.close();
       clearTimeout(saveTimer.current);
       clearInterval(sendTimer.current);
     };
-  }, [code, redraw, resizeCanvas, drawSeg, selectItem, syncSelectionOverlays]);
+  }, [code]);
 
   useEffect(() => {
     if (!partnerCursor) return undefined;
@@ -1224,18 +1397,31 @@ export default function WhiteboardCard({ code }) {
     return () => clearTimeout(t);
   }, [partnerCursor]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap || typeof ResizeObserver === 'undefined') return undefined;
     let raf = 0;
-    const ro = new ResizeObserver(() => {
+    const schedule = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => resizeCanvas());
+    };
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0]?.contentRect;
+      if (cr && (cr.width < 2 || cr.height < 2)) return;
+      schedule();
     });
     ro.observe(wrap);
     resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    const t1 = window.setTimeout(resizeCanvas, 0);
+    const t2 = window.setTimeout(resizeCanvas, 50);
+    const t3 = window.setTimeout(resizeCanvas, 200);
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resizeCanvas);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
       ro.disconnect();
     };
   }, [resizeCanvas]);
@@ -1265,29 +1451,50 @@ export default function WhiteboardCard({ code }) {
 
   useEffect(() => {
     if (!shapeMenuOpen) return undefined;
-    const onDoc = e => {
-      if (shapesWrapRef.current && !shapesWrapRef.current.contains(e.target)) {
-        setShapeMenuOpen(false);
-      }
+    // Defer so the opening click doesn’t immediately count as “outside”.
+    let onDoc = null;
+    const t = window.setTimeout(() => {
+      onDoc = (e) => {
+        if (shapesWrapRef.current && !shapesWrapRef.current.contains(e.target)) {
+          setShapeMenuOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', onDoc);
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
+      if (onDoc) document.removeEventListener('mousedown', onDoc);
     };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
   }, [shapeMenuOpen]);
 
   useEffect(() => {
     if (!fontMenuOpen) return undefined;
-    const onDoc = e => {
-      if (textWrapRef.current && !textWrapRef.current.contains(e.target)) {
-        setFontMenuOpen(false);
-      }
+    let onDoc = null;
+    const t = window.setTimeout(() => {
+      onDoc = (e) => {
+        if (textWrapRef.current && !textWrapRef.current.contains(e.target)) {
+          setFontMenuOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', onDoc);
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
+      if (onDoc) document.removeEventListener('mousedown', onDoc);
     };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
   }, [fontMenuOpen]);
 
   useEffect(() => {
     draftTextRef.current = draftText;
   }, [draftText]);
+
+  useEffect(() => {
+    previewRef.current = preview;
+  }, [preview]);
+
+  useEffect(() => {
+    editingSnapRef.current = editingSnap;
+  }, [editingSnap]);
 
   useEffect(() => {
     if (draftText) {
@@ -1339,12 +1546,13 @@ export default function WhiteboardCard({ code }) {
   const bumpHistory = useCallback(() => setHistoryTick(t => t + 1), []);
 
   const undoMine = useCallback(() => {
+    if (previewRef.current) return;
     const mine = strokesRef.current.filter(s => s.by === role);
     if (!mine.length) return;
     const last = mine[mine.length - 1];
     strokesRef.current = strokesRef.current.filter(s => s.id !== last.id);
     redoStackRef.current.push(last);
-    channelRef.current?.send({ k: 'undo', id: last.id });
+    boardSend({ k: 'undo', id: last.id });
     if (selectedIdRef.current === last.id) selectItem(null);
     if (editingStickyIdRef.current === last.id) {
       editingStickyIdRef.current = null;
@@ -1358,6 +1566,7 @@ export default function WhiteboardCard({ code }) {
   }, [role, selectItem, redraw, scheduleSave, bumpHistory]);
 
   const redoMine = useCallback(() => {
+    if (previewRef.current) return;
     const next = redoStackRef.current.pop();
     if (!next) return;
     if (strokesRef.current.some(s => s.id === next.id)) {
@@ -1365,7 +1574,7 @@ export default function WhiteboardCard({ code }) {
       return;
     }
     strokesRef.current.push(next);
-    channelRef.current?.send({ k: 'stroke', stroke: next });
+    boardSend({ k: 'stroke', stroke: next });
     bumpHistory();
     redraw();
     scheduleSave();
@@ -1407,7 +1616,7 @@ export default function WhiteboardCard({ code }) {
       e.preventDefault();
       strokesRef.current = strokesRef.current.filter(s => s.id !== id);
       redoStackRef.current.push(item);
-      channelRef.current?.send({ k: 'undo', id });
+      boardSend({ k: 'undo', id });
       selectItem(null);
       bumpHistory();
       redraw();
@@ -1418,28 +1627,30 @@ export default function WhiteboardCard({ code }) {
   }, [draftText, selectItem, redraw, scheduleSave, undoMine, redoMine, bumpHistory]);
 
   const posOf = e => {
-    const cv = canvasRef.current;
-    const rect = cv.getBoundingClientRect();
+    // Same box as resizeCanvas — never mix canvas bitmap rect with stage CSS size.
+    const wrap = wrapRef.current;
+    if (!wrap) return [0.5, 0.5];
+    const rect = wrap.getBoundingClientRect();
     const z = zoomRef.current || 1;
     const nx = (e.clientX - rect.left) / Math.max(rect.width, 1);
     const ny = (e.clientY - rect.top) / Math.max(rect.height, 1);
     return [
-      Math.max(0, Math.min(1, (nx - 0.5) / z + 0.5)),
-      Math.max(0, Math.min(1, (ny - 0.5) / z + 0.5)),
+      (nx - 0.5) / z + 0.5,
+      (ny - 0.5) / z + 0.5,
     ];
   };
 
   const flushLive = useCallback(() => {
     const s = currentRef.current;
     if (!s || pendingPts.current.length < 2) return;
-    channelRef.current?.send({
+    boardSend({
       k: 'live', pts: pendingPts.current, color: s.color, size: s.size, erase: s.erase,
     });
     pendingPts.current = [pendingPts.current[pendingPts.current.length - 1]];
   }, []);
 
   const onDown = e => {
-    if (!role) return;
+    if (!role || previewRef.current) return;
 
     if (tool === 'text') {
       if (editingStickyIdRef.current) commitStickyEdit();
@@ -1572,7 +1783,7 @@ export default function WhiteboardCard({ code }) {
     const now = Date.now();
     if (now - cursorTimer.current > 150) {
       cursorTimer.current = now;
-      channelRef.current?.send({ k: 'cursor', x: p[0], y: p[1] });
+      boardSend({ k: 'cursor', x: p[0], y: p[1] });
     }
 
     const move = moveDragRef.current;
@@ -1582,10 +1793,7 @@ export default function WhiteboardCard({ code }) {
         const dx = p[0] - move.last[0];
         const dy = p[1] - move.last[1];
         if (dx || dy) {
-          item.pts = item.pts.map(([x, y]) => [
-            Math.max(0, Math.min(1, x + dx)),
-            Math.max(0, Math.min(1, y + dy)),
-          ]);
+          item.pts = item.pts.map(([x, y]) => [x + dx, y + dy]);
           move.last = p;
           move.moved = true;
           redraw();
@@ -1620,7 +1828,7 @@ export default function WhiteboardCard({ code }) {
       if (move.moved) {
         const item = strokesRef.current.find(s => s.id === move.id);
         if (item) {
-          channelRef.current?.send({ k: 'move', id: item.id, pts: item.pts });
+          boardSend({ k: 'move', id: item.id, pts: item.pts });
           scheduleSave();
         }
         setStickyStyleTick(t => t + 1);
@@ -1647,7 +1855,7 @@ export default function WhiteboardCard({ code }) {
         strokesRef.current.push(stroke);
         redoStackRef.current = [];
         bumpHistory();
-        channelRef.current?.send({ k: 'stroke', stroke });
+        boardSend({ k: 'stroke', stroke });
         scheduleSave();
         selectItem(stroke.id);
       }
@@ -1664,17 +1872,23 @@ export default function WhiteboardCard({ code }) {
       strokesRef.current.push(s);
       redoStackRef.current = [];
       bumpHistory();
-      channelRef.current?.send({ k: 'stroke', stroke: s });
+      boardSend({ k: 'stroke', stroke: s });
       scheduleSave();
     }
   };
 
   const clearBoard = () => {
-    setMenuOpen(false);
-    if (!window.confirm('Clear the whole board for both of you?')) return;
+    if (previewRef.current) return;
+    const editing = editingSnapRef.current;
+    const ok = window.confirm(
+      editing
+        ? 'Clear this saved board?'
+        : 'Clear the whole board for both of you?',
+    );
+    if (!ok) return;
     strokesRef.current = [];
     redoStackRef.current = [];
-    channelRef.current?.send({ k: 'clear' });
+    boardSend({ k: 'clear' });
     selectItem(null);
     draftTextRef.current = null;
     setDraftText(null);
@@ -1688,28 +1902,280 @@ export default function WhiteboardCard({ code }) {
   };
 
   const shareBoard = async () => {
-    const url = `${window.location.origin}/whiteboard/${encodeURIComponent(code)}`;
+    setShareError('');
+    setShareCopied('');
+    setShareToken('');
+    setShareUrl('');
+    setShareOpen(true);
+    setShareBusy(true);
     try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Our wall', url });
-        return;
-      }
-      await navigator.clipboard?.writeText(url);
-      setStatus('Link copied');
-      window.setTimeout(() => setStatus(''), 1600);
-    } catch {
-      setStatus(url);
+      const token = await createBoardShare(defaultSnapshotTitle(), strokesRef.current || []);
+      setShareToken(token);
+      setShareUrl(boardShareUrl(token));
+      setStatus('');
+    } catch (e) {
+      setShareError(e?.message || 'Couldn’t create share code');
+    } finally {
+      setShareBusy(false);
     }
   };
 
+  const copyShareValue = async (value, kind) => {
+    const text = String(value || '').trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard?.writeText(text);
+      setShareCopied(kind);
+      setShareOpen(false);
+      setShareError('');
+      setStatus(kind === 'link' ? 'Link copied' : 'Code copied');
+      window.setTimeout(() => setStatus(''), 1800);
+      window.setTimeout(() => setShareCopied(''), 0);
+    } catch {
+      setShareError('Couldn’t copy — select the code and copy manually');
+    }
+  };
+
+  const closeShareDialog = () => {
+    if (shareBusy) return;
+    setShareOpen(false);
+    setShareError('');
+    setShareCopied('');
+  };
+
+  const openSaveDialog = () => {
+    if (previewRef.current || editingSnapRef.current) return;
+    setHistoryOpen(false);
+    setSaveTitle(defaultSnapshotTitle());
+    setSaveOpen(true);
+  };
+
+  /** Open saved library. If live still matches the last Save, clear it (saved copy stays). */
+  const goSavedLibrary = async () => {
+    if (previewRef.current || editingSnapRef.current) {
+      navigate('/app/place/sect-saved-boards');
+      return;
+    }
+    let savedKey = '';
+    try {
+      savedKey = sessionStorage.getItem(`duoarcade-wb-saved-key:${code}`) || '';
+    } catch { /* ignore */ }
+    const live = strokesRef.current;
+    const liveKey = strokeKey(live);
+    if (savedKey && liveKey && savedKey === liveKey) {
+      clearTimeout(saveTimer.current);
+      strokesRef.current = [];
+      redoStackRef.current = [];
+      selectItem(null);
+      draftTextRef.current = null;
+      setDraftText(null);
+      editingStickyIdRef.current = null;
+      setEditingStickyId(null);
+      stickyBlocksRef.current = null;
+      stickyDraftRef.current = '';
+      bumpHistory();
+      redraw();
+      boardSend({ k: 'clear' });
+      try {
+        await saveBoard(code, []);
+      } catch { /* ignore */ }
+      try {
+        sessionStorage.removeItem(`duoarcade-wb-saved-key:${code}`);
+      } catch { /* ignore */ }
+    }
+    navigate('/app/place/sect-saved-boards');
+  };
+
+  const submitSaveSnapshot = async (e) => {
+    e?.preventDefault?.();
+    if (savingSnap || previewRef.current || editingSnapRef.current) return;
+    const title = (saveTitle || '').trim() || defaultSnapshotTitle();
+    const snapshot = cloneStrokes(strokesRef.current);
+    if (!snapshot.length) {
+      setStatus('Nothing to save — draw something first');
+      window.setTimeout(() => setStatus(''), 1800);
+      return;
+    }
+    setSavingSnap(true);
+    try {
+      await saveBoardSnapshot(code, title, snapshot);
+      try {
+        sessionStorage.setItem(`duoarcade-wb-saved-key:${code}`, strokeKey(snapshot));
+      } catch { /* ignore */ }
+      setSaveOpen(false);
+      // Leave the live canvas and open the library (clears live when it matches this save).
+      await goSavedLibrary();
+    } catch (err) {
+      setStatus('Couldn’t save: ' + (err.message || 'unknown error'));
+    } finally {
+      setSavingSnap(false);
+    }
+  };
+
+  const openHistoryPanel = async () => {
+    setSaveOpen(false);
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    try {
+      setHistoryRows(await listBoardSnapshots(code));
+    } catch (err) {
+      setStatus('Couldn’t load history: ' + (err.message || 'unknown error'));
+      setHistoryRows([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openSnapshotPreview = useCallback(async (row) => {
+    if (!row?.id) return;
+    setPreviewLoadingId(row.id);
+    try {
+      const snap = await getBoardSnapshot(row.id);
+      const next = {
+        id: snap.id,
+        title: snap.title,
+        created_at: snap.created_at,
+        updated_at: snap.updated_at || snap.created_at,
+        strokes: Array.isArray(snap.strokes) ? snap.strokes : [],
+      };
+      // Read-only view — live strokes stay untouched in strokesRef.
+      selectItem(null);
+      draftTextRef.current = null;
+      setDraftText(null);
+      editingStickyIdRef.current = null;
+      setEditingStickyId(null);
+      setHistoryOpen(false);
+      previewRef.current = next;
+      setPreview(next);
+      // Preview bar changes stage height — resize backing store after layout.
+      requestAnimationFrame(() => {
+        resizeCanvas();
+        requestAnimationFrame(() => resizeCanvas());
+      });
+    } catch (err) {
+      setStatus('Couldn’t open save: ' + (err.message || 'unknown error'));
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  }, [selectItem, resizeCanvas]);
+
+  const startEditSnapshot = useCallback(() => {
+    const snap = previewRef.current;
+    if (!snap?.id) return;
+    liveBackupRef.current = cloneStrokes(strokesRef.current);
+    strokesRef.current = cloneStrokes(snap.strokes);
+    redoStackRef.current = [];
+    const meta = {
+      id: snap.id,
+      title: snap.title,
+      created_at: snap.created_at,
+      updated_at: snap.updated_at || snap.created_at,
+    };
+    editingSnapRef.current = meta;
+    setEditingSnap(meta);
+    previewRef.current = null;
+    setPreview(null);
+    selectItem(null);
+    draftTextRef.current = null;
+    setDraftText(null);
+    editingStickyIdRef.current = null;
+    setEditingStickyId(null);
+    stickyBlocksRef.current = null;
+    stickyDraftRef.current = '';
+    setHistoryTick(t => t + 1);
+    redraw();
+    requestAnimationFrame(() => resizeCanvas());
+    setStatus('Editing this saved board — live canvas is unchanged');
+  }, [selectItem, redraw, resizeCanvas]);
+
+  const finishEditSnapshot = useCallback(async (save) => {
+    const meta = editingSnapRef.current;
+    if (!meta) return;
+    if (save) {
+      try {
+        await updateBoardSnapshot(meta.id, cloneStrokes(strokesRef.current));
+      } catch (err) {
+        setStatus('Couldn’t save edits: ' + (err.message || 'unknown error'));
+        return;
+      }
+    }
+    clearTimeout(saveTimer.current);
+    editingSnapRef.current = null;
+    setEditingSnap(null);
+    selectItem(null);
+    draftTextRef.current = null;
+    setDraftText(null);
+    editingStickyIdRef.current = null;
+    setEditingStickyId(null);
+    stickyBlocksRef.current = null;
+    stickyDraftRef.current = '';
+    redoStackRef.current = [];
+    try {
+      strokesRef.current = await loadBoard(code);
+    } catch {
+      strokesRef.current = liveBackupRef.current || [];
+    }
+    liveBackupRef.current = null;
+    setHistoryTick(t => t + 1);
+    redraw();
+    setStatus(save ? 'Saved board updated' : '');
+    if (save) window.setTimeout(() => setStatus((s) => (s === 'Saved board updated' ? '' : s)), 1600);
+    if (searchParams.has('snapshot')) {
+      navigate('/app/place/sect-saved-boards', { replace: true });
+    }
+  }, [code, selectItem, redraw, navigate, searchParams]);
+
+  useEffect(() => {
+    if (!role || !snapshotQuery) return undefined;
+    if (previewRef.current?.id === snapshotQuery) return undefined;
+    openSnapshotPreview({ id: snapshotQuery });
+    return undefined;
+  }, [role, snapshotQuery, openSnapshotPreview]);
+
+  /* Returning from Saved boards / New whiteboard: drop any leftover preview. */
+  useEffect(() => {
+    if (snapshotQuery) return undefined;
+    if (editingSnapRef.current) return undefined;
+    if (!previewRef.current) return undefined;
+    previewRef.current = null;
+    setPreview(null);
+    redraw();
+    return undefined;
+  }, [snapshotQuery, redraw]);
+
+  const placeFlyout = (btn) => {
+    if (!btn) return { top: 0, left: 0 };
+    const r = btn.getBoundingClientRect();
+    return { top: Math.round(r.top), left: Math.round(r.right + 8) };
+  };
+
+  const openShapeMenu = () => {
+    if (previewRef.current) return;
+    pickTool('shapes');
+    setShapeFlyoutPos(placeFlyout(shapesBtnRef.current));
+    setShapeMenuOpen(true);
+  };
+
+  const openFontMenu = () => {
+    if (previewRef.current) return;
+    pickTool('text');
+    setFontFlyoutPos(placeFlyout(textBtnRef.current));
+    setFontMenuOpen(true);
+  };
+
   const pickTool = (id) => {
+    if (previewRef.current) return;
     if (id !== 'text' && draftTextRef.current) commitDraftText(true);
     if (id !== 'sticky' && editingStickyIdRef.current) commitStickyEdit();
     setTool(id);
-    if (id === 'shapes') setShapeMenuOpen(true);
-    else setShapeMenuOpen(false);
-    if (id === 'text') setFontMenuOpen(true);
-    else setFontMenuOpen(false);
+    if (id === 'shapes') {
+      setShapeFlyoutPos(placeFlyout(shapesBtnRef.current));
+      setShapeMenuOpen(true);
+    } else setShapeMenuOpen(false);
+    if (id === 'text') {
+      setFontFlyoutPos(placeFlyout(textBtnRef.current));
+      setFontMenuOpen(true);
+    } else setFontMenuOpen(false);
     if (id !== 'select') {
       const keepText = id === 'text'
         && selectedIdRef.current
@@ -1746,10 +2212,6 @@ export default function WhiteboardCard({ code }) {
       const dy = ((ev.clientY - drag.startY) / Math.max(wrap.clientHeight, 1)) / z;
       let nw = Math.max(minN, Math.min(STICKY_MAX_FRAC, drag.startNw + dx));
       let nh = Math.max(minH, Math.min(STICKY_MAX_FRAC, drag.startNh + dy));
-      if (target.pts?.[0]) {
-        nw = Math.min(nw, 1 - target.pts[0][0]);
-        nh = Math.min(nh, 1 - target.pts[0][1]);
-      }
       target.nw = nw;
       target.nh = nh;
       target.noteSize = 'custom';
@@ -1771,7 +2233,7 @@ export default function WhiteboardCard({ code }) {
         : stickyBlocksOf(target);
       target.blocks = blocks;
       target.text = blocksToPlain(blocks);
-      channelRef.current?.send({
+      boardSend({
         k: 'edit',
         id: target.id,
         text: target.text,
@@ -1813,8 +2275,8 @@ export default function WhiteboardCard({ code }) {
       const z = zoomRef.current || 1;
       const nx = (ev.clientX - rect.left) / Math.max(rect.width, 1);
       const ny = (ev.clientY - rect.top) / Math.max(rect.height, 1);
-      const x1 = Math.max(drag.x0 + SHAPE_MIN_NORM, Math.min(1, (nx - 0.5) / z + 0.5));
-      const y1 = Math.max(drag.y0 + SHAPE_MIN_NORM, Math.min(1, (ny - 0.5) / z + 0.5));
+      const x1 = Math.max(drag.x0 + SHAPE_MIN_NORM, (nx - 0.5) / z + 0.5);
+      const y1 = Math.max(drag.y0 + SHAPE_MIN_NORM, (ny - 0.5) / z + 0.5);
       target.pts = [[drag.x0, drag.y0], [x1, y1]];
       redraw();
       syncSelectionOverlays();
@@ -1828,7 +2290,7 @@ export default function WhiteboardCard({ code }) {
       if (!drag) return;
       const target = strokesRef.current.find(s => s.id === drag.id);
       if (!target || !SHAPE_KINDS.has(target.kind)) return;
-      channelRef.current?.send({ k: 'move', id: target.id, pts: target.pts });
+      boardSend({ k: 'move', id: target.id, pts: target.pts });
       scheduleSave();
       setStickyStyleTick(t => t + 1);
       redraw();
@@ -1872,7 +2334,7 @@ export default function WhiteboardCard({ code }) {
       if (!drag) return;
       const target = strokesRef.current.find(s => s.id === drag.id);
       if (!target || target.kind !== 'text') return;
-      channelRef.current?.send({
+      boardSend({
         k: 'font', id: target.id, fs: target.fs, fontSize: 'custom',
       });
       scheduleSave();
@@ -1899,7 +2361,7 @@ export default function WhiteboardCard({ code }) {
       : null;
     if (!sel || sel.kind !== 'text') return;
     Object.assign(sel, patch);
-    channelRef.current?.send({ k: 'font', id: sel.id, ...patch });
+    boardSend({ k: 'font', id: sel.id, ...patch });
     scheduleSave();
     redraw();
   };
@@ -1911,11 +2373,11 @@ export default function WhiteboardCard({ code }) {
     if (!item || !SELECTABLE.has(item.kind)) return;
     item.color = c;
     if (item.kind === 'text') {
-      channelRef.current?.send({ k: 'font', id, color: c });
+      boardSend({ k: 'font', id, color: c });
     } else if (item.kind === 'sticky') {
-      channelRef.current?.send({ k: 'edit', id, text: item.text, blocks: item.blocks, color: c });
+      boardSend({ k: 'edit', id, text: item.text, blocks: item.blocks, color: c });
     } else {
-      channelRef.current?.send({ k: 'color', id, color: c });
+      boardSend({ k: 'color', id, color: c });
     }
     scheduleSave();
     setStickyStyleTick(t => t + 1);
@@ -2088,16 +2550,27 @@ export default function WhiteboardCard({ code }) {
     <div className="wb-embed">
       <header className="wb-embed-head">
         <div className="wb-embed-title">
-          <h2>Our wall</h2>
-          <p>Draw together in real time</p>
+          <div className="wb-embed-title-copy">
+            <h2>Our wall</h2>
+            <p>Draw together in real time</p>
+          </div>
+          <button
+            type="button"
+            className={'wb-embed-library' + (historyOpen ? ' on' : '')}
+            onClick={() => { void goSavedLibrary(); }}
+            aria-label="Saved whiteboards"
+            title="Saved whiteboards"
+          >
+            Saved whiteboards
+          </button>
         </div>
         <div className="wb-embed-actions">
-          <div className="wb-history" role="group" aria-label="History">
+          <div className="wb-history" role="group" aria-label="Undo and redo">
             <button
               type="button"
               className="wb-history-btn"
               onClick={undoMine}
-              disabled={!canUndo}
+              disabled={!canUndo || !!preview}
               title="Undo (Ctrl+Z)"
               aria-label="Undo"
             >
@@ -2115,7 +2588,7 @@ export default function WhiteboardCard({ code }) {
               type="button"
               className="wb-history-btn"
               onClick={redoMine}
-              disabled={!canRedo}
+              disabled={!canRedo || !!preview}
               title="Redo (Ctrl+Shift+Z)"
               aria-label="Redo"
             >
@@ -2130,63 +2603,258 @@ export default function WhiteboardCard({ code }) {
               </svg>
             </button>
           </div>
-          <button type="button" className="wb-share" onClick={shareBoard}>
+          <button
+            type="button"
+            className="wb-save-btn"
+            onClick={openSaveDialog}
+            disabled={!!preview || !!editingSnap}
+            title={editingSnap ? 'Finish editing with Done' : 'Save a named snapshot'}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            className="wb-share"
+            onClick={() => { void shareBoard(); }}
+            disabled={shareBusy}
+          >
             Share
           </button>
-          <div className="wb-more-wrap">
-            <button
-              type="button"
-              className={'wb-embed-ico' + (menuOpen ? ' on' : '')}
-              aria-expanded={menuOpen}
-              aria-label="More options"
-              title="More"
-              onClick={() => setMenuOpen(v => !v)}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <circle cx="5" cy="12" r="1.6" />
-                <circle cx="12" cy="12" r="1.6" />
-                <circle cx="19" cy="12" r="1.6" />
-              </svg>
-            </button>
-            {menuOpen && (
-              <div className="wb-more-menu" role="menu">
-                <button type="button" role="menuitem" onClick={clearBoard}>
-                  Clear board
-                </button>
-                <a
-                  role="menuitem"
-                  href={`/whiteboard/${encodeURIComponent(code)}`}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Open full page
-                </a>
-              </div>
-            )}
-          </div>
         </div>
       </header>
 
-      <div className="wb-embed-body">
+      {preview && !editingSnap && (
+        <div className="wb-preview-bar" role="status">
+          <div className="wb-preview-bar-copy">
+            <strong>Viewing saved board</strong>
+            <span>
+              {preview.title} · {formatSaveDate(preview.created_at)}
+              {preview.updated_at && preview.updated_at !== preview.created_at
+                ? ` · edited ${formatSaveDate(preview.updated_at)}`
+                : ''}
+              {' · read-only'}
+            </span>
+          </div>
+          <div className="wb-preview-bar-actions">
+            <button type="button" className="wb-preview-edit" onClick={startEditSnapshot}>
+              Edit
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingSnap && (
+        <div className="wb-preview-bar wb-preview-bar-edit" role="status">
+          <div className="wb-preview-bar-copy">
+            <strong>Editing saved board</strong>
+            <span>{editingSnap.title} · changes save to this board only</span>
+          </div>
+          <div className="wb-preview-bar-actions">
+            <button
+              type="button"
+              className="wb-preview-ghost"
+              onClick={() => finishEditSnapshot(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="wb-preview-edit"
+              onClick={() => finishEditSnapshot(true)}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {saveOpen && (
+        <div className="wb-modal-backdrop" role="presentation" onClick={() => !savingSnap && setSaveOpen(false)}>
+          <form
+            className="wb-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wb-save-title"
+            onClick={e => e.stopPropagation()}
+            onSubmit={submitSaveSnapshot}
+          >
+            <h3 id="wb-save-title">Save board</h3>
+            <p>Creates a snapshot in history, then opens your saved boards.</p>
+            <label className="wb-modal-field">
+              <span>Title</span>
+              <input
+                autoFocus
+                value={saveTitle}
+                onChange={e => setSaveTitle(e.target.value)}
+                placeholder={defaultSnapshotTitle()}
+                maxLength={120}
+                disabled={savingSnap}
+              />
+            </label>
+            <div className="wb-modal-actions">
+              <button type="button" className="wb-modal-cancel" disabled={savingSnap} onClick={() => setSaveOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="wb-modal-ok" disabled={savingSnap}>
+                {savingSnap ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {shareOpen && (
+        <div
+          className="wb-modal-backdrop"
+          role="presentation"
+          onClick={closeShareDialog}
+        >
+          <div
+            className="wb-modal wb-share-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wb-share-title"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 id="wb-share-title">Share whiteboard</h3>
+            <p>Anyone with this code can add the board under Shared with us.</p>
+            {shareBusy ? (
+              <p className="wb-share-loading">Creating code…</p>
+            ) : shareError && !shareToken ? (
+              <p className="wb-share-error">{shareError}</p>
+            ) : (
+              <>
+                <div className="wb-share-code-block">
+                  <span className="wb-share-code-label">Board code</span>
+                  <div className="wb-share-code-row">
+                    <code className="wb-share-code" aria-live="polite">{shareToken}</code>
+                    <button
+                      type="button"
+                      className="wb-share-copy"
+                      onClick={() => { void copyShareValue(shareToken, 'code'); }}
+                      disabled={!shareToken}
+                    >
+                      {shareCopied === 'code' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <div className="wb-share-code-block">
+                  <span className="wb-share-code-label">Link</span>
+                  <div className="wb-share-code-row">
+                    <input
+                      className="wb-share-link"
+                      type="text"
+                      readOnly
+                      value={shareUrl}
+                      onFocus={e => e.target.select()}
+                      aria-label="Share link"
+                    />
+                    <button
+                      type="button"
+                      className="wb-share-copy"
+                      onClick={() => { void copyShareValue(shareUrl, 'link'); }}
+                      disabled={!shareUrl}
+                    >
+                      {shareCopied === 'link' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                {shareError && <p className="wb-share-error">{shareError}</p>}
+              </>
+            )}
+            <div className="wb-modal-actions">
+              <button
+                type="button"
+                className="wb-modal-cancel"
+                onClick={closeShareDialog}
+                disabled={shareBusy}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="wb-modal-ok"
+                onClick={() => { void copyShareValue(shareToken || shareUrl, shareToken ? 'code' : 'link'); }}
+                disabled={shareBusy || (!shareToken && !shareUrl)}
+              >
+                {shareCopied === 'code' || shareCopied === 'link' ? 'Copied!' : 'Copy code'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historyOpen && (
+        <div className="wb-modal-backdrop" role="presentation" onClick={() => setHistoryOpen(false)}>
+          <div
+            className="wb-modal wb-modal-history"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wb-history-title"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="wb-modal-history-head">
+              <h3 id="wb-history-title">Board history</h3>
+              <button type="button" className="wb-modal-close" aria-label="Close" onClick={() => setHistoryOpen(false)}>
+                ×
+              </button>
+            </div>
+            <p className="wb-modal-history-lead">Open a save to preview it, then Edit to change it.</p>
+            {historyLoading ? (
+              <p className="wb-modal-empty">Loading…</p>
+            ) : historyRows.length === 0 ? (
+              <p className="wb-modal-empty">No saved boards yet. Use Save to create one.</p>
+            ) : (
+              <ul className="wb-history-list">
+                {historyRows.map(row => (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      className="wb-history-row"
+                      disabled={previewLoadingId === row.id}
+                      onClick={() => openSnapshotPreview(row)}
+                    >
+                      <span className="wb-history-row-title">{row.title}</span>
+                      <span className="wb-history-row-date">{formatSaveDate(row.created_at)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={'wb-embed-body' + (preview ? ' is-preview' : '')}>
         <aside className="wb-rail" aria-label="Drawing tools">
           <div className="wb-rail-tools">
             {TOOLS.map(t => (
               t.id === 'shapes' ? (
                 <div className="wb-rail-shapes" key={t.id} ref={shapesWrapRef}>
                   <button
+                    ref={shapesBtnRef}
                     type="button"
                     className={'wb-rail-btn' + (tool === 'shapes' ? ' on' : '')}
                     title="Shapes"
                     aria-label="Shapes"
                     aria-expanded={shapeMenuOpen}
+                    aria-haspopup="menu"
                     onClick={() => {
-                      if (tool === 'shapes') setShapeMenuOpen(v => !v);
-                      else pickTool('shapes');
+                      if (tool === 'shapes' && shapeMenuOpen) setShapeMenuOpen(false);
+                      else openShapeMenu();
                     }}
                   >
                     <ToolIcon id="shapes" />
                   </button>
                   {shapeMenuOpen && (
-                    <div className="wb-shape-flyout" role="menu" aria-label="Shape types">
+                    <div
+                      className="wb-shape-flyout"
+                      role="menu"
+                      aria-label="Shape types"
+                      style={shapeFlyoutPos
+                        ? { top: shapeFlyoutPos.top, left: shapeFlyoutPos.left }
+                        : undefined}
+                    >
                       {SHAPES.map(s => (
                         <button
                           key={s.id}
@@ -2207,20 +2875,29 @@ export default function WhiteboardCard({ code }) {
               ) : t.id === 'text' ? (
                 <div className="wb-rail-shapes" key={t.id} ref={textWrapRef}>
                   <button
+                    ref={textBtnRef}
                     type="button"
                     className={'wb-rail-btn' + (tool === 'text' ? ' on' : '')}
                     title="Text"
                     aria-label="Text"
                     aria-expanded={fontMenuOpen}
+                    aria-haspopup="menu"
                     onClick={() => {
-                      if (tool === 'text') setFontMenuOpen(v => !v);
-                      else pickTool('text');
+                      if (tool === 'text' && fontMenuOpen) setFontMenuOpen(false);
+                      else openFontMenu();
                     }}
                   >
                     <ToolIcon id="text" />
                   </button>
                   {fontMenuOpen && (
-                    <div className="wb-shape-flyout wb-font-flyout" role="menu" aria-label="Fonts">
+                    <div
+                      className="wb-shape-flyout wb-font-flyout"
+                      role="menu"
+                      aria-label="Fonts"
+                      style={fontFlyoutPos
+                        ? { top: fontFlyoutPos.top, left: fontFlyoutPos.left }
+                        : undefined}
+                    >
                       <div className="wb-font-sizes" role="group" aria-label="Text size">
                         {TEXT_SIZES.map(ts => (
                           <button
@@ -2271,6 +2948,16 @@ export default function WhiteboardCard({ code }) {
                 </button>
               )
             ))}
+            <button
+              type="button"
+              className="wb-rail-btn wb-rail-clear"
+              title="Clear all"
+              aria-label="Clear all"
+              disabled={!!preview}
+              onClick={clearBoard}
+            >
+              <ToolIcon id="clear" />
+            </button>
           </div>
           {(tool === 'pen' || tool === 'eraser' || tool === 'shapes') && (
             <div className="wb-rail-sizes" role="group" aria-label="Stroke size">
@@ -2325,11 +3012,7 @@ export default function WhiteboardCard({ code }) {
           </div>
         </aside>
 
-        <div
-          className="wb-stage"
-          ref={wrapRef}
-          style={{ backgroundSize: `${22 * zoom}px ${22 * zoom}px` }}
-        >
+        <div className="wb-stage" ref={wrapRef}>
           <canvas
             ref={canvasRef}
             className="wb-stage-canvas"

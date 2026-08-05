@@ -1,4 +1,4 @@
-// ContextRail.jsx — right-hand contextual column: relationship, primary actions,
+// ContextRail.jsx — right-hand contextual column: primary actions,
 // online friends and recent activity. Every value comes from an existing data source.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -8,7 +8,6 @@ import { isFriendOnline } from '../lib/friends.js';
 import { getRecentGames } from '../lib/gameCatalog.js';
 import { listMovieNights } from '../lib/watchMovie.js';
 import ChallengeCard from './ChallengeCard.jsx';
-import { TogetherHero } from './CoupleFx.jsx';
 import { Ico } from './ui/icons.jsx';
 import { StatusDot } from './ui/Primitives.jsx';
 
@@ -213,7 +212,7 @@ function RecentActivity({ code, onStartGame, onOpenWatch, onSeeAll }) {
 }
 
 export default function ContextRail({
-  duo, code, myRole, presence, geoStatus, onSetAnniversary, onStartGame,
+  code, onStartGame,
   friendsEnabled = false, friends = [], friendsLoaded = false, friendRequests = 0,
 }) {
   const navigate = useNavigate();
@@ -229,17 +228,6 @@ export default function ContextRail({
 
   return (
     <aside className="crail" aria-label="Relationship and social">
-      <div className="crail-card crail-together" id="sect-together">
-        <TogetherHero
-          duo={duo}
-          code={code}
-          myRole={myRole}
-          presence={presence}
-          geoStatus={geoStatus}
-          onSetAnniversary={onSetAnniversary}
-        />
-      </div>
-
       <div className="crail-actions">
         <button type="button" className="crail-cta" onClick={openWatch}>
           <span className="crail-cta-ico" aria-hidden="true">
