@@ -122,9 +122,18 @@ export function encodeGameEvent(payload) {
 }
 
 export function parseGameEvent(content) {
-  if (typeof content !== 'string' || !content.startsWith(GAME_PREFIX)) return null;
+  if (typeof content !== 'string') return null;
+  const raw = content.trim();
+  let payload = null;
+  if (raw.startsWith(GAME_PREFIX)) {
+    payload = raw.slice(GAME_PREFIX.length);
+  } else if (raw.startsWith('[duo:game]')) {
+    payload = raw.slice('[duo:game]'.length).trim();
+  } else {
+    return null;
+  }
   try {
-    const data = JSON.parse(content.slice(GAME_PREFIX.length));
+    const data = JSON.parse(payload);
     if (!data) return null;
     let kind = data.kind;
     if (kind === 'session' || kind === 'finished') kind = 'ended';

@@ -402,15 +402,23 @@ export default function Arcade() {
     try { window.dispatchEvent(new Event('duoarcade-recent-games')); } catch { /* ignore */ }
     const eng = ENGINES[gameId];
     const isChallenge = !!challengeCtx;
+    const skipShellLobby = !!(eng?.meta?.keepInGame && eng?.meta?.realtime);
     const session = {
       game: gameId, gs: eng.meta.realtime ? {} : eng.initialState(),
       turn: eng.meta.realtime ? '-' : 'A', starter: 'A', winner: null,
-      phase: isChallenge ? 'lobby' : 'invite',
+      phase: isChallenge
+        ? (skipShellLobby ? 'live' : 'lobby')
+        : 'invite',
       by: myRole, startedAt: Date.now(),
       series: { a: 0, b: 0, d: 0 },
       chatPostedStart: isChallenge,
       chatEndedPosted: false,
-      ...(isChallenge ? { ready: { A: false, B: false } } : {}),
+      ...(isChallenge
+        ? {
+            ready: skipShellLobby ? { A: true, B: true } : { A: false, B: false },
+            ...(skipShellLobby ? { liveAt: Date.now() } : {}),
+          }
+        : {}),
       ...(challengeCtx ? { challengeId: challengeCtx.id, challengeSlot: challengeCtx.slot } : {}),
       ...(gameId === 'nightcurling' ? { ncEnds: 3 } : {}),
       ...(gameId === 'chkobba' ? { ckTarget: 21 } : {}),
@@ -455,12 +463,16 @@ export default function Arcade() {
     const starter = s.winner && s.winner !== 'draw' ? other(s.winner) : other(s.starter);
     const series = s.series || s.streak || { a: 0, b: 0, d: 0 };
     // Back to the ready panel — you count as ready; partner still needs to rematch/ready.
+    // keepInGame titles skip the shell lobby (they have an in-game menu).
+    const skipShellLobby = !!(eng.meta?.keepInGame && eng.meta?.realtime);
     const session = {
       game: s.game, gs: eng.meta.realtime ? {} : eng.initialState(),
       turn: eng.meta.realtime ? '-' : starter, starter, winner: null,
-      phase: 'lobby',
-      ready: { A: myRole === 'A', B: myRole === 'B' },
-      liveAt: null,
+      phase: skipShellLobby ? 'live' : 'lobby',
+      ready: skipShellLobby
+        ? { A: true, B: true }
+        : { A: myRole === 'A', B: myRole === 'B' },
+      liveAt: skipShellLobby ? Date.now() : null,
       by: myRole,
       rematchBy: myRole,
       startedAt: Date.now(),
@@ -671,13 +683,16 @@ export default function Arcade() {
     const s = duo.session;
     if (!s || s.phase !== 'invite') return;
     try {
-      // Every game goes through the ready lobby before a fixed 3s countdown.
+      // Most games use the ready lobby + 3s countdown. Stickman / keepInGame
+      // titles have their own in-game lobby — go live immediately so the board mounts.
       const alreadyPosted = !!s.chatPostedStart;
+      const engMeta = ENGINES[s.game]?.meta;
+      const skipShellLobby = !!(engMeta?.keepInGame && engMeta?.realtime);
       const session = {
         ...s,
-        phase: 'lobby',
-        ready: { A: false, B: false },
-        liveAt: null,
+        phase: skipShellLobby ? 'live' : 'lobby',
+        ready: skipShellLobby ? { A: true, B: true } : { A: false, B: false },
+        liveAt: skipShellLobby ? Date.now() : null,
         chatPostedStart: true,
         series: s.series || s.streak || { a: 0, b: 0, d: 0 },
         ...(s.game === 'nightcurling' ? { ncEnds: s.ncEnds || 3 } : {}),

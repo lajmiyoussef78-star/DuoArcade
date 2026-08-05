@@ -8,16 +8,16 @@ export const CONFIG = {
 
   /**
    * Live gameplay transport for sync.rt() only.
-   *   'supabase' — existing Realtime broadcast (default)
-   *   'socket'   — DuoArcade Socket.IO game server
+   *   'supabase' — Realtime broadcast
+   *   'socket'   — DuoArcade Socket.IO game server (Fly.io)
    * Override with Vite env: VITE_GAME_RT=socket|supabase
    */
   GAME_RT: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAME_RT)
     ? String(import.meta.env.VITE_GAME_RT).toLowerCase()
-    : 'supabase',
+    : 'socket',
 
-  /** Socket.IO server URL when GAME_RT=socket */
+  /** Socket.IO game server URL when GAME_RT=socket */
   GAME_RT_URL: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAME_RT_URL)
     ? String(import.meta.env.VITE_GAME_RT_URL)
-    : 'http://127.0.0.1:3001',
+    : 'https://duoarcade-server.fly.dev',
 };

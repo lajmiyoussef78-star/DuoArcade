@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ENGINES } from '../engines/index.js';
 import { other } from '../lib/util.js';
 import { getRules } from '../engines/rules.js';
+import { CONFIG } from '../lib/config.js';
+import RoomChatDock from './RoomChatDock.jsx';
 
 function RulesIcon() {
   return (
@@ -120,24 +122,32 @@ function RealtimeBoard({ eng, session, myRole, names, sync, code, onFinish, onPr
   const key = session.game + ':' + (session.startedAt || 0);
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !sync?.rt) return undefined;
-    const rt = sync.rt(code);
-    eng.mount(host, {
-      myRole,
-      rt,
-      names,
-      code,
-      startedAt: session.startedAt || 0,
-      maxEnds: session.ncEnds || 3,
-      target: session.ckTarget || 21,
-      onFinish: (...args) => onFinishRef.current?.(...args),
-      onProceed: () => onProceedRef.current?.()
-    });
+    if (!host || !eng?.mount) return undefined;
+    // Mount even if sync/rt is briefly missing so the lobby/canvas still paints.
+    let rt = null;
+    try {
+      rt = sync?.rt?.(code) || null;
+    } catch { /* transport unavailable */ }
+    try {
+      eng.mount(host, {
+        myRole,
+        rt,
+        names,
+        code,
+        startedAt: session.startedAt || 0,
+        maxEnds: session.ncEnds || 3,
+        target: session.ckTarget || 21,
+        onFinish: (...args) => onFinishRef.current?.(...args),
+        onProceed: () => onProceedRef.current?.()
+      });
+    } catch {
+      return undefined;
+    }
     return () => {
       try { eng.unmount(); } catch { /* engine already gone */ }
-      try { rt.close(); } catch { /* channel already closed */ }
+      try { rt?.close?.(); } catch { /* channel already closed */ }
     };
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, code]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     try { eng.setPaused?.(paused); } catch { /* optional */ }
   }, [eng, paused, key]);
@@ -304,7 +314,7 @@ export default function GameScreen({
         <button className="btn small" onClick={onBack}>Back to the shelf</button>
       </div>
     );
-  } else if (s.phase === 'lobby' && !s.winner) {
+  } else if (s.phase === 'lobby' && !s.winner && !(eng.meta?.keepInGame && eng.meta?.realtime)) {
     const rematchAsk = s.rematchBy && s.rematchBy !== myRole && !s.ready?.[myRole];
     const rematchWait = s.rematchBy === myRole && !!s.ready?.[myRole] && !s.ready?.[partnerRole];
     board = (
@@ -373,7 +383,7 @@ export default function GameScreen({
         </button>
       </div>
     );
-  } else if (counting) {
+  } else if (counting && !(eng.meta?.keepInGame && eng.meta?.realtime)) {
     const remMs = Math.max(0, goAt - Date.now());
     const secs = Math.min(3, Math.max(1, Math.ceil(remMs / 1000)));
     board = <div className="countdown-big">{secs}</div>;
@@ -442,6 +452,11 @@ export default function GameScreen({
     && (s.phase === 'invite' || s.phase === 'lobby' || counting);
 
   const kitchenGame = s.game === 'readysetcook';
+  const roomShell = !showResult && !kitchenGame;
+  const userId = sync?.auth?.user?.()?.id || null;
+  const transport = String(CONFIG.GAME_RT || 'socket').toLowerCase() === 'socket'
+    ? 'Fly Socket.IO'
+    : 'Supabase RT';
 
   return (
     <section
@@ -449,12 +464,13 @@ export default function GameScreen({
         'on gv-screen'
         + (kitchenGame ? ' gv-kitchen' : '')
         + (showResult ? ' gv-result-screen' : '')
+        + (roomShell ? ' gv-room' : '')
       }
     >
       <header className="gv-top">
         <button type="button" className="gv-back" onClick={onBack}>
           <BackIcon />
-          <span>Back</span>
+          <span>Back to Games</span>
         </button>
         <div className="gv-heading">
           <h2 className="gv-title">{eng.meta.name}</h2>
@@ -493,10 +509,13 @@ export default function GameScreen({
               <RulesIcon />
             </button>
           )}
+          <button type="button" className="gv-leave" onClick={onBack}>
+            Leave Room
+          </button>
         </div>
       </header>
 
-      <div className="gv-stage">
+      <div className={'gv-stage' + (roomShell ? ' gv-stage-room' : '')}>
         {showRulesNote && (
           <p className="gv-rules-note">
             Game rules are in the top right, have a quick look before the game start.
@@ -514,9 +533,9 @@ export default function GameScreen({
           </div>
         )}
 
-        {!showResult && (
+        {!showResult && !roomShell && (
           <>
-            <div className="gv-players">
+            <div className={"gv-players" + (eng.meta?.hidePlayers ? " gv-players-hidden" : "")}>
               <div className={'pl A' + (turnA ? ' turn' : '') + (isAway('A') ? ' away' : '')}>
                 <div className="dot" /><span>{duo.nameA}</span>
               </div>
@@ -663,33 +682,103 @@ export default function GameScreen({
             )}
           </div>
         ) : (
-          <>
-            {/* Fullscreen targets this node only — no DuoArcade topbar / game header */}
-            <div
-              ref={fsRootRef}
-              className={'gv-fs-root' + (isFullscreen ? ' is-fullscreen' : '')}
-            >
-              {isFullscreen && (
-                <button
-                  type="button"
-                  className="gv-fs-exit"
-                  onClick={toggleFullscreen}
-                  title="Exit fullscreen"
-                  aria-label="Exit fullscreen"
-                >
-                  <FullscreenExitIcon />
-                </button>
+          <div className={roomShell ? 'gv-room-cols' : 'gv-room-cols gv-room-cols-solo'}>
+            {roomShell && (
+              <aside className="gv-rail gv-rail-left">
+                <div className="gv-rail-block">
+                  <div className="gv-rail-title">Players</div>
+                  <div className={'gv-rail-player A' + (isAway('A') ? ' away' : '')}>
+                    <span className="gv-rail-av">{duo.nameA[0]?.toUpperCase()}</span>
+                    <div>
+                      <div className="gv-rail-name">{duo.nameA}{myRole === 'A' ? ' · you' : ''}</div>
+                      <div className="gv-rail-meta">{isAway('A') ? 'away' : 'online'}</div>
+                    </div>
+                    <span className="gv-rail-crown" title="Host">♛</span>
+                  </div>
+                  <div className={'gv-rail-player B' + (isAway('B') ? ' away' : '')}>
+                    <span className="gv-rail-av B">{duo.nameB[0]?.toUpperCase()}</span>
+                    <div>
+                      <div className="gv-rail-name">{duo.nameB}{myRole === 'B' ? ' · you' : ''}</div>
+                      <div className="gv-rail-meta">{isAway('B') ? 'away' : 'online'}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="gv-rail-block">
+                  <div className="gv-rail-title">Series</div>
+                  <div className="gv-rail-stat">
+                    <span>Score</span>
+                    <b>{series.a} – {series.b}</b>
+                  </div>
+                  <div className="gv-rail-stat">
+                    <span>Game</span>
+                    <b>{eng.meta.name}</b>
+                  </div>
+                </div>
+              </aside>
+            )}
+
+            <div className="gv-room-main">
+              {s.game === 'codebreak' && s.gs?.secrets?.[myRole] && (
+                <div className="cb-secret-title">
+                  Your secret code is : <span>{s.gs.secrets[myRole]}</span>
+                </div>
               )}
-              <div className="gv-board">{board}</div>
-              {/* Banner sits under the board in windowed mode only — in fullscreen
-                  it left a black strip at the bottom of the monitor. */}
-              {!isFullscreen && (bannerStatus || banner) && (
-                <div className={bannerClass}>{bannerStatus || banner}</div>
-              )}
+              <div
+                ref={fsRootRef}
+                className={'gv-fs-root' + (isFullscreen ? ' is-fullscreen' : '')}
+              >
+                {isFullscreen && (
+                  <button
+                    type="button"
+                    className="gv-fs-exit"
+                    onClick={toggleFullscreen}
+                    title="Exit fullscreen"
+                    aria-label="Exit fullscreen"
+                  >
+                    <FullscreenExitIcon />
+                  </button>
+                )}
+                <div className="gv-board">{board}</div>
+                {!isFullscreen && (bannerStatus || banner) && (
+                  <div className={bannerClass}>{bannerStatus || banner}</div>
+                )}
+              </div>
             </div>
-          </>
+
+            {roomShell && (
+              <aside className="gv-rail gv-rail-right">
+                <RoomChatDock
+                  code={code}
+                  userId={userId}
+                  myName={myRole === 'A' ? duo.nameA : duo.nameB}
+                  partnerName={partner}
+                />
+              </aside>
+            )}
+          </div>
         )}
       </div>
+
+      {roomShell && (
+        <footer className="gv-syncbar">
+          <div className="gv-sync-left">
+            <span className="gv-sync-label">Sync Status</span>
+            <span className="gv-sync-pill">Excellent</span>
+          </div>
+          <div className="gv-sync-mid">
+            <span className="gv-sync-check">✓</span>
+            <div>
+              <div className="gv-sync-title">Sync is live</div>
+              <div className="gv-sync-sub">{transport}</div>
+            </div>
+            <div className="gv-sync-wave" aria-hidden="true" />
+          </div>
+          <div className="gv-sync-right">
+            <span className="gv-sync-label">Transport</span>
+            <b>{transport === 'Fly Socket.IO' ? 'Fly.io' : 'Realtime'}</b>
+          </div>
+        </footer>
+      )}
     </section>
   );
 }

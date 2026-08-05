@@ -15,8 +15,14 @@ export default function StickmanKartShell({ onComplete, pausedRef, myRole, rt, n
     if (!root) return;
 
     const check = () => {
-      if (doneRef.current || pausedRef?.current) return;
+      if (pausedRef?.current) return;
       const el = root.querySelector('[data-skr-winner]');
+      if (!el) {
+        // Cleared when returning to lobby — allow the next race to tally.
+        doneRef.current = false;
+        return;
+      }
+      if (doneRef.current) return;
       const role = el?.getAttribute('data-skr-winner');
       if (role !== 'A' && role !== 'B') return;
       doneRef.current = true;

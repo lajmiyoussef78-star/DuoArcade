@@ -139,19 +139,30 @@ function createNet(onMessage, onPeer) {
 }
 
 /* ═══════════════════ MINI TRACK CARD ═══════════════════ */
+const TRACK_PREVIEW_W = 160;
+const TRACK_PREVIEW_H = 90;
+
 function TrackCard({ i, selected, onSelect, flash, disabled }) {
   const ref = useRef(null);
   useEffect(() => {
     const cvs = ref.current; if (!cvs) return;
     const th = THEMES[i];
-    const P = buildPath(LAYOUTS[i], 6), sx = 220 / 1000, sy = 120 / 1000;
-    const base = document.createElement("canvas"); base.width = 220; base.height = 120;
+    const P = buildPath(LAYOUTS[i], 6);
+    const sx = TRACK_PREVIEW_W / 1000, sy = TRACK_PREVIEW_H / 1000;
+    const base = document.createElement("canvas");
+    base.width = TRACK_PREVIEW_W; base.height = TRACK_PREVIEW_H;
     const b = base.getContext("2d");
-    b.fillStyle = th.grass; b.fillRect(0, 0, 220, 120);
+    b.fillStyle = th.grass; b.fillRect(0, 0, TRACK_PREVIEW_W, TRACK_PREVIEW_H);
     b.lineCap = "round"; b.lineJoin = "round";
     const wScale = TRACK_HALF[i] / 46;
-    const trace = (g, wd, st) => { g.beginPath(); g.moveTo(P[0][0] * sx, P[0][1] * sy); for (let j = 1; j < P.length; j++) g.lineTo(P[j][0] * sx, P[j][1] * sy); g.closePath(); g.strokeStyle = st; g.lineWidth = wd; g.stroke(); };
-    trace(b, 13 * wScale, th.border); trace(b, 9 * wScale, th.road);
+    const trace = (g, wd, st) => {
+      g.beginPath();
+      g.moveTo(P[0][0] * sx, P[0][1] * sy);
+      for (let j = 1; j < P.length; j++) g.lineTo(P[j][0] * sx, P[j][1] * sy);
+      g.closePath();
+      g.strokeStyle = st; g.lineWidth = wd; g.stroke();
+    };
+    trace(b, 11 * wScale, th.border); trace(b, 7.5 * wScale, th.road);
     const off = Math.random();
     let t = 0, raf;
     const tick = () => {
@@ -168,8 +179,8 @@ function TrackCard({ i, selected, onSelect, flash, disabled }) {
         const idx = Math.floor(((frac % 1) + 1) % 1 * L), pt = P[idx], nx = P[(idx + 2) % L];
         const x = pt[0] * sx, y = pt[1] * sy, a = Math.atan2(nx[1] - pt[1], nx[0] - pt[0]);
         g.save(); g.translate(x, y); g.rotate(a);
-        g.shadowColor = col; g.shadowBlur = 6;
-        g.fillStyle = col; g.fillRect(-3.5, -2, 7, 4);
+        g.shadowColor = col; g.shadowBlur = 5;
+        g.fillStyle = col; g.fillRect(-3, -1.75, 6, 3.5);
         g.restore();
       };
       dot(t * 0.055 + off, "#38c7ff");
@@ -183,16 +194,26 @@ function TrackCard({ i, selected, onSelect, flash, disabled }) {
   return (
     <div
       onClick={() => { if (!disabled) onSelect?.(i); }}
-      className={"rounded-2xl p-2.5 pb-3 transition-transform " + (disabled ? "" : "cursor-pointer hover:-translate-y-1")}
+      className={"rounded-xl transition-transform " + (disabled ? "" : "cursor-pointer hover:-translate-y-0.5")}
       style={{
-        background: "#0e111c", border: "1.5px solid #1c2236",
-        boxShadow: selected ? `0 0 18px ${th.glow}, inset 0 0 24px rgba(56,199,255,.05)` : flash ? `0 0 30px ${th.glow}` : "none",
+        padding: "6px 6px 8px",
+        background: "#0e111c", border: selected ? `1.5px solid ${th.border}` : "1px solid #1c2236",
+        boxShadow: selected ? `0 0 14px ${th.glow}` : flash ? `0 0 20px ${th.glow}` : "none",
         opacity: disabled ? 0.75 : 1,
+        maxWidth: 180,
+        width: "100%",
+        margin: "0 auto",
       }}
     >
-      <canvas ref={ref} width={220} height={120} className="w-full rounded-xl block bg-black" />
-      <div className="font-bold tracking-widest mt-2 mb-1 text-sm">{th.name}</div>
-      <div className="text-[11px] leading-relaxed tracking-wide" style={{ color: "#8b93ab" }}>{th.desc}</div>
+      <canvas
+        ref={ref}
+        width={TRACK_PREVIEW_W}
+        height={TRACK_PREVIEW_H}
+        className="rounded-lg block bg-black"
+        style={{ width: "100%", height: "auto", aspectRatio: `${TRACK_PREVIEW_W} / ${TRACK_PREVIEW_H}`, maxHeight: 90 }}
+      />
+      <div className="font-bold mt-1.5 mb-0.5" style={{ fontSize: 11, letterSpacing: 1.5 }}>{th.name}</div>
+      <div style={{ fontSize: 9, lineHeight: 1.35, color: "#8b93ab", letterSpacing: 0.3 }}>{th.desc}</div>
     </div>
   );
 }
@@ -347,6 +368,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
         setGuestReady(false);
         setResults(null); setPaused(false); setScreen("race");
         initAudio();
+        try { duoNetRef.current?.clearState?.(); } catch { /* */ }
         // setupRace reads latest picks/settings via refs below — kick next tick
         setTimeout(() => {
           setupRace();
@@ -364,7 +386,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
         else toast(`${namesRef.current.B} is not ready`);
       }
     });
-    return () => { duoNetRef.current = null; };
+    return () => { try { net.dispose?.(); } catch { /* */ } duoNetRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rt, myRole]);
   const canvasRef = useRef(null);
@@ -705,108 +727,178 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
       setHud((h) => (JSON.stringify(h) === JSON.stringify(next) ? h : next));
     };
     let netAcc = 0;
-    let lastGuestPose = null;
     let lastGuestPoseT = -1;
-    const packKartState = () => ({
-      state: E.state,
-      raceT: E.raceT,
-      countT: E.countT,
-      players: E.players.map((p) => ({
-        x: p.x, y: p.y, angle: p.angle, speed: p.speed, lap: p.lap,
-        item: p.item, shield: p.shield, spin: p.spin, boost: p.boost,
-        freeze: p.freeze, done: p.done, idx: p.idx, halfway: p.halfway,
-        kart: p.kart, color: p.color, dark: p.dark, finishT: p.finishT,
-      })),
-    });
-    const packGuestPose = () => {
-      const p = E.players[1];
-      if (!p) return null;
-      return {
-        pose: {
-          t: performance.now(),
-          x: p.x, y: p.y, angle: p.angle, speed: p.speed,
-          lap: p.lap, idx: p.idx, halfway: p.halfway,
-          item: p.item, shield: p.shield, spin: p.spin, boost: p.boost,
-          freeze: p.freeze, done: p.done, finishT: p.finishT,
-        },
-      };
+    let lastHostRaceT = -1;
+    let hasRemoteP2 = false;
+    const packItem = (it) => (it && it.id ? { id: it.id, icon: it.icon } : null);
+    const snapPose = (p, sp) => {
+      if (!p || !sp || sp.x == null || sp.y == null) return;
+      p.x = sp.x;
+      p.y = sp.y;
+      if (sp.angle != null) p.angle = sp.angle;
+      if (sp.speed != null) p.speed = sp.speed;
     };
-    const angLerp = (a, b, t) => {
-      let d = b - a;
-      while (d > Math.PI) d -= Math.PI * 2;
-      while (d < -Math.PI) d += Math.PI * 2;
-      return a + d * t;
+    const applyStatus = (p, sp) => {
+      if (!p || !sp) return;
+      if (sp.lap != null) p.lap = sp.lap;
+      if (sp.idx != null) p.idx = sp.idx;
+      if (sp.halfway != null) p.halfway = sp.halfway;
+      if (sp.item !== undefined) p.item = sp.item;
+      if (sp.shield != null) p.shield = !!sp.shield;
+      if (sp.boost != null) p.boost = sp.boost;
+      if (sp.spin != null && sp.spin > (p.spin || 0)) p.spin = sp.spin;
+      if (sp.freeze != null && sp.freeze > (p.freeze || 0)) p.freeze = sp.freeze;
+      if (sp.kart) p.kart = sp.kart;
+      if (sp.color) p.color = sp.color;
+      if (sp.dark) p.dark = sp.dark;
+      if (sp.done && !p.done) {
+        p.done = true;
+        p.finishT = sp.finishT ?? E.raceT;
+      } else if (sp.finishT != null) {
+        p.finishT = sp.finishT;
+      }
     };
-    /** Guest: P1 from host only. P2 transform is NEVER touched (guest owns their kart). */
+    /** Guest applies host snapshot — never overwrite local P2 transform. */
     const applyKartStateGuest = (st) => {
       if (!st || !E.players?.length) return;
-      if (st.raceT != null) E.raceT = st.raceT;
+      // Drop stale / rewind packets (common cause of snap-back to start)
+      if (typeof st.raceT === 'number' && E.state === 'race' && lastHostRaceT >= 0) {
+        if (st.raceT + 0.25 < lastHostRaceT) return;
+      }
+      if (typeof st.raceT === 'number') {
+        lastHostRaceT = Math.max(lastHostRaceT, st.raceT);
+        E.raceT = st.raceT;
+      }
       if (st.countT != null) E.countT = st.countT;
       if (st.state) E.state = st.state;
       const remote = st.players;
       if (!remote?.length) return;
 
-      if (remote[0] && E.players[0]) {
-        const p = E.players[0], sp = remote[0];
-        const err = Math.hypot((p.x ?? sp.x) - sp.x, (p.y ?? sp.y) - sp.y);
-        if (err > 40 || p.x == null) Object.assign(p, sp);
-        else {
-          const k = 0.65;
-          p.x += (sp.x - p.x) * k;
-          p.y += (sp.y - p.y) * k;
-          p.angle = angLerp(p.angle, sp.angle, k);
-          p.speed = sp.speed;
-          p.lap = sp.lap; p.item = sp.item; p.shield = sp.shield; p.spin = sp.spin;
-          p.boost = sp.boost; p.freeze = sp.freeze; p.done = sp.done; p.idx = sp.idx;
-          p.halfway = sp.halfway;
-          if (sp.kart) p.kart = sp.kart;
-          if (sp.color) p.color = sp.color;
-          if (sp.dark) p.dark = sp.dark;
+      if (remote[0] && E.players[0] && remote[0].x != null) {
+        // Reject teleport-to-spawn while mid-race (late countdown packet)
+        const sp = remote[0];
+        const p = E.players[0];
+        const nearSpawn = Math.hypot(sp.x - (E.path[0]?.[0] || 0), sp.y - (E.path[0]?.[1] || 0)) < 55;
+        const wasAway = Math.hypot((p.x || 0) - (E.path[0]?.[0] || 0), (p.y || 0) - (E.path[0]?.[1] || 0)) > 120;
+        if (!(E.state === 'race' && E.raceT > 1.2 && nearSpawn && wasAway)) {
+          snapPose(p, sp);
         }
+        applyStatus(p, sp);
       }
 
-      // P2: only host-forced status (missile hit etc). Never overwrite drive pose.
       if (remote[1] && E.players[1]) {
         const p = E.players[1], sp = remote[1];
+        // Status only — guest owns drive pose
         if (sp.spin > (p.spin || 0)) p.spin = sp.spin;
         if (sp.freeze > (p.freeze || 0)) p.freeze = sp.freeze;
         if (sp.shield) p.shield = true;
+        if (sp.done && !p.done) {
+          p.done = true;
+          p.finishT = sp.finishT ?? E.raceT;
+        }
+        if (sp.item != null) p.item = sp.item;
+        if (sp.boost != null) p.boost = sp.boost;
+      }
+
+      if (st.state === 'finish' && E.winner == null) {
+        const w = E.players.find((p) => p.done) || E.players[0];
+        if (w) {
+          E.winner = w;
+          E.slowMo = 0.25;
+          setTimeout(() => { E.slowMo = 1; }, 800);
+          setTimeout(showResults, 400);
+        }
       }
     };
-    /** Host: show guest-authored P2 pose (smooth + extrapolate between packets). */
-    const applyGuestPoseOnHost = (p, sp, dt) => {
+    const applyGuestPoseOnHost = (p, sp) => {
       if (!p || !sp || sp.x == null) return false;
-      lastGuestPose = sp;
-      const err = Math.hypot((p.x ?? sp.x) - sp.x, (p.y ?? sp.y) - sp.y);
-      if (err > 35 || p.x == null) {
-        p.x = sp.x; p.y = sp.y; p.angle = sp.angle; p.speed = sp.speed;
-      } else {
-        const k = 0.85; // snappy follow — guest is authority
-        p.x += (sp.x - p.x) * k;
-        p.y += (sp.y - p.y) * k;
-        p.angle = angLerp(p.angle, sp.angle, k);
-        p.speed = sp.speed;
-      }
-      if (sp.idx != null) p.idx = sp.idx;
-      if (sp.lap != null) p.lap = sp.lap;
-      if (sp.halfway != null) p.halfway = sp.halfway;
-      p.item = sp.item;
-      p.shield = !!sp.shield;
-      if (sp.boost != null) p.boost = sp.boost;
-      if (sp.spin != null) p.spin = sp.spin;
-      if (sp.freeze != null) p.freeze = sp.freeze;
-      if (sp.done && !p.done) {
-        p.done = true;
-        p.finishT = sp.finishT ?? E.raceT;
-        onFinish(p);
-      }
+      snapPose(p, sp);
+      applyStatus(p, sp);
+      hasRemoteP2 = true;
+      if (sp.done && E.winner == null) onFinish(p);
       return true;
     };
-    const extrapGuestPose = (p, dt) => {
-      if (!p || p.done) return;
-      const step = (p.speed || 0) * 60 * dt * (E.slowMo || 1);
-      p.x += Math.cos(p.angle) * step;
-      p.y += Math.sin(p.angle) * step;
+    const packMyPose = (slot) => {
+      const p = E.players[slot];
+      if (!p) return null;
+      return {
+        t: performance.now(),
+        x: +p.x.toFixed(2),
+        y: +p.y.toFixed(2),
+        angle: +p.angle.toFixed(4),
+        speed: +Number(p.speed || 0).toFixed(3),
+        lap: p.lap | 0,
+        idx: p.idx | 0,
+        halfway: !!p.halfway,
+        item: packItem(p.item),
+        shield: !!p.shield,
+        spin: +Number(p.spin || 0).toFixed(3),
+        boost: +Number(p.boost || 0).toFixed(3),
+        freeze: +Number(p.freeze || 0).toFixed(3),
+        done: !!p.done,
+        finishT: p.finishT ?? null,
+        kart: p.kart,
+        color: p.color,
+        dark: p.dark,
+        raceT: +Number(E.raceT || 0).toFixed(3),
+        countT: +Number(E.countT || 0).toFixed(3),
+        state: E.state,
+      };
+    };
+    const packKartState = () => {
+      const p0 = E.players[0];
+      const p1 = E.players[1];
+      return {
+        state: E.state,
+        raceT: +Number(E.raceT || 0).toFixed(3),
+        countT: +Number(E.countT || 0).toFixed(3),
+        players: [
+          p0 ? {
+            x: +p0.x.toFixed(2), y: +p0.y.toFixed(2),
+            angle: +p0.angle.toFixed(4), speed: +Number(p0.speed || 0).toFixed(3),
+            lap: p0.lap | 0, idx: p0.idx | 0, halfway: !!p0.halfway,
+            item: packItem(p0.item), shield: !!p0.shield,
+            spin: +Number(p0.spin || 0).toFixed(3),
+            boost: +Number(p0.boost || 0).toFixed(3),
+            freeze: +Number(p0.freeze || 0).toFixed(3),
+            done: !!p0.done, finishT: p0.finishT ?? null,
+            kart: p0.kart, color: p0.color, dark: p0.dark,
+          } : null,
+          p1 ? {
+            spin: +Number(p1.spin || 0).toFixed(3),
+            freeze: +Number(p1.freeze || 0).toFixed(3),
+            shield: !!p1.shield, done: !!p1.done, finishT: p1.finishT ?? null,
+            lap: p1.lap | 0, idx: p1.idx | 0, halfway: !!p1.halfway,
+            item: packItem(p1.item),
+            boost: +Number(p1.boost || 0).toFixed(3),
+          } : null,
+        ],
+      };
+    };
+    const flushNet = (net, guest, dt = 0.016) => {
+      if (!net?.online) return;
+      netAcc += dt;
+      if (netAcc < 1 / 30) return; // 30Hz is enough; denser rates amplify rubber-band on Fly RTT
+      netAcc = 0;
+      if (guest) {
+        // Pose on p2 channel + keys for item presses
+        const pose = packMyPose(1);
+        if (pose && net.sendPose) net.sendPose(pose);
+        net.netTick(null, null);
+      } else {
+        // Host: full st for race clock/status + p1 pose for crisp rival body
+        const pose = packMyPose(0);
+        if (pose && net.sendPose) {
+          const p1 = E.players[1];
+          pose.p2status = p1 ? {
+            spin: p1.spin, freeze: p1.freeze, shield: !!p1.shield,
+            done: !!p1.done, finishT: p1.finishT, lap: p1.lap, idx: p1.idx,
+            item: packItem(p1.item), boost: p1.boost, halfway: p1.halfway,
+          } : null;
+          net.sendPose(pose);
+        }
+        net.netTick(packKartState);
+      }
     };
     const loop = (ts) => {
       raf = requestAnimationFrame(loop);
@@ -814,27 +906,41 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
       const net = duoNetRef.current;
       const guest = !!(net?.online && !net.isHost);
 
-      /* ── Guest (P2): full local drive + stream pose. Feels like offline. ── */
+      /* ── Guest (P2): local drive. Snap host P1. Never pull P2 from host. ── */
       if (guest) {
         const fresh = net.takeState();
         if (fresh) applyKartStateGuest(fresh);
-        else if (E.state === "race" && E.players[0]) {
-          const p = E.players[0];
-          const step = (p.speed || 0) * 60 * dt * (E.slowMo || 1);
-          p.x += Math.cos(p.angle) * step;
-          p.y += Math.sin(p.angle) * step;
+        // Also accept dedicated p1 pose if delivered via remoteExtra
+        const extra = net.takeRemoteExtra?.();
+        if (extra?.pose && extra.from === 'p1' && E.players[0]) {
+          const sp = extra.pose;
+          if (!(typeof sp.raceT === 'number' && E.state === 'race' && lastHostRaceT >= 0 && sp.raceT + 0.25 < lastHostRaceT)) {
+            if (typeof sp.raceT === 'number') lastHostRaceT = Math.max(lastHostRaceT, sp.raceT);
+            snapPose(E.players[0], sp);
+            applyStatus(E.players[0], sp);
+            if (sp.state) E.state = sp.state;
+            if (sp.countT != null) E.countT = sp.countT;
+            if (sp.raceT != null) E.raceT = sp.raceT;
+            if (sp.p2status && E.players[1]) {
+              const s = sp.p2status;
+              if (s.spin > (E.players[1].spin || 0)) E.players[1].spin = s.spin;
+              if (s.freeze > (E.players[1].freeze || 0)) E.players[1].freeze = s.freeze;
+              if (s.shield) E.players[1].shield = true;
+            }
+          }
         }
-        if (E.state === "countdown" && E.countT > 0) {
+        if (E.state === 'countdown' && E.countT > 0) {
           const n = Math.ceil(E.countT);
           if (E._cn !== n) { E._cn = n; setCenterText(String(n)); }
-        } else if (E.state === "race" && E._cn !== 0) {
-          E._cn = 0; setCenterText("GO!"); setTimeout(() => setCenterText(""), 700);
+        } else if (E.state === 'race' && E._cn !== 0) {
+          E._cn = 0; setCenterText('GO!'); setTimeout(() => setCenterText(''), 700);
         }
-        if (E.state === "race" && !pausedRef.current && E.players[1]) {
+        if (E.state === 'race' && !pausedRef.current && E.players[1]) {
           updatePlayer(E.players[1], dt * (E.slowMo || 1), { quiet: true });
         }
-        // Stream pose every frame (coalesced) — this is what makes P2 smooth for everyone
-        net.netTick(null, packGuestPose);
+        if (E.state === 'race' || E.state === 'countdown' || E.state === 'finish') {
+          flushNet(net, true, dt);
+        }
         if (E.players?.length) { pushHud(); draw(); }
         return;
       }
@@ -843,85 +949,80 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
         if (!E.keys) E.keys = {};
         if (!E.pressed) E.pressed = {};
         net.mergeRemoteInto(E);
-        if (E.state === "race" && !pausedRef.current && E.pressed.Enter && E.players[1]) {
+        if (E.state === 'race' && !pausedRef.current && E.pressed.Enter && E.players[1]) {
           useItem(E.players[1]);
         }
       }
 
-      if (E.state === "countdown") {
+      if (E.state === 'countdown') {
         E.countT -= dt;
         if (E.countT > 0) {
           const n = Math.ceil(E.countT);
           if (E._cn !== n) { E._cn = n; beep(440, 0.12, 0.05); setCenterText(String(n)); }
         } else {
-          setCenterText("GO!"); beep(880, 0.3, 0.06);
-          setTimeout(() => setCenterText(""), 700);
-          E.state = "race";
+          setCenterText('GO!'); beep(880, 0.3, 0.06);
+          setTimeout(() => setCenterText(''), 700);
+          E.state = 'race';
+          hasRemoteP2 = false;
+          lastGuestPoseT = -1;
         }
-        if (net?.online) {
-          netAcc += dt;
-          if (netAcc >= 0.02) { netAcc = 0; net.netTick(packKartState); }
-        }
+        flushNet(net, false, dt);
         draw();
         return;
       }
       if (pausedRef.current) {
-        if (net?.online && (E.state === "race" || E.state === "finish")) {
-          netAcc += dt;
-          if (netAcc >= 0.02) { netAcc = 0; net.netTick(packKartState); }
-        }
+        if (E.state === 'race' || E.state === 'finish') flushNet(net, false, dt);
         return;
       }
-      if (E.state !== "race" && E.state !== "finish") return;
+      if (E.state !== 'race' && E.state !== 'finish') return;
       E.raceT += dt * E.slowMo;
 
-      // P1 = host sim. P2 online = guest pose (joiner drives locally).
+      // P1 = host local sim only
       updatePlayer(E.players[0], dt * E.slowMo);
       if (E.players[1]) {
         if (net?.online) {
-          const pose = net.peekRemoteExtra()?.pose;
+          const extra = net.takeRemoteExtra?.();
+          const pose = extra?.pose;
           if (pose && pose.t !== lastGuestPoseT) {
             lastGuestPoseT = pose.t;
-            applyGuestPoseOnHost(E.players[1], pose, dt);
-          } else if (lastGuestPose) {
-            extrapGuestPose(E.players[1], dt * E.slowMo);
-          } else {
-            updatePlayer(E.players[1], dt * E.slowMo);
+            applyGuestPoseOnHost(E.players[1], pose);
+          }
+          // HOLD last snapped pose — do NOT re-simulate P2 from keys (that rubber-bands)
+          if (!hasRemoteP2) {
+            // Until first pose arrives, keep kart at spawn (don't drive from laggy keys)
           }
         } else {
           updatePlayer(E.players[1], dt * E.slowMo);
         }
       }
 
-      // kart collision (host resolves; guest will see via P1 state + own local P2)
+      // kart collision — only shove host P1 when online (P2 is guest-authored)
       const a = E.players[0], b = E.players[1];
       if (a && b) {
         const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
         if (d < 26 && d > 0.01) {
           const nx = dx / d, ny = dy / d, push = (26 - d) / 2;
           a.x -= nx * push; a.y -= ny * push;
-          // Don't shove guest-owned P2 hard — nudge only so host P1 feels contact
-          if (!(net?.online && lastGuestPose)) {
+          if (!(net?.online && hasRemoteP2)) {
             b.x += nx * push; b.y += ny * push;
             const t = a.speed; a.speed = a.speed * 0.6 + b.speed * 0.3; b.speed = b.speed * 0.6 + t * 0.3;
           } else {
             a.speed *= 0.85;
           }
-          spawnParts((a.x + b.x) / 2, (a.y + b.y) / 2, "#fff", 6, 2);
+          spawnParts((a.x + b.x) / 2, (a.y + b.y) / 2, '#fff', 6, 2);
         }
       }
-      // missiles
       for (let i = E.missiles.length - 1; i >= 0; i--) {
         const m = E.missiles[i]; m.life -= dt;
         const t = m.target, ta = Math.atan2(t.y - m.y, t.x - m.x);
         let da = ta - m.angle; while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283;
         m.angle += Math.max(-4 * dt, Math.min(4 * dt, da));
         m.x += Math.cos(m.angle) * 420 * dt; m.y += Math.sin(m.angle) * 420 * dt;
-        E.parts.push({ x: m.x, y: m.y, vx: 0, vy: 0, life: 0.25, color: "#aaa", size: 3 });
+        E.parts.push({ x: m.x, y: m.y, vx: 0, vy: 0, life: 0.25, color: '#aaa', size: 3 });
         const dx = t.x - m.x, dy = t.y - m.y;
         if (dx * dx + dy * dy < 400) {
           if (t.shield) t.shield = false; else { t.spin = 1; t.speed = -0.8; }
-          spawnParts(m.x, m.y, "#ff8c00", 24, 5); beep(140, 0.25, 0.07, "triangle");
+          spawnParts(m.x, m.y, '#ff8c00', 24, 5); beep(140, 0.25, 0.07, 'triangle');
           E.missiles.splice(i, 1); continue;
         }
         if (m.life <= 0) E.missiles.splice(i, 1);
@@ -929,23 +1030,17 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
       for (let i = E.parts.length - 1; i >= 0; i--) { const q = E.parts[i]; q.x += q.vx; q.y += q.vy; q.life -= dt; if (q.life <= 0) E.parts.splice(i, 1); }
       for (const c of E.confetti) { c.y += c.vy; c.x += c.vx; c.r += 0.1; }
       E.confetti = E.confetti.filter((c) => c.y < H + 30);
-      if (audio.AC && E.state === "race" && !mutedRef.current) {
+      if (audio.AC && E.state === 'race' && !mutedRef.current) {
         E.players.forEach((p, i) => { if (audio.eng[i]) { audio.eng[i].o.frequency.value = 42 + Math.abs(p.speed) * 18; audio.eng[i].g.gain.value = 0.006; } });
       } else engineGain(0);
-      if (net?.online) {
-        netAcc += dt;
-        if (netAcc >= 0.02) {
-          netAcc = 0;
-          net.netTick(packKartState);
-        }
-        E.pressed = {};
-      }
+      flushNet(net, false, dt);
+      if (net?.online) E.pressed = {};
       pushHud();
       draw();
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [E, audio, beep, updatePlayer, spawnParts, engineGain, useItem, onFinish]);
+  }, [E, audio, beep, updatePlayer, spawnParts, engineGain, useItem, onFinish, showResults]);
 
   /* ---------- keyboard ---------- */
   useEffect(() => {
@@ -1064,6 +1159,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
     setResults(null); setPaused(false); setScreen("race");
     setGuestReady(false);
     initAudio();
+    try { duoNetRef.current?.clearState?.(); } catch { /* */ }
     setupRace();
     E.state = "countdown"; E.countT = 3; E._cn = 0;
     duoNetRef.current?.sendUi({ type: "start", settings, picks });
@@ -1231,15 +1327,21 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
               </div>
             )}
 
-            {/* Maps */}
-            <div className="skr-menu-block" style={{ margin: "8px auto 24px", maxWidth: 880 }}>
+            {/* Maps — either player can pick online */}
+            <div className="skr-menu-block" style={{ margin: "6px auto 16px", maxWidth: 560 }}>
               <div style={{
-                fontSize: 13, fontWeight: 800, letterSpacing: 3, color: "#dfe6f5",
-                marginBottom: 12, textAlign: "center",
+                fontSize: 11, fontWeight: 800, letterSpacing: 2.5, color: "#dfe6f5",
+                marginBottom: 8, textAlign: "center",
               }}>
-                {online && myRole === "B" ? `TRACK (${nameA} picks)` : "CHOOSE TRACK"}
+                {online ? "CHOOSE TRACK · either player" : "CHOOSE TRACK"}
               </div>
-              <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
+              <div
+                className="grid gap-2 skr-track-grid"
+                style={{
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  justifyItems: "center",
+                }}
+              >
                 {THEMES.map((_, i) => (
                   <TrackCard
                     key={i}
@@ -1247,7 +1349,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
                     selected={settings.track === i}
                     flash={flashTrack === i}
                     onSelect={selectTrack}
-                    disabled={online && myRole === "B"}
+                    disabled={false}
                   />
                 ))}
               </div>

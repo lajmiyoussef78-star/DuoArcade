@@ -77,15 +77,17 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
         lastSeq = m.seq;
       }
       if (typeof m.x === 'number') {
+        remoteExtra = { pose: m, from: 'p1' };
         remoteState = {
           raceT: m.raceT, mode: m.mode, modeT: m.modeT, done: m.done,
-          players: [m],
+          state: m.state, countT: m.countT,
+          players: [m, m.p2status || null],
           p: m,
         };
         lastState = remoteState;
       }
     } else if (m.k === 'p2' && isHost) {
-      if (typeof m.x === 'number') remoteExtra = { pose: m };
+      if (typeof m.x === 'number') remoteExtra = { pose: m, from: 'p2' };
     } else if (m.k === 'st' && !isHost) {
       if (typeof m.seq === 'number') {
         // Drop older snapshots, but accept host remount / seq reset so P1
@@ -223,11 +225,12 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
    * Matches Kart Racing (proven path).
    */
   function netTick(packState, extraPack) {
-    if (!online || !rt?.send) return;
+    const send = (rt && (rt.sendNow || rt.send)) || null;
+    if (!online || !send) return;
     if (isHost) {
       seq += 1;
       const st = typeof packState === 'function' ? packState() : packState;
-      if (st != null) rt.send({ k: 'st', seq, st });
+      if (st != null) send({ k: 'st', seq, st });
     } else {
       const keys = {};
       for (const code of p2Codes) keys[code] = !!localHeld[code];
@@ -237,7 +240,7 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
         const extra = typeof extraPack === 'function' ? extraPack() : extraPack;
         if (extra != null) payload.extra = extra;
       }
-      rt.send(payload);
+      send(payload);
     }
   }
 
@@ -249,6 +252,18 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
 
   function peekRemoteExtra() {
     return remoteExtra;
+  }
+
+  /** Direct pose channel for kart/racing — avoids st+inp fighting for authority. */
+  function sendPose(pose) {
+    const send = (rt && (rt.sendNow || rt.send)) || null;
+    if (!online || !send || !pose) return;
+    if (isHost) {
+      seq += 1;
+      send({ k: 'p1', seq, role: 'A', ...pose });
+    } else {
+      send({ k: 'p2', role: 'B', ...pose });
+    }
   }
 
   function netTickHostInput() {
@@ -311,6 +326,7 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     netTickHostInput,
     takeRemoteExtra,
     peekRemoteExtra,
+    sendPose,
     sendUi,
     onUi,
     touchSet,

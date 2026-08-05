@@ -14,7 +14,9 @@ export const meta = {
   name: 'Stickman Kart Racing',
   tag: 'online duo · kart racing',
   accent: 'p1',
-  realtime: true
+  realtime: true,
+  keepInGame: true,
+  hidePlayers: true,
 };
 
 export function mount(el, ctx) {
