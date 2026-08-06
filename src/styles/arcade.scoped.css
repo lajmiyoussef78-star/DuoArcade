@@ -1705,6 +1705,19 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
   box-sizing:border-box !important;
   background:transparent !important;
 }
+/* Room shell fullscreen: never cap/offset the host mount (was shoving lobby right) */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > *,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > * > *,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot.gv-board > *,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot.gv-board > *{
+  width:100% !important;
+  max-width:none !important;
+  height:100% !important;
+  margin:0 !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  align-self:stretch !important;
+}
 .arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap{
   flex:1 1 auto;
   min-height:0;
@@ -1723,6 +1736,17 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
   margin-right:auto !important;
   align-self:center !important;
   max-width:min(1100px,100%);
+}
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > *:not(.gv-board-wrap) > *,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot.gv-board > *:not(.gv-board-wrap) > *,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot.gv-board > *:not(.gv-board-wrap) > *{
+  width:100% !important;
+  max-width:none !important;
+  height:100% !important;
+  margin:0 !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+  align-self:stretch !important;
 }
 
 /* Classic boards — use the viewport */
@@ -1855,8 +1879,8 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
 .arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.smr-wrap) > div,
 .arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sgf-wrap) > div,
 .arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.sr-wrap) > div{
-  align-items:stretch !important;
-  justify-content:flex-start !important;
+  align-items:center !important;
+  justify-content:center !important;
   width:100% !important;
   max-width:100% !important;
   height:100% !important;
@@ -1875,8 +1899,11 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
   width:100% !important;
   max-width:none !important;
   height:100% !important;
-  margin:0 !important;
-  align-self:stretch !important;
+  margin:0 auto !important;
+  align-self:center !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
 }
 .arcade-page .gv-fs-root.is-fullscreen .skr-wrap,
 .arcade-page .gv-fs-root.is-fullscreen .skr-shell,
@@ -1888,6 +1915,47 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
   margin:0 !important;
   border-radius:0 !important;
   background:var(--night) !important;
+  display:grid !important;
+  place-items:center !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-root-race,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell > .w-full{
+  width:100% !important;
+  height:100% !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-stage{
+  position:relative !important;
+  flex:0 0 auto !important;
+  width:100% !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  height:auto !important;
+  aspect-ratio:1 !important;
+  margin:0 !important;
+  overflow:hidden !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-fs-root.is-fullscreen .skr-root-race .skr-stage{
+    width:min(100cqw,100cqh) !important;
+    height:min(100cqw,100cqh) !important;
+    max-width:min(100cqw,100cqh) !important;
+    max-height:min(100cqw,100cqh) !important;
+  }
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell canvas.skr-canvas{
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  border-radius:0 !important;
+  aspect-ratio:auto !important;
 }
 .arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .play-home-hero,
 .arcade-page .gv-fs-root.is-fullscreen:has(.rsc-match-stage) .theme-picker{display:none !important;}

@@ -141,6 +141,16 @@
 .arcade-page .gr-shell-rail-off .gr-body {
   grid-template-columns: minmax(0, 1fr);
 }
+.arcade-page .gr-shell-rail-off .gr-center,
+.arcade-page .gr-shell-rail-off .gr-viewport,
+.arcade-page .gr-shell-rail-off .gr-viewport-inner {
+  width: 100%;
+  max-width: none;
+}
+.arcade-page .gr-shell-rail-off .gr-board-slot {
+  margin-left: auto;
+  margin-right: auto;
+}
 
 .arcade-page .gr-rail {
   display: flex;
@@ -821,6 +831,18 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
   overflow: hidden;
   box-sizing: border-box;
 }
+/* Kart lobby (keepInGame): allow scroll so menu isn't clipped to a blank frame */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu) > div,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot [data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-skr-screen="menu"]),
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-skr-screen="menu"]) > div {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+}
 .arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > *,
 .arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > * {
   max-width: 100% !important;
@@ -828,6 +850,16 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
+}
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu) > div > *,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.skr-root-menu) > *,
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="menu"] {
+  max-height: none !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
 }
 .arcade-page .gv-room-live .gr-banner {
   position: absolute;
@@ -850,12 +882,12 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
 
 /* Catch-all top-level game roots: use the full board frame */
 /* Catch-all top-level game roots (not square boards — those size separately) */
-.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-wrap"],
-.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-shell"],
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-wrap"]:not(.skr-wrap),
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-shell"]:not(.skr-shell),
 .arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-page"],
-.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-wrap"],
-.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-root"],
-.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-shell"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-wrap"]:not(.skr-wrap),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-root"]:not(.skr-root):not(.skr-root-race):not(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-shell"]:not(.skr-shell),
 .arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-page"],
 .arcade-page .gv-room-live .gr-board-slot .wr-root,
 .arcade-page .gv-room-live .gr-board-slot .cb-root,
@@ -877,6 +909,54 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+/* Stickman Kart lobby must scroll inside the live board frame */
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="menu"] {
+  overflow: auto !important;
+  overflow-x: hidden !important;
+  max-height: none !important;
+  height: 100% !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+/* Race: beat catch-all `height: auto` that collapsed wrap/shell to 0px */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div:has(.skr-root-race),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div[data-skr-screen="race"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .skr-wrap,
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="race"],
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="race"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .skr-wrap > .skr-shell,
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="race"] .skr-shell,
+.arcade-page .gv-room-live .gr-board-slot .skr-root-race {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="race"],
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="race"],
+.arcade-page .gv-room-live .gr-board-slot .skr-root-race {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
 }
 
 /* Square classic boards — largest square proportional to the frame */
@@ -1102,6 +1182,14 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
   max-height: 100% !important;
   height: auto !important;
   object-fit: contain;
+}
+/* Stickman Kart race canvas must fill its square stage — not intrinsic 1000px */
+.arcade-page .gv-room-live .gr-board-slot canvas.skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
 }
 
 /* Keep room board sizing; do not re-open old page max-width caps */
@@ -1831,11 +1919,352 @@ html[data-appearance="light"] .arcade-page .gr-pause-panel {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Fullscreen room — game only, fills the monitor, dead-centered
+   ═══════════════════════════════════════════════════════════════ */
+.arcade-page .gv-fs-root.is-fullscreen,
+.arcade-page .gv-fs-root:fullscreen,
+.arcade-page .gv-fs-root:-webkit-full-screen {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  box-sizing: border-box !important;
+}
+
 .arcade-page .gv-fs-root.is-fullscreen .gr-shell,
 .arcade-page .gv-fs-root:fullscreen .gr-shell,
 .arcade-page .gv-fs-root:-webkit-full-screen .gr-shell {
-  max-width: none;
-  min-height: 100%;
-  height: 100%;
-  padding: 10px 12px;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-shell-fs .gr-top,
+.arcade-page .gv-fs-root.is-fullscreen .gr-shell-fs .gr-rail,
+.arcade-page .gv-fs-root.is-fullscreen .gr-shell-fs .gr-rail-tab,
+.arcade-page .gv-fs-root.is-fullscreen .gr-shell-fs .gr-banner,
+.arcade-page .gv-fs-root:fullscreen .gr-shell-fs .gr-top,
+.arcade-page .gv-fs-root:fullscreen .gr-shell-fs .gr-rail,
+.arcade-page .gv-fs-root:fullscreen .gr-shell-fs .gr-banner,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-shell-fs .gr-top,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-shell-fs .gr-rail,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-shell-fs .gr-banner {
+  display: none !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-body,
+.arcade-page .gv-fs-root:fullscreen .gr-body,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-body {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-center,
+.arcade-page .gv-fs-root.is-fullscreen .gr-viewport,
+.arcade-page .gv-fs-root.is-fullscreen .gr-viewport-inner,
+.arcade-page .gv-fs-root:fullscreen .gr-center,
+.arcade-page .gv-fs-root:fullscreen .gr-viewport,
+.arcade-page .gv-fs-root:fullscreen .gr-viewport-inner,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-center,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-viewport,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-viewport-inner {
+  position: relative !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-viewport,
+.arcade-page .gv-fs-root:fullscreen .gr-viewport,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-viewport {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #07080f !important;
+}
+
+/* Board fills the viewport and centers its game */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot {
+  --gr-board-pad-x: 0px;
+  --gr-board-pad-top: 0px;
+  --gr-board-pad-bottom: 0px;
+  position: absolute !important;
+  inset: 0 !important;
+  flex: none !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  container-type: size;
+  container-name: grfs;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > div:not(.gv-board-wrap),
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot > .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot > .gv-board-wrap > div,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot > *:not(.gr-banner),
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot.gv-board > div:not(.gv-board-wrap),
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot.gv-board > div:not(.gv-board-wrap) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  align-self: stretch !important;
+}
+
+/* Square / canvas games: fill the board slot (largest square) — NOT raw vw/vh
+   (vw/vh overflow + overflow:hidden caused a tiny clipped window). Scope to
+   .skr-canvas so lobby TrackCard previews are not blown up. */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot canvas.skr-canvas,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot canvas.skr-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot canvas.skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  display: block !important;
+  object-fit: contain !important;
+  flex: none !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+}
+
+/* Stickman Kart (and similar shells) — fill frame, center canvas / lobby */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-root-race,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-wrap,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-root-race,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-root-race {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  background: #07080f !important;
+  box-sizing: border-box !important;
+}
+
+/* Fullscreen MENU / lobby — centered, uses most of the screen */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > div,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > div > .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > div > .skr-wrap > .skr-shell,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot.gv-board > div,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot.gv-board > div {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-root-menu,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-root-menu,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-root-menu {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  padding: clamp(12px, 2vh, 28px) clamp(12px, 3vw, 40px) !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-lobby,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-lobby,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-lobby {
+  width: min(1100px, 94vw) !important;
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: center !important;
+  justify-self: center !important;
+  display: block !important;
+  position: relative !important;
+  inset: auto !important;
+  float: none !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-lobby > .w-full,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-lobby > [class*="max-w"] {
+  width: 100% !important;
+  max-width: 1100px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  float: none !important;
+}
+
+/* Bigger map cards in fullscreen lobby */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-track-grid,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-track-grid {
+  max-width: 100% !important;
+  width: 100% !important;
+  gap: 14px !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-menu-block {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-track-grid > div {
+  max-width: none !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-shell canvas.skr-canvas,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  aspect-ratio: auto !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-stage,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-stage {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-root-race .skr-stage {
+    width: min(100cqw, 100cqh) !important;
+    height: min(100cqw, 100cqh) !important;
+    max-width: min(100cqw, 100cqh) !important;
+    max-height: min(100cqw, 100cqh) !important;
+  }
+}
+
+@supports not (width: 1cqmin) {
+  .arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage,
+  .arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-stage,
+  .arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-stage {
+    width: min(100vw, 100dvh) !important;
+    height: min(100vw, 100dvh) !important;
+    max-width: min(100vw, 100dvh) !important;
+    max-height: min(100vw, 100dvh) !important;
+  }
+  .arcade-page .gv-fs-root.is-fullscreen .gr-board-slot canvas.skr-canvas,
+  .arcade-page .gv-fs-root:fullscreen .gr-board-slot canvas.skr-canvas,
+  .arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot canvas.skr-canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* Beat arcade.scoped stretch/flex-start rules that shove canvas to the top-left / right */
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .gv-board-wrap > div,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-wrap) .gr-board-slot.gv-board {
+  align-items: center !important;
+  justify-content: center !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > *,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > * > *,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .gv-board-wrap:has(.skr-wrap) > div > *,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .gv-board-wrap:has(.skr-wrap) > div,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot > div:not(.gv-board-wrap) > * {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
 }

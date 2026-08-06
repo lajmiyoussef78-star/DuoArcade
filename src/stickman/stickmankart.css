@@ -52,17 +52,368 @@
   margin: 0;
   padding: 8px;
   overflow: hidden;
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.skr-shell .skr-canvas {
-  width: min(100%, min(680px, calc(100vh - 220px))) !important;
-  height: auto !important;
-  max-height: min(680px, calc(100vh - 220px)) !important;
+/* Race stage = one square play surface; HUD overlays the canvas only */
+.skr-shell .skr-stage {
+  position: relative;
+  flex: none;
+  width: min(100%, min(720px, calc(100vh - 200px)));
   aspect-ratio: 1;
+  max-width: 100%;
+  max-height: min(720px, calc(100vh - 200px));
   margin: 0 auto;
+  overflow: hidden;
+  background: #07080f;
+  box-shadow: 0 0 50px rgba(56, 199, 255, 0.12), 0 0 120px rgba(0, 0, 0, 0.8);
+}
+.skr-shell .skr-stage[hidden],
+.skr-shell .skr-stage.skr-stage-idle {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+.skr-shell .skr-canvas {
   display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  margin: 0 !important;
+  object-fit: contain;
+}
+.skr-shell .skr-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  padding: 14px 14px 12px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.skr-shell .skr-hud-panel {
+  top: 14px;
+  max-width: min(220px, 42%);
+  box-sizing: border-box;
+}
+.skr-shell .skr-hud-p1 { left: 14px; }
+.skr-shell .skr-hud-p2 { right: 14px; }
+.skr-shell .skr-hud-timer {
+  top: 14px;
+  z-index: 2;
+}
+.skr-shell .skr-hud-controls {
+  top: 58px;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-hud,
+.arcade-page .gv-fs-root.is-fullscreen .skr-hud {
+  padding: 16px 16px 12px;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-hud-panel,
+.arcade-page .gv-fs-root.is-fullscreen .skr-hud-panel,
+.arcade-page .gv-room-live .gr-board-slot .skr-hud-timer,
+.arcade-page .gv-fs-root.is-fullscreen .skr-hud-timer {
+  top: 16px;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-hud-controls,
+.arcade-page .gv-fs-root.is-fullscreen .skr-hud-controls {
+  top: 62px;
+}
+
+/* Lobby spacing — less vertical crush */
+.skr-shell .skr-lobby-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px 20px;
+  box-sizing: border-box;
+}
+.skr-shell .skr-lobby-title { margin: 0; }
+.skr-shell .skr-lobby-sub { margin: 0; max-width: 520px; }
+.skr-shell .skr-lobby-cta { margin: 4px 0; }
+.skr-shell .skr-lobby-hint { margin: 0; }
+.skr-shell .skr-lobby-actions { margin: 2px 0; }
+.skr-shell .skr-lobby-kart,
+.skr-shell .skr-lobby-peer { margin: 0; }
+.skr-shell .skr-lobby-settings { margin: 4px 0 2px; }
+.skr-shell .skr-lobby-controls { margin: 6px 0 0; }
+.skr-shell .skr-lobby-foot { margin: 8px 0 0; }
+.skr-shell .skr-menu-block {
+  width: 100%;
+  max-width: 920px;
+  margin: 6px auto 0;
+}
+.skr-shell .skr-track-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #8b93ab;
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+.skr-shell .skr-track-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+/* Room live: fill the center viewport; stage = largest square in the board slot */
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap,
+.arcade-page .gv-room-live .gr-board-slot .skr-shell {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+/* Beat game-room catch-all `height: auto !important` on [class$="-wrap"] */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .skr-wrap,
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .skr-wrap > .skr-shell {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+}
+/* Lobby (pre-race): do NOT clip — race-frame rules were hiding the whole menu */
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap:has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot .skr-shell:has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu) > div,
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot [data-skr-screen="menu"].skr-wrap,
+.arcade-page .gv-room-live .gr-board-slot [data-skr-screen="menu"].skr-shell {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+  max-height: none !important;
+  height: 100% !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-root-menu {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 8px 0 20px !important;
+  display: block !important;
+  overflow: visible !important;
+  color: #dfe6f5 !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-lobby {
+  position: relative !important;
+  z-index: 20 !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  display: block !important;
+  color: #dfe6f5 !important;
+  background: #07080f !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-lobby-inner {
+  max-height: none !important;
+  overflow: visible !important;
+}
+/* Race: root fills shell and is the size container for the stage square */
+.arcade-page .gv-room-live .gr-board-slot .skr-root-race,
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="race"] .skr-root-race,
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="race"] .skr-root-race {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  container-type: size !important;
+  container-name: skrace;
+  background: #07080f !important;
+}
+/* Largest square that fits the board — never rely on cq alone (can resolve to 0) */
+.arcade-page .gv-room-live .gr-board-slot .skr-stage {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  box-shadow: none !important;
+  /* Prefer % fit; cq sharpens when container queries work */
+  width: min(100%, 100%) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-room-live .gr-board-slot .skr-root-race .skr-stage {
+    width: min(100cqw, 100cqh) !important;
+    height: min(100cqw, 100cqh) !important;
+    max-width: min(100cqw, 100cqh) !important;
+    max-height: min(100cqw, 100cqh) !important;
+  }
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-stage[hidden],
+.arcade-page .gv-room-live .gr-board-slot .skr-stage.skr-stage-idle {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-canvas,
+.arcade-page .gv-room-live .gr-board-slot .skr-shell .skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  aspect-ratio: auto !important;
+  object-fit: fill !important;
+  display: block !important;
+  flex: none !important;
+}
+.arcade-page .gr-shell-rail-off .gr-board-slot .skr-wrap,
+.arcade-page .gr-shell-rail-off .gr-board-slot .skr-shell,
+.arcade-page .gr-shell-rail-off .gr-board-slot .skr-root-race {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Fullscreen Kart — stage fills largest square on the monitor */
+.arcade-page .gv-fs-root.is-fullscreen .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell,
+.arcade-page .gv-fs-root.is-fullscreen .skr-root-race,
+.arcade-page .gv-fs-root:fullscreen .skr-wrap,
+.arcade-page .gv-fs-root:fullscreen .skr-shell,
+.arcade-page .gv-fs-root:fullscreen .skr-root-race,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-root-race {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  background: #07080f !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-root-menu,
+.arcade-page .gv-fs-root:fullscreen .skr-root-menu,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-root-menu {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  padding: clamp(16px, 2.5vh, 36px) clamp(16px, 3vw, 48px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: auto !important;
+  box-sizing: border-box !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-lobby,
+.arcade-page .gv-fs-root:fullscreen .skr-lobby,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-lobby {
+  width: min(1100px, 94vw) !important;
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  float: none !important;
+  position: relative !important;
+  inset: auto !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-lobby-inner {
+  gap: 16px;
+  padding: 12px 8px 28px;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-track-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 14px !important;
+  max-width: 100% !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-stage,
+.arcade-page .gv-fs-root:fullscreen .skr-stage,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-stage,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .skr-stage,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-fs-root.is-fullscreen .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root:fullscreen .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root:-webkit-full-screen .skr-root-race .skr-stage {
+    width: min(100cqw, 100cqh) !important;
+    height: min(100cqw, 100cqh) !important;
+    max-width: min(100cqw, 100cqh) !important;
+    max-height: min(100cqw, 100cqh) !important;
+  }
+}
+.arcade-page .gv-fs-root.is-fullscreen .skr-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .skr-shell .skr-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-canvas,
+.arcade-page .gv-fs-root:fullscreen .skr-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .skr-canvas,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .skr-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot canvas.skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+  flex: none !important;
 }
 
 .arcade-page .skr-shell .skr-menu-block,
@@ -206,14 +557,16 @@
   min-height: 0;
 }
 
-.arcade-page .skr-shell canvas,
-.arcade-page .skr-shell .skr-canvas {
-  width: min(100%, min(720px, calc(100vh - 200px))) !important;
-  height: auto !important;
-  max-height: min(720px, calc(100vh - 200px)) !important;
-  aspect-ratio: 1;
-  margin-left: auto;
-  margin-right: auto;
+/* Windowed default only — never fight room-live / fullscreen stage fill */
+.arcade-page .gv-fs-root:not(.is-fullscreen) .skr-shell .skr-stage {
+  width: min(100%, min(720px, calc(100vh - 200px)));
+  max-height: min(720px, calc(100vh - 200px));
+}
+.arcade-page .gv-fs-root:not(.is-fullscreen) .skr-shell .skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
 }
 
 .skr-shell .flex-1 { flex: 1 1 0%; }
@@ -264,4 +617,151 @@
   .skr-shell .skr-track-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FINAL cascade beaters (this file loads with the Kart shell).
+   Stage = largest square in the race root; canvas fills stage;
+   HUD is positioned on the stage — never a tiny 1000px intrinsic box.
+   ═══════════════════════════════════════════════════════════════ */
+.arcade-page .gv-room-live .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-shell {
+  /* Shell just fills; race root owns the size container */
+  container-type: normal !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-root-race,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-root-race,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-root-race,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-root-race {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  container-type: size !important;
+  container-name: skrace;
+}
+/* Menu open: shell must scroll, not act as a clipped race viewport */
+.arcade-page .gv-room-live .gr-board-slot .skr-shell:has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap:has(.skr-root-menu),
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="menu"] {
+  container-type: normal !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow: auto !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-stage,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-stage,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-stage,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  /* % + aspect-ratio: largest square that fits even when cq is 0 */
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-room-live .gr-board-slot .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-root-race .skr-stage,
+  .arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-root-race .skr-stage {
+    width: min(100cqw, 100cqh) !important;
+    height: min(100cqw, 100cqh) !important;
+    max-width: min(100cqw, 100cqh) !important;
+    max-height: min(100cqw, 100cqh) !important;
+  }
+}
+.arcade-page .gv-room-live .gr-board-slot .skr-stage[hidden],
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage[hidden],
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot .skr-stage[hidden],
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot .skr-stage[hidden],
+.arcade-page .gv-room-live .gr-board-slot .skr-stage.skr-stage-idle,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .skr-stage.skr-stage-idle {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+}
+.arcade-page .gv-room-live .gr-board-slot canvas.skr-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot canvas.skr-canvas,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot canvas.skr-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot canvas.skr-canvas,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot canvas.skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  aspect-ratio: auto !important;
+  object-fit: fill !important;
+  display: block !important;
+  flex: none !important;
+}
+
+/* Fullscreen race: never collapse the mount chain (same 0-height bug as windowed) */
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race),
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race),
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.skr-root-race) {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100dvh !important;
+  background: #07080f !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .gr-board-slot,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .gv-board-wrap > div,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .skr-wrap,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .skr-shell,
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .skr-root-race,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .gr-board-slot,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .gv-board-wrap,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .gv-board-wrap > div,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .skr-wrap,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .skr-shell,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .skr-root-race {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  /* min-width:100% beats flex shrink-to-0 that hid the race canvas */
+  min-width: 100% !important;
+  min-height: 100% !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #07080f !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen:has(.skr-root-race) .skr-stage,
+.arcade-page .gv-fs-root:fullscreen:has(.skr-root-race) .skr-stage {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  background: #07080f !important;
 }

@@ -375,22 +375,241 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
           E.state = "countdown"; E.countT = 3; E._cn = 0;
         }, 0);
       } else if (m.type === "sel") {
-        if (m.key === "track") setSettings((s) => ({ ...s, track: m.val }));
-        if (m.key === "laps") setSettings((s) => ({ ...s, laps: m.val }));
-        if (m.key === "pu") setSettings((s) => ({ ...s, pu: !!m.val }));
+        if (m.key === "track") {
+          setSettings((s) => ({ ...s, track: m.val }));
+          setFlashTrack(m.val);
+          setTimeout(() => setFlashTrack(-1), 700);
+          toast(`Track → ${THEMES[m.val]?.name || m.val}`);
+        }
+        if (m.key === "laps") {
+          setSettings((s) => ({ ...s, laps: m.val }));
+          toast(`${m.val} lap${m.val > 1 ? "s" : ""}`);
+        }
+        if (m.key === "pu") {
+          setSettings((s) => ({ ...s, pu: !!m.val }));
+          toast(`Items ${m.val ? "ON" : "OFF"}`);
+        }
       } else if (m.type === "garage" && m.pick) {
         setPicks((p) => { const np = [...p]; np[m.slot] = m.pick; return np; });
       } else if (m.type === "ready") {
         setGuestReady(!!m.ready);
         if (m.ready) toast(`${namesRef.current.B} is ready ✓`);
         else toast(`${namesRef.current.B} is not ready`);
+      } else if (m.type === "finish") {
+        // Peer finished first — freeze + show the same results panel
+        finishNetRef.current?.(m);
+      } else if (m.type === "menu") {
+        menuNetRef.current?.();
       }
     });
     return () => { try { net.dispose?.(); } catch { /* */ } duoNetRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rt, myRole]);
   const canvasRef = useRef(null);
+  const rootElRef = useRef(null);
+  const stageRef = useRef(null);
   const [screen, setScreen] = useState("menu"); // menu | race
+
+  // Mark wrap/shell so room-live CSS can scroll the lobby instead of clipping it
+  useEffect(() => {
+    const root = rootElRef.current;
+    if (!root) return;
+    const shell = root.closest(".skr-shell");
+    const wrap = root.closest(".skr-wrap");
+    const host = wrap?.parentElement;
+    for (const el of [shell, wrap, host]) {
+      if (!el) continue;
+      el.setAttribute("data-skr-screen", screen);
+    }
+    return () => {
+      for (const el of [shell, wrap, host]) {
+        try { el?.removeAttribute("data-skr-screen"); } catch { /* */ }
+      }
+    };
+  }, [screen]);
+
+  // Fit stage to largest square that fits INSIDE the board host (not oversized ancestors)
+  useEffect(() => {
+    if (screen !== "race") return undefined;
+    const root = rootElRef.current;
+    const stage = stageRef.current;
+    if (!root || !stage) return undefined;
+
+    const sizeOf = (el) => {
+      if (!el) return { w: 0, h: 0 };
+      const r = el.getBoundingClientRect?.();
+      return {
+        w: Math.max(el.clientWidth || 0, r?.width || 0),
+        h: Math.max(el.clientHeight || 0, r?.height || 0),
+      };
+    };
+
+    const isFullscreenNow = () => {
+      const fsRoot = root.closest(".gv-fs-root");
+      return !!(
+        document.fullscreenElement
+        || fsRoot?.classList?.contains("is-fullscreen")
+        || fsRoot?.matches?.(":fullscreen")
+      );
+    };
+
+    const FILL_STYLE_PROPS = [
+      "display", "flex-direction", "align-items", "justify-content",
+      "width", "height", "max-width", "max-height", "min-width", "min-height",
+      "flex", "align-self", "margin", "padding", "overflow", "box-sizing",
+    ];
+
+    const clearFillStyles = () => {
+      const shell = root.closest(".skr-shell");
+      const wrap = root.closest(".skr-wrap");
+      const host = wrap?.parentElement;
+      const board = root.closest(".gr-board-slot");
+      const fsRoot = root.closest(".gv-fs-root");
+      const boardWrap = root.closest(".gv-board-wrap");
+      for (const el of [fsRoot, board, boardWrap, host, wrap, shell, root]) {
+        if (!el) continue;
+        for (const prop of FILL_STYLE_PROPS) el.style.removeProperty(prop);
+      }
+    };
+
+    const fit = () => {
+      const shell = root.closest(".skr-shell");
+      const wrap = root.closest(".skr-wrap");
+      const host = wrap?.parentElement;
+      const board = root.closest(".gr-board-slot");
+      const fsRoot = root.closest(".gv-fs-root");
+      const boardWrap = root.closest(".gv-board-wrap");
+      const fs = isFullscreenNow();
+
+      let bw = 0;
+      let bh = 0;
+
+      if (fs) {
+        // Fullscreen: % widths resolve against a 0-wide flex ancestor and clip the stage.
+        // Size the mount chain in PIXELS from the fullscreen root / viewport.
+        const fsBox = sizeOf(fsRoot);
+        const boardBox = sizeOf(board);
+        bw = Math.max(
+          fsBox.w,
+          boardBox.w,
+          window.innerWidth || 0,
+          document.documentElement?.clientWidth || 0,
+        );
+        bh = Math.max(
+          fsBox.h,
+          boardBox.h,
+          window.innerHeight || 0,
+          document.documentElement?.clientHeight || 0,
+        );
+        if (bw < 80) bw = window.innerWidth || 1280;
+        if (bh < 80) bh = window.innerHeight || 720;
+
+        const fillEls = [fsRoot, board, boardWrap, host, wrap, shell, root];
+        for (const el of fillEls) {
+          if (!el) continue;
+          el.style.setProperty("display", "flex", "important");
+          el.style.setProperty("flex-direction", "column", "important");
+          el.style.setProperty("align-items", "center", "important");
+          el.style.setProperty("justify-content", "center", "important");
+          el.style.setProperty("width", `${Math.floor(bw)}px`, "important");
+          el.style.setProperty("height", `${Math.floor(bh)}px`, "important");
+          el.style.setProperty("max-width", `${Math.floor(bw)}px`, "important");
+          el.style.setProperty("max-height", `${Math.floor(bh)}px`, "important");
+          el.style.setProperty("min-width", `${Math.floor(bw)}px`, "important");
+          el.style.setProperty("min-height", `${Math.floor(bh)}px`, "important");
+          el.style.setProperty("flex", "1 1 auto", "important");
+          el.style.setProperty("align-self", "stretch", "important");
+          el.style.setProperty("margin", "0", "important");
+          el.style.setProperty("padding", "0", "important");
+          el.style.setProperty("overflow", "hidden", "important");
+          el.style.setProperty("box-sizing", "border-box", "important");
+        }
+      } else {
+        // Leaving fullscreen: drop pixel lock styles or the board stays oversized / off-center
+        clearFillStyles();
+
+        // Re-measure after clearing — stale FS widths would skew Math.min
+        const boxes = [host, wrap, shell, root, board].map(sizeOf).filter((b) => b.w >= 80 && b.h >= 80);
+        if (boxes.length) {
+          bw = Math.min(...boxes.map((b) => b.w));
+          bh = Math.min(...boxes.map((b) => b.h));
+        } else {
+          ({ w: bw, h: bh } = sizeOf(host || board || root));
+        }
+        if (bh < 80 || bw < 80) {
+          const fallback = sizeOf(host || board);
+          bw = Math.max(bw, fallback.w);
+          bh = Math.max(bh, fallback.h);
+        }
+        for (const el of [root, shell, wrap]) {
+          if (!el) continue;
+          el.style.setProperty("height", "100%", "important");
+          el.style.setProperty("max-height", "100%", "important");
+          el.style.setProperty("width", "100%", "important");
+          el.style.setProperty("max-width", "100%", "important");
+        }
+      }
+
+      const pad = fs ? 16 : 8;
+      const side = Math.floor(Math.max(160, Math.min(bw || 400, bh || 400) - pad));
+      if (!side || !Number.isFinite(side)) return;
+      stage.style.setProperty("width", `${side}px`, "important");
+      stage.style.setProperty("height", `${side}px`, "important");
+      stage.style.setProperty("max-width", `${side}px`, "important");
+      stage.style.setProperty("max-height", `${side}px`, "important");
+    };
+
+    // After FS toggle, layout settles over a couple frames — refit twice
+    const fitSoon = () => {
+      fit();
+      requestAnimationFrame(() => {
+        fit();
+        requestAnimationFrame(fit);
+      });
+    };
+
+    fitSoon();
+    const t1 = setTimeout(fitSoon, 50);
+    const t2 = setTimeout(fitSoon, 200);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fitSoon) : null;
+    try {
+      for (const el of [
+        root,
+        root.closest(".skr-shell"),
+        root.closest(".skr-wrap"),
+        root.closest(".gv-board-wrap"),
+        root.closest(".gr-board-slot"),
+        root.closest(".gv-fs-root"),
+      ]) {
+        if (el) ro?.observe(el);
+      }
+    } catch { /* */ }
+    window.addEventListener("resize", fitSoon);
+    document.addEventListener("fullscreenchange", fitSoon);
+    document.addEventListener("webkitfullscreenchange", fitSoon);
+    // Class-based fullscreen (is-fullscreen) may land before layout settles
+    const fsRootEl = root.closest(".gv-fs-root");
+    const mo = fsRootEl && typeof MutationObserver !== "undefined"
+      ? new MutationObserver(() => { fitSoon(); setTimeout(fitSoon, 80); })
+      : null;
+    try { mo?.observe(fsRootEl, { attributes: true, attributeFilter: ["class"] }); } catch { /* */ }
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      try { ro?.disconnect(); } catch { /* */ }
+      try { mo?.disconnect(); } catch { /* */ }
+      window.removeEventListener("resize", fitSoon);
+      document.removeEventListener("fullscreenchange", fitSoon);
+      document.removeEventListener("webkitfullscreenchange", fitSoon);
+      try {
+        stage.style.removeProperty("width");
+        stage.style.removeProperty("height");
+        stage.style.removeProperty("max-width");
+        stage.style.removeProperty("max-height");
+        clearFillStyles();
+      } catch { /* */ }
+    };
+  }, [screen]);
   const [settings, setSettings] = useState({ track: 0, laps: 3, pu: false });
   const [picks, setPicks] = useState([{ type: 0, col: 0 }, { type: 1, col: 1 }]);
   const [hud, setHud] = useState({ pos1: "1st", pos2: "2nd", lap1: "", lap2: "", item1: "", item2: "", timer: "0:00.0", n1: nameA, n2: nameB, c1: COLORS[0], c2: COLORS[1] });
@@ -418,6 +637,9 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
   const netRef = useRef(null);
   const toastTimer = useRef(null);
   const pendingRnd = useRef(null);
+  /** Stable hooks for duoNet onUi (effect mounts once) */
+  const finishNetRef = useRef(null);
+  const menuNetRef = useRef(null);
 
   const toast = useCallback((msg) => {
     setToastMsg(msg);
@@ -531,6 +753,8 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
     }
     E.items = []; E.parts = []; E.confetti = []; E.missiles = [];
     E.raceT = 0; E.slowMo = 1; E.winner = null; E.fastLap = Infinity;
+    E._resultsScheduled = false; E._finishBroadcast = false;
+    try { duoNetRef.current?.clearState?.(); } catch { /* */ }
     buildBackground();
   }, [E, heading, buildBackground]);
 
@@ -563,18 +787,60 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
   const showResults = useCallback(() => {
     E.state = "finish";
     engineGain(0);
+    if (!E.winner) return;
     const fmt = (t) => { const m = Math.floor(t / 60), s = (t % 60).toFixed(1); return m + ":" + (s < 10 ? "0" : "") + s; };
-    setResults({ winner: E.winner.i, color: E.winner.color, time: fmt(E.winner.finishT), fast: E.fastLap < Infinity ? fmt(E.fastLap) : "—" });
+    setResults({ winner: E.winner.i, color: E.winner.color, time: fmt(E.winner.finishT || E.raceT), fast: E.fastLap < Infinity ? fmt(E.fastLap) : "—" });
   }, [E, engineGain]);
 
-  const onFinish = useCallback((p) => {
-    if (E.winner !== null) return;
-    E.winner = p; E.slowMo = 0.25;
+  const scheduleResults = useCallback((delay) => {
+    if (E._resultsScheduled) return;
+    E._resultsScheduled = true;
+    setTimeout(showResults, delay);
+  }, [E, showResults]);
+
+  const onFinish = useCallback((p, opts = {}) => {
+    if (!p || E.winner !== null) return;
+    E.winner = p;
+    // Freeze both peers immediately (net state + local sim) — don't wait for results panel
+    E.state = "finish";
+    E.slowMo = 0.25;
+    p.done = true;
+    if (p.finishT == null) p.finishT = E.raceT;
     beep(523, 0.18, 0.06); setTimeout(() => beep(659, 0.18, 0.06), 120); setTimeout(() => beep(784, 0.3, 0.07), 260);
     for (let i = 0; i < 120; i++) E.confetti.push({ x: Math.random() * W, y: -20 - Math.random() * 300, vy: 1.5 + Math.random() * 2.5, vx: (Math.random() - 0.5) * 1.5, c: ["#38c7ff", "#ff4d5a", "#ffcf3f", "#4dff9e", "#a86bff"][i % 5], s: 4 + Math.random() * 5, r: Math.random() * 6.28 });
-    setTimeout(() => (E.slowMo = 1), 1200);
-    setTimeout(showResults, 3200);
-  }, [E, beep, showResults]);
+    if (online && !opts.fromNet && !E._finishBroadcast) {
+      E._finishBroadcast = true;
+      duoNetRef.current?.sendUi({
+        type: "finish",
+        winner: p.i,
+        finishT: p.finishT ?? E.raceT,
+        fastLap: E.fastLap < Infinity ? E.fastLap : null,
+        color: p.color,
+      });
+    }
+    setTimeout(() => { E.slowMo = 1; }, 1200);
+    scheduleResults(opts.fromNet ? 500 : 2800);
+  }, [E, beep, online, scheduleResults]);
+
+  /** Apply a finish packet from the other player */
+  const applyFinishFromNet = useCallback((m) => {
+    if (!m || E.winner !== null) {
+      if (E.winner && !E._resultsScheduled) scheduleResults(200);
+      return;
+    }
+    if (typeof m.fastLap === "number" && m.fastLap > 0 && m.fastLap < E.fastLap) E.fastLap = m.fastLap;
+    const idx = m.winner | 0;
+    let p = E.players?.[idx];
+    if (p) {
+      p.done = true;
+      p.finishT = m.finishT ?? p.finishT ?? E.raceT;
+      if (m.color) p.color = m.color;
+    } else {
+      p = { i: idx, color: m.color || "#38c7ff", finishT: m.finishT ?? E.raceT, done: true };
+    }
+    onFinish(p, { fromNet: true });
+  }, [E, onFinish, scheduleResults]);
+  finishNetRef.current = applyFinishFromNet;
 
   const updatePlayer = useCallback((p, dt, opts = {}) => {
     // quiet: guest prediction — skip permanent skids / spammy wall sparks (online desync was littering the track)
@@ -729,16 +995,82 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
     let netAcc = 0;
     let lastGuestPoseT = -1;
     let lastHostRaceT = -1;
+    let lastHostPoseAt = 0;
     let hasRemoteP2 = false;
     const packItem = (it) => (it && it.id ? { id: it.id, icon: it.icon } : null);
-    const snapPose = (p, sp) => {
-      if (!p || !sp || sp.x == null || sp.y == null) return;
-      p.x = sp.x;
-      p.y = sp.y;
-      if (sp.angle != null) p.angle = sp.angle;
-      if (sp.speed != null) p.speed = sp.speed;
+
+    const angLerp = (a, b, t) => {
+      let d = b - a;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return a + d * t;
     };
-    const applyStatus = (p, sp) => {
+
+    /** Smooth remote body — hard snap only on large desync (avoids rubber-band). */
+    const blendPose = (p, sp, dt = 0.016) => {
+      if (!p || !sp || sp.x == null || sp.y == null) return false;
+      // Reject late "teleport to spawn" while mid-race
+      if (E.state === "race" && E.raceT > 1.5 && E.winner == null && E.path?.[0]) {
+        const sx = E.path[0][0], sy = E.path[0][1];
+        const nearSpawn = Math.hypot(sp.x - sx, sp.y - sy) < 55;
+        const wasAway = Math.hypot(p.x - sx, p.y - sy) > 120;
+        if (nearSpawn && wasAway) return false;
+      }
+      const dx = sp.x - p.x, dy = sp.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 150) {
+        p.x = sp.x; p.y = sp.y;
+      } else if (dist > 0.35) {
+        const a = Math.min(1, (dist > 45 ? 0.55 : 0.32) + dt * 1.5);
+        p.x += dx * a;
+        p.y += dy * a;
+      } else {
+        p.x = sp.x; p.y = sp.y;
+      }
+      if (sp.angle != null) p.angle = angLerp(p.angle, sp.angle, Math.min(1, 0.4 + dt * 2));
+      if (sp.speed != null) p.speed += (sp.speed - (p.speed || 0)) * 0.4;
+      p._netX = sp.x; p._netY = sp.y;
+      p._netAngle = sp.angle ?? p.angle;
+      p._netSpeed = sp.speed ?? p.speed;
+      p._netAt = performance.now();
+      return true;
+    };
+
+    /** Brief coast between packets so rivals don't freeze during lag spikes. */
+    const coastRemote = (p, dt) => {
+      if (!p || p._netAt == null) return;
+      const age = (performance.now() - p._netAt) / 1000;
+      if (age < 0.02 || age > 0.22) return;
+      const s = p._netSpeed || 0;
+      if (Math.abs(s) < 0.05) return;
+      const a = p._netAngle ?? p.angle;
+      p.x += Math.cos(a) * s * 60 * dt * 0.9;
+      p.y += Math.sin(a) * s * 60 * dt * 0.9;
+    };
+
+    /** Soft-sync guest clock to host — never hard-assign every packet (that freezes HUD). */
+    const syncRaceClock = (remoteT) => {
+      if (typeof remoteT !== "number" || E.winner != null) return;
+      if (lastHostRaceT >= 0 && remoteT + 0.6 < lastHostRaceT) return; // stale rewind
+      lastHostRaceT = Math.max(lastHostRaceT, remoteT);
+      const diff = remoteT - E.raceT;
+      if (Math.abs(diff) > 1.25) E.raceT = remoteT;
+      else if (Math.abs(diff) > 0.05) E.raceT += diff * 0.2;
+    };
+
+    const applyRemotePhase = (state, countT) => {
+      if (state === "finish") {
+        E.state = "finish";
+        return;
+      }
+      if (E.winner != null || E.state === "finish") return;
+      // Never regress race → countdown from a late packet
+      if (E.state === "race" && state === "countdown") return;
+      if (state === "countdown" || state === "race") E.state = state;
+      if (countT != null && E.state === "countdown") E.countT = countT;
+    };
+
+    const applyStatus = (p, sp, { mayFinish = true } = {}) => {
       if (!p || !sp) return;
       if (sp.lap != null) p.lap = sp.lap;
       if (sp.idx != null) p.idx = sp.idx;
@@ -754,70 +1086,54 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
       if (sp.done && !p.done) {
         p.done = true;
         p.finishT = sp.finishT ?? E.raceT;
+        if (mayFinish && E.winner == null) onFinish(p, { fromNet: true });
       } else if (sp.finishT != null) {
         p.finishT = sp.finishT;
       }
     };
-    /** Guest applies host snapshot — never overwrite local P2 transform. */
-    const applyKartStateGuest = (st) => {
-      if (!st || !E.players?.length) return;
-      // Drop stale / rewind packets (common cause of snap-back to start)
-      if (typeof st.raceT === 'number' && E.state === 'race' && lastHostRaceT >= 0) {
-        if (st.raceT + 0.25 < lastHostRaceT) return;
-      }
-      if (typeof st.raceT === 'number') {
-        lastHostRaceT = Math.max(lastHostRaceT, st.raceT);
-        E.raceT = st.raceT;
-      }
-      if (st.countT != null) E.countT = st.countT;
-      if (st.state) E.state = st.state;
-      const remote = st.players;
-      if (!remote?.length) return;
 
-      if (remote[0] && E.players[0] && remote[0].x != null) {
-        // Reject teleport-to-spawn while mid-race (late countdown packet)
-        const sp = remote[0];
-        const p = E.players[0];
-        const nearSpawn = Math.hypot(sp.x - (E.path[0]?.[0] || 0), sp.y - (E.path[0]?.[1] || 0)) < 55;
-        const wasAway = Math.hypot((p.x || 0) - (E.path[0]?.[0] || 0), (p.y || 0) - (E.path[0]?.[1] || 0)) > 120;
-        if (!(E.state === 'race' && E.raceT > 1.2 && nearSpawn && wasAway)) {
-          snapPose(p, sp);
-        }
-        applyStatus(p, sp);
-      }
-
-      if (remote[1] && E.players[1]) {
-        const p = E.players[1], sp = remote[1];
-        // Status only — guest owns drive pose
-        if (sp.spin > (p.spin || 0)) p.spin = sp.spin;
-        if (sp.freeze > (p.freeze || 0)) p.freeze = sp.freeze;
-        if (sp.shield) p.shield = true;
-        if (sp.done && !p.done) {
+    /** Guest: apply host p1 pose + clock (single channel). */
+    const applyHostPacket = (sp, dt) => {
+      if (!sp || !E.players?.[0]) return;
+      if (typeof sp.t === "number" && sp.t > 0 && sp.t + 80 < lastHostPoseAt) return;
+      if (typeof sp.t === "number") lastHostPoseAt = Math.max(lastHostPoseAt, sp.t);
+      blendPose(E.players[0], sp, dt);
+      applyStatus(E.players[0], sp);
+      syncRaceClock(sp.raceT);
+      applyRemotePhase(sp.state, sp.countT);
+      if (sp.p2status && E.players[1]) {
+        const s = sp.p2status;
+        const p = E.players[1];
+        // Status only — never overwrite guest drive pose
+        if (s.spin > (p.spin || 0)) p.spin = s.spin;
+        if (s.freeze > (p.freeze || 0)) p.freeze = s.freeze;
+        if (s.shield) p.shield = true;
+        if (s.item !== undefined) p.item = s.item;
+        if (s.boost != null) p.boost = s.boost;
+        if (s.done && !p.done) {
           p.done = true;
-          p.finishT = sp.finishT ?? E.raceT;
+          p.finishT = s.finishT ?? E.raceT;
+          if (E.winner == null) onFinish(p, { fromNet: true });
         }
-        if (sp.item != null) p.item = sp.item;
-        if (sp.boost != null) p.boost = sp.boost;
       }
-
-      if (st.state === 'finish' && E.winner == null) {
-        const w = E.players.find((p) => p.done) || E.players[0];
-        if (w) {
-          E.winner = w;
-          E.slowMo = 0.25;
-          setTimeout(() => { E.slowMo = 1; }, 800);
-          setTimeout(showResults, 400);
-        }
+      if (sp.state === "finish" && E.winner == null) {
+        const w = E.players.find((pl) => pl.done) || E.players[0];
+        if (w) onFinish(w, { fromNet: true });
+      } else if (sp.state === "finish" && E.winner && !E._resultsScheduled) {
+        scheduleResults(200);
       }
     };
-    const applyGuestPoseOnHost = (p, sp) => {
+
+    const applyGuestPoseOnHost = (p, sp, dt) => {
       if (!p || !sp || sp.x == null) return false;
-      snapPose(p, sp);
-      applyStatus(p, sp);
+      if (typeof sp.t === "number" && sp.t === lastGuestPoseT) return false;
+      if (typeof sp.t === "number") lastGuestPoseT = sp.t;
+      blendPose(p, sp, dt);
+      applyStatus(p, sp, { mayFinish: true });
       hasRemoteP2 = true;
-      if (sp.done && E.winner == null) onFinish(p);
       return true;
     };
+
     const packMyPose = (slot) => {
       const p = E.players[slot];
       if (!p) return null;
@@ -845,48 +1161,21 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
         state: E.state,
       };
     };
-    const packKartState = () => {
-      const p0 = E.players[0];
-      const p1 = E.players[1];
-      return {
-        state: E.state,
-        raceT: +Number(E.raceT || 0).toFixed(3),
-        countT: +Number(E.countT || 0).toFixed(3),
-        players: [
-          p0 ? {
-            x: +p0.x.toFixed(2), y: +p0.y.toFixed(2),
-            angle: +p0.angle.toFixed(4), speed: +Number(p0.speed || 0).toFixed(3),
-            lap: p0.lap | 0, idx: p0.idx | 0, halfway: !!p0.halfway,
-            item: packItem(p0.item), shield: !!p0.shield,
-            spin: +Number(p0.spin || 0).toFixed(3),
-            boost: +Number(p0.boost || 0).toFixed(3),
-            freeze: +Number(p0.freeze || 0).toFixed(3),
-            done: !!p0.done, finishT: p0.finishT ?? null,
-            kart: p0.kart, color: p0.color, dark: p0.dark,
-          } : null,
-          p1 ? {
-            spin: +Number(p1.spin || 0).toFixed(3),
-            freeze: +Number(p1.freeze || 0).toFixed(3),
-            shield: !!p1.shield, done: !!p1.done, finishT: p1.finishT ?? null,
-            lap: p1.lap | 0, idx: p1.idx | 0, halfway: !!p1.halfway,
-            item: packItem(p1.item),
-            boost: +Number(p1.boost || 0).toFixed(3),
-          } : null,
-        ],
-      };
-    };
+
     const flushNet = (net, guest, dt = 0.016) => {
       if (!net?.online) return;
       netAcc += dt;
-      if (netAcc < 1 / 30) return; // 30Hz is enough; denser rates amplify rubber-band on Fly RTT
+      // 20Hz — denser rates queue up on Fly RTT and feel like rubber-band
+      if (netAcc < 1 / 20) return;
       netAcc = 0;
       if (guest) {
-        // Pose on p2 channel + keys for item presses
         const pose = packMyPose(1);
         if (pose && net.sendPose) net.sendPose(pose);
+        // Keys only (item press) — pose already on p2 channel
         net.netTick(null, null);
       } else {
-        // Host: full st for race clock/status + p1 pose for crisp rival body
+        // Host: one pose channel (includes clock/state). Do NOT also send st —
+        // dual seq streams were dropping packets and freezing the guest clock.
         const pose = packMyPose(0);
         if (pose && net.sendPose) {
           const p1 = E.players[1];
@@ -897,7 +1186,6 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
           } : null;
           net.sendPose(pose);
         }
-        net.netTick(packKartState);
       }
     };
     const loop = (ts) => {
@@ -906,39 +1194,50 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
       const net = duoNetRef.current;
       const guest = !!(net?.online && !net.isHost);
 
-      /* ── Guest (P2): local drive. Snap host P1. Never pull P2 from host. ── */
+      /* ── Guest (P2): local drive + local clock. Smooth host P1. ── */
       if (guest) {
-        const fresh = net.takeState();
-        if (fresh) applyKartStateGuest(fresh);
-        // Also accept dedicated p1 pose if delivered via remoteExtra
+        // Prefer dedicated p1 pose; fall back to st snapshot if pose missed
         const extra = net.takeRemoteExtra?.();
-        if (extra?.pose && extra.from === 'p1' && E.players[0]) {
-          const sp = extra.pose;
-          if (!(typeof sp.raceT === 'number' && E.state === 'race' && lastHostRaceT >= 0 && sp.raceT + 0.25 < lastHostRaceT)) {
-            if (typeof sp.raceT === 'number') lastHostRaceT = Math.max(lastHostRaceT, sp.raceT);
-            snapPose(E.players[0], sp);
-            applyStatus(E.players[0], sp);
-            if (sp.state) E.state = sp.state;
-            if (sp.countT != null) E.countT = sp.countT;
-            if (sp.raceT != null) E.raceT = sp.raceT;
-            if (sp.p2status && E.players[1]) {
-              const s = sp.p2status;
-              if (s.spin > (E.players[1].spin || 0)) E.players[1].spin = s.spin;
-              if (s.freeze > (E.players[1].freeze || 0)) E.players[1].freeze = s.freeze;
-              if (s.shield) E.players[1].shield = true;
+        if (extra?.pose && (extra.from === "p1" || extra.pose.x != null)) {
+          applyHostPacket(extra.pose, dt);
+        } else {
+          const fresh = net.takeState?.();
+          if (fresh) {
+            if (fresh.players?.[0]) applyHostPacket({ ...fresh.players[0], raceT: fresh.raceT, countT: fresh.countT, state: fresh.state, p2status: fresh.players[1] }, dt);
+            else {
+              syncRaceClock(fresh.raceT);
+              applyRemotePhase(fresh.state, fresh.countT);
             }
+          } else if (E.players[0] && E.state === "race" && E.winner == null) {
+            coastRemote(E.players[0], dt);
           }
         }
-        if (E.state === 'countdown' && E.countT > 0) {
-          const n = Math.ceil(E.countT);
-          if (E._cn !== n) { E._cn = n; setCenterText(String(n)); }
-        } else if (E.state === 'race' && E._cn !== 0) {
-          E._cn = 0; setCenterText('GO!'); setTimeout(() => setCenterText(''), 700);
+
+        if (E.state === "countdown") {
+          // Tick locally so the 3-2-1 never freezes if a host packet stalls
+          E.countT = Math.max(0, (E.countT || 0) - dt);
+          if (E.countT > 0) {
+            const n = Math.ceil(E.countT);
+            if (E._cn !== n) { E._cn = n; setCenterText(String(n)); }
+          } else if (E._cn !== 0) {
+            E._cn = 0;
+            E.state = "race";
+            setCenterText("GO!");
+            setTimeout(() => setCenterText(""), 700);
+          }
+        } else if (E.state === "race" && E._cn !== 0) {
+          E._cn = 0; setCenterText("GO!"); setTimeout(() => setCenterText(""), 700);
         }
-        if (E.state === 'race' && !pausedRef.current && E.players[1]) {
+
+        // Local race clock — independent of packet arrival (fixes frozen timer)
+        if (E.state === "race" && E.winner == null && !pausedRef.current) {
+          E.raceT += dt * (E.slowMo || 1);
+        }
+
+        if (E.state === "race" && E.winner == null && !pausedRef.current && E.players[1]) {
           updatePlayer(E.players[1], dt * (E.slowMo || 1), { quiet: true });
         }
-        if (E.state === 'race' || E.state === 'countdown' || E.state === 'finish') {
+        if (E.state === "race" || E.state === "countdown" || E.state === "finish") {
           flushNet(net, true, dt);
         }
         if (E.players?.length) { pushHud(); draw(); }
@@ -949,32 +1248,48 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
         if (!E.keys) E.keys = {};
         if (!E.pressed) E.pressed = {};
         net.mergeRemoteInto(E);
-        if (E.state === 'race' && !pausedRef.current && E.pressed.Enter && E.players[1]) {
+        if (E.state === "race" && !pausedRef.current && E.pressed.Enter && E.players[1]) {
           useItem(E.players[1]);
         }
       }
 
-      if (E.state === 'countdown') {
+      if (E.state === "countdown") {
         E.countT -= dt;
         if (E.countT > 0) {
           const n = Math.ceil(E.countT);
           if (E._cn !== n) { E._cn = n; beep(440, 0.12, 0.05); setCenterText(String(n)); }
         } else {
-          setCenterText('GO!'); beep(880, 0.3, 0.06);
-          setTimeout(() => setCenterText(''), 700);
-          E.state = 'race';
+          setCenterText("GO!"); beep(880, 0.3, 0.06);
+          setTimeout(() => setCenterText(""), 700);
+          E.state = "race";
           hasRemoteP2 = false;
           lastGuestPoseT = -1;
+          lastHostRaceT = -1;
+          lastHostPoseAt = 0;
         }
         flushNet(net, false, dt);
         draw();
         return;
       }
       if (pausedRef.current) {
-        if (E.state === 'race' || E.state === 'finish') flushNet(net, false, dt);
+        if (E.state === "race" || E.state === "finish") flushNet(net, false, dt);
         return;
       }
-      if (E.state !== 'race' && E.state !== 'finish') return;
+      if (E.state !== "race" && E.state !== "finish") return;
+
+      // Race over — freeze clock, keep drawing / net sync so peer sees finish
+      if (E.winner != null || E.state === "finish") {
+        for (let i = E.parts.length - 1; i >= 0; i--) { const q = E.parts[i]; q.x += q.vx; q.y += q.vy; q.life -= dt; if (q.life <= 0) E.parts.splice(i, 1); }
+        for (const c of E.confetti) { c.y += c.vy; c.x += c.vx; c.r += 0.1; }
+        E.confetti = E.confetti.filter((c) => c.y < H + 30);
+        engineGain(0);
+        flushNet(net, false, dt);
+        if (net?.online) E.pressed = {};
+        pushHud();
+        draw();
+        return;
+      }
+
       E.raceT += dt * E.slowMo;
 
       // P1 = host local sim only
@@ -983,14 +1298,9 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
         if (net?.online) {
           const extra = net.takeRemoteExtra?.();
           const pose = extra?.pose;
-          if (pose && pose.t !== lastGuestPoseT) {
-            lastGuestPoseT = pose.t;
-            applyGuestPoseOnHost(E.players[1], pose);
-          }
-          // HOLD last snapped pose — do NOT re-simulate P2 from keys (that rubber-bands)
-          if (!hasRemoteP2) {
-            // Until first pose arrives, keep kart at spawn (don't drive from laggy keys)
-          }
+          if (pose) applyGuestPoseOnHost(E.players[1], pose, dt);
+          else if (hasRemoteP2) coastRemote(E.players[1], dt);
+          // HOLD last pose — do NOT re-simulate P2 from keys (rubber-bands)
         } else {
           updatePlayer(E.players[1], dt * E.slowMo);
         }
@@ -1009,7 +1319,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
           } else {
             a.speed *= 0.85;
           }
-          spawnParts((a.x + b.x) / 2, (a.y + b.y) / 2, '#fff', 6, 2);
+          spawnParts((a.x + b.x) / 2, (a.y + b.y) / 2, "#fff", 6, 2);
         }
       }
       for (let i = E.missiles.length - 1; i >= 0; i--) {
@@ -1040,7 +1350,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [E, audio, beep, updatePlayer, spawnParts, engineGain, useItem, onFinish, showResults]);
+  }, [E, audio, beep, updatePlayer, spawnParts, engineGain, useItem, onFinish, showResults, scheduleResults]);
 
   /* ---------- keyboard ---------- */
   useEffect(() => {
@@ -1164,13 +1474,17 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
     E.state = "countdown"; E.countT = 3; E._cn = 0;
     duoNetRef.current?.sendUi({ type: "start", settings, picks });
   };
-  const backToMenu = () => {
+  const backToMenu = (opts = {}) => {
+    const fromNet = !!opts?.fromNet;
     setResults(null); setPaused(false); setScreen("menu");
     setGuestReady(false);
-    if (online && myRole === "B") duoNetRef.current?.sendUi({ type: "ready", ready: false });
-    E.state = "menu"; E.bg = null; engineGain(0);
+    if (online && myRole === "B" && !fromNet) duoNetRef.current?.sendUi({ type: "ready", ready: false });
+    if (online && !fromNet) duoNetRef.current?.sendUi({ type: "menu" });
+    E.state = "menu"; E.winner = null; E._resultsScheduled = false; E._finishBroadcast = false;
+    E.bg = null; engineGain(0);
     const c = canvasRef.current; if (c) c.getContext("2d").clearRect(0, 0, W, H);
   };
+  menuNetRef.current = () => backToMenu({ fromNet: true });
 
   /* ---------- render ---------- */
   const dim = "#8b93ab", line = "#1c2236", card = "#0e111c";
@@ -1182,61 +1496,69 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
 
   return (
     <div
-      className={"w-full relative flex items-center justify-center " + (screen === "menu" ? "skr-root-menu" : "h-screen overflow-hidden")}
+      ref={rootElRef}
+      data-skr-screen={screen}
+      className={"skr-root w-full relative " + (screen === "menu" ? "skr-root-menu" : "skr-root-race")}
       style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5", minHeight: screen === "menu" ? 520 : undefined }}
     >
-      <canvas ref={canvasRef} width={W} height={H} className="block rounded-xl"
-        style={{
-          display: screen === "menu" ? "none" : "block",
-          width: "min(98vh,98vw)", height: "min(98vh,98vw)",
-          boxShadow: screen === "race" ? "0 0 50px rgba(56,199,255,.12),0 0 120px rgba(0,0,0,.8)" : "none",
-        }} />
-
-      {/* ── HUD ── */}
-      {screen === "race" && (
-        <div className="absolute inset-0 pointer-events-none z-10">
-          <div className="absolute top-3 left-3.5 rounded-2xl px-4 py-2 min-w-[150px]" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, boxShadow: "0 0 16px rgba(56,199,255,.2)" }}>
-            <div className="text-[11px] font-bold" style={{ letterSpacing: 2, color: hud.c1 }}>{hud.n1}</div>
-            <div className="text-2xl font-bold">{hud.pos1}</div>
-            <div className="text-xs" style={{ color: dim }}>{hud.lap1}</div>
-            <div className="text-xl h-6">{hud.item1}</div>
-          </div>
-          <div className="absolute top-3 right-3.5 rounded-2xl px-4 py-2 min-w-[150px] text-right" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, boxShadow: "0 0 16px rgba(255,77,90,.2)" }}>
-            <div className="text-[11px] font-bold" style={{ letterSpacing: 2, color: hud.c2 }}>{hud.n2}</div>
-            <div className="text-2xl font-bold">{hud.pos2}</div>
-            <div className="text-xs" style={{ color: dim }}>{hud.lap2}</div>
-            <div className="text-xl h-6">{hud.item2}</div>
-          </div>
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-xl px-4 py-1.5 text-lg font-bold" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, letterSpacing: 2 }}>{hud.timer}</div>
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 flex gap-2 pointer-events-auto">
-            <button onClick={() => setPaused(true)} title="Pause (Esc)" className="w-10 h-10 rounded-xl cursor-pointer text-base" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>⏸</button>
-            <button onClick={() => setMuted((m) => !m)} title="Sound on/off" className="w-10 h-10 rounded-xl cursor-pointer text-base" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>{muted ? "🔇" : "🔊"}</button>
-          </div>
-        </div>
-      )}
-
-      {/* countdown */}
-      {centerText && (
-        <div className="absolute pointer-events-none z-[15] font-bold" style={{ top: "38%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 110, letterSpacing: 6, color: "#ffcf3f", textShadow: "0 0 30px rgba(255,207,63,.8)" }}>{centerText}</div>
-      )}
+      {/* Stage stays mounted so canvasRef survives menu ↔ race */}
+      <div
+        ref={stageRef}
+        className={"skr-stage" + (screen !== "race" ? " skr-stage-idle" : "")}
+        hidden={screen !== "race"}
+        aria-hidden={screen !== "race"}
+      >
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          className="block skr-canvas"
+        />
+        {screen === "race" && (
+          <>
+            <div className="skr-hud absolute inset-0 pointer-events-none z-10">
+              <div className="skr-hud-panel skr-hud-p1 absolute rounded-2xl px-4 py-2 min-w-[150px]" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, boxShadow: "0 0 16px rgba(56,199,255,.2)" }}>
+                <div className="text-[11px] font-bold" style={{ letterSpacing: 2, color: hud.c1 }}>{hud.n1}</div>
+                <div className="text-2xl font-bold">{hud.pos1}</div>
+                <div className="text-xs" style={{ color: dim }}>{hud.lap1}</div>
+                <div className="text-xl h-6">{hud.item1}</div>
+              </div>
+              <div className="skr-hud-panel skr-hud-p2 absolute rounded-2xl px-4 py-2 min-w-[150px] text-right" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, boxShadow: "0 0 16px rgba(255,77,90,.2)" }}>
+                <div className="text-[11px] font-bold" style={{ letterSpacing: 2, color: hud.c2 }}>{hud.n2}</div>
+                <div className="text-2xl font-bold">{hud.pos2}</div>
+                <div className="text-xs" style={{ color: dim }}>{hud.lap2}</div>
+                <div className="text-xl h-6">{hud.item2}</div>
+              </div>
+              <div className="skr-hud-timer absolute left-1/2 -translate-x-1/2 rounded-xl px-4 py-1.5 text-lg font-bold" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, letterSpacing: 2 }}>{hud.timer}</div>
+              <div className="skr-hud-controls absolute left-1/2 -translate-x-1/2 flex gap-2 pointer-events-auto">
+                <button onClick={() => setPaused(true)} title="Pause (Esc)" className="w-10 h-10 rounded-xl cursor-pointer text-base" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>⏸</button>
+                <button onClick={() => setMuted((m) => !m)} title="Sound on/off" className="w-10 h-10 rounded-xl cursor-pointer text-base" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>{muted ? "🔇" : "🔊"}</button>
+              </div>
+            </div>
+            {centerText && (
+              <div className="absolute pointer-events-none z-[15] font-bold" style={{ top: "38%", left: "50%", transform: "translate(-50%,-50%)", fontSize: "clamp(48px, 12cqmin, 110px)", letterSpacing: 6, color: "#ffcf3f", textShadow: "0 0 30px rgba(255,207,63,.8)" }}>{centerText}</div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ── MENU ── */}
       {screen === "menu" && (
-        <div className="skr-lobby z-20 flex justify-center" style={{ background: "#07080fee", width: "100%", minHeight: "100%" }}>
-          <div className="w-full max-w-[880px] px-3 pt-4 pb-10 text-center">
-            <h1 className="text-2xl font-bold mb-0.5" style={{ letterSpacing: 6 }}>
+        <div className="skr-lobby z-20 flex justify-center">
+          <div className="skr-lobby-inner w-full text-center">
+            <h1 className="skr-lobby-title text-2xl font-bold" style={{ letterSpacing: 6 }}>
               <span style={{ color: "#38c7ff", textShadow: "0 0 10px #38c7ff" }}>STICKMAN</span>{" 🏁 "}
               <span style={{ color: "#ff4d5a", textShadow: "0 0 10px #ff4d5a" }}>KART</span>
             </h1>
-            <div className="text-xs mb-2" style={{ color: dim, letterSpacing: 1 }}>
+            <div className="skr-lobby-sub text-xs" style={{ color: dim, letterSpacing: 1 }}>
               {online
                 ? (myRole === "A"
                   ? (guestReady
                     ? `${nameB} is ready · you can start`
-                    : `you are ${nameA} · wait for ${nameB} to ready up`)
+                    : `you are ${nameA} · pick track & settings · wait for ${nameB}`)
                   : (guestReady
                     ? `you're ready · waiting for ${nameA} to start`
-                    : `you are ${nameB} · pick your kart, then ready up`))
+                    : `you are ${nameB} · pick track, laps & kart, then ready up`))
                 : `${nameA} vs ${nameB} · first across the line`}
             </div>
 
@@ -1244,9 +1566,9 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
               <button
                 onClick={startRace}
                 disabled={online && !guestReady}
-                className="cursor-pointer rounded-xl font-bold text-white mb-2 transition-transform hover:scale-105"
+                className="skr-lobby-cta cursor-pointer rounded-xl font-bold text-white transition-transform hover:scale-105"
                 style={{
-                  padding: "10px 36px", fontSize: 15, letterSpacing: 3, border: "none", fontFamily: "inherit",
+                  padding: "12px 40px", fontSize: 15, letterSpacing: 3, border: "none", fontFamily: "inherit",
                   background: online && !guestReady
                     ? "linear-gradient(90deg,#3a4558,#4a5568)"
                     : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
@@ -1262,9 +1584,9 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
               <button
                 type="button"
                 onClick={() => setReady(!guestReady)}
-                className="cursor-pointer rounded-xl font-bold text-white mb-2 transition-transform hover:scale-105"
+                className="skr-lobby-cta cursor-pointer rounded-xl font-bold text-white transition-transform hover:scale-105"
                 style={{
-                  padding: "10px 36px", fontSize: 15, letterSpacing: 3, border: "none", fontFamily: "inherit",
+                  padding: "12px 40px", fontSize: 15, letterSpacing: 3, border: "none", fontFamily: "inherit",
                   background: guestReady
                     ? "linear-gradient(90deg,#1f9e58,#4dff9e)"
                     : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
@@ -1277,22 +1599,22 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
               </button>
             )}
             {online && myRole === "A" && !guestReady && (
-              <div className="text-xs mb-2" style={{ color: "#ffcf3f", letterSpacing: 1 }}>
+              <div className="skr-lobby-hint text-xs" style={{ color: "#ffcf3f", letterSpacing: 1 }}>
                 {nameB} must press I'm Ready
               </div>
             )}
             {online && myRole === "B" && guestReady && (
-              <div className="text-xs mb-2" style={{ color: "#4dff9e", letterSpacing: 1 }}>
+              <div className="skr-lobby-hint text-xs" style={{ color: "#4dff9e", letterSpacing: 1 }}>
                 Waiting for {nameA} to start…
               </div>
             )}
-            <div className="flex justify-center gap-2 flex-wrap mb-2">
+            <div className="skr-lobby-actions flex justify-center gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={() => setGarageOpen(true)}
                 className="cursor-pointer rounded-xl font-bold transition-transform hover:scale-105"
                 style={{
-                  padding: "10px 28px", fontSize: 14, letterSpacing: 3, fontFamily: "inherit",
+                  padding: "11px 28px", fontSize: 14, letterSpacing: 3, fontFamily: "inherit",
                   color: "#e8eef8",
                   background: "linear-gradient(165deg, #1a2438 0%, #0e1524 100%)",
                   border: "1.5px solid #38c7ff",
@@ -1301,47 +1623,33 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
               >
                 🏎️ GARAGE
               </button>
-              {(!online || myRole === "A") && (
-                <button onClick={randomizeAll} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px] transition-transform hover:-translate-y-0.5"
-                  style={{ ...pillStyle(false), border: "1px solid #a86bff" }}>
-                  🎲 Randomize
-                </button>
-              )}
+              <button onClick={randomizeAll} className="cursor-pointer rounded-lg px-4 py-2 text-[11px] transition-transform hover:-translate-y-0.5"
+                style={{ ...pillStyle(false), border: "1px solid #a86bff" }}>
+                🎲 Randomize
+              </button>
             </div>
-            <div className="text-[11px] mb-2" style={{ color: dim, letterSpacing: 1 }}>
+            <div className="skr-lobby-kart text-[11px]" style={{ color: dim, letterSpacing: 1 }}>
               {online
                 ? `${KART_TYPES[picks[mySlot].type].ic} ${KART_TYPES[picks[mySlot].type].name}`
                 : `${KART_TYPES[picks[0].type].ic} ${nameA} · ${KART_TYPES[picks[0].type].name}  ·  ${KART_TYPES[picks[1].type].ic} ${nameB} · ${KART_TYPES[picks[1].type].name}`}
             </div>
-            {peer && <div className="text-[10px] mb-1" style={{ color: "#4dff9e", letterSpacing: 1 }}>🔗 duo connected — your kart syncs</div>}
+            {peer && <div className="skr-lobby-peer text-[10px]" style={{ color: "#4dff9e", letterSpacing: 1 }}>🔗 duo connected — settings & kart sync</div>}
 
-            {(!online || myRole === "A") && (
-              <div className="flex gap-2 justify-center flex-wrap mb-4">
-                {[{ l: 1, n: "Sprint" }, { l: 3, n: "Classic" }, { l: 5, n: "Endurance" }].map((o) => (
-                  <button key={o.l} onClick={() => selectLaps(o.l)} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px]" style={pillStyle(settings.laps === o.l)}>
-                    <b>{o.n}</b> <span style={{ color: dim }}>{o.l}L</span>
-                  </button>
-                ))}
-                <button onClick={() => selectPU(true)} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px]" style={pillStyle(settings.pu)}><b>Items ON</b></button>
-                <button onClick={() => selectPU(false)} className="cursor-pointer rounded-lg px-3 py-1.5 text-[11px]" style={pillStyle(!settings.pu)}><b>Items OFF</b></button>
-              </div>
-            )}
+            <div className="skr-lobby-settings flex gap-2.5 justify-center flex-wrap">
+              {[{ l: 1, n: "Sprint" }, { l: 3, n: "Classic" }, { l: 5, n: "Endurance" }].map((o) => (
+                <button key={o.l} onClick={() => selectLaps(o.l)} className="cursor-pointer rounded-lg px-3.5 py-2 text-[11px]" style={pillStyle(settings.laps === o.l)}>
+                  <b>{o.n}</b> <span style={{ color: dim }}>{o.l}L</span>
+                </button>
+              ))}
+              <button onClick={() => selectPU(true)} className="cursor-pointer rounded-lg px-3.5 py-2 text-[11px]" style={pillStyle(settings.pu)}><b>Items ON</b></button>
+              <button onClick={() => selectPU(false)} className="cursor-pointer rounded-lg px-3.5 py-2 text-[11px]" style={pillStyle(!settings.pu)}><b>Items OFF</b></button>
+            </div>
 
-            {/* Maps — either player can pick online */}
-            <div className="skr-menu-block" style={{ margin: "6px auto 16px", maxWidth: 560 }}>
-              <div style={{
-                fontSize: 11, fontWeight: 800, letterSpacing: 2.5, color: "#dfe6f5",
-                marginBottom: 8, textAlign: "center",
-              }}>
+            <div className="skr-menu-block">
+              <div className="skr-track-label">
                 {online ? "CHOOSE TRACK · either player" : "CHOOSE TRACK"}
               </div>
-              <div
-                className="grid gap-2 skr-track-grid"
-                style={{
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  justifyItems: "center",
-                }}
-              >
+              <div className="grid skr-track-grid">
                 {THEMES.map((_, i) => (
                   <TrackCard
                     key={i}
@@ -1355,15 +1663,15 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
               </div>
             </div>
 
-            <div className="flex gap-2 justify-center flex-wrap mt-2">
+            <div className="skr-lobby-controls flex gap-3 justify-center flex-wrap">
               {(!online || myRole === "A") && (
-                <div className="rounded-lg px-3 py-2 text-[11px] leading-relaxed" style={{ background: card, border: `1px solid ${line}`, color: dim, maxWidth: 280 }}>
+                <div className="rounded-lg px-3.5 py-2.5 text-[11px] leading-relaxed" style={{ background: card, border: `1px solid ${line}`, color: dim, maxWidth: 280 }}>
                   <b style={{ color: "#38c7ff", letterSpacing: 1 }}>{online ? `YOU · ${nameA}` : nameA}</b><br />
                   <Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> drive · <Key>Space</Key> item
                 </div>
               )}
               {(!online || myRole === "B") && (
-                <div className="rounded-lg px-3 py-2 text-[11px] leading-relaxed" style={{ background: card, border: `1px solid ${line}`, color: dim, maxWidth: 280 }}>
+                <div className="rounded-lg px-3.5 py-2.5 text-[11px] leading-relaxed" style={{ background: card, border: `1px solid ${line}`, color: dim, maxWidth: 280 }}>
                   <b style={{ color: "#ff4d5a", letterSpacing: 1 }}>{online ? `YOU · ${nameB}` : nameB}</b><br />
                   {online
                     ? <><Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> drive · <Key>Space</Key> item</>
@@ -1371,7 +1679,7 @@ export default function StickmanKartRacing({ myRole, rt, names = {} } = {}) {
                 </div>
               )}
             </div>
-            <div className="text-xs mt-2.5" style={{ color: dim, letterSpacing: 1 }}>
+            <div className="skr-lobby-foot text-xs" style={{ color: dim, letterSpacing: 1 }}>
               ⏸ <Key>Esc</Key> pause{online ? ` · ${nameA} starts the race` : ""}
             </div>
           </div>

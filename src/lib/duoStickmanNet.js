@@ -68,7 +68,8 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
       if (isHost && m.role === 'B') remoteExtra = { pose: m.pose };
       else if (!isHost && m.role === 'A') remoteExtra = { pose: m.pose };
     } else if (m.k === 'p1' && !isHost) {
-      // Flat host body → same shape as st so takeState/peekState both work.
+      // Host body / clock on the pose channel only (mirroring into `st` caused
+      // the guest to re-apply a stale snapshot the next frame → rubber-band).
       if (typeof m.seq === 'number') {
         if (m.seq <= lastSeq) {
           const hostRestarted = lastSeq > 60 && m.seq < 15;
@@ -78,16 +79,14 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
       }
       if (typeof m.x === 'number') {
         remoteExtra = { pose: m, from: 'p1' };
-        remoteState = {
-          raceT: m.raceT, mode: m.mode, modeT: m.modeT, done: m.done,
-          state: m.state, countT: m.countT,
-          players: [m, m.p2status || null],
-          p: m,
-        };
-        lastState = remoteState;
       }
     } else if (m.k === 'p2' && isHost) {
-      if (typeof m.x === 'number') remoteExtra = { pose: m, from: 'p2' };
+      if (typeof m.x === 'number') {
+        // Prefer the newest guest pose by client timestamp when present
+        const prevT = remoteExtra?.pose?.t;
+        if (typeof m.t === 'number' && typeof prevT === 'number' && m.t + 40 < prevT) return;
+        remoteExtra = { pose: m, from: 'p2' };
+      }
     } else if (m.k === 'st' && !isHost) {
       if (typeof m.seq === 'number') {
         // Drop older snapshots, but accept host remount / seq reset so P1

@@ -171,61 +171,71 @@ export default function GameRoomShell({
   const hostStatus = seatStatus(hostRole, hostOnline);
   const guestStatus = guestWaiting ? null : seatStatus(guestRole, guestOnline);
 
+  const hideRail = railHidden || isFullscreen;
+
   return (
-    <div className={'gr-shell' + (railHidden ? ' gr-shell-rail-off' : '')}>
-      <header className="gr-top">
-        <button type="button" className="gr-leave" onClick={onBack}>
-          <LeaveIcon />
-          <span>Leave Room</span>
-        </button>
+    <div
+      className={
+        'gr-shell'
+        + (hideRail ? ' gr-shell-rail-off' : '')
+        + (isFullscreen ? ' gr-shell-fs' : '')
+      }
+    >
+      {!isFullscreen && (
+        <header className="gr-top">
+          <button type="button" className="gr-leave" onClick={onBack}>
+            <LeaveIcon />
+            <span>Leave Room</span>
+          </button>
 
-        <div className="gr-title-block">
-          <span className="gr-game-badge" aria-hidden="true">
-            <GameBadge gameId={eng?.meta?.id} />
-          </span>
-          <div className="gr-title-copy">
-            <h2 className="gr-title">{eng?.meta?.name || 'Game'}</h2>
-            {eng?.meta?.tag && <p className="gr-tag">{eng.meta.tag}</p>}
+          <div className="gr-title-block">
+            <span className="gr-game-badge" aria-hidden="true">
+              <GameBadge gameId={eng?.meta?.id} />
+            </span>
+            <div className="gr-title-copy">
+              <h2 className="gr-title">{eng?.meta?.name || 'Game'}</h2>
+              {eng?.meta?.tag && <p className="gr-tag">{eng.meta.tag}</p>}
+            </div>
           </div>
-        </div>
 
-        <div className="gr-top-actions">
-          {canPause && onRequestPause && (
+          <div className="gr-top-actions">
+            {canPause && onRequestPause && (
+              <button
+                type="button"
+                className={'gr-iconbtn' + (paused ? ' on' : '')}
+                onClick={onRequestPause}
+                title={pauseLabel}
+                aria-label={pauseLabel}
+              >
+                {paused ? (
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 5.5v13l11-6.5L8 5.5Z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                    <rect x="6" y="5" width="4" height="14" rx="1" />
+                    <rect x="14" y="5" width="4" height="14" rx="1" />
+                  </svg>
+                )}
+              </button>
+            )}
             <button
               type="button"
-              className={'gr-iconbtn' + (paused ? ' on' : '')}
-              onClick={onRequestPause}
-              title={pauseLabel}
-              aria-label={pauseLabel}
+              className="gr-iconbtn"
+              onClick={onToggleFullscreen}
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
-              {paused ? (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                  <path d="M8 5.5v13l11-6.5L8 5.5Z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                  <rect x="6" y="5" width="4" height="14" rx="1" />
-                  <rect x="14" y="5" width="4" height="14" rx="1" />
-                </svg>
-              )}
+              <FullscreenIcon exit={isFullscreen} />
             </button>
-          )}
-          <button
-            type="button"
-            className="gr-iconbtn"
-            onClick={onToggleFullscreen}
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            <FullscreenIcon exit={isFullscreen} />
-          </button>
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
 
       <div className="gr-body">
         <main className="gr-center">
           <div className="gr-viewport">
-            {railHidden && (
+            {railHidden && !isFullscreen && (
               <button
                 type="button"
                 className="gr-rail-tab"
@@ -243,7 +253,7 @@ export default function GameRoomShell({
           </div>
         </main>
 
-        {!railHidden && (
+        {!hideRail && (
           <aside className="gr-rail gr-rail-right">
             <div className="gr-sidepanel">
               <button
