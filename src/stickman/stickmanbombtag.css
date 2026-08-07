@@ -24,7 +24,7 @@
   background: #07080f !important;
 }
 
-/* Lobby grows with content — no clipped height / inner scrollbar */
+/* Lobby: content-sized; scroll lives on bounded wrap/shell in the room frame */
 .arcade-page .sbt-shell .sbt-root-menu,
 .sbt-shell .sbt-root-menu {
   height: auto;
@@ -38,24 +38,400 @@
   inset: auto;
   overflow: visible;
   width: 100%;
+  flex: 0 0 auto;
 }
 
-/* Play: canvas fills the board width; height follows aspect ratio */
+/* ── Lobby layout: title → ready → settings → arenas ── */
+.sbt-shell .sbt-lobby-inner,
+.arcade-page .sbt-shell .sbt-lobby-inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.sbt-shell .sbt-lobby-hero {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sbt-shell .sbt-lobby-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+}
+
+.sbt-shell .sbt-lobby-title-a {
+  color: #38c7ff;
+  text-shadow: 0 0 10px #38c7ff, 0 0 28px rgba(56, 199, 255, 0.35);
+}
+
+.sbt-shell .sbt-lobby-title-b {
+  color: #ff4d5a;
+  text-shadow: 0 0 10px #ff4d5a, 0 0 28px rgba(255, 77, 90, 0.35);
+}
+
+.sbt-shell .sbt-lobby-title-bomb {
+  font-size: 0.85em;
+  letter-spacing: 0;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 207, 63, 0.45));
+}
+
+.sbt-shell .sbt-lobby-tagline {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #8b93ab;
+  line-height: 1.35;
+  max-width: 34em;
+}
+
+.sbt-shell .sbt-lobby-cta {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.sbt-shell .sbt-lobby-cta-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+.sbt-shell .sbt-lobby-cta-hint {
+  font-size: 11px;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+
+.sbt-shell .sbt-lobby-cta-btn {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #fff;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sbt-shell .sbt-lobby-cta-btn-solo:hover {
+  transform: scale(1.03);
+}
+
+.sbt-shell .sbt-lobby-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sbt-shell .sbt-lobby-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #dfe6f5;
+  line-height: 1.2;
+}
+
+.sbt-shell .sbt-lobby-label-hint {
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #8b93ab;
+  text-transform: none;
+}
+
+.sbt-shell .sbt-opt-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.sbt-shell .sbt-opt-pill {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1 1 0;
+  min-width: 108px;
+  max-width: 132px;
+  min-height: 48px;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.sbt-shell .sbt-opt-pill:hover {
+  transform: translateY(-1px);
+}
+
+.sbt-shell .sbt-opt-pill-title {
+  letter-spacing: 0.04em;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.sbt-shell .sbt-opt-pill-sub {
+  display: block;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* Arena grid: 3 columns, 2 rows — intentional group under settings */
+.sbt-shell .sbt-lobby-arenas {
+  gap: 8px;
+}
+
+.sbt-shell .sbt-arena-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.sbt-shell .sbt-arena-card {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 6px 6px 8px;
+  cursor: pointer;
+  border-radius: 12px;
+  background: #0e111c;
+  border: 1.5px solid #1c2236;
+  color: inherit;
+  font-family: inherit;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.sbt-shell .sbt-arena-card:hover {
+  transform: translateY(-2px);
+  border-color: #2a334d;
+}
+
+.sbt-shell .sbt-arena-card.is-selected {
+  border-width: 1.5px;
+}
+
+.sbt-shell .sbt-arena-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 176 / 92;
+  border-radius: 8px;
+  background: #000;
+}
+
+.sbt-shell .sbt-arena-name {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
+.sbt-shell .sbt-arena-desc {
+  margin-top: 2px;
+  font-size: 9px;
+  line-height: 1.35;
+  color: #8b93ab;
+}
+
+@media (max-width: 560px) {
+  .sbt-shell .sbt-lobby-inner {
+    padding: 8px 10px 12px;
+    gap: 8px;
+  }
+  .sbt-shell .sbt-arena-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .sbt-shell .sbt-opt-pill {
+    min-width: 96px;
+    max-width: none;
+  }
+  .sbt-shell .sbt-lobby-cta {
+    max-width: 100%;
+  }
+}
+
+/* Slightly tighter in the live room board so content fits without scroll when possible */
+.arcade-page .gv-room-live .gr-board-slot .sbt-lobby-inner {
+  max-width: 700px;
+  padding: 8px 12px 12px;
+  gap: 8px;
+}
+.arcade-page .gv-room-live .gr-board-slot .sbt-arena-grid {
+  gap: 8px;
+  max-width: 640px;
+}
+.arcade-page .gv-room-live .gr-board-slot .sbt-arena-name {
+  font-size: 10px;
+}
+.arcade-page .gv-room-live .gr-board-slot .sbt-opt-pill {
+  min-height: 44px;
+  padding: 7px 8px;
+}
+
+/* Play: canvas fills board width; height follows aspect ratio */
 .arcade-page .sbt-shell .sbt-root-play,
 .sbt-shell .sbt-root-play {
   height: auto;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   width: 100%;
   padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.arcade-page .sbt-shell .sbt-stage:not(.sbt-stage-idle),
+.sbt-shell .sbt-stage:not(.sbt-stage-idle) {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1000 / 600;
+  container-type: size;
+  container-name: sbtstage;
 }
 .arcade-page .sbt-shell .sbt-canvas,
 .sbt-shell .sbt-canvas {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   aspect-ratio: 1000 / 600;
   margin: 0 auto;
+  object-fit: contain;
+}
+/* Windowed room: fill board frame (height must be definite — cq alone can resolve to 0) */
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .sbt-wrap,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-wrap,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-shell,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-root-play {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+}
+/*
+ * Lobby scroll — must beat the windowed overflow:hidden rules above
+ * (.gv-fs-root:not(.is-fullscreen) … overflow:hidden !important).
+ */
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .sbt-wrap:has(.sbt-root-menu),
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .sbt-wrap[data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-wrap:has(.sbt-root-menu),
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-shell:has(.sbt-root-menu),
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-wrap[data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-shell[data-sbt-screen="menu"] {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .sbt-root-menu,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-root-menu {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  align-self: stretch !important;
+}
+/*
+ * Stage fit: width-driven aspect-ratio first (never size from cqh alone —
+ * when ancestors were height:auto, 100cqh was 0 and the board vanished).
+ */
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-stage:not(.sbt-stage-idle) {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1000 / 600 !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-root-play {
+    container-type: size !important;
+    container-name: sbtplay;
+  }
+  .arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-root-play .sbt-stage:not(.sbt-stage-idle) {
+    width: min(100cqw, calc(100cqh * 1000 / 600)) !important;
+    max-width: min(100cqw, calc(100cqh * 1000 / 600)) !important;
+    max-height: 100cqh !important;
+    height: auto !important;
+    aspect-ratio: 1000 / 600 !important;
+  }
+}
+.arcade-page .gv-room-live .gr-board-slot canvas.sbt-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: 1000 / 600 !important;
+  object-fit: contain !important;
 }
 .arcade-page .sbt-shell .sbt-canvas-hidden,
 .sbt-shell .sbt-canvas-hidden {
@@ -95,6 +471,7 @@
 .sbt-shell .h-10 { height: 2.5rem; }
 .sbt-shell .h-screen { height: auto; min-height: 0; }
 .sbt-shell .w-\[min\(760px\,95\%\)\] { width: min(760px, 95%); }
+.sbt-shell .min-w-\[220px\] { min-width: 220px; }
 .sbt-shell .min-w-\[260px\] { min-width: 260px; }
 .sbt-shell .max-w-\[860px\] { max-width: 860px; }
 
@@ -111,6 +488,7 @@
 .sbt-shell .rounded-2xl { border-radius: 1rem; }
 .sbt-shell .rounded-3xl { border-radius: 1.5rem; }
 
+.sbt-shell .p-1\.5 { padding: 0.375rem; }
 .sbt-shell .p-2 { padding: 0.5rem; }
 .sbt-shell .p-2\.5 { padding: 0.625rem; }
 .sbt-shell .p-4 { padding: 1rem; }
@@ -128,6 +506,7 @@
 .sbt-shell .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
 .sbt-shell .py-7 { padding-top: 1.75rem; padding-bottom: 1.75rem; }
 .sbt-shell .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.sbt-shell .pb-2 { padding-bottom: 0.5rem; }
 .sbt-shell .pb-3 { padding-bottom: 0.75rem; }
 .sbt-shell .pb-10 { padding-bottom: 2.5rem; }
 .sbt-shell .pt-7 { padding-top: 1.75rem; }
@@ -144,6 +523,7 @@
 .sbt-shell .mt-4 { margin-top: 1rem; }
 .sbt-shell .mt-5 { margin-top: 1.25rem; }
 .sbt-shell .mt-6 { margin-top: 1.5rem; }
+.sbt-shell .mb-0\.5 { margin-bottom: 0.125rem; }
 .sbt-shell .mb-1 { margin-bottom: 0.25rem; }
 .sbt-shell .mb-1\.5 { margin-bottom: 0.375rem; }
 .sbt-shell .mb-2 { margin-bottom: 0.5rem; }
@@ -195,42 +575,165 @@
   min-height: 0;
 }
 
-/*
- * Fullscreen: every wrapper is a full-bleed centered stage.
- * Canvas is absolutely centered so it cannot stick left/right.
- */
-.arcade-page .gv-fs-root.is-fullscreen,
-.arcade-page .gv-fs-root:fullscreen,
-.arcade-page .gv-fs-root:-webkit-full-screen {
-  overflow: hidden !important;
+/* Play stage = canvas + HUD overlays (same box) */
+.sbt-shell .sbt-stage {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  flex: none;
+  container-type: size;
+  container-name: sbtstage;
 }
-.arcade-page .gv-fs-root.is-fullscreen .gv-board,
-.arcade-page .gv-fs-root:fullscreen .gv-board,
-.arcade-page .gv-fs-root:-webkit-full-screen .gv-board,
-.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap,
-.arcade-page .gv-fs-root:fullscreen .gv-board-wrap,
-.arcade-page .gv-fs-root:-webkit-full-screen .gv-board-wrap,
-.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap > div,
-.arcade-page .gv-fs-root:fullscreen .gv-board-wrap > div,
-.arcade-page .gv-fs-root:-webkit-full-screen .gv-board-wrap > div,
-.arcade-page .gv-fs-root.is-fullscreen .sbt-wrap,
-.arcade-page .gv-fs-root:fullscreen .sbt-wrap,
-.arcade-page .gv-fs-root:-webkit-full-screen .sbt-wrap,
-.arcade-page .gv-fs-root.is-fullscreen .sbt-shell,
-.arcade-page .gv-fs-root:fullscreen .sbt-shell,
-.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell {
+.sbt-shell .sbt-stage-idle {
+  display: none !important;
+}
+.sbt-shell .sbt-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  overflow: hidden;
+}
+/* HUD scales with stage (cqmin ≈ canvas size) so room view stays proportional */
+.sbt-shell .sbt-hud-panel {
+  position: absolute;
+  padding: clamp(4px, 1.2cqmin, 10px) clamp(8px, 2cqmin, 16px);
+  border-radius: clamp(8px, 2cqmin, 16px);
+  top: clamp(6px, 2cqmin, 14px);
+}
+.sbt-shell .sbt-hud-p1 { left: clamp(6px, 2cqmin, 14px); }
+.sbt-shell .sbt-hud-p2 { right: clamp(6px, 2cqmin, 14px); }
+.sbt-shell .sbt-hud-name {
+  font-size: clamp(8px, 1.6cqmin, 11px);
+  letter-spacing: 0.12em;
+}
+.sbt-shell .sbt-hud-score {
+  font-size: clamp(16px, 4.2cqmin, 28px);
+  line-height: 1.1;
+}
+.sbt-shell .sbt-hud-timer {
+  position: absolute;
+  top: clamp(4px, 1.5cqmin, 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: clamp(2px, 0.8cqmin, 8px) clamp(10px, 2.8cqmin, 24px);
+  border-radius: clamp(10px, 2.5cqmin, 18px);
+  font-size: clamp(20px, 7cqmin, 44px);
+  letter-spacing: 0.08em;
+}
+.sbt-shell .sbt-hud-round {
+  position: absolute;
+  top: clamp(40px, 11cqmin, 72px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(9px, 1.8cqmin, 12px);
+  letter-spacing: 0.2em;
+}
+.sbt-shell .sbt-hud-controls {
+  position: absolute;
+  display: flex;
+  top: clamp(6px, 2cqmin, 14px);
+  left: calc(50% + clamp(70px, 18cqmin, 150px));
+  gap: clamp(4px, 1cqmin, 8px);
+}
+.sbt-shell .sbt-hud-controls button {
+  width: clamp(28px, 6cqmin, 40px);
+  height: clamp(28px, 6cqmin, 40px);
+  font-size: clamp(12px, 2.8cqmin, 16px);
+  border-radius: clamp(8px, 1.8cqmin, 12px);
+}
+.sbt-shell .sbt-center-text {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  letter-spacing: 0.12em;
+}
+.sbt-shell .sbt-center-big {
+  font-size: clamp(36px, 14cqmin, 92px);
+  line-height: 1;
+}
+.sbt-shell .sbt-center-small {
+  font-size: clamp(12px, 3.5cqmin, 26px);
+  margin-top: 0.25em;
+}
+.sbt-shell .sbt-banner-text {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(18px, 6cqmin, 40px);
+  letter-spacing: 0.1em;
+}
+.sbt-shell .sbt-touch-pad {
+  position: absolute;
+  display: flex;
+  gap: clamp(6px, 1.5cqmin, 12px);
+  bottom: clamp(6px, 2cqmin, 14px);
+}
+.sbt-shell .sbt-touch-pad.sbt-touch-left { left: clamp(6px, 2cqmin, 14px); }
+.sbt-shell .sbt-touch-pad.sbt-touch-right { right: clamp(6px, 2cqmin, 14px); }
+.sbt-shell .sbt-touch-pad > div {
+  width: clamp(40px, 9cqmin, 62px) !important;
+  height: clamp(40px, 9cqmin, 62px) !important;
+  font-size: clamp(11px, 3cqmin, 24px) !important;
+}
+.sbt-shell .sbt-touch-pad > div.sbt-touch-pass {
+  font-size: clamp(9px, 2.2cqmin, 13px) !important;
+}
+
+/*
+ * Fullscreen Bomb Tag — largest centered 1000×600, no scrollbar
+ */
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap),
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-wrap),
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-wrap) {
+  overflow: hidden !important;
+  background: #07080f !important;
+}
+/* Play: never collapse the mount chain (same 0-size bug Kart fixed) */
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-root-play),
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-root-play),
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-root-play) {
   width: 100% !important;
   height: 100% !important;
+  min-height: 100dvh !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .gr-board-slot,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .gv-board-wrap > div,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .sbt-wrap,
+.arcade-page .gv-fs-root.is-fullscreen:has(.sbt-wrap) .sbt-shell,
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-wrap) .gr-board-slot,
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-wrap) .gv-board-wrap,
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-wrap) .gv-board-wrap > div,
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-wrap) .sbt-wrap,
+.arcade-page .gv-fs-root:fullscreen:has(.sbt-wrap) .sbt-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-wrap) .gr-board-slot,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-wrap) .gv-board-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-wrap) .gv-board-wrap > div,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-wrap) .sbt-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.sbt-wrap) .sbt-shell {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
   min-height: 100% !important;
   max-width: none !important;
+  max-height: none !important;
   margin: 0 !important;
+  padding: 0 !important;
   border: none !important;
   border-radius: 0 !important;
   flex: 1 1 auto !important;
+  align-self: stretch !important;
   display: flex !important;
   flex-direction: column !important;
-  align-items: stretch !important;
-  justify-content: stretch !important;
+  align-items: center !important;
+  justify-content: center !important;
   overflow: hidden !important;
   background: #07080f !important;
   position: relative !important;
@@ -242,8 +745,14 @@
   flex: 1 1 auto !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  min-height: 100% !important;
   overflow: auto !important;
   background: #07080f !important;
+  padding: clamp(12px, 2vh, 28px) clamp(12px, 2.5vw, 36px) !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  box-sizing: border-box !important;
 }
 .arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-play,
 .arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-root-play,
@@ -251,36 +760,126 @@
   flex: 1 1 auto !important;
   width: 100% !important;
   height: 100% !important;
-  min-height: 0 !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
   position: relative !important;
   overflow: hidden !important;
   background: #07080f !important;
   padding: 0 !important;
   margin: 0 !important;
-  display: block !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  container-type: size !important;
+  container-name: sbtfsplay;
 }
-/* Dead-center the playfield — fill as much of the screen as aspect allows */
+/* Stage + canvas: largest fully-visible 1000×600 (JS may lock px; CSS is fallback) */
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-stage,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-stage,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-stage,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot .sbt-stage,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .sbt-stage,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .sbt-stage {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  width: min(100%, calc((100dvh - 12px) * 1000 / 600)) !important;
+  max-width: min(100%, calc((100dvh - 12px) * 1000 / 600)) !important;
+  max-height: calc(100dvh - 12px) !important;
+  height: auto !important;
+  aspect-ratio: 1000 / 600 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  container-type: size !important;
+  background: #07080f !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-play .sbt-stage,
+  .arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-root-play .sbt-stage,
+  .arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-root-play .sbt-stage {
+    width: min(100cqw, calc(100cqh * 1000 / 600)) !important;
+    max-width: min(100cqw, calc(100cqh * 1000 / 600)) !important;
+    height: min(100cqh, calc(100cqw * 600 / 1000)) !important;
+    max-height: min(100cqh, calc(100cqw * 600 / 1000)) !important;
+    aspect-ratio: 1000 / 600 !important;
+  }
+}
 .arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-canvas,
 .arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-canvas,
-.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-canvas {
-  position: absolute !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%, -50%) !important;
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-canvas,
+.arcade-page .gv-fs-root.is-fullscreen .gr-board-slot canvas.sbt-canvas,
+.arcade-page .gv-fs-root:fullscreen .gr-board-slot canvas.sbt-canvas,
+.arcade-page .gv-fs-root:-webkit-full-screen .gr-board-slot canvas.sbt-canvas,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot canvas.sbt-canvas {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
   display: block !important;
   margin: 0 !important;
-  width: min(100%, calc(100vh * 1000 / 600)) !important;
-  height: min(100%, calc(100vw * 600 / 1000)) !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  aspect-ratio: 1000 / 600 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  object-fit: fill !important;
+  border-radius: 0 !important;
+  flex: none !important;
 }
 .arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-lobby,
 .arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-lobby,
 .arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-lobby {
-  width: min(960px, 100%) !important;
+  width: min(760px, 94vw) !important;
+  max-width: 760px !important;
   margin: 0 auto !important;
+  float: none !important;
+  position: relative !important;
+  inset: auto !important;
   background: #07080f !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-lobby-inner,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-lobby-inner,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-lobby-inner {
+  max-width: 720px;
+  padding: 16px 18px 24px;
+  gap: 14px;
+}
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-arena-grid,
+.arcade-page .gv-fs-root:fullscreen .sbt-shell .sbt-arena-grid,
+.arcade-page .gv-fs-root:-webkit-full-screen .sbt-shell .sbt-arena-grid {
+  max-width: 680px;
+  gap: 12px;
+}
+
+/* Thin, visible lobby scrollbar (room + fullscreen menu) */
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="menu"]::-webkit-scrollbar,
+.arcade-page .gv-room-live .gr-board-slot .sbt-shell[data-sbt-screen="menu"]::-webkit-scrollbar,
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-menu::-webkit-scrollbar {
+  width: 8px;
+}
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="menu"]::-webkit-scrollbar-thumb,
+.arcade-page .gv-room-live .gr-board-slot .sbt-shell[data-sbt-screen="menu"]::-webkit-scrollbar-thumb,
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-menu::-webkit-scrollbar-thumb {
+  background: rgba(139, 147, 171, 0.45);
+  border-radius: 8px;
+}
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="menu"]::-webkit-scrollbar-track,
+.arcade-page .gv-room-live .gr-board-slot .sbt-shell[data-sbt-screen="menu"]::-webkit-scrollbar-track,
+.arcade-page .gv-fs-root.is-fullscreen .sbt-shell .sbt-root-menu::-webkit-scrollbar-track {
+  background: rgba(7, 8, 15, 0.4);
+}
+
+/* Also unblock room-live overflow while fullscreen play fills cleanly */
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .sbt-wrap,
+.arcade-page .gv-room-live .gv-fs-root:fullscreen .gr-board-slot .sbt-wrap {
+  overflow: hidden !important;
+  max-height: none !important;
 }
 
 .sbt-shell .flex-1 { flex: 1 1 0%; }

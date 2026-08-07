@@ -1907,8 +1907,7 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
 }
 .arcade-page .gv-fs-root.is-fullscreen .skr-wrap,
 .arcade-page .gv-fs-root.is-fullscreen .skr-shell,
-.arcade-page .gv-fs-root.is-fullscreen .lwd-wrap,
-.arcade-page .gv-fs-root.is-fullscreen .sbt-wrap{
+.arcade-page .gv-fs-root.is-fullscreen .lwd-wrap{
   width:100% !important;
   height:100% !important;
   max-width:none !important;
@@ -1917,6 +1916,19 @@ section.gv-screen.is-fullscreen .gv-board-wrap > div{
   background:var(--night) !important;
   display:grid !important;
   place-items:center !important;
+}
+.arcade-page .gv-fs-root.is-fullscreen .sbt-wrap{
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  border-radius:0 !important;
+  background:var(--night) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow:hidden !important;
 }
 .arcade-page .gv-fs-root.is-fullscreen .skr-root-race,
 .arcade-page .gv-fs-root.is-fullscreen .skr-shell > .w-full{
@@ -3176,7 +3188,8 @@ html[data-appearance="light"] .arcade-page .gv-rules-close{
 .arcade-page .lwd-wrap,
 .arcade-page .lwd-wrap .lwd-shell,
 .arcade-page .lwd-wrap .lwd-root-menu,
-.arcade-page .lwd-wrap .lwd-root-play{background:#07080f !important;}
+.arcade-page .lwd-wrap .lwd-root-play,
+.arcade-page .lwd-wrap .lwd-lobby{background:#07080f !important;}
 .arcade-page .lwd-wrap .lwd-shell{overflow:visible;}
 .arcade-page .gv-fs-root:not(.is-fullscreen) .lwd-wrap .lwd-canvas{
   width:100%;height:auto;aspect-ratio:1000/600;background:#07080f;
@@ -3188,9 +3201,9 @@ html[data-appearance="light"] .arcade-page .gv-rules-close{
 .arcade-page .sbt-wrap .sbt-root-play,
 .arcade-page .sbt-wrap .sbt-lobby{background:#07080f !important;}
 .arcade-page .sbt-wrap .sbt-shell{overflow:visible;}
-/* Embedded (not fullscreen): full column width */
+/* Embedded (not fullscreen): full column width — height from stage / ResizeObserver */
 .arcade-page .gv-fs-root:not(.is-fullscreen) .sbt-wrap .sbt-canvas{
-  width:100%;height:auto;aspect-ratio:1000/600;background:#07080f;
+  width:100%;height:100%;aspect-ratio:1000/600;background:#07080f;object-fit:contain;
 }
 .arcade-page .skr-wrap .skr-shell > div{min-height:0 !important;}
 .arcade-page .sc-embedded{padding:8px 0 20px;}

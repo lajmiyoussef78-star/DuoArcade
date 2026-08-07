@@ -151,10 +151,380 @@
   .lwd-shell .max-\[640px\]\:grid-cols-1 { grid-template-columns: 1fr; }
 }
 
-/* Embedded: canvas fills shell width, page scrolls for the rest */
+/* Lobby: content-sized; scroll lives on bounded wrap/shell in the room frame */
+.arcade-page .lwd-shell .lwd-root-menu,
+.lwd-shell .lwd-root-menu {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  align-items: flex-start;
+  width: 100%;
+  background: #07080f;
+}
+.arcade-page .lwd-shell .lwd-lobby,
+.lwd-shell .lwd-lobby {
+  position: relative;
+  inset: auto;
+  overflow: visible;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.lwd-shell .lwd-lobby-inner,
+.arcade-page .lwd-shell .lwd-lobby-inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.lwd-shell .lwd-lobby-hero {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lwd-shell .lwd-lobby-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.6vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  line-height: 1.2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+}
+
+.lwd-shell .lwd-lobby-title-a {
+  color: #38c7ff;
+  text-shadow: 0 0 10px #38c7ff, 0 0 28px rgba(56, 199, 255, 0.35);
+}
+
+.lwd-shell .lwd-lobby-title-b {
+  color: #ff4d5a;
+  text-shadow: 0 0 10px #ff4d5a, 0 0 28px rgba(255, 77, 90, 0.35);
+}
+
+.lwd-shell .lwd-lobby-title-icon {
+  font-size: 0.85em;
+  letter-spacing: 0;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(56, 199, 255, 0.45));
+}
+
+.lwd-shell .lwd-lobby-tagline {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #8b93ab;
+  line-height: 1.35;
+  max-width: 36em;
+}
+
+.lwd-shell .lwd-lobby-cta {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+
+.lwd-shell .lwd-lobby-cta-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+.lwd-shell .lwd-lobby-cta-hint {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.lwd-shell .lwd-lobby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.lwd-shell .lwd-lobby-cta-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #fff;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lwd-shell .lwd-lobby-cta-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
+.lwd-shell .lwd-lobby-custom-btn {
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-family: inherit;
+  transition: transform 0.12s ease;
+}
+
+.lwd-shell .lwd-lobby-custom-btn small {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #8b93ab;
+}
+
+.lwd-shell .lwd-lobby-custom-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.lwd-shell .lwd-lobby-custom-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.lwd-shell .lwd-lobby-clear-btn {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.lwd-shell .lwd-lobby-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.lwd-shell .lwd-lobby-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #dfe6f5;
+  line-height: 1.2;
+}
+
+.lwd-shell .lwd-lobby-label-hint {
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #8b93ab;
+  text-transform: none;
+}
+
+.lwd-shell .lwd-opt-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.lwd-shell .lwd-opt-pill {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1 1 0;
+  min-width: 108px;
+  max-width: 140px;
+  min-height: 44px;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.lwd-shell .lwd-opt-pill:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.lwd-shell .lwd-opt-pill-title {
+  letter-spacing: 0.04em;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.lwd-shell .lwd-opt-pill-sub {
+  display: block;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.lwd-shell .lwd-lobby-maps {
+  gap: 8px;
+}
+
+.lwd-shell .lwd-map-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.lwd-shell .lwd-map-card {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 6px 6px 8px;
+  cursor: pointer;
+  border-radius: 12px;
+  background: #0e111c;
+  border: 1.5px solid #1c2236;
+  color: inherit;
+  font-family: inherit;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.lwd-shell .lwd-map-card:hover {
+  transform: translateY(-2px);
+  border-color: #2a334d;
+}
+
+.lwd-shell .lwd-map-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 230 / 130;
+  border-radius: 8px;
+  background: #000;
+}
+
+.lwd-shell .lwd-map-name {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
+.lwd-shell .lwd-map-desc {
+  margin-top: 2px;
+  font-size: 9px;
+  line-height: 1.35;
+  color: #8b93ab;
+}
+
+.lwd-shell .lwd-map-tpls {
+  margin-top: 2px;
+  font-size: 9px;
+  color: #8b93ab;
+}
+
+.lwd-shell .lwd-lobby-help {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.lwd-shell .lwd-help-card {
+  border-radius: 10px;
+  padding: 8px 10px;
+  text-align: left;
+  background: #0e111c;
+  border: 1.5px solid #1c2236;
+}
+
+.lwd-shell .lwd-help-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-bottom: 4px;
+}
+
+.lwd-shell .lwd-help-body {
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .lwd-shell .lwd-lobby-inner {
+    padding: 8px 10px 12px;
+    gap: 8px;
+  }
+  .lwd-shell .lwd-map-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .lwd-shell .lwd-lobby-help {
+    grid-template-columns: 1fr;
+  }
+  .lwd-shell .lwd-opt-pill {
+    min-width: 96px;
+    max-width: none;
+  }
+}
+
+/* Tighter in the live room board so content fits without scroll when possible */
+.arcade-page .gv-room-live .gr-board-slot .lwd-lobby-inner {
+  max-width: 700px;
+  padding: 8px 12px 12px;
+  gap: 8px;
+}
+.arcade-page .gv-room-live .gr-board-slot .lwd-map-grid {
+  gap: 8px;
+  max-width: 640px;
+}
+.arcade-page .gv-room-live .gr-board-slot .lwd-map-name {
+  font-size: 10px;
+}
+.arcade-page .gv-room-live .gr-board-slot .lwd-opt-pill {
+  min-height: 40px;
+  padding: 6px 8px;
+}
+
+/* Play: canvas fills board width; height follows aspect ratio */
+.arcade-page .lwd-shell .lwd-root-play,
 .lwd-shell .lwd-root-play {
   position: relative;
   width: 100%;
+  height: auto;
+  min-height: 0;
   background: #07080f;
 }
 .lwd-shell .lwd-canvas {
@@ -165,16 +535,6 @@
   aspect-ratio: 1000 / 600;
   margin: 0 auto;
 }
-.lwd-shell .lwd-root-menu {
-  width: 100%;
-  background: #07080f;
-  overflow: visible;
-}
-.lwd-shell .lwd-menu {
-  position: relative;
-  width: 100%;
-  overflow: visible;
-}
 
 .arcade-page .lwd-shell .h-screen,
 .arcade-page .lwd-shell .lwd-root {
@@ -182,42 +542,135 @@
   min-height: 0;
 }
 
-/* ---- Fullscreen: fill the screen like bomb-tag ---- */
-.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-shell),
-.arcade-page .gv-fs-root:fullscreen:has(.lwd-shell),
-.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-shell) {
-  overflow: hidden !important;
-}
-.arcade-page .gv-fs-root.is-fullscreen .lwd-wrap,
-.arcade-page .gv-fs-root:fullscreen .lwd-wrap,
-.arcade-page .gv-fs-root:-webkit-full-screen .lwd-wrap,
-.arcade-page .gv-fs-root.is-fullscreen .lwd-shell,
-.arcade-page .gv-fs-root:fullscreen .lwd-shell,
-.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell {
+/* Windowed room: fill board frame */
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .lwd-wrap,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-wrap,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-shell,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-root-play {
   width: 100% !important;
   height: 100% !important;
-  min-height: 100% !important;
-  max-width: none !important;
-  margin: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
   overflow: hidden !important;
-  background: #07080f !important;
   display: flex !important;
   flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
 }
-.arcade-page .gv-fs-root.is-fullscreen .lwd-shell > div,
-.arcade-page .gv-fs-root:fullscreen .lwd-shell > div,
-.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell > div,
-.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-root,
-.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-root,
-.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-root,
+/*
+ * Lobby scroll — must beat the windowed overflow:hidden rules above
+ * (.gv-fs-root:not(.is-fullscreen) … overflow:hidden !important).
+ */
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .lwd-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .lwd-wrap[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-shell:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-wrap[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-shell[data-lwd-screen="menu"] {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .lwd-root-menu,
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-root-menu {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  align-self: stretch !important;
+}
+
+/* ---- Fullscreen: fill the screen like bomb-tag / kart ---- */
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap),
+.arcade-page .gv-fs-root:fullscreen:has(.lwd-wrap),
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-wrap) {
+  overflow: hidden !important;
+  background: #07080f !important;
+}
+
+/* Mount chain fills the FS frame (menu + play) */
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .gr-board-slot,
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .gv-board,
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .gv-board-wrap,
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .gv-board-wrap > div,
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .lwd-wrap,
+.arcade-page .gv-fs-root.is-fullscreen:has(.lwd-wrap) .lwd-shell,
+.arcade-page .gv-fs-root:fullscreen:has(.lwd-wrap) .gr-board-slot,
+.arcade-page .gv-fs-root:fullscreen:has(.lwd-wrap) .gv-board-wrap,
+.arcade-page .gv-fs-root:fullscreen:has(.lwd-wrap) .gv-board-wrap > div,
+.arcade-page .gv-fs-root:fullscreen:has(.lwd-wrap) .lwd-wrap,
+.arcade-page .gv-fs-root:fullscreen:has(.lwd-wrap) .lwd-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-wrap) .gr-board-slot,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-wrap) .gv-board-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-wrap) .gv-board-wrap > div,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-wrap) .lwd-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen:has(.lwd-wrap) .lwd-shell {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  place-items: unset !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+/* Beat arcade.scoped FS grid/place-items centering that shrinks the menu */
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.lwd-wrap) > div > .lwd-wrap,
+.arcade-page .gv-fs-root.is-fullscreen .gv-board-wrap:has(.lwd-wrap) > div > .lwd-wrap > .lwd-shell,
+.arcade-page .gv-fs-root:fullscreen .gv-board-wrap:has(.lwd-wrap) > div > .lwd-wrap,
+.arcade-page .gv-fs-root:fullscreen .gv-board-wrap:has(.lwd-wrap) > div > .lwd-wrap > .lwd-shell,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board-wrap:has(.lwd-wrap) > div > .lwd-wrap,
+.arcade-page .gv-fs-root:-webkit-full-screen .gv-board-wrap:has(.lwd-wrap) > div > .lwd-wrap > .lwd-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  place-items: unset !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  align-self: stretch !important;
+}
+
+/* Play root: fill + center canvas */
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell > div:not(.lwd-root-menu),
+.arcade-page .gv-fs-root:fullscreen .lwd-shell > div:not(.lwd-root-menu),
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell > div:not(.lwd-root-menu),
 .arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-root-play,
 .arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-root-play,
 .arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-root-play,
-.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .h-screen,
-.arcade-page .gv-fs-root:fullscreen .lwd-shell .h-screen,
-.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .h-screen {
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .h-screen:not(.lwd-root-menu),
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .h-screen:not(.lwd-root-menu),
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .h-screen:not(.lwd-root-menu) {
   flex: 1 1 auto !important;
   width: 100% !important;
   height: 100% !important;
@@ -225,13 +678,263 @@
   position: relative !important;
   overflow: hidden !important;
   background: #07080f !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  container-type: size !important;
+  container-name: lwdfsplay;
 }
+
+/*
+ * FS menu: fill viewport with no scrollbar (fit content, like Bomb Tag play FS).
+ * Windowed room lobby scroll stays on :not(.is-fullscreen) rules above.
+ */
 .arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-root-menu,
 .arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-root-menu,
-.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-root-menu {
-  overflow: auto !important;
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-root-menu,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-root-menu {
+  flex: 1 1 auto !important;
+  width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: clamp(8px, 1.4vh, 20px) clamp(10px, 2vw, 28px) !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
 }
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-lobby {
+  width: min(860px, 94vw) !important;
+  max-width: 860px !important;
+  max-height: 100% !important;
+  margin-block: 0 !important;
+  margin-inline: auto !important;
+  float: none !important;
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 1 auto !important;
+  overflow: hidden !important;
+  background: #07080f !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-inner,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-inner,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-inner,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-lobby-inner {
+  max-width: min(820px, 100%) !important;
+  padding: clamp(8px, 1.4vh, 18px) clamp(10px, 1.8vw, 22px) clamp(10px, 1.8vh, 22px) !important;
+  gap: clamp(6px, 1.1vh, 12px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-hero,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-hero,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-hero {
+  gap: clamp(3px, 0.6vh, 8px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-title,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-title,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-title {
+  font-size: clamp(1.2rem, 2.2vw + 0.3vh, 1.85rem);
+  letter-spacing: 0.2em;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-tagline,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-tagline,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-tagline {
+  font-size: clamp(11px, 0.85vw + 0.25vh, 13px);
+  max-width: 42em;
+  line-height: 1.35;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-cta,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-cta,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-cta {
+  max-width: min(480px, 100%);
+  padding: clamp(7px, 1vh, 12px) clamp(12px, 1.5vw, 16px);
+  border-radius: 12px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-cta-role,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-cta-role,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-cta-role {
+  font-size: clamp(10px, 0.75vw + 0.25vh, 12px);
+  margin-bottom: 4px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-cta-hint,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-cta-hint,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-cta-hint {
+  font-size: clamp(11px, 0.8vw + 0.25vh, 13px);
+  line-height: 1.35;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-actions,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-actions,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-actions {
+  gap: clamp(6px, 1vh, 12px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-cta-btn,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-cta-btn,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-cta-btn {
+  padding: clamp(8px, 1.1vh, 12px) clamp(16px, 1.8vw, 22px);
+  font-size: clamp(13px, 0.95vw + 0.3vh, 15px);
+  border-radius: 10px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-custom-btn,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-custom-btn,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-custom-btn {
+  padding: clamp(7px, 1vh, 11px) clamp(12px, 1.5vw, 18px);
+  font-size: clamp(11px, 0.85vw + 0.25vh, 13px);
+  border-radius: 10px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-custom-btn small,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-custom-btn small,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-custom-btn small {
+  font-size: clamp(9px, 0.7vw + 0.2vh, 11px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-section,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-section,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-section {
+  gap: clamp(5px, 0.85vh, 10px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-label,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-label,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-label {
+  font-size: clamp(11px, 0.8vw + 0.25vh, 13px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-opt-row,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-opt-row,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-opt-row {
+  max-width: min(400px, 100%);
+  gap: 8px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-opt-pill,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-opt-pill,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-opt-pill,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-opt-pill {
+  min-width: 108px;
+  max-width: 148px;
+  min-height: clamp(40px, 5.2vh, 50px);
+  padding: clamp(5px, 0.8vh, 9px) 10px;
+  font-size: clamp(11px, 0.85vw + 0.2vh, 13px);
+  border-radius: 10px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-opt-pill-title,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-opt-pill-title,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-opt-pill-title {
+  font-size: clamp(11px, 0.85vw + 0.2vh, 13px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-opt-pill-sub,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-opt-pill-sub,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-opt-pill-sub {
+  font-size: clamp(9px, 0.7vw + 0.15vh, 11px);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-map-grid,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-map-grid,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-map-grid,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-map-grid {
+  max-width: min(780px, 100%) !important;
+  gap: clamp(6px, 1vh, 12px) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-map-card,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-map-card,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-map-card {
+  padding: clamp(5px, 0.8vh, 9px) clamp(6px, 0.85vw, 8px) clamp(6px, 0.9vh, 10px);
+  border-radius: 12px;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-map-thumb,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-map-thumb,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-map-thumb {
+  max-height: clamp(52px, 9.5vh, 88px);
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+  object-fit: cover;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-map-name,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-map-name,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-map-name,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-map-name {
+  font-size: clamp(10px, 0.75vw + 0.2vh, 12px) !important;
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-lobby-help,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-lobby-help,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-lobby-help {
+  gap: clamp(6px, 1vh, 12px);
+  max-width: min(780px, 100%);
+}
+
+.arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-help-body,
+.arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-help-body,
+.arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-help-body {
+  font-size: clamp(10px, 0.7vw + 0.2vh, 12px);
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-map-grid,
+  .arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-map-grid,
+  .arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-map-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Beat game-room lobby overflow:auto on board-wrap when FS */
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu) > div,
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.lwd-root-menu),
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot [data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .gv-board-wrap:has([data-lwd-screen="menu"]),
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .gv-board-wrap:has([data-lwd-screen="menu"]) > div {
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+/* Unblock room-live overflow while FS play/menu fills cleanly */
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-wrap,
+.arcade-page .gv-room-live .gv-fs-root:fullscreen .gr-board-slot .lwd-wrap {
+  overflow: hidden !important;
+  max-height: none !important;
+}
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-wrap[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-shell[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gv-fs-root.is-fullscreen .gr-board-slot .lwd-shell:has(.lwd-root-menu) {
+  overflow: hidden !important;
+  max-height: none !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+}
+
 .arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-canvas,
 .arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-canvas,
 .arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-canvas {
@@ -245,4 +948,14 @@
   max-height: 100% !important;
   aspect-ratio: 1000 / 600 !important;
   margin: 0 !important;
+}
+@supports (width: 1cqw) {
+  .arcade-page .gv-fs-root.is-fullscreen .lwd-shell .lwd-root-play .lwd-canvas,
+  .arcade-page .gv-fs-root:fullscreen .lwd-shell .lwd-root-play .lwd-canvas,
+  .arcade-page .gv-fs-root:-webkit-full-screen .lwd-shell .lwd-root-play .lwd-canvas {
+    width: min(100cqw, calc(100cqh * 1000 / 600)) !important;
+    height: min(100cqh, calc(100cqw * 600 / 1000)) !important;
+    max-width: min(100cqw, calc(100cqh * 1000 / 600)) !important;
+    max-height: min(100cqh, calc(100cqw * 600 / 1000)) !important;
+  }
 }

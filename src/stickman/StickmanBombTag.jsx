@@ -41,40 +41,50 @@ function miniMan(g, x, y, col, ph, face, hasBomb, t) {
   }
 }
 
+const ARENA_THUMB_W = 176;
+const ARENA_THUMB_H = 92;
+
 function ArenaCard({ i, selected, onSelect }) {
   const ref = useRef(null);
   useEffect(() => {
     const cvs = ref.current; if (!cvs) return;
     const A = ARENAS[i];
     const items = []; let boltT = Math.random() * 3, flash = 0, raf;
+    const sx = ARENA_THUMB_W / 230;
+    const sy = ARENA_THUMB_H / 120;
     const tick = (ts) => {
       raf = requestAnimationFrame(tick);
-      const t = ts / 1000, g = cvs.getContext("2d"), w = 230, h = 120, gr = 96;
+      const t = ts / 1000, g = cvs.getContext("2d"), w = ARENA_THUMB_W, h = ARENA_THUMB_H, gr = Math.round(96 * sy);
       const bg = g.createLinearGradient(0, 0, 0, h);
       bg.addColorStop(0, A.sky[0]); bg.addColorStop(1, A.sky[1]);
       g.fillStyle = bg; g.fillRect(0, 0, w, h);
       if (A.fx === "snow" && Math.random() < 0.3) items.push({ x: Math.random() * w, y: 0, vy: 0.5 + Math.random() * 0.5, type: "s" });
-      if (A.fx === "meteor" && Math.random() < 0.04) items.push({ x: Math.random() * w + 40, y: 0, vx: -1.6, vy: 1.6, type: "m" });
+      if (A.fx === "meteor" && Math.random() < 0.04) items.push({ x: Math.random() * w + 40 * sx, y: 0, vx: -1.6 * sx, vy: 1.6 * sy, type: "m" });
       if (A.fx === "lightning") { boltT -= 0.016; if (boltT <= 0) { boltT = 2 + Math.random() * 3; flash = 0.5; } }
       for (let k = items.length - 1; k >= 0; k--) {
         const f = items[k];
         if (f.type === "s") { f.y += f.vy; g.fillStyle = "rgba(220,240,255,.8)"; g.fillRect(f.x, f.y, 1.6, 1.6); if (f.y > h) items.splice(k, 1); }
-        if (f.type === "m") { f.x += f.vx; f.y += f.vy; g.strokeStyle = "rgba(255,150,60,.7)"; g.beginPath(); g.moveTo(f.x + 6, f.y - 6); g.lineTo(f.x, f.y); g.stroke(); if (f.y > h) items.splice(k, 1); }
+        if (f.type === "m") { f.x += f.vx; f.y += f.vy; g.strokeStyle = "rgba(255,150,60,.7)"; g.beginPath(); g.moveTo(f.x + 6 * sx, f.y - 6 * sy); g.lineTo(f.x, f.y); g.stroke(); if (f.y > h) items.splice(k, 1); }
       }
       if (flash > 0) { g.fillStyle = "rgba(190,160,255," + flash * 0.35 + ")"; g.fillRect(0, 0, w, h); flash -= 0.05; }
       if (A.fx === "search") {
-        const sx = w / 2 + Math.sin(t * 0.6 + i) * 70;
+        const beam = w / 2 + Math.sin(t * 0.6 + i) * 70 * sx;
         g.fillStyle = "rgba(200,210,255,0.09)";
-        g.beginPath(); g.moveTo(sx - 8, 0); g.lineTo(sx + 8, 0); g.lineTo(sx + 30, gr); g.lineTo(sx - 30, gr); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(beam - 8 * sx, 0); g.lineTo(beam + 8 * sx, 0); g.lineTo(beam + 30 * sx, gr); g.lineTo(beam - 30 * sx, gr); g.closePath(); g.fill();
       }
-      if (A.fx === "laser") for (let k = 0; k < 2; k++) { const ly = 30 + k * 35 + Math.sin(t + k) * 8; g.strokeStyle = "rgba(77,255,158,.25)"; g.beginPath(); g.moveTo(0, ly); g.lineTo(w, ly); g.stroke(); }
-      g.shadowColor = A.floor; g.shadowBlur = 8;
-      g.strokeStyle = A.floor; g.lineWidth = 3;
-      g.beginPath(); g.moveTo(6, gr); g.lineTo(w - 6, gr); g.stroke();
-      g.lineWidth = 2;
-      for (const [px, py, pw] of A.plats) { g.beginPath(); g.moveTo(px * 0.23, py * 0.2); g.lineTo((px + pw) * 0.23, py * 0.2); g.stroke(); }
+      if (A.fx === "laser") for (let k = 0; k < 2; k++) { const ly = 30 * sy + k * 35 * sy + Math.sin(t + k) * 8 * sy; g.strokeStyle = "rgba(77,255,158,.25)"; g.beginPath(); g.moveTo(0, ly); g.lineTo(w, ly); g.stroke(); }
+      g.shadowColor = A.floor; g.shadowBlur = 6;
+      g.strokeStyle = A.floor; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(5, gr); g.lineTo(w - 5, gr); g.stroke();
+      g.lineWidth = 1.75;
+      for (const [px, py, pw] of A.plats) {
+        g.beginPath();
+        g.moveTo(px * 0.23 * sx, py * 0.2 * sy);
+        g.lineTo((px + pw) * 0.23 * sx, py * 0.2 * sy);
+        g.stroke();
+      }
       g.shadowBlur = 0;
-      const x1 = 115 + Math.sin(t * 0.9 + i) * 62, x2 = 115 + Math.sin(t * 0.9 + i + 0.7) * 62;
+      const x1 = w / 2 + Math.sin(t * 0.9 + i) * 46, x2 = w / 2 + Math.sin(t * 0.9 + i + 0.7) * 46;
       const f1 = Math.cos(t * 0.9 + i) >= 0 ? 1 : -1, f2 = Math.cos(t * 0.9 + i + 0.7) >= 0 ? 1 : -1;
       miniMan(g, x1, gr, "#38c7ff", t * 7 + i, f1, true, t);
       miniMan(g, x2, gr, "#ff4d5a", t * 7 + i + 2, f2, false, t);
@@ -84,13 +94,16 @@ function ArenaCard({ i, selected, onSelect }) {
   }, [i]);
   const A = ARENAS[i];
   return (
-    <div onClick={() => onSelect(i)}
-      className="cursor-pointer rounded-2xl p-2.5 pb-3 transition-transform hover:-translate-y-1"
-      style={{ background: "#0e111c", border: "1.5px solid #1c2236", boxShadow: selected ? `0 0 18px ${A.glow}` : "none" }}>
-      <canvas ref={ref} width={230} height={120} className="w-full rounded-xl block bg-black" />
-      <div className="font-bold tracking-widest mt-2 mb-1 text-sm">{A.name}</div>
-      <div className="text-[11px] leading-relaxed" style={{ color: "#8b93ab" }}>{A.desc}</div>
-    </div>
+    <button
+      type="button"
+      onClick={() => onSelect(i)}
+      className={"sbt-arena-card" + (selected ? " is-selected" : "")}
+      style={{ boxShadow: selected ? `0 0 16px ${A.glow}` : "none", borderColor: selected ? A.floor : undefined }}
+    >
+      <canvas ref={ref} width={ARENA_THUMB_W} height={ARENA_THUMB_H} className="sbt-arena-thumb" />
+      <div className="sbt-arena-name">{A.name}</div>
+      <div className="sbt-arena-desc">{A.desc}</div>
+    </button>
   );
 }
 
@@ -109,6 +122,8 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
   const isGuest = online && role === "B";
 
   const canvasRef = useRef(null);
+  const rootElRef = useRef(null);
+  const stageRef = useRef(null);
   const [screen, setScreen] = useState("menu"); // menu | play
   const [settings, setSettings] = useState({ rounds: 3, fuse: 45, arena: 0 });
   const [paused, setPaused] = useState(false);
@@ -127,6 +142,222 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
   const mutedRef = useRef(muted); mutedRef.current = muted;
   const pausedRef = useRef(paused); pausedRef.current = paused;
   const screenRef = useRef(screen); screenRef.current = screen;
+
+  // Mark wrap/shell so room-live CSS can scroll lobby / fill play without height:auto collapse
+  useEffect(() => {
+    const root = rootElRef.current;
+    if (!root) return;
+    const shell = root.closest(".sbt-shell");
+    const wrap = root.closest(".sbt-wrap");
+    const host = wrap?.parentElement;
+    for (const el of [shell, wrap, host]) {
+      if (!el) continue;
+      el.setAttribute("data-sbt-screen", screen);
+    }
+    return () => {
+      for (const el of [shell, wrap, host]) {
+        try { el?.removeAttribute("data-sbt-screen"); } catch { /* */ }
+      }
+    };
+  }, [screen]);
+
+  // Fit stage to largest 1000×600 rect inside the board (CSS cq can resolve to 0)
+  useEffect(() => {
+    if (screen !== "play") return undefined;
+    const root = rootElRef.current;
+    const stage = stageRef.current;
+    if (!root || !stage) return undefined;
+
+    const sizeOf = (el) => {
+      if (!el) return { w: 0, h: 0 };
+      const r = el.getBoundingClientRect?.();
+      return {
+        w: Math.max(el.clientWidth || 0, r?.width || 0),
+        h: Math.max(el.clientHeight || 0, r?.height || 0),
+      };
+    };
+
+    const isFullscreenNow = () => {
+      const fsRoot = root.closest(".gv-fs-root");
+      return !!(
+        document.fullscreenElement
+        || fsRoot?.classList?.contains("is-fullscreen")
+        || fsRoot?.matches?.(":fullscreen")
+      );
+    };
+
+    const FILL_PROPS = [
+      "display", "flex-direction", "align-items", "justify-content",
+      "width", "height", "max-width", "max-height", "min-width", "min-height",
+      "flex", "align-self", "margin", "padding", "overflow", "box-sizing",
+    ];
+
+    const clearFillStyles = () => {
+      const shell = root.closest(".sbt-shell");
+      const wrap = root.closest(".sbt-wrap");
+      const host = wrap?.parentElement;
+      const board = root.closest(".gr-board-slot");
+      const fsRoot = root.closest(".gv-fs-root");
+      const boardWrap = root.closest(".gv-board-wrap");
+      for (const el of [fsRoot, board, boardWrap, host, wrap, shell, root]) {
+        if (!el) continue;
+        for (const prop of FILL_PROPS) el.style.removeProperty(prop);
+      }
+    };
+
+    const fit = () => {
+      const shell = root.closest(".sbt-shell");
+      const wrap = root.closest(".sbt-wrap");
+      const host = wrap?.parentElement;
+      const board = root.closest(".gr-board-slot");
+      const fsRoot = root.closest(".gv-fs-root");
+      const boardWrap = root.closest(".gv-board-wrap");
+      const fs = isFullscreenNow();
+      let bw = 0;
+      let bh = 0;
+
+      if (fs) {
+        // Fullscreen: % widths can resolve against a 0-wide flex ancestor and clip the stage.
+        // Size the mount chain in PIXELS from the fullscreen root / viewport (same as Kart).
+        const vv = window.visualViewport;
+        const fsBox = sizeOf(fsRoot);
+        const boardBox = sizeOf(board);
+        bw = Math.max(
+          fsBox.w,
+          boardBox.w,
+          window.innerWidth || 0,
+          document.documentElement?.clientWidth || 0,
+          vv?.width || 0,
+        );
+        bh = Math.max(
+          fsBox.h,
+          boardBox.h,
+          window.innerHeight || 0,
+          document.documentElement?.clientHeight || 0,
+          vv?.height || 0,
+        );
+        if (bw < 80) bw = window.innerWidth || 1280;
+        if (bh < 80) bh = window.innerHeight || 720;
+
+        const fillEls = [fsRoot, board, boardWrap, host, wrap, shell, root];
+        for (const el of fillEls) {
+          if (!el) continue;
+          el.style.setProperty("display", "flex", "important");
+          el.style.setProperty("flex-direction", "column", "important");
+          el.style.setProperty("align-items", "center", "important");
+          el.style.setProperty("justify-content", "center", "important");
+          el.style.setProperty("width", `${Math.floor(bw)}px`, "important");
+          el.style.setProperty("height", `${Math.floor(bh)}px`, "important");
+          el.style.setProperty("max-width", `${Math.floor(bw)}px`, "important");
+          el.style.setProperty("max-height", `${Math.floor(bh)}px`, "important");
+          el.style.setProperty("min-width", `${Math.floor(bw)}px`, "important");
+          el.style.setProperty("min-height", `${Math.floor(bh)}px`, "important");
+          el.style.setProperty("flex", "1 1 auto", "important");
+          el.style.setProperty("align-self", "stretch", "important");
+          el.style.setProperty("margin", "0", "important");
+          el.style.setProperty("padding", "0", "important");
+          el.style.setProperty("overflow", "hidden", "important");
+          el.style.setProperty("box-sizing", "border-box", "important");
+        }
+      } else {
+        // Leaving fullscreen: drop pixel lock styles or the board stays oversized / off-center
+        clearFillStyles();
+        const boxes = [host, wrap, shell, root, board].map(sizeOf).filter((b) => b.w >= 80 && b.h >= 80);
+        if (boxes.length) {
+          bw = Math.min(...boxes.map((b) => b.w));
+          bh = Math.min(...boxes.map((b) => b.h));
+        } else {
+          ({ w: bw, h: bh } = sizeOf(host || board || root));
+        }
+        if (bh < 80 || bw < 80) {
+          const fallback = sizeOf(host || board);
+          bw = Math.max(bw, fallback.w);
+          bh = Math.max(bh, fallback.h);
+        }
+        for (const el of [root, shell, wrap]) {
+          if (!el) continue;
+          el.style.setProperty("height", "100%", "important");
+          el.style.setProperty("max-height", "100%", "important");
+          el.style.setProperty("width", "100%", "important");
+          el.style.setProperty("max-width", "100%", "important");
+        }
+      }
+
+      // FS: tiny inset so edges aren't clipped; windowed keeps board padding
+      const pad = fs ? 12 : 8;
+      const availW = Math.max(160, (bw || 400) - pad);
+      const availH = Math.max(96, (bh || 240) - pad);
+      // Largest 1000×600 rect that fits fully (no mid-arena clip)
+      let w = availW;
+      let h = w * (600 / 1000);
+      if (h > availH) {
+        h = availH;
+        w = h * (1000 / 600);
+      }
+      w = Math.floor(w);
+      h = Math.floor(h);
+      if (!w || !h || !Number.isFinite(w) || !Number.isFinite(h)) return;
+      stage.style.setProperty("width", `${w}px`, "important");
+      stage.style.setProperty("height", `${h}px`, "important");
+      stage.style.setProperty("max-width", `${w}px`, "important");
+      stage.style.setProperty("max-height", `${h}px`, "important");
+      stage.style.setProperty("aspect-ratio", "auto", "important");
+      stage.style.setProperty("margin", "0", "important");
+      stage.style.setProperty("flex", "0 0 auto", "important");
+    };
+
+    const fitSoon = () => {
+      fit();
+      requestAnimationFrame(() => {
+        fit();
+        requestAnimationFrame(fit);
+      });
+    };
+
+    fitSoon();
+    const t1 = setTimeout(fitSoon, 50);
+    const t2 = setTimeout(fitSoon, 200);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fitSoon) : null;
+    try {
+      for (const el of [
+        root,
+        root.closest(".sbt-shell"),
+        root.closest(".sbt-wrap"),
+        root.closest(".gv-board-wrap"),
+        root.closest(".gr-board-slot"),
+        root.closest(".gv-fs-root"),
+      ]) {
+        if (el) ro?.observe(el);
+      }
+    } catch { /* */ }
+    window.addEventListener("resize", fitSoon);
+    document.addEventListener("fullscreenchange", fitSoon);
+    document.addEventListener("webkitfullscreenchange", fitSoon);
+    const fsRootEl = root.closest(".gv-fs-root");
+    const mo = fsRootEl && typeof MutationObserver !== "undefined"
+      ? new MutationObserver(() => { fitSoon(); setTimeout(fitSoon, 80); })
+      : null;
+    try { mo?.observe(fsRootEl, { attributes: true, attributeFilter: ["class"] }); } catch { /* */ }
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      try { ro?.disconnect(); } catch { /* */ }
+      try { mo?.disconnect(); } catch { /* */ }
+      window.removeEventListener("resize", fitSoon);
+      document.removeEventListener("fullscreenchange", fitSoon);
+      document.removeEventListener("webkitfullscreenchange", fitSoon);
+      try {
+        stage.style.removeProperty("width");
+        stage.style.removeProperty("height");
+        stage.style.removeProperty("max-width");
+        stage.style.removeProperty("max-height");
+        stage.style.removeProperty("aspect-ratio");
+        stage.style.removeProperty("margin");
+        stage.style.removeProperty("flex");
+        clearFillStyles();
+      } catch { /* */ }
+    };
+  }, [screen]);
 
   const E = useRef({
     state: "menu", players: [], bombHolder: 0, bombT: 45, round: 1, scores: [0, 0], startHolder: 0,
@@ -172,6 +403,8 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
     setTimerTxt(Number(next.fuse).toFixed(1));
     setDanger(false);
     E.state = "countdown"; E.countT = 3;
+    E._finishBroadcast = false;
+    try { duoNetRef.current?.clearState?.(); } catch { /* */ }
   }, [E, initAudio]);
 
   useEffect(() => {
@@ -197,6 +430,16 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
         setScreen("menu"); setPaused(false); setResults(null); setBanner(null); setCenterHtml(null);
         setGuestReady(false);
         E.state = "menu"; E.bannerMsg = null; E.resultsMsg = null;
+        E._finishBroadcast = false;
+      } else if (type === "finish" && m.results) {
+        // Peer (or host) match end — same results panel on both screens
+        E.resultsMsg = m.results;
+        E.state = "done";
+        setPaused(false);
+        setBanner(null);
+        setCenterHtml(null);
+        setResults(m.results);
+        setScreen("play");
       } else if (type === "sel" && m.key && m.val != null) {
         setSettings((s) => {
           const next = { ...s, [m.key]: m.val };
@@ -278,8 +521,15 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
       E.resultsMsg = msg;
       setResults(msg);
       E.state = "done";
+      // Broadcast finish immediately — loop stops netTick once state is "done"
+      if (online && !E._finishBroadcast) {
+        E._finishBroadcast = true;
+        try {
+          duoNetRef.current?.sendUi({ type: "finish", results: msg });
+        } catch { /* */ }
+      }
     } else { E.round++; E.startHolder = 1 - E.startHolder; startRound(); }
-  }, [E, startRound]);
+  }, [E, online, startRound]);
 
   const endRound = useCallback(() => {
     const survivor = 1 - E.bombHolder;
@@ -505,30 +755,129 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
 
   /* ---------- main loop ---------- */
   useEffect(() => {
-    let raf, last = 0, netAcc = 0, lastGuestPoseT = -1;
-    const applyGuestPose = (p, pose) => {
-      if (!p || !pose) return;
-      p.x = pose.x; p.y = pose.y;
-      p.vx = pose.vx ?? 0;
-      p.vy = pose.vy ?? 0;
-      if (pose.face != null) p.face = pose.face;
-      if (pose.onGround != null) p.onGround = pose.onGround;
-      if (pose.jumps != null) p.jumps = pose.jumps;
-      if (pose.run != null) p.run = pose.run;
-      if (pose.dead != null) p.dead = pose.dead;
+    let raf, last = 0, netAcc = 0, lastGuestPoseT = -1, lastHostBombT = -1;
+    const clampX = (x) => Math.max(24, Math.min(W - 24, x));
+
+    const blendPose = (p, sp, dt = 0.016) => {
+      if (!p || !sp || sp.x == null) return false;
+      const dx = sp.x - p.x;
+      const dy = (sp.y ?? p.y) - p.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 120) {
+        p.x = sp.x;
+        if (sp.y != null) p.y = sp.y;
+      } else if (dist > 0.4) {
+        const a = Math.min(1, (dist > 40 ? 0.55 : 0.3) + dt * 1.6);
+        p.x += dx * a;
+        p.y += dy * a;
+      } else {
+        p.x = sp.x;
+        if (sp.y != null) p.y = sp.y;
+      }
+      if (sp.vx != null) p.vx = sp.vx;
+      if (sp.vy != null) p.vy = sp.vy;
+      if (sp.face != null) p.face = sp.face;
+      if (sp.onGround != null) p.onGround = sp.onGround;
+      if (sp.jumps != null) p.jumps = sp.jumps;
+      if (sp.run != null) p.run = sp.run;
+      if (sp.dead != null) p.dead = sp.dead;
+      p._netX = sp.x;
+      p._netY = sp.y ?? p.y;
+      p._netVx = sp.vx ?? 0;
+      p._netAt = performance.now();
+      return true;
     };
-    const extrapP1 = (p, dt) => {
-      if (!p || p.dead) return;
-      // Only coast horizontally a little — kill vy coast (stops float drift)
-      p.x += (p.vx || 0) * dt;
-      p.x = Math.max(24, Math.min(W - 24, p.x));
+
+    const coastRemote = (p, dt) => {
+      if (!p || p.dead || p._netAt == null) return;
+      const age = (performance.now() - p._netAt) / 1000;
+      if (age < 0.02 || age > 0.25) return;
+      const vx = p._netVx ?? p.vx ?? 0;
+      if (Math.abs(vx) < 8) return;
+      p.x = clampX(p.x + vx * dt * 0.85);
     };
+
+    /**
+     * Host-authoritative fuse HUD. bombT counts DOWN — stale packets have a
+     * *higher* remaining time. The old Math.max + "remote + 0.85 < last" check
+     * rejected every update after ~1s and let the guest free-run (multi-second drift).
+     */
+    const syncBombT = (remoteT) => {
+      if (typeof remoteT !== "number" || !Number.isFinite(remoteT)) return;
+      if (lastHostBombT >= 0 && remoteT > lastHostBombT + 0.75) {
+        // Upward jump is only valid on fuse/round reset (not an older sample).
+        const fuse = settingsRef.current.fuse || 45;
+        const isReset = remoteT >= fuse - 1.05 || E.state === "countdown";
+        if (!isReset) return;
+      }
+      lastHostBombT = remoteT;
+      const diff = remoteT - E.bombT;
+      // Prefer correctness: snap when drifted; light blend only for tiny jitter.
+      if (Math.abs(diff) > 0.2) E.bombT = remoteT;
+      else if (Math.abs(diff) > 0.04) E.bombT += diff * 0.55;
+    };
+
+    const applyHostPhase = (st) => {
+      if (!st) return;
+      if (st.arena != null && st.arena !== settingsRef.current.arena) {
+        const next = { ...settingsRef.current, arena: st.arena };
+        if (st.fuse != null) next.fuse = st.fuse;
+        if (st.rounds != null) next.rounds = st.rounds;
+        settingsRef.current = next;
+        setSettings(next);
+      }
+      if (st.bombHolder != null) E.bombHolder = st.bombHolder;
+      if (st.round != null && st.round !== E.round) {
+        E.round = st.round;
+        setRound(st.round);
+        lastHostBombT = -1; // allow fuse reset watermark
+      }
+      if (st.scores && (st.scores[0] !== E.scores[0] || st.scores[1] !== E.scores[1])) {
+        E.scores = st.scores; setScores([...st.scores]);
+      }
+      // Phase: never regress play → countdown from a late packet
+      if (st.state === "done" && st.results) {
+        E.state = "done";
+        setResults(st.results);
+        return;
+      }
+      if (st.state === "explode" || st.state === "banner") {
+        E.state = st.state;
+        if (st.state === "banner" && st.banner) {
+          if (E._uiBanner !== st.banner.text) { E._uiBanner = st.banner.text; setBanner(st.banner); }
+        }
+        return;
+      }
+      if (E.state === "play" && st.state === "countdown") return;
+      if (st.state === "countdown" || st.state === "play") E.state = st.state;
+      if (st.countT != null && E.state === "countdown") {
+        const diff = st.countT - E.countT;
+        if (Math.abs(diff) > 0.5) E.countT = st.countT;
+        else if (Math.abs(diff) > 0.08) E.countT += diff * 0.3;
+      }
+      syncBombT(st.bombT);
+    };
+
     const uiTimer = (bombT) => {
       const ttxt = Math.max(0, bombT).toFixed(1);
       if (E._uiTimer !== ttxt) { E._uiTimer = ttxt; setTimerTxt(ttxt); }
       const dang = bombT < 10;
       if (E._uiDanger !== dang) { E._uiDanger = dang; setDanger(dang); }
     };
+
+    const packPose = (p) => (p ? {
+      t: performance.now(),
+      x: +p.x.toFixed(2),
+      y: +p.y.toFixed(2),
+      vx: +Number(p.vx || 0).toFixed(2),
+      vy: +Number(p.vy || 0).toFixed(2),
+      face: p.face,
+      onGround: !!p.onGround,
+      jumps: p.jumps | 0,
+      run: p.run,
+      dead: !!p.dead,
+    } : null);
+
     const loop = (ts) => {
       raf = requestAnimationFrame(loop);
       const rdt = Math.min(0.033, (ts - last) / 1000 || 0.016); last = ts;
@@ -537,78 +886,84 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
       const net = duoNetRef.current;
       const guest = !!(net?.online && !net.isHost);
 
-      /* ── Guest (red / P2): full local authority — never pull P2 from host ── */
+      /* ── Guest (red / P2): local drive + local clock; soft-sync host ── */
       if (guest) {
         if (!E.players?.length) E.players = [makePlayer(0), makePlayer(1)];
         E.drawQuiet = true;
-        const st = net.takeState?.();
-        if (st) {
-          if (st.arena != null && st.arena !== settingsRef.current.arena) {
-            const next = { ...settingsRef.current, arena: st.arena };
-            if (st.fuse != null) next.fuse = st.fuse;
-            if (st.rounds != null) next.rounds = st.rounds;
-            settingsRef.current = next;
-            setSettings(next);
-          }
-          // P1 only from host
-          if (st.players?.[0]) {
-            if (!E.players[0]) E.players[0] = makePlayer(0);
-            Object.assign(E.players[0], st.players[0]);
-            if (st.players[0].face == null && st.players[0].facing != null) {
-              E.players[0].face = st.players[0].facing;
-            }
-          }
-          // P2: only death flag from host (explosion) — never x/y/vx (ghost fix)
-          if (st.players?.[1]?.dead && E.players[1]) E.players[1].dead = true;
-          if (st.bombHolder != null) E.bombHolder = st.bombHolder;
-          if (st.bombT != null) E.bombT = st.bombT;
-          if (st.state) E.state = st.state;
-          if (st.countT != null) E.countT = st.countT;
-          if (st.round != null && st.round !== E.round) { E.round = st.round; setRound(st.round); }
-          if (st.scores && (st.scores[0] !== E.scores[0] || st.scores[1] !== E.scores[1])) {
-            E.scores = st.scores; setScores([...st.scores]);
-          }
-          uiTimer(E.bombT);
-          if (st.state === "countdown" && st.countT != null) {
-            const n = Math.ceil(st.countT);
-            if (E.lastCn !== n) {
-              E.lastCn = n;
-              if (n > 0) setCenterHtml({ big: String(n) });
-              else {
-                const nm = (E.bombHolder === 0 ? namesRef.current.A : namesRef.current.B).toUpperCase();
-                setCenterHtml({ big: "GO!", small: `💣 ${nm} HAS THE BOMB` });
+
+        const extra = net.takeRemoteExtra?.();
+        if (extra?.pose && extra.pose.x != null) {
+          if (!E.players[0]) E.players[0] = makePlayer(0);
+          blendPose(E.players[0], extra.pose, rdt);
+          // Dense clock on pose channel (same idea as Kart) — smoother than st-only
+          if (extra.from === "p1" || extra.pose.bombT != null) {
+            syncBombT(extra.pose.bombT);
+            if (extra.pose.state === "play" || extra.pose.state === "countdown") {
+              if (!(E.state === "play" && extra.pose.state === "countdown")) {
+                E.state = extra.pose.state;
               }
             }
-          } else if (st.state === "play" && E.lastCn !== -1) {
-            E.lastCn = -1; setCenterHtml(null);
-          } else if (st.state === "banner" && st.banner) {
-            if (E._uiBanner !== st.banner.text) { E._uiBanner = st.banner.text; setBanner(st.banner); }
-          } else if (st.state === "done" && st.results) {
-            setResults(st.results);
+            if (extra.pose.countT != null && E.state === "countdown") {
+              const diff = extra.pose.countT - E.countT;
+              if (Math.abs(diff) > 0.5) E.countT = extra.pose.countT;
+              else if (Math.abs(diff) > 0.08) E.countT += diff * 0.3;
+            }
+            if (extra.pose.bombHolder != null) E.bombHolder = extra.pose.bombHolder;
           }
-        } else if (E.players[0]) {
-          extrapP1(E.players[0], rdt);
         }
 
-        // Drive red only from local keys — if nothing held, friction stops them
+        const st = net.takeState?.();
+        if (st) {
+          applyHostPhase(st);
+          if (st.players?.[0] && !(extra?.pose && extra.from === "p1")) {
+            if (!E.players[0]) E.players[0] = makePlayer(0);
+            blendPose(E.players[0], st.players[0], rdt);
+          }
+          // P2 death only from host explosion — never overwrite local x/y
+          if (st.players?.[1]?.dead && E.players[1]) E.players[1].dead = true;
+        } else if (E.players[0]) {
+          coastRemote(E.players[0], rdt);
+        }
+
+        // Local countdown so 3-2-1 never freezes if a host packet stalls
+        if (E.state === "countdown") {
+          E.countT = Math.max(0, (E.countT || 0) - rdt);
+          const n = Math.ceil(E.countT);
+          if (E.lastCn !== n) {
+            E.lastCn = n;
+            if (n > 0) setCenterHtml({ big: String(n) });
+            else {
+              const nm = (E.bombHolder === 0 ? namesRef.current.A : namesRef.current.B).toUpperCase();
+              setCenterHtml({ big: "GO!", small: `💣 ${nm} HAS THE BOMB` });
+            }
+          }
+          if (E.countT <= 0 && E.state === "countdown") {
+            // Host owns the real phase flip; nudge UI only
+            setTimeout(() => { if (E.state === "countdown") setCenterHtml(null); }, 900);
+          }
+        } else if (E.state === "play") {
+          if (E.lastCn !== -1) { E.lastCn = -1; setCenterHtml(null); }
+          // Local fuse tick — soft-corrected by host syncBombT
+          E.bombT = Math.max(0, (E.bombT || 0) - rdt);
+          uiTimer(E.bombT);
+        }
+
         if (E.state === "play" && !pausedRef.current && E.players[1] && !E.players[1].dead) {
           const k = E.keys || {};
           if (!k.ArrowLeft && !k.ArrowRight && !k.KeyA && !k.KeyD) {
-            // hard-stop horizontal ghost if keys already released
             if (Math.abs(E.players[1].vx) < 40) E.players[1].vx = 0;
           }
           updatePlayer(E.players[1], rdt);
         }
 
-        const p2 = E.players[1];
-        net.netTick(null, () => (p2 ? {
-          pose: {
-            t: performance.now(),
-            x: p2.x, y: p2.y, vx: p2.vx, vy: p2.vy,
-            face: p2.face, onGround: p2.onGround, jumps: p2.jumps,
-            run: p2.run, dead: p2.dead,
-          },
-        } : null));
+        netAcc += rdt;
+        if (netAcc >= 1 / 20) {
+          netAcc = 0;
+          const pose = packPose(E.players[1]);
+          if (pose && net.sendPose) net.sendPose(pose);
+          // Keys only — pose already on p2 channel (avoids dual-authority fight)
+          net.netTick(null, null);
+        }
 
         E.fxItems = E.fxItems || [];
         draw(t);
@@ -617,22 +972,21 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
 
       /* ── Host / local ── */
       E.drawQuiet = false;
-      let usedGuestPose = false;
+      let hasRemoteP2 = false;
       if (net?.online) {
         net.mergeRemoteInto(E);
         if (!E.pressed) E.pressed = {};
         const pose = net.takeRemoteExtra?.()?.pose;
         if (pose && E.players[1] && pose.t !== lastGuestPoseT) {
-          lastGuestPoseT = pose.t;
-          applyGuestPose(E.players[1], pose);
-          usedGuestPose = true;
+          if (typeof pose.t === "number") lastGuestPoseT = pose.t;
+          blendPose(E.players[1], pose, rdt);
+          hasRemoteP2 = true;
         } else if (lastGuestPoseT >= 0 && E.players[1]) {
-          // HOLD last snapped pose — never coast on old vx (that caused ghost walk)
-          usedGuestPose = true;
-          E.players[1].vx = 0;
+          coastRemote(E.players[1], rdt);
+          hasRemoteP2 = true;
         }
         if (E.pressed.KeyM) tryPass(1);
-        if (!usedGuestPose && E.pressed.ArrowUp) tryJump(E.players[1]);
+        if (!hasRemoteP2 && E.pressed.ArrowUp) tryJump(E.players[1]);
       }
       const dt = rdt * E.slowMo;
       if (E.shakeT > 0) { E.shakeT -= rdt; E.shakeAmp *= 0.94; }
@@ -658,22 +1012,33 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
         if (t - E.tickAt > rate) { E.tickAt = t; beep(E.bombT < 7 ? 1100 : 800, 0.04, 0.04, "square"); }
         if (E.bombT <= 0) { E.bombT = 0; explode(); }
         updatePlayer(E.players[0], dt);
-        if (!usedGuestPose) updatePlayer(E.players[1], dt);
+        if (!hasRemoteP2) updatePlayer(E.players[1], dt);
       }
       if (E.state === "explode") {
         updatePlayer(E.players[0], dt);
-        if (!usedGuestPose) updatePlayer(E.players[1], dt);
+        if (!hasRemoteP2) updatePlayer(E.players[1], dt);
       }
       if (E.state === "banner") {
         E.bannerT -= rdt;
         updatePlayer(E.players[0], dt);
-        if (!usedGuestPose) updatePlayer(E.players[1], dt);
+        if (!hasRemoteP2) updatePlayer(E.players[1], dt);
         if (E.bannerT <= 0) afterBanner();
       }
       if (net?.online) {
         netAcc += rdt;
-        if (netAcc >= 0.02) {
+        // 20Hz — denser rates queue on Fly RTT and freeze guest clocks
+        if (netAcc >= 1 / 20) {
           netAcc = 0;
+          const p0 = E.players[0];
+          if (p0 && net.sendPose) {
+            net.sendPose({
+              ...packPose(p0),
+              bombT: +Number(E.bombT || 0).toFixed(3),
+              countT: +Number(E.countT || 0).toFixed(3),
+              state: E.state,
+              bombHolder: E.bombHolder,
+            });
+          }
           net.netTick(() => ({
             state: E.state, bombHolder: E.bombHolder, bombT: E.bombT, scores: E.scores,
             round: E.round, countT: E.countT,
@@ -787,20 +1152,20 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
       if (net?.online && net.touchSet) net.touchSet(k, false, E);
       else E.keys[k] = false;
     };
+    const isPass = label.length > 2;
     return (
       <div key={k}
         onTouchStart={press} onTouchEnd={release} onTouchCancel={release}
         onMouseDown={press} onMouseUp={release}
-        className="flex items-center justify-center rounded-2xl select-none"
-        style={{ width: 62, height: 62, background: "#0a0d17cc", border: "2px solid #1c2236", color: "#dfe6f5", fontSize: label.length > 2 ? 13 : 24, fontWeight: label.length > 2 ? "bold" : "normal", touchAction: "none", ...style }}>
+        className={"flex items-center justify-center rounded-2xl select-none" + (isPass ? " sbt-touch-pass" : "")}
+        style={{ background: "#0a0d17cc", border: "2px solid #1c2236", color: "#dfe6f5", fontWeight: isPass ? "bold" : "normal", touchAction: "none", ...style }}>
         {label}
       </div>
     );
   };
 
-  const syncSetting = (key, val, { anyone = false } = {}) => {
-    // Match length / fuse stay host-only; arena can be picked by either player
-    if (isGuest && !anyone) return;
+  const syncSetting = (key, val) => {
+    // Either player can change arena / fuse / match length — sync to peer
     setSettings((s) => {
       const next = { ...s, [key]: val };
       settingsRef.current = next;
@@ -830,19 +1195,26 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
     setTimeout(blast, 800);
   };
 
-  const backToMenu = () => {
+  const backToMenu = (opts = {}) => {
+    const fromNet = !!opts?.fromNet;
     setScreen("menu"); setPaused(false); setResults(null); setBanner(null); setCenterHtml(null);
     setGuestReady(false);
     E.state = "menu"; E.bannerMsg = null; E.resultsMsg = null;
-    if (isGuest) duoNetRef.current?.sendUi({ type: "ready", ready: false });
-    else if (online) duoNetRef.current?.sendUi({ type: "menu" });
+    E._finishBroadcast = false;
+    // Either player leaving lobby/pause → both return to menu together
+    if (online && !fromNet) {
+      try { duoNetRef.current?.sendUi({ type: "menu" }); } catch { /* */ }
+      if (isGuest) {
+        try { duoNetRef.current?.sendUi({ type: "ready", ready: false }); } catch { /* */ }
+      }
+    }
     const c = canvasRef.current; if (c) c.getContext("2d").clearRect(0, 0, W, H);
   };
 
   // After a match win: short celebration, then lobby — never the shelf panel
   useEffect(() => {
     if (!results) return undefined;
-    const t = setTimeout(() => backToMenu(), 2200);
+    const t = setTimeout(() => backToMenu({ fromNet: false }), 2800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results]);
@@ -856,9 +1228,11 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
 
   return (
     <div
+      ref={rootElRef}
       className={"w-full relative flex items-center justify-center " + (screen === "menu" ? "sbt-root-menu" : "sbt-root-play")}
       style={{ background: "#07080f", fontFamily: 'Consolas,"Courier New",monospace', color: "#dfe6f5" }}
     >
+      <div ref={stageRef} className={"sbt-stage" + (screen === "menu" ? " sbt-stage-idle" : "")}>
       <canvas ref={canvasRef} width={W} height={H} onTouchStart={onCanvasTouch}
         className={"block rounded-xl sbt-canvas" + (screen === "menu" ? " sbt-canvas-hidden" : "")}
         style={{
@@ -868,23 +1242,23 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
 
       {/* HUD */}
       {screen === "play" && (
-        <div className="absolute inset-0 pointer-events-none z-10">
-          <div className="absolute top-3 left-3.5 rounded-2xl px-4 py-2 font-bold" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#38c7ff", boxShadow: "0 0 16px rgba(56,199,255,.25)" }}>
-            <div className="text-[10px] tracking-widest" style={{ color: dim }}>{nameA.toUpperCase()}</div>
-            <div className="text-2xl">{scores[0]}</div>
+        <div className="sbt-hud absolute inset-0 pointer-events-none z-10">
+          <div className="absolute sbt-hud-panel sbt-hud-p1 font-bold" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#38c7ff", boxShadow: "0 0 16px rgba(56,199,255,.25)" }}>
+            <div className="sbt-hud-name tracking-widest" style={{ color: dim }}>{nameA.toUpperCase()}</div>
+            <div className="sbt-hud-score">{scores[0]}</div>
           </div>
-          <div className="absolute top-3 right-3.5 rounded-2xl px-4 py-2 font-bold text-right" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#ff4d5a", boxShadow: "0 0 16px rgba(255,77,90,.25)" }}>
-            <div className="text-[10px] tracking-widest" style={{ color: dim }}>{nameB.toUpperCase()}</div>
-            <div className="text-2xl">{scores[1]}</div>
+          <div className="absolute sbt-hud-panel sbt-hud-p2 font-bold text-right" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#ff4d5a", boxShadow: "0 0 16px rgba(255,77,90,.25)" }}>
+            <div className="sbt-hud-name tracking-widest" style={{ color: dim }}>{nameB.toUpperCase()}</div>
+            <div className="sbt-hud-score">{scores[1]}</div>
           </div>
-          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 rounded-2xl px-6 font-bold"
-            style={{ fontSize: 44, letterSpacing: 3, background: "#0a0d17d9", border: `1.5px solid ${line}`, color: danger ? "#ff4d5a" : "#dfe6f5", textShadow: danger ? "0 0 18px #ff4d5a" : "none", animation: danger ? "sbtPulse .5s infinite" : "none" }}>
+          <div className="absolute sbt-hud-timer font-bold"
+            style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: danger ? "#ff4d5a" : "#dfe6f5", textShadow: danger ? "0 0 18px #ff4d5a" : "none", animation: danger ? "sbtPulse .5s infinite" : "none" }}>
             {timerTxt}
           </div>
-          <div className="absolute top-[72px] left-1/2 -translate-x-1/2 text-xs" style={{ letterSpacing: 3, color: dim }}>ROUND {round}</div>
-          <div className="absolute top-3 flex gap-2 pointer-events-auto" style={{ left: "calc(50% + 150px)" }}>
-            <button onClick={() => setPaused(true)} className="w-10 h-10 rounded-xl cursor-pointer text-base" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>⏸</button>
-            <button onClick={() => setMuted((m) => !m)} className="w-10 h-10 rounded-xl cursor-pointer text-base" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>{muted ? "🔇" : "🔊"}</button>
+          <div className="absolute sbt-hud-round" style={{ color: dim }}>ROUND {round}</div>
+          <div className="absolute sbt-hud-controls flex pointer-events-auto">
+            <button onClick={() => setPaused(true)} className="rounded-xl cursor-pointer" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>⏸</button>
+            <button onClick={() => setMuted((m) => !m)} className="rounded-xl cursor-pointer" style={{ background: "#0a0d17d9", border: `1.5px solid ${line}`, color: "#dfe6f5" }}>{muted ? "🔇" : "🔊"}</button>
           </div>
           <style>{`@keyframes sbtPulse{50%{transform:translateX(-50%) scale(1.12)}}`}</style>
         </div>
@@ -892,14 +1266,14 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
 
       {/* countdown / GO */}
       {centerHtml && (
-        <div className="absolute pointer-events-none z-[15] font-bold text-center" style={{ top: "34%", left: "50%", transform: "translate(-50%,-50%)", color: "#ffcf3f", textShadow: "0 0 30px rgba(255,207,63,.8)", letterSpacing: 5 }}>
-          <div style={{ fontSize: 92 }}>{centerHtml.big}</div>
-          {centerHtml.small && <div style={{ fontSize: 26 }}>{centerHtml.small}</div>}
+        <div className="absolute sbt-center-text pointer-events-none z-[15] font-bold text-center" style={{ color: "#ffcf3f", textShadow: "0 0 30px rgba(255,207,63,.8)" }}>
+          <div className="sbt-center-big">{centerHtml.big}</div>
+          {centerHtml.small && <div className="sbt-center-small">{centerHtml.small}</div>}
         </div>
       )}
       {/* round banner */}
       {banner && (
-        <div className="absolute pointer-events-none z-[15] font-bold text-center" style={{ top: "30%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 40, letterSpacing: 4, color: banner.color, textShadow: `0 0 20px ${banner.color}` }}>
+        <div className="absolute sbt-banner-text pointer-events-none z-[15] font-bold text-center" style={{ color: banner.color, textShadow: `0 0 20px ${banner.color}` }}>
           {banner.text}
         </div>
       )}
@@ -908,41 +1282,45 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
       {isTouch && screen === "play" && (
         <>
           {(!online || role === "A") && (
-            <div className="absolute bottom-3 left-3 flex gap-2.5 z-[12]">
+            <div className="absolute sbt-touch-pad sbt-touch-left flex z-[12] pointer-events-auto">
               {touchBtn("KeyA", "◀")}{touchBtn("KeyD", "▶")}{touchBtn("KeyW", "⤒")}{touchBtn("KeyE", "PASS", { borderColor: "#38c7ff" })}
             </div>
           )}
           {(!online || role === "B") && (
-            <div className="absolute bottom-3 right-3 flex gap-2.5 z-[12]">
+            <div className="absolute sbt-touch-pad sbt-touch-right flex z-[12] pointer-events-auto">
               {touchBtn("KeyM", "PASS", { borderColor: "#ff4d5a" })}{touchBtn("ArrowUp", "⤒")}{touchBtn("ArrowLeft", "◀")}{touchBtn("ArrowRight", "▶")}
             </div>
           )}
         </>
       )}
+      </div>
 
-      {/* MENU — natural height, no nested scrollbar */}
+      {/* MENU — balanced lobby in board frame; parent scrolls if still short */}
       {screen === "menu" && (
         <div className="sbt-lobby z-20 flex justify-center" style={{ background: "#07080f" }}>
-          <div className="w-full max-w-[880px] px-3 pt-6 pb-10 text-center">
-            <h1 className="text-4xl font-bold mb-1" style={{ letterSpacing: 9 }}>
-              <span style={{ color: "#38c7ff", textShadow: "0 0 14px #38c7ff,0 0 40px rgba(56,199,255,.4)" }}>STICKMAN</span>{" 💣 "}
-              <span style={{ color: "#ff4d5a", textShadow: "0 0 14px #ff4d5a,0 0 40px rgba(255,77,90,.4)" }}>BOMB TAG</span>
-            </h1>
-            <div className="text-[13px] mb-3.5" style={{ color: dim, letterSpacing: 2 }}>
-              {online
-                ? `${nameA} vs ${nameB} · pass the bomb · survivor wins`
-                : "pass the bomb before it blows · survivor wins the round"}
-            </div>
+          <div className="sbt-lobby-inner">
+            <header className="sbt-lobby-hero">
+              <h1 className="sbt-lobby-title">
+                <span className="sbt-lobby-title-a">STICKMAN</span>
+                <span className="sbt-lobby-title-bomb" aria-hidden="true">💣</span>
+                <span className="sbt-lobby-title-b">BOMB TAG</span>
+              </h1>
+              <p className="sbt-lobby-tagline">
+                {online
+                  ? `${nameA} vs ${nameB} · pass the bomb · survivor wins`
+                  : "pass the bomb before it blows · survivor wins the round"}
+              </p>
+            </header>
 
             {/* Lobby CTA — host Start / guest I'm Ready */}
-            <div className="mx-auto mb-4 rounded-2xl px-4 py-4" style={{ maxWidth: 420, background: card, border: `1.5px solid ${line}` }}>
+            <div className="sbt-lobby-cta" style={{ background: card, border: `1.5px solid ${line}` }}>
               {online ? (
                 <>
-                  <div className="text-[11px] font-bold mb-2" style={{ letterSpacing: 1.5, color: isGuest ? "#ff4d5a" : "#38c7ff" }}>
+                  <div className="sbt-lobby-cta-role" style={{ color: isGuest ? "#ff4d5a" : "#38c7ff" }}>
                     YOU ARE {isGuest ? nameB.toUpperCase() : nameA.toUpperCase()}
                     {isGuest ? " · INVITED" : " · HOST"}
                   </div>
-                  <div className="text-[13px] mb-3" style={{ color: dim, lineHeight: 1.45 }}>
+                  <div className="sbt-lobby-cta-hint" style={{ color: dim }}>
                     {isHost
                       ? (guestReady
                         ? `${nameB} is ready — pick settings, then start`
@@ -956,12 +1334,11 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
                       type="button"
                       onClick={startMatchUI}
                       disabled={!guestReady}
-                      className="cursor-pointer rounded-2xl font-bold text-white w-full"
+                      className="sbt-lobby-cta-btn"
                       style={{
-                        padding: "14px 28px", fontSize: 18, letterSpacing: 4, border: "none", fontFamily: "inherit",
                         background: guestReady ? "linear-gradient(90deg,#3a7bfd,#ff4d5a)" : "linear-gradient(90deg,#3a4558,#4a5568)",
                         opacity: guestReady ? 1 : 0.6,
-                        boxShadow: guestReady ? "0 0 26px rgba(90,120,255,.45)" : "none",
+                        boxShadow: guestReady ? "0 0 20px rgba(90,120,255,.4)" : "none",
                         cursor: guestReady ? "pointer" : "not-allowed",
                       }}
                     >
@@ -971,15 +1348,14 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
                     <button
                       type="button"
                       onClick={() => setReady(!guestReady)}
-                      className="cursor-pointer rounded-2xl font-bold text-white w-full"
+                      className="sbt-lobby-cta-btn"
                       style={{
-                        padding: "14px 28px", fontSize: 18, letterSpacing: 4, border: "none", fontFamily: "inherit",
                         background: guestReady
                           ? "linear-gradient(90deg,#1f9e58,#4dff9e)"
                           : "linear-gradient(90deg,#ff4d5a,#ff8090)",
                         boxShadow: guestReady
-                          ? "0 0 22px rgba(77,255,158,.5)"
-                          : "0 0 22px rgba(255,77,90,.45)",
+                          ? "0 0 18px rgba(77,255,158,.45)"
+                          : "0 0 18px rgba(255,77,90,.4)",
                       }}
                     >
                       {guestReady ? "READY ✓  (tap to cancel)" : "I'M READY ▶"}
@@ -987,66 +1363,57 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
                   )}
                 </>
               ) : (
-                <button onClick={startMatchUI} className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
-                  style={{ padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", background: "linear-gradient(90deg,#3a7bfd,#ff4d5a)", boxShadow: "0 0 26px rgba(90,120,255,.45)", fontFamily: "inherit" }}>
+                <button type="button" onClick={startMatchUI} className="sbt-lobby-cta-btn sbt-lobby-cta-btn-solo"
+                  style={{ background: "linear-gradient(90deg,#3a7bfd,#ff4d5a)", boxShadow: "0 0 20px rgba(90,120,255,.4)" }}>
                   START MATCH ▶
                 </button>
               )}
             </div>
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>
-              Match length:{isGuest ? ` (${nameA} picks)` : ""}
-            </div>
-            <div className="flex gap-3 justify-center flex-wrap">
-              {[{ r: 1, n: "Quick Match", s: "1 round" }, { r: 3, n: "Best of 3", s: "first to 2" }, { r: 5, n: "Best of 5", s: "first to 3" }].map((o) => (
-                <button key={o.r} disabled={isGuest} onClick={() => syncSetting("rounds", o.r)} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={{ ...pillStyle(settings.rounds === o.r), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
-                  <b style={{ letterSpacing: 1 }}>{o.n}</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{o.s}</small>
-                </button>
-              ))}
-            </div>
+            <section className="sbt-lobby-section">
+              <div className="sbt-lobby-label">
+                Match length{online ? <span className="sbt-lobby-label-hint"> · either can pick</span> : null}
+              </div>
+              <div className="sbt-opt-row">
+                {[{ r: 1, n: "Quick Match", s: "1 round" }, { r: 3, n: "Best of 3", s: "first to 2" }, { r: 5, n: "Best of 5", s: "first to 3" }].map((o) => (
+                  <button key={o.r} type="button" onClick={() => syncSetting("rounds", o.r)} className={"sbt-opt-pill" + (settings.rounds === o.r ? " is-selected" : "")} style={pillStyle(settings.rounds === o.r)}>
+                    <b className="sbt-opt-pill-title">{o.n}</b>
+                    <small className="sbt-opt-pill-sub" style={{ color: dim }}>{o.s}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>Bomb timer:</div>
-            <div className="flex gap-3 justify-center flex-wrap">
-              {[{ f: 30, s: "frantic" }, { f: 45, s: "classic" }, { f: 60, s: "long fuse" }].map((o) => (
-                <button key={o.f} disabled={isGuest} onClick={() => syncSetting("fuse", o.f)} className="cursor-pointer rounded-xl px-5 py-3 text-sm transition-transform hover:-translate-y-0.5" style={{ ...pillStyle(settings.fuse === o.f), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
-                  <b>{o.f} s</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{o.s}</small>
-                </button>
-              ))}
-            </div>
+            <section className="sbt-lobby-section">
+              <div className="sbt-lobby-label">
+                Bomb timer{online ? <span className="sbt-lobby-label-hint"> · either can pick</span> : null}
+              </div>
+              <div className="sbt-opt-row">
+                {[{ f: 30, s: "frantic" }, { f: 45, s: "classic" }, { f: 60, s: "long fuse" }].map((o) => (
+                  <button key={o.f} type="button" onClick={() => syncSetting("fuse", o.f)} className={"sbt-opt-pill" + (settings.fuse === o.f ? " is-selected" : "")} style={pillStyle(settings.fuse === o.f)}>
+                    <b className="sbt-opt-pill-title">{o.f} s</b>
+                    <small className="sbt-opt-pill-sub" style={{ color: dim }}>{o.s}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
 
-            <div className="text-sm font-bold mt-4 mb-2.5" style={{ letterSpacing: 2 }}>
-              {online ? "Choose arena (either of you can pick):" : "Choose your arena:"}
-            </div>
-            <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
-              {ARENAS.map((_, i) => (
-                <ArenaCard
-                  key={i}
-                  i={i}
-                  selected={settings.arena === i}
-                  onSelect={(a) => syncSetting("arena", a, { anyone: true })}
-                />
-              ))}
-            </div>
-
-            <div className="flex gap-3.5 justify-center flex-wrap mt-6">
-              {(!online || role === "A") && (
-                <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
-                  <b style={{ color: "#38c7ff", letterSpacing: 2 }}>{online ? `YOU · ${nameA.toUpperCase()}` : nameA.toUpperCase()}</b><br />
-                  <Key>A</Key>/<Key>D</Key> — move · <Key>W</Key> — jump (again = double) · <Key>E</Key> — pass bomb
-                </div>
-              )}
-              {(!online || role === "B") && (
-                <div className="flex-1 min-w-[280px] rounded-xl px-4 py-3 text-left text-xs leading-loose" style={{ background: card, border: `1.5px solid ${line}`, color: dim }}>
-                  <b style={{ color: "#ff4d5a", letterSpacing: 2 }}>{online ? `YOU · ${nameB.toUpperCase()}` : nameB.toUpperCase()}</b><br />
-                  {online
-                    ? <><Key>A</Key>/<Key>D</Key> or <Key>←</Key>/<Key>→</Key> — move · <Key>W</Key>/<Key>↑</Key> — jump · <Key>E</Key>/<Key>M</Key> — pass</>
-                    : <><Key>←</Key>/<Key>→</Key> — move · <Key>↑</Key> — jump (again = double) · <Key>M</Key> — pass bomb</>}
-                </div>
-              )}
-            </div>
-            <div className="text-[13px] mt-3" style={{ color: dim, letterSpacing: 2 }}>
-              📱 on phones: touch buttons appear · you can also tap the other stickman to pass<br />you must be CLOSE to the other player to pass the bomb!
-            </div>
+            <section className="sbt-lobby-section sbt-lobby-arenas">
+              <div className="sbt-lobby-label">
+                {online ? "Arena" : "Choose arena"}
+                {online ? <span className="sbt-lobby-label-hint"> · either can pick</span> : null}
+              </div>
+              <div className="sbt-arena-grid">
+                {ARENAS.map((_, i) => (
+                  <ArenaCard
+                    key={i}
+                    i={i}
+                    selected={settings.arena === i}
+                    onSelect={(a) => syncSetting("arena", a)}
+                  />
+                ))}
+              </div>
+            </section>
           </div>
         </div>
       )}
@@ -1063,13 +1430,28 @@ export default function StickmanBombTag({ myRole, rt, names = {} } = {}) {
         </Modal>
       )}
 
-      {/* RESULTS — brief win flash, then auto lobby (no shelf panel) */}
+      {/* RESULTS — you win / you lost (online), then auto lobby */}
       {results && (
         <Modal>
-          <div data-sbt-winner={results.winner === 0 ? "A" : "B"} className="text-6xl mb-1.5">🏆</div>
-          <div className="text-[28px] font-bold mb-1.5" style={{ letterSpacing: 3, color: results.color, textShadow: `0 0 16px ${results.color}` }}>
-            {nameOf(results.winner).toUpperCase()} WINS!
+          <div data-sbt-winner={results.winner === 0 ? "A" : "B"} className="text-6xl mb-1.5">
+            {(!online || (role === "A" ? 0 : 1) === results.winner) ? "🏆" : "💥"}
           </div>
+          <div className="text-[28px] font-bold mb-1.5" style={{
+            letterSpacing: 3,
+            color: (!online || (role === "A" ? 0 : 1) === results.winner) ? results.color : "#8b93ab",
+            textShadow: (!online || (role === "A" ? 0 : 1) === results.winner) ? `0 0 16px ${results.color}` : "none",
+          }}>
+            {!online
+              ? `${nameOf(results.winner).toUpperCase()} WINS!`
+              : ((role === "A" ? 0 : 1) === results.winner ? "YOU WIN!" : "YOU LOST")}
+          </div>
+          {online && (
+            <div className="text-sm mb-2" style={{ color: dim, letterSpacing: 1 }}>
+              {(role === "A" ? 0 : 1) === results.winner
+                ? `${nameOf(1 - results.winner)} lost`
+                : `${nameOf(results.winner)} won`}
+            </div>
+          )}
           <div className="mb-2" style={{ color: dim, letterSpacing: 2 }}>{results.score}</div>
           <div style={{ color: dim, fontSize: 12, letterSpacing: 1 }}>Returning to lobby…</div>
         </Modal>
@@ -1093,7 +1475,4 @@ function GradBtn({ children, onClick }) {
 function GhostBtn({ children, onClick }) {
   return <button onClick={onClick} className="cursor-pointer rounded-xl"
     style={{ padding: "12px 30px", fontSize: 15, letterSpacing: 2, background: "#0e111c", border: "1.5px solid #1c2236", color: "#dfe6f5", fontFamily: "inherit" }}>{children}</button>;
-}
-function Key({ children }) {
-  return <span className="inline-block rounded px-1.5 mx-px" style={{ background: "#060810", border: "1px solid #1c2236", color: "#dfe6f5", fontFamily: "monospace" }}>{children}</span>;
 }

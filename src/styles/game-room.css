@@ -831,13 +831,25 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
   overflow: hidden;
   box-sizing: border-box;
 }
-/* Kart lobby (keepInGame): allow scroll so menu isn't clipped to a blank frame */
+/* Kart / Bomb Tag / Laser Wall lobby (keepInGame): allow scroll so menu isn't clipped */
 .arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu),
 .arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu) > div,
 .arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.skr-root-menu),
 .arcade-page .gv-room-live .gr-board-slot [data-skr-screen="menu"],
 .arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-skr-screen="menu"]),
-.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-skr-screen="menu"]) > div {
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-skr-screen="menu"]) > div,
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.sbt-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.sbt-root-menu) > div,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.sbt-root-menu),
+.arcade-page .gv-room-live .gr-board-slot [data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-sbt-screen="menu"]),
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-sbt-screen="menu"]) > div,
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu) > div,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.lwd-root-menu),
+.arcade-page .gv-room-live .gr-board-slot [data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-lwd-screen="menu"]),
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-lwd-screen="menu"]) > div {
   align-items: stretch !important;
   justify-content: flex-start !important;
   overflow: auto !important;
@@ -853,10 +865,23 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
 }
 .arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.skr-root-menu) > div > *,
 .arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.skr-root-menu) > *,
-.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="menu"],
-.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="menu"] {
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.sbt-root-menu) > div > *,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.sbt-root-menu) > *,
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu) > div > *,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.lwd-root-menu) > * {
   max-height: none !important;
-  overflow: auto !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+/* Menu wrap/shell: bounded height + scroll (do not use overflow:visible here) */
+.arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .sbt-shell[data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .lwd-wrap[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .lwd-shell[data-lwd-screen="menu"] {
+  max-height: 100% !important;
+  overflow-y: auto !important;
   overflow-x: hidden !important;
   align-items: stretch !important;
   justify-content: flex-start !important;
@@ -882,12 +907,13 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
 
 /* Catch-all top-level game roots: use the full board frame */
 /* Catch-all top-level game roots (not square boards — those size separately) */
-.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-wrap"]:not(.skr-wrap),
-.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-shell"]:not(.skr-shell),
+/* Exclude Kart + Bomb Tag + Laser Wall — height:auto collapses their % / cq stage fit to 0 */
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-wrap"]:not(.skr-wrap):not(.sbt-wrap):not(.lwd-wrap),
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-shell"]:not(.skr-shell):not(.sbt-shell):not(.lwd-shell),
 .arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap) > [class$="-page"],
-.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-wrap"]:not(.skr-wrap),
-.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-root"]:not(.skr-root):not(.skr-root-race):not(.skr-root-menu),
-.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-shell"]:not(.skr-shell),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-wrap"]:not(.skr-wrap):not(.sbt-wrap):not(.lwd-wrap),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-root"]:not(.skr-root):not(.skr-root-race):not(.skr-root-menu):not(.sbt-root-menu):not(.sbt-root-play):not(.lwd-root-menu):not(.lwd-root-play),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-shell"]:not(.skr-shell):not(.sbt-shell):not(.lwd-shell),
 .arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > [class$="-page"],
 .arcade-page .gv-room-live .gr-board-slot .wr-root,
 .arcade-page .gv-room-live .gr-board-slot .cb-root,
@@ -952,6 +978,142 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
 .arcade-page .gv-room-live .gr-board-slot .skr-wrap[data-skr-screen="race"],
 .arcade-page .gv-room-live .gr-board-slot .skr-shell[data-skr-screen="race"],
 .arcade-page .gv-room-live .gr-board-slot .skr-root-race {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* Bomb Tag lobby: scroll inside the live board frame (same as Kart) */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.sbt-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.sbt-root-menu) > div,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.sbt-root-menu),
+.arcade-page .gv-room-live .gr-board-slot [data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-sbt-screen="menu"]),
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-sbt-screen="menu"]) > div {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+}
+/* Specificity must beat stickmanbombtag.css windowed overflow:hidden */
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-wrap[data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-shell[data-sbt-screen="menu"],
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .sbt-wrap[data-sbt-screen="menu"],
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .sbt-shell[data-sbt-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-wrap:has(.sbt-root-menu),
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .sbt-shell:has(.sbt-root-menu) {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+/* Bomb Tag play: fill frame — avoid height:auto → 0 cq stage */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div:has(.sbt-root-play),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div[data-sbt-screen="play"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .sbt-wrap,
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot .sbt-shell[data-sbt-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .sbt-wrap > .sbt-shell,
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="play"] .sbt-shell,
+.arcade-page .gv-room-live .gr-board-slot .sbt-root-play {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .sbt-wrap[data-sbt-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot .sbt-shell[data-sbt-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot .sbt-root-play {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* Laser Wall lobby: scroll inside the live board frame (same as Bomb Tag) */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap:has(.lwd-root-menu) > div,
+.arcade-page .gv-room-live .gr-board-slot.gv-board > div:not(.gv-board-wrap):has(.lwd-root-menu),
+.arcade-page .gv-room-live .gr-board-slot [data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-lwd-screen="menu"]),
+.arcade-page .gv-room-live .gr-board-slot .gv-board-wrap:has([data-lwd-screen="menu"]) > div {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+}
+/* Specificity must beat laserwall.css / realtime-shell overflow:hidden */
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-wrap[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-shell[data-lwd-screen="menu"],
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .lwd-wrap[data-lwd-screen="menu"],
+.arcade-page .gv-room-live:not(:has(.gv-fs-root.is-fullscreen)) .gr-board-slot .lwd-shell[data-lwd-screen="menu"],
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-wrap:has(.lwd-root-menu),
+.arcade-page .gv-room-live .gv-fs-root:not(.is-fullscreen) .gr-board-slot .lwd-shell:has(.lwd-root-menu) {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+/* Laser Wall play: fill frame — avoid height:auto collapse */
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div:has(.lwd-root-play),
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div[data-lwd-screen="play"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .lwd-wrap,
+.arcade-page .gv-room-live .gr-board-slot .lwd-wrap[data-lwd-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot .lwd-shell[data-lwd-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot > .gv-board-wrap > div > .lwd-wrap > .lwd-shell,
+.arcade-page .gv-room-live .gr-board-slot .lwd-wrap[data-lwd-screen="play"] .lwd-shell,
+.arcade-page .gv-room-live .gr-board-slot .lwd-root-play {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+}
+.arcade-page .gv-room-live .gr-board-slot .lwd-wrap[data-lwd-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot .lwd-shell[data-lwd-screen="play"],
+.arcade-page .gv-room-live .gr-board-slot .lwd-root-play {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -1185,6 +1347,14 @@ html[data-appearance="light"] .arcade-page .gv-room-result .gr-board-slot.is-res
 }
 /* Stickman Kart race canvas must fill its square stage — not intrinsic 1000px */
 .arcade-page .gv-room-live .gr-board-slot canvas.skr-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+}
+/* Bomb Tag canvas must fill its 1000×600 stage — not intrinsic 1000px */
+.arcade-page .gv-room-live .gr-board-slot canvas.sbt-canvas {
   width: 100% !important;
   height: 100% !important;
   max-width: none !important;

@@ -335,21 +335,24 @@ function MapCard({ i, selected, onSelect }) {
   }, [i]);
   const map = MAPS[i];
   return (
-    <div onClick={() => onSelect?.(i)}
-      className="rounded-2xl p-2.5 pb-3 transition-transform hover:-translate-y-1"
+    <button
+      type="button"
+      onClick={() => onSelect?.(i)}
+      className={`lwd-map-card${selected ? " is-selected" : ""}`}
       style={{
-        background: "#0e111c", border: "1.5px solid #1c2236",
-        boxShadow: selected ? `0 0 18px ${map.glow}` : "none",
+        boxShadow: selected ? `0 0 14px ${map.glow}` : "none",
+        borderColor: selected ? map.edge : "#1c2236",
         cursor: onSelect ? "pointer" : "default",
         opacity: onSelect ? 1 : 0.75,
-      }}>
-      <canvas ref={ref} width={230} height={130} className="w-full rounded-xl block bg-black" />
-      <div className="font-bold tracking-widest mt-2 mb-1 text-sm">{map.icon} {map.name}</div>
-      <div className="text-[11px] leading-relaxed" style={{ color: "#8b93ab" }}>{map.desc}</div>
-      <div className="text-[10px] mt-1" style={{ color: "#8b93ab" }}>
-        drawings: {map.tpls.map((n) => TPL[n]?.icon).join(" ")}
+      }}
+    >
+      <canvas ref={ref} width={230} height={130} className="lwd-map-thumb" />
+      <div className="lwd-map-name">{map.icon} {map.name}</div>
+      <div className="lwd-map-desc">{map.desc}</div>
+      <div className="lwd-map-tpls">
+        {map.tpls.map((n) => TPL[n]?.icon).join(" ")}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -404,6 +407,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
   const isGuest = online && role === "B";
 
   const canvasRef = useRef(null);
+  const rootElRef = useRef(null);
   const [screen, setScreen] = useState("menu"); // menu | play
   const [settings, setSettings] = useState({ time: 60, map: 0 });
   const [customOpen, setCustomOpen] = useState(false);
@@ -422,6 +426,24 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
   const settingsRef = useRef(settings); settingsRef.current = settings;
   const screenRef = useRef(screen); screenRef.current = screen;
   const lastGuestPoseT = useRef(-1);
+
+  // Mark wrap/shell so room-live CSS can scroll lobby / fill play (Bomb Tag pattern)
+  useEffect(() => {
+    const root = rootElRef.current;
+    if (!root) return;
+    const shell = root.closest(".lwd-shell");
+    const wrap = root.closest(".lwd-wrap");
+    const host = wrap?.parentElement;
+    for (const el of [shell, wrap, host]) {
+      if (!el) continue;
+      el.setAttribute("data-lwd-screen", screen);
+    }
+    return () => {
+      for (const el of [shell, wrap, host]) {
+        try { el?.removeAttribute("data-lwd-screen"); } catch { /* */ }
+      }
+    };
+  }, [screen]);
 
   const E = useRef({
     state: "menu", round: 1, artist: 0, accs: [0, 0],
@@ -1587,6 +1609,7 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
 
   return (
     <div
+      ref={rootElRef}
       className={`w-full relative flex items-center justify-center lwd-root ${screen === "menu" ? "lwd-root-menu" : "lwd-root-play"}`}
       style={{
         background: "#07080f",
@@ -1662,43 +1685,47 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
         </div>
       )}
 
-      {/* MENU — in document flow so the website page scrolls (no inner game scrollbar) */}
+      {/* MENU — compact lobby; room board scrolls when short (Bomb Tag pattern) */}
       {screen === "menu" && (
-        <div className="lwd-menu w-full flex justify-center" style={{ background: "#07080f" }}>
-          <div className="w-full max-w-[860px] px-3 pt-7 pb-10 text-center">
-            <h1 className="text-4xl font-bold mb-1" style={{ letterSpacing: 8 }}>
-              <span style={{ color: cyan, textShadow: `0 0 14px ${cyan},0 0 40px rgba(56,199,255,.4)` }}>LASER</span>{" 🔦 "}
-              <span style={{ color: red, textShadow: `0 0 14px ${red},0 0 40px rgba(255,77,90,.4)` }}>WALL DUEL</span>
-            </h1>
-            <div className="text-[13px] mb-4" style={{ color: dim, letterSpacing: 2 }}>
-              {online
-                ? `${nameA} vs ${nameB} · same map · shooter vs wall man · round 2 swaps roles`
-                : "one draws with a laser · one blocks with their body · 2 rounds, switch roles · best tracer wins"}
-            </div>
+        <div className="lwd-lobby w-full flex justify-center" style={{ background: "#07080f" }}>
+          <div className="lwd-lobby-inner">
+            <header className="lwd-lobby-hero">
+              <h1 className="lwd-lobby-title">
+                <span className="lwd-lobby-title-a">LASER</span>
+                <span className="lwd-lobby-title-icon" aria-hidden="true">🔦</span>
+                <span className="lwd-lobby-title-b">WALL DUEL</span>
+              </h1>
+              <p className="lwd-lobby-tagline">
+                {online
+                  ? `${nameA} vs ${nameB} · same map · shooter vs wall man · round 2 swaps roles`
+                  : "one draws with a laser · one blocks with their body · 2 rounds, switch roles · best tracer wins"}
+              </p>
+            </header>
+
             {online && (
-              <div className="mb-4 rounded-2xl px-4 py-3 text-sm" style={{ background: card, border: `1.5px solid ${line}`, letterSpacing: 1 }}>
-                <div className="font-bold mb-1" style={{ color: isHost ? cyan : red }}>
+              <div className="lwd-lobby-cta" style={{ background: card, border: `1.5px solid ${line}` }}>
+                <div className="lwd-lobby-cta-role" style={{ color: isHost ? cyan : red }}>
                   {isHost ? `You (${nameA}) start as SHOOTER 🔦` : `You (${nameB}) start as WALL MAN 🎈`}
                 </div>
-                <div style={{ color: dim, fontSize: 12 }}>
+                <div className="lwd-lobby-cta-hint" style={{ color: dim }}>
                   {isHost
                     ? (guestReady
                       ? `${nameB} is ready — press Start Match. You play together on one wall.`
                       : `Waiting for ${nameB} to press I'm Ready — then you both jump into the same match.`)
                     : (guestReady
                       ? `Ready — waiting for ${nameA} to start. You'll block their laser on the same map.`
-                      : `Press I'm Ready. Host starts → you both play shooter vs wall man together.`)}
+                      : `Press I'm Ready.`)}
                 </div>
               </div>
             )}
-            <div className="flex gap-3 justify-center items-center flex-wrap">
+
+            <div className="lwd-lobby-actions">
               {(!online || isHost) && (
-                <button onClick={startMatchUI} disabled={online && !guestReady}
-                  className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
+                <button type="button" onClick={startMatchUI} disabled={online && !guestReady}
+                  className="lwd-lobby-cta-btn"
                   style={{
-                    padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", fontFamily: "inherit",
                     background: online && !guestReady ? "linear-gradient(90deg,#3a4558,#4a5568)" : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
-                    boxShadow: online && !guestReady ? "none" : "0 0 26px rgba(90,120,255,.45)",
+                    boxShadow: online && !guestReady ? "none" : "0 0 20px rgba(90,120,255,.4)",
                     opacity: online && !guestReady ? 0.6 : 1,
                     cursor: online && !guestReady ? "not-allowed" : "pointer",
                   }}>
@@ -1706,96 +1733,85 @@ export default function LaserWallDuel({ myRole, rt, names = {} } = {}) {
                 </button>
               )}
               {isGuest && (
-                <button onClick={() => setReady(!guestReady)}
-                  className="cursor-pointer rounded-2xl font-bold text-white transition-transform hover:scale-105"
+                <button type="button" onClick={() => setReady(!guestReady)}
+                  className="lwd-lobby-cta-btn"
                   style={{
-                    padding: "15px 58px", fontSize: 20, letterSpacing: 5, border: "none", fontFamily: "inherit",
                     background: guestReady
                       ? "linear-gradient(90deg,#2a8f5a,#3ecf8e)"
                       : "linear-gradient(90deg,#3a7bfd,#ff4d5a)",
-                    boxShadow: guestReady ? "0 0 26px rgba(62,207,142,.45)" : "0 0 26px rgba(90,120,255,.45)",
+                    boxShadow: guestReady ? "0 0 20px rgba(62,207,142,.4)" : "0 0 20px rgba(90,120,255,.4)",
                   }}>
                   {guestReady ? "READY ✓  (tap to cancel)" : "I'M READY ▶"}
                 </button>
               )}
-              <button onClick={() => setCustomOpen(true)} disabled={isGuest}
-                className="cursor-pointer rounded-2xl px-6 py-4 text-sm font-bold transition-transform hover:-translate-y-0.5"
+              <button type="button" onClick={() => setCustomOpen(true)} disabled={isGuest}
+                className="lwd-lobby-custom-btn"
                 style={{
-                  background: card, color: "#dfe6f5", fontFamily: "inherit", letterSpacing: 2,
-                  border: "1.5px solid #a86bff", boxShadow: "0 0 14px rgba(168,107,255,.35)",
+                  background: card, color: "#dfe6f5",
+                  border: "1.5px solid #a86bff", boxShadow: "0 0 12px rgba(168,107,255,.3)",
                   opacity: isGuest ? 0.55 : 1, cursor: isGuest ? "default" : "pointer",
                 }}>
                 ✏️ CUSTOM MATCH
-                <small className="block mt-0.5 font-normal" style={{ color: dim, fontSize: 10, letterSpacing: 1 }}>
-                  {isGuest ? "host picks drawings" : "pick the drawings yourself"}
-                </small>
+                <small>{isGuest ? "host picks drawings" : "pick the drawings yourself"}</small>
               </button>
             </div>
+
             {customSet.length > 0 && (
-              <div className="mt-3 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs" style={{ background: card, border: "1.5px solid #a86bff", letterSpacing: 1 }}>
-                <span style={{ color: "#a86bff", fontWeight: "bold" }}>CUSTOM SET ACTIVE:</span>
+              <div className="lwd-lobby-custom-active" style={{ background: card, border: "1.5px solid #a86bff" }}>
+                <span style={{ color: "#a86bff", fontWeight: "bold" }}>CUSTOM SET:</span>
                 <span>{customSet.map((n) => TPL[n]?.icon).join(" ")}</span>
                 {!isGuest && (
-                  <button onClick={() => syncSetting("customSet", [])} className="cursor-pointer rounded-md px-2 py-0.5 ml-1" style={{ background: "#060810", border: `1px solid ${line}`, color: dim, fontFamily: "inherit", fontSize: 11 }}>✕ clear</button>
+                  <button type="button" onClick={() => syncSetting("customSet", [])} className="lwd-lobby-clear-btn" style={{ background: "#060810", border: `1px solid ${line}`, color: dim }}>✕</button>
                 )}
               </div>
             )}
 
-            <div className="text-sm font-bold mt-5 mb-2.5" style={{ letterSpacing: 2 }}>Round time:</div>
-            <div className="flex gap-3 justify-center">
-              {[45, 60].map((tt) => (
-                <button key={tt} disabled={isGuest} onClick={() => syncSetting("time", tt)}
-                  className="cursor-pointer rounded-xl px-6 py-3 text-sm"
-                  style={{ ...pillStyle(settings.time === tt), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
-                  <b>{tt} s</b><small className="block mt-0.5" style={{ color: dim, fontSize: 11 }}>{tt === 45 ? "fast & frantic" : "classic"}</small>
-                </button>
-              ))}
-            </div>
+            <section className="lwd-lobby-section">
+              <div className="lwd-lobby-label">Round time</div>
+              <div className="lwd-opt-row">
+                {[45, 60].map((tt) => (
+                  <button key={tt} type="button" disabled={isGuest} onClick={() => syncSetting("time", tt)}
+                    className="lwd-opt-pill"
+                    style={{ ...pillStyle(settings.time === tt), opacity: isGuest ? 0.7 : 1, cursor: isGuest ? "default" : "pointer" }}>
+                    <span className="lwd-opt-pill-title"><b>{tt} s</b></span>
+                    <span className="lwd-opt-pill-sub" style={{ color: dim }}>{tt === 45 ? "fast & frantic" : "classic"}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
 
-            <div className="text-sm font-bold mt-5 mb-2.5" style={{ letterSpacing: 2 }}>
-              {online ? "Choose your map (either player):" : "Choose your map:"}
-            </div>
-            <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
-              {MAPS.map((_, i) => (
-                <MapCard key={i} i={i} selected={settings.map === i}
-                  onSelect={(m) => syncSetting("map", m, { anyone: true })} />
-              ))}
-            </div>
+            <section className="lwd-lobby-section lwd-lobby-maps">
+              <div className="lwd-lobby-label">
+                Choose your map
+                {online ? <span className="lwd-lobby-label-hint"> · either can pick</span> : null}
+              </div>
+              <div className="lwd-map-grid">
+                {MAPS.map((_, i) => (
+                  <MapCard key={i} i={i} selected={settings.map === i}
+                    onSelect={(m) => syncSetting("map", m, { anyone: true })} />
+                ))}
+              </div>
+            </section>
 
-            <div className="grid grid-cols-2 gap-3 mt-6 max-[640px]:grid-cols-1">
-              <div className="rounded-2xl p-4 text-left" style={{ background: card, border: `1.5px solid ${cyan}44`, boxShadow: "inset 0 0 30px rgba(56,199,255,.05)" }}>
-                <div className="font-bold tracking-widest mb-2" style={{ color: cyan }}>🔦 LASER ARTIST</div>
-                <div className="text-xs leading-loose" style={{ color: dim }}>
-                  {online ? (
-                    isHost
-                      ? <><Key>A</Key>/<Key>D</Key> — walk (you are artist in round 1)<br /></>
-                      : <><Key>←</Key>/<Key>→</Key> or <Key>A</Key>/<Key>D</Key> — walk (you are artist in round 2)<br /></>
-                  ) : (
-                    <><Key>A</Key>/<Key>D</Key> — walk on the ground<br /></>
-                  )}
-                  <Key>MOUSE</Key> — aim the laser at the wall<br />
-                  <Key>HOLD LEFT CLICK</Key> — fire &amp; draw<br />
-                  Trace the glowing outline. Stay ON the line — sloppy drawing costs accuracy. Reach <b style={{ color: "#dfe6f5" }}>{WIN_THRESHOLD}%</b> to win your round.
+            <div className="lwd-lobby-help">
+              <div className="lwd-help-card" style={{ borderColor: `${cyan}44` }}>
+                <div className="lwd-help-title" style={{ color: cyan }}>🔦 SHOOTER</div>
+                <div className="lwd-help-body" style={{ color: dim }}>
+                  {online
+                    ? (isHost ? <><Key>A</Key>/<Key>D</Key> walk · </> : <><Key>←</Key>/<Key>→</Key> walk · </>)
+                    : <><Key>A</Key>/<Key>D</Key> walk · </>}
+                  <Key>MOUSE</Key> aim · <Key>CLICK</Key> draw · hit {WIN_THRESHOLD}%+
                 </div>
               </div>
-              <div className="rounded-2xl p-4 text-left" style={{ background: card, border: `1.5px solid ${red}44`, boxShadow: "inset 0 0 30px rgba(255,77,90,.05)" }}>
-                <div className="font-bold tracking-widest mb-2" style={{ color: red }}>🎈 WALL RUNNER</div>
-                <div className="text-xs leading-loose" style={{ color: dim }}>
-                  {online ? (
-                    isHost
-                      ? <><Key>W</Key><Key>A</Key><Key>S</Key><Key>D</Key> — run on the wall (you are runner in round 2)<br /><Key>SHIFT</Key> — leap / jump<br /></>
-                      : <><Key>←</Key><Key>→</Key><Key>↑</Key><Key>↓</Key> — run on the wall (you are runner in round 1)<br /><Key>SHIFT</Key> — leap / jump<br /></>
-                  ) : (
-                    <><Key>←</Key><Key>→</Key><Key>↑</Key><Key>↓</Key> — run anywhere on the wall<br /><Key>SHIFT</Key> — leap off the wall / jump<br /></>
-                  )}
-                  You wear a giant <b style={{ color: "#dfe6f5" }}>inflatable suit</b> — put it in the laser's path! Blocked laser = zero progress for the artist.
+              <div className="lwd-help-card" style={{ borderColor: `${red}44` }}>
+                <div className="lwd-help-title" style={{ color: red }}>🎈 WALL MAN</div>
+                <div className="lwd-help-body" style={{ color: dim }}>
+                  {online
+                    ? (isHost ? <><Key>WASD</Key> · </> : <><Key>ARROWS</Key> · </>)
+                    : <><Key>ARROWS</Key> · </>}
+                  <Key>SHIFT</Key> leap · block laser with suit
                 </div>
               </div>
-            </div>
-
-            <div className="rounded-xl px-4 py-3 mt-4 text-xs" style={{ background: card, border: `1.5px solid ${line}`, color: dim, letterSpacing: 1, lineHeight: 1.9 }}>
-              🏆 <b style={{ color: "#dfe6f5" }}>MATCH:</b> 2 rounds — you swap roles after round 1. Whoever scores the higher tracing accuracy as the artist wins the match.<br />
-              📊 96%+ EXCELLENT · 84%+ GREAT · {WIN_THRESHOLD}%+ GOOD (artist wins the round) · below = the runner blocked it!
             </div>
           </div>
         </div>

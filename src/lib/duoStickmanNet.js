@@ -42,8 +42,12 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
   let remoteState = null;
   let lastState = null;
   let remoteTrail = null;
-  let seq = 0;
-  let lastSeq = -1;
+  // Separate seq spaces for pose (p1) vs snapshot (st) — sharing one counter made
+  // out-of-order arrivals drop the other channel (e.g. delayed st after newer p1).
+  let poseSeq = 0;
+  let stateSeq = 0;
+  let lastPoseSeq = -1;
+  let lastStateSeq = -1;
   let trailSeq = 0;
   let lastTrailSeq = -1;
   let uiHandler = null;
@@ -71,11 +75,11 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
       // Host body / clock on the pose channel only (mirroring into `st` caused
       // the guest to re-apply a stale snapshot the next frame → rubber-band).
       if (typeof m.seq === 'number') {
-        if (m.seq <= lastSeq) {
-          const hostRestarted = lastSeq > 60 && m.seq < 15;
+        if (m.seq <= lastPoseSeq) {
+          const hostRestarted = lastPoseSeq > 60 && m.seq < 15;
           if (!hostRestarted) return;
         }
-        lastSeq = m.seq;
+        lastPoseSeq = m.seq;
       }
       if (typeof m.x === 'number') {
         remoteExtra = { pose: m, from: 'p1' };
@@ -91,11 +95,11 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
       if (typeof m.seq === 'number') {
         // Drop older snapshots, but accept host remount / seq reset so P1
         // doesn't freeze forever on the invited screen.
-        if (m.seq <= lastSeq) {
-          const hostRestarted = lastSeq > 60 && m.seq < 15;
+        if (m.seq <= lastStateSeq) {
+          const hostRestarted = lastStateSeq > 60 && m.seq < 15;
           if (!hostRestarted) return;
         }
-        lastSeq = m.seq;
+        lastStateSeq = m.seq;
       }
       remoteState = m.st;
       lastState = m.st;
@@ -195,7 +199,8 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     remoteKeys = {};
     prevRemoteKeys = {};
     remotePressed = [];
-    lastSeq = -1;
+    lastPoseSeq = -1;
+    lastStateSeq = -1;
     lastTrailSeq = -1;
   }
 
@@ -227,9 +232,9 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     const send = (rt && (rt.sendNow || rt.send)) || null;
     if (!online || !send) return;
     if (isHost) {
-      seq += 1;
+      stateSeq += 1;
       const st = typeof packState === 'function' ? packState() : packState;
-      if (st != null) send({ k: 'st', seq, st });
+      if (st != null) send({ k: 'st', seq: stateSeq, st });
     } else {
       const keys = {};
       for (const code of p2Codes) keys[code] = !!localHeld[code];
@@ -258,8 +263,8 @@ export function createDuoStickmanNet({ rt, myRole, p1Codes, p2Codes, remap = nul
     const send = (rt && (rt.sendNow || rt.send)) || null;
     if (!online || !send || !pose) return;
     if (isHost) {
-      seq += 1;
-      send({ k: 'p1', seq, role: 'A', ...pose });
+      poseSeq += 1;
+      send({ k: 'p1', seq: poseSeq, role: 'A', ...pose });
     } else {
       send({ k: 'p2', role: 'B', ...pose });
     }
